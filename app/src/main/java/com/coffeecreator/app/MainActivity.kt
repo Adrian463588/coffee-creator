@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
                                             showMenu = false
                                         }
                                     )
-                                    Divider()
+                                    HorizontalDivider()
                                     DropdownMenuItem(
                                         text = { Text("Settings & Privacy") },
                                         leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },

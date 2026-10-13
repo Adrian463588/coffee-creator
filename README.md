@@ -16,7 +16,7 @@ Get the latest installable Android APK directly:
 
 | Version | Release Date | Direct APK Download | Release Notes | Package Hash (SHA-256) |
 | :--- | :--- | :--- | :--- | :--- |
-| **v1.0.0 (Latest)** | 2026-10-13 | [📥 Download coffee-creator-v1.0.0.apk](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | [GitHub Release v1.0.0](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.0.0) | `DC6ADACC4C7EA2DE3D92DEC7504CD3069AA96CED28406C4B165DAAC49F934439` |
+| **v1.0.0 (Latest)** | 2026-10-13 | [📥 Download coffee-creator-v1.0.0.apk](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | [GitHub Release v1.0.0](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.0.0) | `2843362FF29DD536DA78F4263D5E2B66D1A98482C47C1376DB037E3439CA02FF` |
 
 *(All historical versions preserved in [GitHub Releases](https://github.com/Adrian463588/coffee-creator/releases)).*
 
@@ -24,26 +24,31 @@ Get the latest installable Android APK directly:
 
 ## 📜 Version History & Changelog
 
-### [v1.0.0] - 2026-10-13 (Baseline Release)
+### [v1.0.0] - 2026-10-13 (Production Baseline)
 - **Manual Formulation & Science Engine (FR-02, FR-03)**:
   - Pure Kotlin deterministic calculation engine with `BigDecimal` arithmetic.
   - Golden test verified: **18.0g dose**, **270.0g beverage mass**, **1.30% measured TDS** $\implies$ exactly **19.50% Extraction Yield**.
   - Brew ratio calculations, mass-fraction weighted dilution, concentration (ppm and % w/w), volume-to-mass conversions with density check.
-- **Coffee Catalog & Provenance (FR-01)**:
-  - Curated seed lots (Ethiopia Yirgacheffe Chelchele, Colombia Huila Pitalito, Kenya Nyeri Hill SL28, Costa Rica Tarrazú, Indonesia Sumatra Gayo).
-  - Custom bean creation with origin, altitude, variety, process, and roast level metadata. Missing data tracked as `unknown`.
-- **Sensory Evaluation & Overlay (FR-04)**:
-  - 10-point scale cupping sliders across Aroma, Acidity, Sweetness, Body, Finish, Balance.
-  - Directional rule-based heuristic estimation overlay with explicit uncalibrated disclaimer.
-- **Local On-Device AI Chat & Tool Router (FR-05, FR-07)**:
+  - Interactive multi-step brew guide & timer with schedule breakdown, live seconds counter, pause/reset, bypass water, and agitation routine.
+- **Coffee Catalog & Blend Management (FR-01)**:
+  - Curated single origin lots + House Blend formulation (Colombia Castillo 60% + Ethiopia Chelchele 40% summing to 100%).
+  - Degas days, roast date tracking, density, and allergen food-grade compliance.
+  - Deterministic blend ratio validation (`validateBlendRatios`).
+- **Sensory Evaluation & Radar Polygon Chart (FR-04)**:
+  - 8 cupping attributes (Aroma, Acidity, Sweetness, Bitterness, Body, Clarity, Finish, Balance) on 1-10 scale.
+  - Interactive Jetpack Compose Canvas Radar/Spider chart comparing empirical observations with directional heuristics.
+  - Explicit uncalibrated disclaimer on all model-generated estimates.
+- **Local On-Device AI Chat & 9 Harmonized Typed Tools (FR-05, FR-07)**:
   - Persona selector (Head Barista, Coffee R&D, Sensory Evaluator, Coffee Trainer).
-  - Allowlisted registry of 9 typed tools + confirmed write gate for `save_recipe`.
-- **Offline Document RAG (FR-06)**:
+  - Exact 9 allowlisted typed Kotlin tools: `calculate_extraction_yield`, `calculate_brew_ratio`, `calculate_dilution`, `calculate_concentration_ppm`, `convert_volume_to_mass`, `search_knowledge`, `estimate_sensory_profile`, `get_coffee_details`, `save_recipe`.
+  - Confirmed write gate for `save_recipe` requiring explicit user card approval.
+- **Offline Document Hybrid RAG (FR-06)**:
   - Local hybrid lexical and chunk retrieval over SCA brewing manuals and water quality standards.
   - Grounded source citations (`[Title, Page, Chunk]`) with strict abstention when evidence is missing.
 - **SAF Asset Manager & Backups (FR-08, FR-09, FR-10)**:
   - User-owned models via Android Storage Access Framework (SAF). Resumable downloads, checksum validation.
   - JSON backup manifest export and restore with integrity validation.
+  - 100% offline, zero telemetry, zero background network.
 
 ---
 

@@ -19,7 +19,9 @@ object SensoryRulesEngine {
         var aroma = 6
         var acidity = 6
         var sweetness = 6
+        var bitterness = 3
         var body = 6
+        var clarity = 7
         var finish = 6
         var balance = 7
         val descriptors = mutableListOf<String>()
@@ -33,17 +35,22 @@ object SensoryRulesEngine {
                 acidity += 2
                 sweetness += 1
                 body -= 1
+                bitterness -= 1
+                clarity += 2
                 descriptors.addAll(listOf("Bright Citrus", "Floral", "Tea-like"))
             }
             roast.contains("dark") -> {
                 acidity -= 2
                 body += 2
+                bitterness += 3
+                clarity -= 2
                 finish += 1
                 descriptors.addAll(listOf("Dark Chocolate", "Roasted Walnut", "Molasses"))
             }
             else -> { // Medium
                 sweetness += 2
                 balance += 1
+                clarity += 1
                 descriptors.addAll(listOf("Milk Chocolate", "Caramel", "Red Apple"))
             }
         }
@@ -53,6 +60,7 @@ object SensoryRulesEngine {
                 sweetness += 1
                 body += 1
                 aroma += 1
+                clarity -= 1
                 descriptors.addAll(listOf("Berry Jam", "Dried Fruit", "Winey"))
             }
             process.contains("honey") -> {
@@ -62,11 +70,14 @@ object SensoryRulesEngine {
             process.contains("washed") -> {
                 acidity += 1
                 balance += 1
+                clarity += 1
                 descriptors.addAll(listOf("Clean Citrus", "Crisp Apple", "Floral Jasmine"))
             }
             process.contains("wet hulled") -> {
                 body += 2
                 acidity -= 1
+                bitterness += 1
+                clarity -= 1
                 descriptors.addAll(listOf("Earthy", "Herbal", "Cedar"))
             }
         }
@@ -74,6 +85,7 @@ object SensoryRulesEngine {
         if (origin.contains("ethiopia") || origin.contains("kenya")) {
             aroma += 1
             acidity += 1
+            clarity += 1
             descriptors.add("Bergamot / Blackcurrant")
         }
 
@@ -92,6 +104,8 @@ object SensoryRulesEngine {
                     sweetness -= 1
                     finish -= 1
                     balance -= 2
+                    bitterness += 3
+                    clarity -= 1
                     body += 1
                     descriptors.add("(Over-extracted tendency: Bitter / Astringent)")
                 }
@@ -110,7 +124,9 @@ object SensoryRulesEngine {
             aroma = clamp(aroma),
             acidity = clamp(acidity),
             sweetness = clamp(sweetness),
+            bitterness = clamp(bitterness),
             body = clamp(body),
+            clarity = clamp(clarity),
             finish = clamp(finish),
             balance = clamp(balance),
             suggestedDescriptors = descriptors.distinct().take(6),

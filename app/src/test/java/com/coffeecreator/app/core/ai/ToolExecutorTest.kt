@@ -84,4 +84,29 @@ class ToolExecutorTest {
         assertFalse(result.isSuccess)
         assertTrue(result.output.contains("not in the allowlist registry"))
     }
+
+    @Test
+    fun `FR-07 execute calculate_concentration_ppm computes mass fraction and ppm`() {
+        val result = ToolExecutor.execute(
+            "calculate_concentration_ppm",
+            mapOf("soluteMassGrams" to 2.0, "solutionMassGrams" to 1000.0)
+        )
+
+        assertTrue(result.isSuccess)
+        val conc = result.structuredData as? CalculationResult.Concentration
+        assertNotNull(conc)
+        assertEquals(2000.0, conc!!.ppm, 0.01)
+        assertTrue(result.output.contains("2000.0 ppm"))
+    }
+
+    @Test
+    fun `FR-07 execute get_coffee_details retrieves origin and allergen specs`() {
+        val result = ToolExecutor.execute(
+            "get_coffee_details",
+            mapOf("query" to "Ethiopia")
+        )
+
+        assertTrue(result.isSuccess)
+        assertTrue(result.output.contains("Chelchele") || result.output.contains("Ethiopia"))
+    }
 }

@@ -70,7 +70,16 @@ data class RecipeBuilderUiState(
     val doseInput: String = "18.0",
     val waterInput: String = "300.0",
     val beverageInput: String = "270.0",
+    val bypassInput: String = "0.0",
+    val agitationInput: String = "Gentle spiral pour",
     val tdsInput: String = "1.30",
+    val brewSteps: List<BrewStep> = listOf(
+        BrewStep(1, "Bloom with 50g water (swirl)", 50.0, 45),
+        BrewStep(2, "Pour to 150g in gentle circles", 150.0, 45),
+        BrewStep(3, "Pour to 300g center draw-down", 300.0, 90)
+    ),
+    val timerRunning: Boolean = false,
+    val timerSeconds: Int = 0,
     val ratioResult: Result<CalculationResult.BrewRatio>? = null,
     val eyResult: Result<CalculationResult.ExtractionYield>? = null,
     val saveMessage: String? = null
@@ -83,13 +92,18 @@ sealed interface RecipeBuilderIntent {
     data class UpdateDose(val dose: String) : RecipeBuilderIntent
     data class UpdateWater(val water: String) : RecipeBuilderIntent
     data class UpdateBeverage(val beverage: String) : RecipeBuilderIntent
+    data class UpdateBypass(val bypass: String) : RecipeBuilderIntent
+    data class UpdateAgitation(val agitation: String) : RecipeBuilderIntent
     data class UpdateTds(val tds: String) : RecipeBuilderIntent
+    data object ToggleTimer : RecipeBuilderIntent
+    data object ResetTimer : RecipeBuilderIntent
     data object SaveRecipe : RecipeBuilderIntent
 }
 
 class RecipeBuilderViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(RecipeBuilderUiState())
     val uiState: StateFlow<RecipeBuilderUiState> = _uiState.asStateFlow()
+    private var timerJob: kotlinx.coroutines.Job? = null
 
     init {
         recalculate()
@@ -118,9 +132,34 @@ class RecipeBuilderViewModel : ViewModel() {
                 _uiState.update { it.copy(beverageInput = intent.beverage, saveMessage = null) }
                 recalculate()
             }
+            is RecipeBuilderIntent.UpdateBypass -> {
+                _uiState.update { it.copy(bypassInput = intent.bypass, saveMessage = null) }
+            }
+            is RecipeBuilderIntent.UpdateAgitation -> {
+                _uiState.update { it.copy(agitationInput = intent.agitation, saveMessage = null) }
+            }
             is RecipeBuilderIntent.UpdateTds -> {
                 _uiState.update { it.copy(tdsInput = intent.tds, saveMessage = null) }
                 recalculate()
+            }
+            is RecipeBuilderIntent.ToggleTimer -> {
+                val running = _uiState.value.timerRunning
+                if (running) {
+                    timerJob?.cancel()
+                    _uiState.update { it.copy(timerRunning = false) }
+                } else {
+                    _uiState.update { it.copy(timerRunning = true) }
+                    timerJob = viewModelScope.launch {
+                        while (true) {
+                            kotlinx.coroutines.delay(1000)
+                            _uiState.update { it.copy(timerSeconds = it.timerSeconds + 1) }
+                        }
+                    }
+                }
+            }
+            is RecipeBuilderIntent.ResetTimer -> {
+                timerJob?.cancel()
+                _uiState.update { it.copy(timerRunning = false, timerSeconds = 0) }
             }
             is RecipeBuilderIntent.SaveRecipe -> {
                 saveCurrentRecipe()
@@ -146,6 +185,7 @@ class RecipeBuilderViewModel : ViewModel() {
         val dose = s.doseInput.toDoubleOrNull() ?: 0.0
         val water = s.waterInput.toDoubleOrNull() ?: 0.0
         val beverage = s.beverageInput.toDoubleOrNull() ?: 0.0
+        val bypass = s.bypassInput.toDoubleOrNull() ?: 0.0
         val tds = s.tdsInput.toDoubleOrNull()
 
         val recipe = Recipe(
@@ -156,6 +196,10 @@ class RecipeBuilderViewModel : ViewModel() {
             doseGrams = dose,
             waterGrams = water,
             beverageMassGrams = beverage,
+            bypassGrams = bypass,
+            agitation = s.agitationInput,
+            brewSteps = s.brewSteps,
+            brewTimeSeconds = if (s.timerSeconds > 0) s.timerSeconds else 180,
             measuredTdsPercent = if (tds != null && tds > 0.0) tds else null,
             targetRatio = s.ratioResult?.getOrNull()?.ratioString ?: "1:16.67"
         )
@@ -177,7 +221,15 @@ data class CoffeeLibraryUiState(
 sealed interface CoffeeLibraryIntent {
     data class Search(val query: String) : CoffeeLibraryIntent
     data class FilterProcess(val process: String?) : CoffeeLibraryIntent
-    data class AddBean(val name: String, val country: String, val process: String, val roast: String) : CoffeeLibraryIntent
+    data class AddBean(
+        val name: String,
+        val country: String,
+        val process: String,
+        val roast: String,
+        val roastDate: String? = null,
+        val degasDays: Int? = null,
+        val blendComponents: List<BlendComponent> = emptyList()
+    ) : CoffeeLibraryIntent
     data class ToggleAddDialog(val show: Boolean) : CoffeeLibraryIntent
 }
 
@@ -206,6 +258,9 @@ class CoffeeLibraryViewModel : ViewModel() {
                     region = "Custom Region",
                     process = intent.process,
                     roastLevel = intent.roast,
+                    roastDate = intent.roastDate,
+                    degasDays = intent.degasDays,
+                    blendComponents = intent.blendComponents,
                     isCuratedSeed = false
                 )
                 DataRepository.addBean(newBean)
@@ -224,7 +279,9 @@ data class SensoryUiState(
     val aroma: Float = 8f,
     val acidity: Float = 7f,
     val sweetness: Float = 8f,
+    val bitterness: Float = 3f,
     val body: Float = 6f,
+    val clarity: Float = 8f,
     val finish: Float = 7f,
     val balance: Float = 8f,
     val notes: String = "Clean floral fragrance, crisp malic acidity, cane sugar sweetness.",
@@ -237,7 +294,9 @@ sealed interface SensoryIntent {
     data class UpdateAroma(val value: Float) : SensoryIntent
     data class UpdateAcidity(val value: Float) : SensoryIntent
     data class UpdateSweetness(val value: Float) : SensoryIntent
+    data class UpdateBitterness(val value: Float) : SensoryIntent
     data class UpdateBody(val value: Float) : SensoryIntent
+    data class UpdateClarity(val value: Float) : SensoryIntent
     data class UpdateFinish(val value: Float) : SensoryIntent
     data class UpdateBalance(val value: Float) : SensoryIntent
     data class UpdateNotes(val notes: String) : SensoryIntent
@@ -269,7 +328,9 @@ class SensoryViewModel : ViewModel() {
             is SensoryIntent.UpdateAroma -> _uiState.update { it.copy(aroma = intent.value) }
             is SensoryIntent.UpdateAcidity -> _uiState.update { it.copy(acidity = intent.value) }
             is SensoryIntent.UpdateSweetness -> _uiState.update { it.copy(sweetness = intent.value) }
+            is SensoryIntent.UpdateBitterness -> _uiState.update { it.copy(bitterness = intent.value) }
             is SensoryIntent.UpdateBody -> _uiState.update { it.copy(body = intent.value) }
+            is SensoryIntent.UpdateClarity -> _uiState.update { it.copy(clarity = intent.value) }
             is SensoryIntent.UpdateFinish -> _uiState.update { it.copy(finish = intent.value) }
             is SensoryIntent.UpdateBalance -> _uiState.update { it.copy(balance = intent.value) }
             is SensoryIntent.UpdateNotes -> _uiState.update { it.copy(notes = intent.notes) }
@@ -283,7 +344,9 @@ class SensoryViewModel : ViewModel() {
                         aroma = s.aroma.toInt(),
                         acidity = s.acidity.toInt(),
                         sweetness = s.sweetness.toInt(),
+                        bitterness = s.bitterness.toInt(),
                         body = s.body.toInt(),
+                        clarity = s.clarity.toInt(),
                         finish = s.finish.toInt(),
                         balance = s.balance.toInt(),
                         notes = s.notes

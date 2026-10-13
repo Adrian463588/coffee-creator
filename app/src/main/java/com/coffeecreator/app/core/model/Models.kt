@@ -4,6 +4,15 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 /**
+ * Blend component for multi-bean lots.
+ */
+data class BlendComponent(
+    val beanId: String,
+    val beanName: String,
+    val percentage: Double // 0.0 to 100.0
+)
+
+/**
  * Curated and user-created coffee beans with origin, processing, and provenance metadata.
  */
 data class CoffeeBean(
@@ -16,11 +25,24 @@ data class CoffeeBean(
     val process: String = "Washed", // Washed, Natural, Honey, Wet Hulled, Anaerobic
     val altitudeMeters: Int? = null,
     val roastLevel: String = "Medium", // Light, Medium-Light, Medium, Medium-Dark, Dark
+    val roastDate: String? = null,
+    val degasDays: Int? = null,
+    val blendComponents: List<BlendComponent> = emptyList(),
     val densityGramsPerMl: Double? = null,
     val allergens: String = "None",
     val foodGrade: Boolean = true,
     val supplierLimitsNotes: String? = null,
     val isCuratedSeed: Boolean = false
+)
+
+/**
+ * Multi-step brew guide for timer.
+ */
+data class BrewStep(
+    val stepNumber: Int,
+    val description: String,
+    val targetWaterGrams: Double,
+    val durationSeconds: Int
 )
 
 /**
@@ -35,12 +57,15 @@ data class Recipe(
     val doseGrams: Double = 18.0,
     val waterGrams: Double = 300.0,
     val beverageMassGrams: Double = 270.0,
+    val bypassGrams: Double = 0.0,
+    val agitation: String = "Gentle spiral pour",
     val measuredTdsPercent: Double? = 1.30, // Measured with refractometer
     val targetRatio: String = "1:16.67",
     val temperatureCelsius: Double = 93.0,
     val pressureBars: Double? = null,
     val brewTimeSeconds: Int = 180,
     val grindSize: String = "Medium-Fine (Comandante 22 clicks)",
+    val brewSteps: List<BrewStep> = emptyList(),
     val notes: String = "",
     val version: Int = 1,
     val createdAt: Long = System.currentTimeMillis(),
@@ -99,7 +124,9 @@ data class SensoryObservation(
     val aroma: Int, // 1 to 10
     val acidity: Int, // 1 to 10
     val sweetness: Int, // 1 to 10
+    val bitterness: Int = 3, // 1 to 10
     val body: Int, // 1 to 10
+    val clarity: Int = 8, // 1 to 10
     val finish: Int, // 1 to 10
     val balance: Int, // 1 to 10
     val tastingDescriptors: List<String> = emptyList(), // e.g. "Jasmine", "Bergamot", "Stone Fruit"
@@ -115,7 +142,9 @@ data class SensoryEstimate(
     val aroma: Int,
     val acidity: Int,
     val sweetness: Int,
+    val bitterness: Int = 3,
     val body: Int,
+    val clarity: Int = 8,
     val finish: Int,
     val balance: Int,
     val suggestedDescriptors: List<String>,

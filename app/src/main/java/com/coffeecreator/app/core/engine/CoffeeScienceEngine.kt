@@ -165,4 +165,25 @@ object CoffeeScienceEngine {
             .toDouble()
         return Result.success(mass)
     }
+
+    /**
+     * FR-01: Validates that blend components sum to exactly 100.0% (within 0.01% precision).
+     */
+    fun validateBlendRatios(components: List<com.coffeecreator.app.core.model.BlendComponent>): Result<Boolean> {
+        if (components.isEmpty()) {
+            return Result.failure(IllegalArgumentException("Blend must contain at least one component."))
+        }
+        var total = BigDecimal.ZERO
+        for (comp in components) {
+            if (comp.percentage <= 0.0 || comp.percentage > 100.0) {
+                return Result.failure(IllegalArgumentException("Component '${comp.beanName}' percentage must be between 0% and 100%."))
+            }
+            total = total.add(BigDecimal.valueOf(comp.percentage))
+        }
+        val roundedTotal = total.setScale(2, RoundingMode.HALF_UP)
+        if (roundedTotal.compareTo(BigDecimal("100.00")) != 0) {
+            return Result.failure(IllegalArgumentException("Total blend components must sum to 100.00%, got $roundedTotal%."))
+        }
+        return Result.success(true)
+    }
 }

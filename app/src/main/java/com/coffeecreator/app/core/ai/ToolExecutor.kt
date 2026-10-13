@@ -26,14 +26,14 @@ object ToolExecutor {
 
     val registry: List<ToolDefinition> = listOf(
         ToolDefinition(
-            name = "calculate_brew_ratio",
-            description = "Calculate deterministic brew water-to-coffee ratio.",
-            parametersDescription = "doseGrams: Double, waterGrams: Double"
-        ),
-        ToolDefinition(
             name = "calculate_extraction_yield",
             description = "Calculate deterministic Extraction Yield (%) from measured beverage mass, TDS%, and dose.",
             parametersDescription = "doseGrams: Double, beverageMassGrams: Double, measuredTdsPercent: Double"
+        ),
+        ToolDefinition(
+            name = "calculate_brew_ratio",
+            description = "Calculate deterministic brew water-to-coffee ratio.",
+            parametersDescription = "doseGrams: Double, waterGrams: Double"
         ),
         ToolDefinition(
             name = "calculate_dilution",
@@ -41,23 +41,18 @@ object ToolExecutor {
             parametersDescription = "initialMassGrams: Double, initialTdsPercent: Double, addedWaterGrams: Double"
         ),
         ToolDefinition(
-            name = "convert_units",
-            description = "Convert liquid volume (mL) to mass (g) with required density.",
+            name = "calculate_concentration_ppm",
+            description = "Calculate mass fraction (%) and concentration (ppm) of solute in solution.",
+            parametersDescription = "soluteMassGrams: Double, solutionMassGrams: Double"
+        ),
+        ToolDefinition(
+            name = "convert_volume_to_mass",
+            description = "Convert liquid volume (mL) to mass (g) with required density (g/mL).",
             parametersDescription = "volumeMl: Double, densityGramsPerMl: Double?"
         ),
         ToolDefinition(
-            name = "lookup_ingredient",
-            description = "Lookup ingredient density, allergen status, and food-grade limits.",
-            parametersDescription = "query: String"
-        ),
-        ToolDefinition(
-            name = "lookup_coffee_origin",
-            description = "Lookup coffee bean origins, altitude, and processing methods from catalog.",
-            parametersDescription = "countryOrRegion: String"
-        ),
-        ToolDefinition(
-            name = "search_documents",
-            description = "Search local imported coffee brewing standards and documents.",
+            name = "search_knowledge",
+            description = "Search local offline coffee brewing guides, SCA standards, and water chemistry documents.",
             parametersDescription = "query: String"
         ),
         ToolDefinition(
@@ -66,9 +61,9 @@ object ToolExecutor {
             parametersDescription = "roastLevel: String, process: String, extractionYieldPercent: Double?"
         ),
         ToolDefinition(
-            name = "recommend_recipe",
-            description = "Propose a baseline brew formulation for a specific bean or flavor profile.",
-            parametersDescription = "targetFlavor: String, brewMethod: String"
+            name = "get_coffee_details",
+            description = "Lookup coffee bean origins, altitude, processing, and ingredient specs from catalog.",
+            parametersDescription = "query: String"
         ),
         ToolDefinition(
             name = "save_recipe",
@@ -143,7 +138,24 @@ object ToolExecutor {
                     }
                 }
 
-                "convert_units" -> {
+                "calculate_concentration_ppm" -> {
+                    val solute = (arguments["soluteMassGrams"] as? Number)?.toDouble() ?: 0.5
+                    val solution = (arguments["solutionMassGrams"] as? Number)?.toDouble() ?: 1000.0
+                    val result = CoffeeScienceEngine.calculateConcentration(solute, solution)
+                    if (result.isSuccess) {
+                        val conc = result.getOrThrow()
+                        ToolExecutionResult(
+                            toolName = toolName,
+                            isSuccess = true,
+                            output = "Concentration: ${conc.ppm} ppm (${conc.massFractionPercent}% w/w)\nSolute: ${conc.soluteMassGrams}g in ${conc.solutionMassGrams}g solution\nProvenance: ${conc.provenance}",
+                            structuredData = conc
+                        )
+                    } else {
+                        ToolExecutionResult(toolName = toolName, isSuccess = false, output = "Error: ${result.exceptionOrNull()?.message}")
+                    }
+                }
+
+                "convert_volume_to_mass", "convert_units" -> {
                     val volume = (arguments["volumeMl"] as? Number)?.toDouble() ?: 250.0
                     val density = (arguments["densityGramsPerMl"] as? Number)?.toDouble()
                     val result = CoffeeScienceEngine.convertVolumeToMass(volume, density)
@@ -162,37 +174,27 @@ object ToolExecutor {
                     }
                 }
 
-                "lookup_ingredient" -> {
-                    val query = (arguments["query"] as? String)?.lowercase() ?: ""
+                "get_coffee_details", "lookup_ingredient", "lookup_coffee_origin" -> {
+                    val query = (arguments["query"] as? String
+                        ?: arguments["countryOrRegion"] as? String
+                        ?: "").lowercase()
                     val matched = DataRepository.beans.value.filter {
-                        it.name.lowercase().contains(query) || it.allergens.lowercase().contains(query)
+                        it.name.lowercase().contains(query) ||
+                                it.country.lowercase().contains(query) ||
+                                it.region.lowercase().contains(query) ||
+                                it.allergens.lowercase().contains(query)
                     }
                     val info = if (matched.isNotEmpty()) {
-                        matched.joinToString("\n---\n") {
-                            "Item: ${it.name}\nDensity: ${it.densityGramsPerMl ?: "Unknown"} g/mL\nAllergens: ${it.allergens}\nFood Grade: ${it.foodGrade}\nNotes: ${it.supplierLimitsNotes ?: "N/A"}"
+                        matched.joinToString("\n\n") {
+                            "• ${it.name} (${it.country}, ${it.region})\n  Process: ${it.process} | Altitude: ${it.altitudeMeters ?: "Unknown"}m\n  Roast: ${it.roastLevel} | Density: ${it.densityGramsPerMl ?: "Unknown"} g/mL\n  Food Grade: ${it.foodGrade} | Allergens: ${it.allergens}\n  Notes: ${it.supplierLimitsNotes ?: "N/A"}"
                         }
                     } else {
-                        "No specific ingredient matched for query '$query'. Allergen standard: safe food-grade only."
+                        "No specific bean or ingredient matched for query '$query'. Allergen standard: safe food-grade only."
                     }
                     ToolExecutionResult(toolName = toolName, isSuccess = true, output = info)
                 }
 
-                "lookup_coffee_origin" -> {
-                    val origin = (arguments["countryOrRegion"] as? String)?.lowercase() ?: ""
-                    val matches = DataRepository.beans.value.filter {
-                        it.country.lowercase().contains(origin) || it.region.lowercase().contains(origin)
-                    }
-                    val text = if (matches.isNotEmpty()) {
-                        matches.joinToString("\n\n") {
-                            "• ${it.name} (${it.country}, ${it.region})\n  Process: ${it.process} | Altitude: ${it.altitudeMeters ?: "Unknown"}m\n  Roast: ${it.roastLevel} | Variety: ${it.variety}"
-                        }
-                    } else {
-                        "No origin records found for '$origin' in local catalog."
-                    }
-                    ToolExecutionResult(toolName = toolName, isSuccess = true, output = text)
-                }
-
-                "search_documents" -> {
+                "search_knowledge", "search_documents" -> {
                     val query = (arguments["query"] as? String) ?: ""
                     val ragResult = HybridRagEngine.search(query)
                     ToolExecutionResult(

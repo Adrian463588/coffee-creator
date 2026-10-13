@@ -150,6 +150,23 @@ fun CoffeeLibraryScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            bean.roastDate?.let { rd ->
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Roast Date: $rd | Degas: ${bean.degasDays?.let { "${it}d" } ?: "N/A"}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            if (bean.blendComponents.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Blend Ratios: " + bean.blendComponents.joinToString { "${it.beanName} (${it.percentage.toInt()}%)" },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
                         }
                     }
                 }
@@ -161,10 +178,12 @@ fun CoffeeLibraryScreen(
             var newCountry by remember { mutableStateOf("") }
             var newProcess by remember { mutableStateOf("Washed") }
             var newRoast by remember { mutableStateOf("Medium") }
+            var newRoastDate by remember { mutableStateOf("2026-10-10") }
+            var newDegasDays by remember { mutableStateOf("7") }
 
             AlertDialog(
                 onDismissRequest = { viewModel.dispatch(CoffeeLibraryIntent.ToggleAddDialog(false)) },
-                title = { Text("Add Custom Coffee Lot") },
+                title = { Text("Add Custom Coffee Lot / Blend") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
@@ -185,10 +204,24 @@ fun CoffeeLibraryScreen(
                             label = { Text("Processing Method") },
                             modifier = Modifier.fillMaxWidth()
                         )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = newRoast,
+                                onValueChange = { newRoast = it },
+                                label = { Text("Roast") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = newDegasDays,
+                                onValueChange = { newDegasDays = it },
+                                label = { Text("Degas (days)") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                         OutlinedTextField(
-                            value = newRoast,
-                            onValueChange = { newRoast = it },
-                            label = { Text("Roast Level") },
+                            value = newRoastDate,
+                            onValueChange = { newRoastDate = it },
+                            label = { Text("Roast Date (YYYY-MM-DD)") },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -202,7 +235,9 @@ fun CoffeeLibraryScreen(
                                         name = newName,
                                         country = newCountry,
                                         process = newProcess,
-                                        roast = newRoast
+                                        roast = newRoast,
+                                        roastDate = newRoastDate.ifBlank { null },
+                                        degasDays = newDegasDays.toIntOrNull()
                                     )
                                 )
                             }

@@ -118,6 +118,96 @@ fun RecipeBuilderScreen(
                             shape = RoundedCornerShape(12.dp)
                         )
                     }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = state.bypassInput,
+                            onValueChange = { viewModel.dispatch(RecipeBuilderIntent.UpdateBypass(it)) },
+                            label = { Text("Bypass Water (g)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        OutlinedTextField(
+                            value = state.agitationInput,
+                            onValueChange = { viewModel.dispatch(RecipeBuilderIntent.UpdateAgitation(it)) },
+                            label = { Text("Agitation Routine") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Multi-step Interactive Brew Timer Card
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Brew Guide & Timer",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            val minutes = state.timerSeconds / 60
+                            val seconds = state.timerSeconds % 60
+                            Text(
+                                text = String.format("%02d:%02d", minutes, seconds),
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilledTonalButton(
+                                onClick = { viewModel.dispatch(RecipeBuilderIntent.ToggleTimer) }
+                            ) {
+                                Text(if (state.timerRunning) "Pause" else "Start")
+                            }
+                            OutlinedButton(
+                                onClick = { viewModel.dispatch(RecipeBuilderIntent.ResetTimer) }
+                            ) {
+                                Text("Reset")
+                            }
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Text(
+                        text = "Step-by-Step Schedule:",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    state.brewSteps.forEach { step ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "${step.stepNumber}. ${step.description}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${step.durationSeconds}s (${step.targetWaterGrams.toInt()}g)",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }

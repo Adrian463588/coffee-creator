@@ -85,10 +85,34 @@ object SeedData {
             process = "Wet Hulled",
             altitudeMeters = 1450,
             roastLevel = "Medium-Dark",
+            roastDate = "2026-10-01",
+            degasDays = 12,
             densityGramsPerMl = 0.67,
             allergens = "None",
             foodGrade = true,
             supplierLimitsNotes = "Heavy body, low acidity, earthy herbal notes.",
+            isCuratedSeed = true
+        ),
+        CoffeeBean(
+            id = "bean-blend-06",
+            name = "Specialty Espresso House Blend",
+            country = "Colombia / Ethiopia",
+            region = "Huila & Yirgacheffe",
+            producer = "Blend Formulation",
+            variety = "Castillo (60%) & Heirloom (40%)",
+            process = "Washed Blend",
+            altitudeMeters = 1850,
+            roastLevel = "Medium",
+            roastDate = "2026-10-05",
+            degasDays = 8,
+            blendComponents = listOf(
+                com.coffeecreator.app.core.model.BlendComponent("bean-col-02", "Colombia Huila", 60.0),
+                com.coffeecreator.app.core.model.BlendComponent("bean-eth-01", "Ethiopia Chelchele", 40.0)
+            ),
+            densityGramsPerMl = 0.71,
+            allergens = "None",
+            foodGrade = true,
+            supplierLimitsNotes = "60/40 balanced espresso blend summing to 100%.",
             isCuratedSeed = true
         )
     )
@@ -103,12 +127,19 @@ object SeedData {
             doseGrams = 18.0,
             waterGrams = 300.0,
             beverageMassGrams = 270.0,
+            bypassGrams = 0.0,
+            agitation = "Gentle spiral pour with bloom swirl",
             measuredTdsPercent = 1.30,
             targetRatio = "1:16.67",
             temperatureCelsius = 93.0,
             pressureBars = null,
             brewTimeSeconds = 180,
             grindSize = "Medium-Fine (Comandante 22 clicks)",
+            brewSteps = listOf(
+                com.coffeecreator.app.core.model.BrewStep(1, "Bloom with 50g water + gentle swirl", 50.0, 45),
+                com.coffeecreator.app.core.model.BrewStep(2, "Second pour to 180g (spiral pattern)", 180.0, 45),
+                com.coffeecreator.app.core.model.BrewStep(3, "Final pour to 300g (center draw-down)", 300.0, 90)
+            ),
             notes = "Bloom 50g 45s, second pour to 180g, third pour to 300g.",
             version = 1
         ),
@@ -121,12 +152,19 @@ object SeedData {
             doseGrams = 15.0,
             waterGrams = 225.0,
             beverageMassGrams = 195.0,
+            bypassGrams = 20.0,
+            agitation = "Paddle stir 5 rotations",
             measuredTdsPercent = 1.45,
             targetRatio = "1:15.00",
             temperatureCelsius = 90.0,
             pressureBars = null,
             brewTimeSeconds = 120,
             grindSize = "Medium (Comandante 18 clicks)",
+            brewSteps = listOf(
+                com.coffeecreator.app.core.model.BrewStep(1, "Add 15g coffee, pour 225g water at 90C", 225.0, 30),
+                com.coffeecreator.app.core.model.BrewStep(2, "Stir 5 times with paddle and steep", 225.0, 60),
+                com.coffeecreator.app.core.model.BrewStep(3, "Attach cap, invert, and press gently", 225.0, 30)
+            ),
             notes = "Inverted method. Stir 5 times, steep 60s, press gently for 30s.",
             version = 1
         )

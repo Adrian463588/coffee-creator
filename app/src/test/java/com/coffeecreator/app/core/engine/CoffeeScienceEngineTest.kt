@@ -113,4 +113,22 @@ class CoffeeScienceEngineTest {
         assertTrue(successWithDensity.isSuccess)
         assertEquals(262.50, successWithDensity.getOrThrow(), 0.01)
     }
+
+    @Test
+    fun `FR-01 Blend ratios must sum to exactly 100 percent`() {
+        val validBlend = listOf(
+            com.coffeecreator.app.core.model.BlendComponent("b1", "Colombia", 60.0),
+            com.coffeecreator.app.core.model.BlendComponent("b2", "Ethiopia", 40.0)
+        )
+        val validResult = CoffeeScienceEngine.validateBlendRatios(validBlend)
+        assertTrue(validResult.isSuccess)
+
+        val invalidBlend = listOf(
+            com.coffeecreator.app.core.model.BlendComponent("b1", "Colombia", 60.0),
+            com.coffeecreator.app.core.model.BlendComponent("b2", "Ethiopia", 35.0)
+        )
+        val invalidResult = CoffeeScienceEngine.validateBlendRatios(invalidBlend)
+        assertTrue(invalidResult.isFailure)
+        assertTrue(invalidResult.exceptionOrNull()?.message?.contains("100.00%") == true)
+    }
 }
