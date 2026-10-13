@@ -37,6 +37,6 @@ Each task must state target PRD ID, owner/agent, changed modules, regression ris
 
 ## Verification commands
 Executed:
-- `./gradlew testDebugUnitTest`: 16/16 tests passed.
-- `./gradlew assembleDebug`: Build successful, APK 16.9 MB generated.
+- `./gradlew testDebugUnitTest`: 21/21 tests passed (Golden math + blend math + all 9 tools + RAG abstention).
+- `./gradlew assembleDebug`: Build successful, APK 16.27 MB generated (SHA-256: 2843362FF29DD536DA78F4263D5E2B66D1A98482C47C1376DB037E3439CA02FF).
 - GitHub Release `v1.0.0` published with APK asset.
