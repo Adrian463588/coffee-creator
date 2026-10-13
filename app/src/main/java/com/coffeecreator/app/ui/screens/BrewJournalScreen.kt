@@ -13,15 +13,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.coffeecreator.app.core.data.DataRepository
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.coffeecreator.app.core.model.Recipe
+import com.coffeecreator.app.ui.viewmodel.BrewJournalIntent
+import com.coffeecreator.app.ui.viewmodel.BrewJournalViewModel
 
 @Composable
 fun BrewJournalScreen(
-    onSelectRecipeForDial: (Recipe) -> Unit
+    onSelectRecipeForDial: (Recipe) -> Unit,
+    viewModel: BrewJournalViewModel = viewModel()
 ) {
-    val recipes by DataRepository.recipes.collectAsState()
-    val observations by DataRepository.sensoryObservations.collectAsState()
+    val state by viewModel.uiState.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -43,7 +45,7 @@ fun BrewJournalScreen(
             )
         }
 
-        if (recipes.isEmpty()) {
+        if (state.recipes.isEmpty()) {
             item {
                 Text(
                     text = "No brew logs found in the journal.",
@@ -52,8 +54,8 @@ fun BrewJournalScreen(
                 )
             }
         } else {
-            items(recipes) { recipe ->
-                val linkedObs = observations.filter { it.recipeId == recipe.id }
+            items(state.recipes) { recipe ->
+                val linkedObs = state.observations.filter { it.recipeId == recipe.id }
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -116,13 +118,12 @@ fun BrewJournalScreen(
                             }
                         }
 
-                        // Actions
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             OutlinedButton(
-                                onClick = { DataRepository.duplicateRecipe(recipe) },
+                                onClick = { viewModel.dispatch(BrewJournalIntent.CloneRecipe(recipe)) },
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -138,7 +139,7 @@ fun BrewJournalScreen(
                             }
 
                             IconButton(
-                                onClick = { DataRepository.deleteRecipe(recipe.id) }
+                                onClick = { viewModel.dispatch(BrewJournalIntent.DeleteRecipe(recipe.id)) }
                             ) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete recipe", tint = MaterialTheme.colorScheme.error)
                             }

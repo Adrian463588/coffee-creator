@@ -13,26 +13,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.coffeecreator.app.core.data.DataRepository
-import com.coffeecreator.app.core.model.CoffeeBean
-import java.util.UUID
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.coffeecreator.app.ui.viewmodel.CoffeeLibraryIntent
+import com.coffeecreator.app.ui.viewmodel.CoffeeLibraryViewModel
 
 @Composable
-fun CoffeeLibraryScreen() {
-    val beans by DataRepository.beans.collectAsState()
+fun CoffeeLibraryScreen(
+    viewModel: CoffeeLibraryViewModel = viewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
 
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedProcessFilter by remember { mutableStateOf<String?>(null) }
-    var showAddDialog by remember { mutableStateOf(false) }
-
-    val filteredBeans = remember(beans, searchQuery, selectedProcessFilter) {
-        beans.filter { bean ->
-            val matchesQuery = searchQuery.isBlank() ||
-                bean.name.contains(searchQuery, ignoreCase = true) ||
-                bean.country.contains(searchQuery, ignoreCase = true) ||
-                bean.variety.contains(searchQuery, ignoreCase = true)
-            val matchesProcess = selectedProcessFilter == null ||
-                bean.process.equals(selectedProcessFilter, ignoreCase = true)
+    val filteredBeans = remember(state.beans, state.searchQuery, state.selectedProcessFilter) {
+        state.beans.filter { bean ->
+            val matchesQuery = state.searchQuery.isBlank() ||
+                bean.name.contains(state.searchQuery, ignoreCase = true) ||
+                bean.country.contains(state.searchQuery, ignoreCase = true) ||
+                bean.variety.contains(state.searchQuery, ignoreCase = true)
+            val matchesProcess = state.selectedProcessFilter == null ||
+                bean.process.equals(state.selectedProcessFilter, ignoreCase = true)
             matchesQuery && matchesProcess
         }
     }
@@ -40,7 +38,7 @@ fun CoffeeLibraryScreen() {
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = { viewModel.dispatch(CoffeeLibraryIntent.ToggleAddDialog(true)) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -70,10 +68,9 @@ fun CoffeeLibraryScreen() {
             }
 
             item {
-                // Search bar
                 OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    value = state.searchQuery,
+                    onValueChange = { viewModel.dispatch(CoffeeLibraryIntent.Search(it)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     placeholder = { Text("Search by origin, variety, producer...") },
                     modifier = Modifier.fillMaxWidth(),
@@ -82,18 +79,17 @@ fun CoffeeLibraryScreen() {
             }
 
             item {
-                // Process Filters
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf("All", "Washed", "Natural", "Honey", "Wet Hulled").forEach { filter ->
-                        val isSelected = (filter == "All" && selectedProcessFilter == null) ||
-                            (selectedProcessFilter == filter)
+                        val isSelected = (filter == "All" && state.selectedProcessFilter == null) ||
+                            (state.selectedProcessFilter == filter)
                         FilterChip(
                             selected = isSelected,
                             onClick = {
-                                selectedProcessFilter = if (filter == "All") null else filter
+                                viewModel.dispatch(CoffeeLibraryIntent.FilterProcess(if (filter == "All") null else filter))
                             },
                             label = { Text(filter) }
                         )
@@ -160,15 +156,14 @@ fun CoffeeLibraryScreen() {
             }
         }
 
-        // Add custom bean modal
-        if (showAddDialog) {
+        if (state.showAddDialog) {
             var newName by remember { mutableStateOf("") }
             var newCountry by remember { mutableStateOf("") }
             var newProcess by remember { mutableStateOf("Washed") }
             var newRoast by remember { mutableStateOf("Medium") }
 
             AlertDialog(
-                onDismissRequest = { showAddDialog = false },
+                onDismissRequest = { viewModel.dispatch(CoffeeLibraryIntent.ToggleAddDialog(false)) },
                 title = { Text("Add Custom Coffee Lot") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -202,18 +197,14 @@ fun CoffeeLibraryScreen() {
                     Button(
                         onClick = {
                             if (newName.isNotBlank() && newCountry.isNotBlank()) {
-                                DataRepository.addBean(
-                                    CoffeeBean(
-                                        id = UUID.randomUUID().toString(),
+                                viewModel.dispatch(
+                                    CoffeeLibraryIntent.AddBean(
                                         name = newName,
                                         country = newCountry,
-                                        region = "Custom Region",
                                         process = newProcess,
-                                        roastLevel = newRoast,
-                                        isCuratedSeed = false
+                                        roast = newRoast
                                     )
                                 )
-                                showAddDialog = false
                             }
                         }
                     ) {
@@ -221,7 +212,7 @@ fun CoffeeLibraryScreen() {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showAddDialog = false }) {
+                    TextButton(onClick = { viewModel.dispatch(CoffeeLibraryIntent.ToggleAddDialog(false)) }) {
                         Text("Cancel")
                     }
                 }

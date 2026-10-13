@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -14,23 +13,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.coffeecreator.app.core.ai.HybridRagEngine
-import com.coffeecreator.app.core.data.DataRepository
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.coffeecreator.app.ui.viewmodel.KnowledgeIntent
+import com.coffeecreator.app.ui.viewmodel.KnowledgeViewModel
 
 @Composable
-fun KnowledgeLibraryScreen() {
-    val documents by DataRepository.documents.collectAsState()
-    val chunks by DataRepository.chunks.collectAsState()
-
-    var searchQuery by remember { mutableStateOf("") }
-    var searchResultText by remember { mutableStateOf<String?>(null) }
-    var citationsList by remember { mutableStateOf<List<String>>(emptyList()) }
-    var showImportDialog by remember { mutableStateOf(false) }
+fun KnowledgeLibraryScreen(
+    viewModel: KnowledgeViewModel = viewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showImportDialog = true },
+                onClick = { viewModel.dispatch(KnowledgeIntent.ToggleImportDialog(true)) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -59,7 +55,6 @@ fun KnowledgeLibraryScreen() {
                 )
             }
 
-            // Search in local docs
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -67,18 +62,14 @@ fun KnowledgeLibraryScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
+                        value = state.searchQuery,
+                        onValueChange = { viewModel.dispatch(KnowledgeIntent.UpdateQuery(it)) },
                         placeholder = { Text("Query local manuals...") },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     )
                     Button(
-                        onClick = {
-                            val res = HybridRagEngine.search(searchQuery)
-                            searchResultText = res.text
-                            citationsList = res.citations
-                        },
+                        onClick = { viewModel.dispatch(KnowledgeIntent.ExecuteSearch) },
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.heightIn(min = 52.dp)
                     ) {
@@ -87,8 +78,7 @@ fun KnowledgeLibraryScreen() {
                 }
             }
 
-            // Search results display
-            searchResultText?.let { text ->
+            state.searchResultText?.let { text ->
                 item {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -115,14 +105,14 @@ fun KnowledgeLibraryScreen() {
 
             item {
                 Text(
-                    text = "Imported Coffee Reference Documents (${documents.size})",
+                    text = "Imported Coffee Reference Documents (${state.documents.size})",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            items(documents) { doc ->
+            items(state.documents) { doc ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -159,13 +149,12 @@ fun KnowledgeLibraryScreen() {
             }
         }
 
-        // Import Dialog
-        if (showImportDialog) {
+        if (state.showImportDialog) {
             var docTitle by remember { mutableStateOf("") }
             var docContent by remember { mutableStateOf("") }
 
             AlertDialog(
-                onDismissRequest = { showImportDialog = false },
+                onDismissRequest = { viewModel.dispatch(KnowledgeIntent.ToggleImportDialog(false)) },
                 title = { Text("Import SAF Document into Local RAG") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -189,8 +178,7 @@ fun KnowledgeLibraryScreen() {
                     Button(
                         onClick = {
                             if (docTitle.isNotBlank() && docContent.isNotBlank()) {
-                                HybridRagEngine.ingestDocument(docTitle, docContent)
-                                showImportDialog = false
+                                viewModel.dispatch(KnowledgeIntent.IngestDocument(docTitle, docContent))
                             }
                         }
                     ) {
@@ -198,7 +186,7 @@ fun KnowledgeLibraryScreen() {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showImportDialog = false }) {
+                    TextButton(onClick = { viewModel.dispatch(KnowledgeIntent.ToggleImportDialog(false)) }) {
                         Text("Cancel")
                     }
                 }

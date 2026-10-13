@@ -8,24 +8,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.coffeecreator.app.core.data.DataRepository
-import com.coffeecreator.app.core.model.ModelAsset
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.coffeecreator.app.core.model.ModelStatus
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.coffeecreator.app.ui.viewmodel.ModelManagerIntent
+import com.coffeecreator.app.ui.viewmodel.ModelManagerViewModel
 
 @Composable
-fun ModelManagerScreen() {
-    val models by DataRepository.models.collectAsState()
-    val safUri by DataRepository.safDirectoryUri.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
+fun ModelManagerScreen(
+    viewModel: ModelManagerViewModel = viewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -47,7 +45,6 @@ fun ModelManagerScreen() {
             )
         }
 
-        // SAF Folder location card
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -66,14 +63,14 @@ fun ModelManagerScreen() {
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = safUri ?: "No directory selected. Tap to grant SAF folder permission.",
+                        text = state.safDirectoryUri ?: "No directory selected. Tap to grant SAF folder permission.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = {
-                            DataRepository.setSafDirectoryUri("content://com.android.externalstorage.documents/tree/primary%3ACoffeeCreatorModels")
+                            viewModel.dispatch(ModelManagerIntent.SelectSafDirectory("content://com.android.externalstorage.documents/tree/primary%3ACoffeeCreatorModels"))
                         },
                         shape = RoundedCornerShape(8.dp)
                     ) {
@@ -85,14 +82,14 @@ fun ModelManagerScreen() {
 
         item {
             Text(
-                text = "Quantized Models Catalog (${models.size})",
+                text = "Quantized Models Catalog (${state.models.size})",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
         }
 
-        items(models) { model ->
+        items(state.models) { model ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -143,7 +140,6 @@ fun ModelManagerScreen() {
                         )
                     }
 
-                    // Action buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -151,19 +147,7 @@ fun ModelManagerScreen() {
                         when (model.status) {
                             ModelStatus.CATALOGUED, ModelStatus.PAUSED -> {
                                 Button(
-                                    onClick = {
-                                        DataRepository.updateModelStatus(model.id, ModelStatus.DOWNLOADING, 10)
-                                        coroutineScope.launch {
-                                            for (p in 20..100 step 20) {
-                                                delay(200)
-                                                DataRepository.updateModelStatus(
-                                                    model.id,
-                                                    if (p == 100) ModelStatus.INSTALLED else ModelStatus.DOWNLOADING,
-                                                    p
-                                                )
-                                            }
-                                        }
-                                    },
+                                    onClick = { viewModel.dispatch(ModelManagerIntent.InstallModel(model.id)) },
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.Download, contentDescription = null)
@@ -173,9 +157,7 @@ fun ModelManagerScreen() {
                             }
                             ModelStatus.DOWNLOADING -> {
                                 OutlinedButton(
-                                    onClick = {
-                                        DataRepository.updateModelStatus(model.id, ModelStatus.PAUSED, model.progressPercent)
-                                    },
+                                    onClick = { viewModel.dispatch(ModelManagerIntent.PauseModel(model.id)) },
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.Pause, contentDescription = null)
@@ -185,9 +167,7 @@ fun ModelManagerScreen() {
                             }
                             ModelStatus.INSTALLED -> {
                                 FilledTonalButton(
-                                    onClick = {
-                                        DataRepository.updateModelStatus(model.id, ModelStatus.CATALOGUED, 0)
-                                    },
+                                    onClick = { viewModel.dispatch(ModelManagerIntent.UninstallModel(model.id)) },
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Text("Uninstall Asset")

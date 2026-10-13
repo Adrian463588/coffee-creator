@@ -13,13 +13,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
-object DataRepository {
+object DataRepository : CoffeeCatalogRepository, RecipeRepository, SensoryRepository, KnowledgeRepository, ModelAssetRepository {
 
     private val _beans = MutableStateFlow<List<CoffeeBean>>(SeedData.curatedBeans)
-    val beans: StateFlow<List<CoffeeBean>> = _beans.asStateFlow()
+    override val beans: StateFlow<List<CoffeeBean>> = _beans.asStateFlow()
 
     private val _recipes = MutableStateFlow<List<Recipe>>(SeedData.sampleRecipes)
-    val recipes: StateFlow<List<Recipe>> = _recipes.asStateFlow()
+    override val recipes: StateFlow<List<Recipe>> = _recipes.asStateFlow()
 
     private val _sensoryObservations = MutableStateFlow<List<SensoryObservation>>(
         listOf(
@@ -38,16 +38,16 @@ object DataRepository {
             )
         )
     )
-    val sensoryObservations: StateFlow<List<SensoryObservation>> = _sensoryObservations.asStateFlow()
+    override val sensoryObservations: StateFlow<List<SensoryObservation>> = _sensoryObservations.asStateFlow()
 
     private val _documents = MutableStateFlow<List<KnowledgeDocument>>(SeedData.curatedDocuments)
-    val documents: StateFlow<List<KnowledgeDocument>> = _documents.asStateFlow()
+    override val documents: StateFlow<List<KnowledgeDocument>> = _documents.asStateFlow()
 
     private val _chunks = MutableStateFlow<List<DocumentChunk>>(SeedData.curatedChunks)
-    val chunks: StateFlow<List<DocumentChunk>> = _chunks.asStateFlow()
+    override val chunks: StateFlow<List<DocumentChunk>> = _chunks.asStateFlow()
 
     private val _models = MutableStateFlow<List<ModelAsset>>(SeedData.curatedModels)
-    val models: StateFlow<List<ModelAsset>> = _models.asStateFlow()
+    override val models: StateFlow<List<ModelAsset>> = _models.asStateFlow()
 
     private val _personas = MutableStateFlow<List<AssistantPersona>>(SeedData.personas)
     val personas: StateFlow<List<AssistantPersona>> = _personas.asStateFlow()
@@ -56,27 +56,27 @@ object DataRepository {
     val selectedPersona: StateFlow<AssistantPersona> = _selectedPersona.asStateFlow()
 
     private val _safDirectoryUri = MutableStateFlow<String?>("content://com.android.externalstorage.documents/tree/primary%3ACoffeeCreatorModels")
-    val safDirectoryUri: StateFlow<String?> = _safDirectoryUri.asStateFlow()
+    override val safDirectoryUri: StateFlow<String?> = _safDirectoryUri.asStateFlow()
 
     // Bean actions
-    fun addBean(bean: CoffeeBean) {
+    override fun addBean(bean: CoffeeBean) {
         _beans.value = _beans.value + bean
     }
 
-    fun updateBean(bean: CoffeeBean) {
+    override fun updateBean(bean: CoffeeBean) {
         _beans.value = _beans.value.map { if (it.id == bean.id) bean else it }
     }
 
-    fun deleteBean(id: String) {
+    override fun deleteBean(id: String) {
         _beans.value = _beans.value.filterNot { it.id == id }
     }
 
-    fun findBeanById(id: String?): CoffeeBean? {
+    override fun findBeanById(id: String?): CoffeeBean? {
         return _beans.value.find { it.id == id }
     }
 
     // Recipe actions
-    fun saveRecipe(recipe: Recipe): Recipe {
+    override fun saveRecipe(recipe: Recipe): Recipe {
         val existingIndex = _recipes.value.indexOfFirst { it.id == recipe.id }
         return if (existingIndex >= 0) {
             val updated = recipe.copy(updatedAt = System.currentTimeMillis())
@@ -93,7 +93,7 @@ object DataRepository {
         }
     }
 
-    fun duplicateRecipe(recipe: Recipe): Recipe {
+    override fun duplicateRecipe(recipe: Recipe): Recipe {
         val clone = recipe.copy(
             id = UUID.randomUUID().toString(),
             name = "${recipe.name} (Copy)",
@@ -105,36 +105,36 @@ object DataRepository {
         return clone
     }
 
-    fun deleteRecipe(id: String) {
+    override fun deleteRecipe(id: String) {
         _recipes.value = _recipes.value.filterNot { it.id == id }
     }
 
-    fun findRecipeById(id: String?): Recipe? {
+    override fun findRecipeById(id: String?): Recipe? {
         return _recipes.value.find { it.id == id }
     }
 
     // Sensory actions
-    fun saveSensoryObservation(observation: SensoryObservation) {
+    override fun saveSensoryObservation(observation: SensoryObservation) {
         _sensoryObservations.value = _sensoryObservations.value + observation
     }
 
-    fun getObservationsForRecipe(recipeId: String): List<SensoryObservation> {
+    override fun getObservationsForRecipe(recipeId: String): List<SensoryObservation> {
         return _sensoryObservations.value.filter { it.recipeId == recipeId }
     }
 
     // Document actions
-    fun addDocumentWithChunks(doc: KnowledgeDocument, newChunks: List<DocumentChunk>) {
+    override fun addDocumentWithChunks(doc: KnowledgeDocument, newChunks: List<DocumentChunk>) {
         _documents.value = _documents.value + doc
         _chunks.value = _chunks.value + newChunks
     }
 
-    fun removeDocument(documentId: String) {
+    override fun removeDocument(documentId: String) {
         _documents.value = _documents.value.filterNot { it.id == documentId }
         _chunks.value = _chunks.value.filterNot { it.documentId == documentId }
     }
 
     // Model management
-    fun updateModelStatus(modelId: String, status: ModelStatus, progress: Int = 0) {
+    override fun updateModelStatus(modelId: String, status: ModelStatus, progress: Int) {
         _models.value = _models.value.map {
             if (it.id == modelId) {
                 it.copy(
@@ -146,7 +146,7 @@ object DataRepository {
         }
     }
 
-    fun setSafDirectoryUri(uri: String?) {
+    override fun setSafDirectoryUri(uri: String?) {
         _safDirectoryUri.value = uri
     }
 

@@ -7,22 +7,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.coffeecreator.app.core.data.DataRepository
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.coffeecreator.app.ui.viewmodel.SettingsIntent
+import com.coffeecreator.app.ui.viewmodel.SettingsViewModel
 
 @Composable
 fun SettingsScreen(
     isDarkTheme: Boolean,
-    onToggleDarkTheme: (Boolean) -> Unit
+    onToggleDarkTheme: (Boolean) -> Unit,
+    viewModel: SettingsViewModel = viewModel()
 ) {
-    var exportJson by remember { mutableStateOf<String?>(null) }
-    var resetConfirmMsg by remember { mutableStateOf<String?>(null) }
+    val state by viewModel.uiState.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -44,7 +45,6 @@ fun SettingsScreen(
             )
         }
 
-        // Offline Privacy Card
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -70,7 +70,6 @@ fun SettingsScreen(
             }
         }
 
-        // Appearance
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -96,7 +95,6 @@ fun SettingsScreen(
             }
         }
 
-        // Backup & Restore
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -112,9 +110,7 @@ fun SettingsScreen(
                     )
 
                     Button(
-                        onClick = {
-                            exportJson = DataRepository.exportBackupJson()
-                        },
+                        onClick = { viewModel.dispatch(SettingsIntent.ExportBackup) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null)
@@ -122,7 +118,7 @@ fun SettingsScreen(
                         Text("Export Backup Manifest")
                     }
 
-                    exportJson?.let { json ->
+                    state.exportJson?.let { json ->
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(8.dp),
@@ -137,10 +133,7 @@ fun SettingsScreen(
                     }
 
                     OutlinedButton(
-                        onClick = {
-                            DataRepository.resetToDefaults()
-                            resetConfirmMsg = "Database reset to curated seed defaults."
-                        },
+                        onClick = { viewModel.dispatch(SettingsIntent.ResetCatalog) },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -149,7 +142,7 @@ fun SettingsScreen(
                         Text("Reset Catalog to Seed Defaults")
                     }
 
-                    resetConfirmMsg?.let {
+                    state.resetConfirmMsg?.let {
                         Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                     }
                 }

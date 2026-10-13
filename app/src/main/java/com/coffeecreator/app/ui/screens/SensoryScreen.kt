@@ -12,39 +12,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.coffeecreator.app.core.data.DataRepository
-import com.coffeecreator.app.core.engine.SensoryRulesEngine
-import com.coffeecreator.app.core.model.SensoryObservation
-import java.util.UUID
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.coffeecreator.app.ui.viewmodel.SensoryIntent
+import com.coffeecreator.app.ui.viewmodel.SensoryViewModel
 
 @Composable
-fun SensoryScreen() {
-    val recipes by DataRepository.recipes.collectAsState()
-    val beans by DataRepository.beans.collectAsState()
-
-    var selectedRecipeId by remember { mutableStateOf(recipes.firstOrNull()?.id ?: "") }
-    val currentRecipe = recipes.find { it.id == selectedRecipeId } ?: recipes.firstOrNull()
-    val currentBean = beans.find { it.id == currentRecipe?.beanId }
-
-    // Observed attributes (1-10)
-    var aroma by remember { mutableFloatStateOf(8f) }
-    var acidity by remember { mutableFloatStateOf(7f) }
-    var sweetness by remember { mutableFloatStateOf(8f) }
-    var body by remember { mutableFloatStateOf(6f) }
-    var finish by remember { mutableFloatStateOf(7f) }
-    var balance by remember { mutableFloatStateOf(8f) }
-    var notesText by remember { mutableStateOf("Clean floral fragrance, crisp malic acidity, cane sugar sweetness.") }
-    var saveSuccessMsg by remember { mutableStateOf<String?>(null) }
-
-    // Estimated direction from rule engine
-    val estimate = remember(currentBean, currentRecipe) {
-        if (currentRecipe != null) {
-            val ey = (currentRecipe.beverageMassGrams * (currentRecipe.measuredTdsPercent ?: 1.30)) / currentRecipe.doseGrams
-            SensoryRulesEngine.estimateProfile(currentBean, currentRecipe, ey)
-        } else {
-            null
-        }
-    }
+fun SensoryScreen(
+    viewModel: SensoryViewModel = viewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -67,22 +43,20 @@ fun SensoryScreen() {
         }
 
         item {
-            // Recipe selection
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                recipes.take(3).forEach { rec ->
+                state.recipes.take(3).forEach { rec ->
                     FilterChip(
-                        selected = selectedRecipeId == rec.id,
-                        onClick = { selectedRecipeId = rec.id },
+                        selected = state.selectedRecipeId == rec.id,
+                        onClick = { viewModel.dispatch(SensoryIntent.SelectRecipe(rec.id)) },
                         label = { Text(rec.name) }
                     )
                 }
             }
         }
 
-        // Observed attribute sliders
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -96,17 +70,17 @@ fun SensoryScreen() {
                         fontWeight = FontWeight.Bold
                     )
 
-                    SensorySlider(label = "Aroma / Fragrance", value = aroma, onValueChange = { aroma = it })
-                    SensorySlider(label = "Acidity / Brightness", value = acidity, onValueChange = { acidity = it })
-                    SensorySlider(label = "Sweetness", value = sweetness, onValueChange = { sweetness = it })
-                    SensorySlider(label = "Body / Mouthfeel", value = body, onValueChange = { body = it })
-                    SensorySlider(label = "Finish / Aftertaste", value = finish, onValueChange = { finish = it })
-                    SensorySlider(label = "Overall Balance", value = balance, onValueChange = { balance = it })
+                    SensorySlider(label = "Aroma / Fragrance", value = state.aroma, onValueChange = { viewModel.dispatch(SensoryIntent.UpdateAroma(it)) })
+                    SensorySlider(label = "Acidity / Brightness", value = state.acidity, onValueChange = { viewModel.dispatch(SensoryIntent.UpdateAcidity(it)) })
+                    SensorySlider(label = "Sweetness", value = state.sweetness, onValueChange = { viewModel.dispatch(SensoryIntent.UpdateSweetness(it)) })
+                    SensorySlider(label = "Body / Mouthfeel", value = state.body, onValueChange = { viewModel.dispatch(SensoryIntent.UpdateBody(it)) })
+                    SensorySlider(label = "Finish / Aftertaste", value = state.finish, onValueChange = { viewModel.dispatch(SensoryIntent.UpdateFinish(it)) })
+                    SensorySlider(label = "Overall Balance", value = state.balance, onValueChange = { viewModel.dispatch(SensoryIntent.UpdateBalance(it)) })
 
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedTextField(
-                        value = notesText,
-                        onValueChange = { notesText = it },
+                        value = state.notes,
+                        onValueChange = { viewModel.dispatch(SensoryIntent.UpdateNotes(it)) },
                         label = { Text("Cupping Notes & Descriptors") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
@@ -115,8 +89,7 @@ fun SensoryScreen() {
             }
         }
 
-        // Estimated Direction Overlay
-        estimate?.let { est ->
+        state.estimate?.let { est ->
             item {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -140,7 +113,7 @@ fun SensoryScreen() {
                         }
 
                         Text(
-                            text = "Model Heuristic Comparison:\n• Aroma: ${est.aroma}/10 vs Observed: ${aroma.toInt()}/10\n• Acidity: ${est.acidity}/10 vs Observed: ${acidity.toInt()}/10\n• Sweetness: ${est.sweetness}/10 vs Observed: ${sweetness.toInt()}/10\n• Body: ${est.body}/10 vs Observed: ${body.toInt()}/10",
+                            text = "Model Heuristic Comparison:\n• Aroma: ${est.aroma}/10 vs Observed: ${state.aroma.toInt()}/10\n• Acidity: ${est.acidity}/10 vs Observed: ${state.acidity.toInt()}/10\n• Sweetness: ${est.sweetness}/10 vs Observed: ${state.sweetness.toInt()}/10\n• Body: ${est.body}/10 vs Observed: ${state.body.toInt()}/10",
                             style = MaterialTheme.typography.bodyMedium
                         )
 
@@ -163,24 +136,7 @@ fun SensoryScreen() {
 
         item {
             Button(
-                onClick = {
-                    if (currentRecipe != null) {
-                        DataRepository.saveSensoryObservation(
-                            SensoryObservation(
-                                id = UUID.randomUUID().toString(),
-                                recipeId = currentRecipe.id,
-                                aroma = aroma.toInt(),
-                                acidity = acidity.toInt(),
-                                sweetness = sweetness.toInt(),
-                                body = body.toInt(),
-                                finish = finish.toInt(),
-                                balance = balance.toInt(),
-                                notes = notesText
-                            )
-                        )
-                        saveSuccessMsg = "Saved sensory cupping observation for '${currentRecipe.name}'."
-                    }
-                },
+                onClick = { viewModel.dispatch(SensoryIntent.SaveObservation) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 52.dp),
@@ -192,7 +148,7 @@ fun SensoryScreen() {
             }
         }
 
-        saveSuccessMsg?.let { msg ->
+        state.saveSuccessMsg?.let { msg ->
             item {
                 Text(
                     text = msg,

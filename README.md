@@ -16,7 +16,7 @@ Get the latest installable Android APK directly:
 
 | Version | Release Date | Direct APK Download | Release Notes | Package Hash (SHA-256) |
 | :--- | :--- | :--- | :--- | :--- |
-| **v1.0.0 (Latest)** | 2026-10-13 | [📥 Download coffee-creator-v1.0.0.apk](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | [GitHub Release v1.0.0](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.0.0) | `78639EEAACB73D6EEF6295EF2FA34C39677187D02979E80F9B0768248E36FD81` |
+| **v1.0.0 (Latest)** | 2026-10-13 | [📥 Download coffee-creator-v1.0.0.apk](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | [GitHub Release v1.0.0](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.0.0) | `DC6ADACC4C7EA2DE3D92DEC7504CD3069AA96CED28406C4B165DAAC49F934439` |
 
 *(All historical versions preserved in [GitHub Releases](https://github.com/Adrian463588/coffee-creator/releases)).*
 

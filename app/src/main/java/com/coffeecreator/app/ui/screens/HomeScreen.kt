@@ -1,33 +1,31 @@
 package com.coffeecreator.app.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.coffeecreator.app.core.data.DataRepository
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.coffeecreator.app.ui.navigation.Screen
+import com.coffeecreator.app.ui.viewmodel.HomeViewModel
 
 @Composable
 fun HomeScreen(
-    onNavigate: (Screen) -> Unit
+    onNavigate: (Screen) -> Unit,
+    viewModel: HomeViewModel = viewModel()
 ) {
-    val recipes by DataRepository.recipes.collectAsState()
-    val beans by DataRepository.beans.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -36,7 +34,6 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            // Header
             Column {
                 Text(
                     text = "Coffee Creator",
@@ -53,7 +50,6 @@ fun HomeScreen(
         }
 
         item {
-            // Device Readiness Card
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -78,7 +74,7 @@ fun HomeScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "• Manual Calculator: Active (Deterministic pure Kotlin)\n• Catalog: ${beans.size} Curated single-origin lots\n• AI Engine: On-Device tool router & RAG active\n• Telemetry & Cloud: Disabled (Zero network tracking)",
+                        text = "• Manual Calculator: Active (Deterministic pure Kotlin)\n• Catalog: ${uiState.beanCount} Curated single-origin lots\n• AI Engine: On-Device tool router & RAG active\n• Telemetry & Cloud: Disabled (Zero network tracking)",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -87,7 +83,6 @@ fun HomeScreen(
         }
 
         item {
-            // Quick Action Buttons (min 48dp target)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -111,7 +106,7 @@ fun HomeScreen(
                         .heightIn(min = 52.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Chat, contentDescription = null)
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Ask Assistant")
                 }
@@ -127,7 +122,7 @@ fun HomeScreen(
             )
         }
 
-        if (recipes.isEmpty()) {
+        if (uiState.recipes.isEmpty()) {
             item {
                 Text(
                     text = "No saved recipes yet. Tap 'New Recipe' to create a manual brew formulation.",
@@ -136,7 +131,7 @@ fun HomeScreen(
                 )
             }
         } else {
-            items(recipes) { recipe ->
+            items(uiState.recipes) { recipe ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
