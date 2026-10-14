@@ -1,7 +1,71 @@
 package com.coffeecreator.app.core.model
 
 import java.math.BigDecimal
-import java.math.RoundingMode
+
+const val COFFEE_SCIENCE_VERSION = "coffee-science/2.0.0"
+
+/** Canonical quantities keep exact decimal input and prevent accidental unit mixing. */
+@JvmInline
+value class MassGrams(val value: BigDecimal) {
+    init {
+        require(value.signum() >= 0 && value.toDouble().isFinite()) { "Mass must be finite and nonnegative (g)." }
+    }
+}
+
+@JvmInline
+value class MassMilligrams(val value: BigDecimal) {
+    init {
+        require(value.signum() >= 0 && value.toDouble().isFinite()) { "Mass must be finite and nonnegative (mg)." }
+    }
+
+    fun toGrams(): MassGrams = MassGrams(value.movePointLeft(3))
+}
+
+@JvmInline
+value class VolumeMillilitres(val value: BigDecimal) {
+    init {
+        require(value.signum() >= 0 && value.toDouble().isFinite()) { "Volume must be finite and nonnegative (mL)." }
+    }
+}
+
+@JvmInline
+value class DensityGramsPerMl(val value: BigDecimal) {
+    init {
+        require(value.signum() > 0 && value.toDouble().isFinite()) { "Density must be finite and positive (g/mL)." }
+    }
+}
+
+@JvmInline
+value class MassFractionPercent(val value: BigDecimal) {
+    init {
+        require(value >= BigDecimal.ZERO && value <= BigDecimal("100")) { "Mass fraction must be between 0 and 100 (% w/w)." }
+    }
+}
+
+@JvmInline
+value class TemperatureCelsius(val value: BigDecimal) {
+    init {
+        require(value >= BigDecimal("-273.15") && value.toDouble().isFinite()) { "Temperature must be finite and at least absolute zero (°C)." }
+    }
+}
+
+data class Ingredient(
+    val id: String,
+    val name: String,
+    val densityGramsPerMl: Double? = null,
+    val allergens: List<String> = emptyList(),
+    val foodGrade: Boolean? = null,
+    val supplierMaxPercent: Double? = null,
+    val provenance: String = "Unknown"
+)
+
+/** quantity is the supplied food-grade ingredient/solution, never inferred active-compound mass. */
+data class RecipeLine(
+    val ingredientId: String,
+    val quantity: Double,
+    val unit: String = "g",
+    val densityGramsPerMl: Double? = null
+)
 
 /**
  * Blend component for multi-bean lots.
@@ -18,21 +82,22 @@ data class BlendComponent(
 data class CoffeeBean(
     val id: String,
     val name: String,
-    val country: String,
-    val region: String,
+    val country: String = "Unknown",
+    val region: String = "Unknown",
     val producer: String = "Unknown",
-    val variety: String = "Arabica",
-    val process: String = "Washed", // Washed, Natural, Honey, Wet Hulled, Anaerobic
+    val variety: String = "Unknown",
+    val process: String = "Unknown",
     val altitudeMeters: Int? = null,
-    val roastLevel: String = "Medium", // Light, Medium-Light, Medium, Medium-Dark, Dark
+    val roastLevel: String = "Unknown",
     val roastDate: String? = null,
     val degasDays: Int? = null,
     val blendComponents: List<BlendComponent> = emptyList(),
     val densityGramsPerMl: Double? = null,
-    val allergens: String = "None",
-    val foodGrade: Boolean = true,
+    val allergens: String = "Unknown",
+    val foodGrade: Boolean? = null,
     val supplierLimitsNotes: String? = null,
-    val isCuratedSeed: Boolean = false
+    val isCuratedSeed: Boolean = false,
+    val provenance: String = "Unknown"
 )
 
 /**
@@ -53,29 +118,47 @@ data class Recipe(
     val name: String,
     val beanId: String? = null,
     val brewMethod: String = "Pour Over (V60)", // V60, Aeropress, Espresso, French Press, Chemex, Immersion
-    val equipment: String = "Hario V60 02, Fellow Stagg EKG",
+    val equipment: String = "",
     val doseGrams: Double = 18.0,
     val waterGrams: Double = 300.0,
-    val beverageMassGrams: Double = 270.0,
+    val beverageMassGrams: Double? = null,
     val bypassGrams: Double = 0.0,
-    val agitation: String = "Gentle spiral pour",
-    val measuredTdsPercent: Double? = 1.30, // Measured with refractometer
-    val targetRatio: String = "1:16.67",
+    val agitation: String = "",
+    val measuredTdsPercent: Double? = null,
+    val targetRatio: String = "",
     val temperatureCelsius: Double = 93.0,
     val pressureBars: Double? = null,
     val brewTimeSeconds: Int = 180,
-    val grindSize: String = "Medium-Fine (Comandante 22 clicks)",
+    val grindSize: String = "",
     val brewSteps: List<BrewStep> = emptyList(),
     val notes: String = "",
     val version: Int = 1,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val lines: List<RecipeLine> = emptyList(),
+    val revisionGroupId: String = id,
+    val acknowledgedAllergens: List<String> = emptyList()
+)
+
+data class CalculationMetadata(
+    val methodVersion: String = COFFEE_SCIENCE_VERSION,
+    val exactInputs: Map<String, String> = emptyMap(),
+    val inputUnits: Map<String, String> = emptyMap(),
+    val inputProvenance: Map<String, String> = emptyMap(),
+    val uncertainty: String = "Input uncertainty was not supplied; no laboratory accuracy is claimed."
 )
 
 /**
  * Pure calculation results with explicit provenance, units, and assumptions.
  */
 sealed class CalculationResult {
+    abstract val metadata: CalculationMetadata
+    val methodVersion: String get() = metadata.methodVersion
+    val exactInputs: Map<String, String> get() = metadata.exactInputs
+    val inputUnits: Map<String, String> get() = metadata.inputUnits
+    val inputProvenance: Map<String, String> get() = metadata.inputProvenance
+    val uncertainty: String get() = metadata.uncertainty
+
     data class ExtractionYield(
         val extractionYieldPercent: Double,
         val beverageMassGrams: Double,
@@ -83,7 +166,8 @@ sealed class CalculationResult {
         val doseGrams: Double,
         val methodLabel: String = "Direct Mass Balance",
         val assumptions: String = "Extraction Yield = (Beverage Mass * TDS%) / Dose Mass",
-        val provenance: String = "Tool-calculated with pure Kotlin BigDecimal (Scale 2)"
+        val provenance: String = "Calculated from caller-provided measurements, not independently verified.",
+        override val metadata: CalculationMetadata = CalculationMetadata()
     ) : CalculationResult()
 
     data class BrewRatio(
@@ -93,7 +177,9 @@ sealed class CalculationResult {
         val doseGrams: Double,
         val waterGrams: Double,
         val methodLabel: String = "Mass:Mass Direct Ratio",
-        val provenance: String = "Deterministic calculation"
+        val provenance: String = "Calculated from caller-provided formulation masses.",
+        val assumptions: String = "Mass ratio; water and coffee dose must use the same mass unit.",
+        override val metadata: CalculationMetadata = CalculationMetadata()
     ) : CalculationResult()
 
     data class Dilution(
@@ -103,7 +189,9 @@ sealed class CalculationResult {
         val finalMassGrams: Double,
         val finalTdsPercent: Double,
         val methodLabel: String = "Mass-Fraction Weighted Dilution",
-        val provenance: String = "Pure mass conservation formula"
+        val provenance: String = "Calculated from caller-provided mass and measured concentration.",
+        val assumptions: String = "Added water contributes no dissolved solute; masses are conserved.",
+        override val metadata: CalculationMetadata = CalculationMetadata()
     ) : CalculationResult()
 
     data class Concentration(
@@ -111,7 +199,20 @@ sealed class CalculationResult {
         val solutionMassGrams: Double,
         val massFractionPercent: Double,
         val ppm: Double,
-        val provenance: String = "Solute mass over total solution mass"
+        val provenance: String = "Calculated from caller-provided solute and total solution masses.",
+        val methodLabel: String = "Mass-Fraction Concentration",
+        val assumptions: String = "Solution mass includes solute; ppm is by mass, not by volume.",
+        override val metadata: CalculationMetadata = CalculationMetadata()
+    ) : CalculationResult()
+
+    data class UnitConversion(
+        val volumeMl: Double,
+        val densityGramsPerMl: Double,
+        val massGrams: Double,
+        val methodLabel: String = "Density-Based Volume to Mass",
+        val assumptions: String = "Density must describe this material at the relevant temperature; no density is assumed.",
+        val provenance: String = "Calculated from caller-provided volume and density.",
+        override val metadata: CalculationMetadata = CalculationMetadata()
     ) : CalculationResult()
 }
 
@@ -131,8 +232,10 @@ data class SensoryObservation(
     val balance: Int, // 1 to 10
     val tastingDescriptors: List<String> = emptyList(), // e.g. "Jasmine", "Bergamot", "Stone Fruit"
     val notes: String = "",
-    val assessor: String = "Head Barista",
-    val timestamp: Long = System.currentTimeMillis()
+    val assessor: String = "",
+    val timestamp: Long = System.currentTimeMillis(),
+    val panel: String = "",
+    val descriptorIntensities: Map<String, Int> = emptyMap()
 )
 
 /**
@@ -149,8 +252,9 @@ data class SensoryEstimate(
     val balance: Int,
     val suggestedDescriptors: List<String>,
     val method: String = "Heuristic Rule-Based Profile",
-    val confidencePercent: Int = 75,
-    val uncertaintyDisclaimer: String = "Estimate is a descriptive heuristic based on roast level, origin, and extraction yield. Not a laboratory-calibrated physical measurement."
+    val confidencePercent: Int? = null,
+    val uncertaintyDisclaimer: String = "Uncalibrated directional heuristic; validate by observation. No measured intensity or laboratory accuracy is claimed.",
+    val basis: String = "No directional basis provided."
 )
 
 /**
@@ -159,7 +263,7 @@ data class SensoryEstimate(
 data class KnowledgeDocument(
     val id: String,
     val title: String,
-    val sourceUri: String = "internal://assets/manual.txt",
+    val sourceUri: String = "",
     val fileType: String = "TXT",
     val pageCount: Int = 1,
     val chunkCount: Int = 0,
@@ -211,22 +315,31 @@ data class ModelAsset(
     val id: String,
     val name: String,
     val revision: String,
-    val format: String = "GGUF Q4_K_M",
+    val format: String = "Unknown",
     val expectedSizeBytes: Long,
     val sha256: String,
     val downloadUrl: String,
-    val license: String = "Apache-2.0 / Open RAIL",
+    val license: String = "Unknown",
     val status: ModelStatus = ModelStatus.CATALOGUED,
     val localUri: String? = null,
     val downloadedBytes: Long = 0L,
-    val progressPercent: Int = 0
+    val progressPercent: Int = 0,
+    val runtime: String = "llama.cpp",
+    val tokenizerSupport: String = "embedded GGUF",
+    val error: String? = null,
+    val etag: String? = null
 )
 
 enum class ModelStatus {
     CATALOGUED,
+    QUEUED,
     DOWNLOADING,
     PAUSED,
     VERIFYING,
+    PUBLISHING,
     INSTALLED,
-    FAILED
+    LOADING,
+    READY,
+    FAILED,
+    CANCELLED
 }

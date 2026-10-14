@@ -4,135 +4,49 @@ import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.SensoryEstimate
 
+/** Qualitative roast directions, never an origin-to-flavor lookup or calibrated sensory model. */
 object SensoryRulesEngine {
-
-    /**
-     * FR-04 Heuristic Sensory Profile Estimation.
-     * Generates a directional estimate based on roast level, origin, process, and extraction yield.
-     * Carries explicit uncertainty and disclaimer (no deterministic flavor claims).
-     */
-    fun estimateProfile(
-        bean: CoffeeBean?,
-        recipe: Recipe,
-        extractionYieldPercent: Double?
-    ): SensoryEstimate {
-        var aroma = 6
-        var acidity = 6
-        var sweetness = 6
-        var bitterness = 3
-        var body = 6
-        var clarity = 7
-        var finish = 6
-        var balance = 7
-        val descriptors = mutableListOf<String>()
-
-        val roast = bean?.roastLevel?.lowercase() ?: "medium"
-        val process = bean?.process?.lowercase() ?: "washed"
-        val origin = bean?.country?.lowercase() ?: ""
-
+    fun estimateProfile(bean: CoffeeBean?, recipe: Recipe, extractionYieldPercent: Double?): SensoryEstimate {
+        extractionYieldPercent?.let {
+            require(it.isFinite() && it in 0.0..100.0) { "Extraction yield must be finite and between 0 and 100%." }
+        }
+        val roast = bean?.roastLevel?.takeUnless { it.equals("Unknown", ignoreCase = true) }.orEmpty()
+        var acidity = 5
+        var bitterness = 5
+        var body = 5
+        val directions = mutableListOf<String>()
         when {
-            roast.contains("light") -> {
-                acidity += 2
-                sweetness += 1
-                body -= 1
-                bitterness -= 1
-                clarity += 2
-                descriptors.addAll(listOf("Bright Citrus", "Floral", "Tea-like"))
+            roast.contains("dark", ignoreCase = true) -> {
+                acidity = 4
+                bitterness = 6
+                body = 6
+                directions.add("Darker roasting may increase perceived roast bitterness; verify by tasting.")
             }
-            roast.contains("dark") -> {
-                acidity -= 2
-                body += 2
-                bitterness += 3
-                clarity -= 2
-                finish += 1
-                descriptors.addAll(listOf("Dark Chocolate", "Roasted Walnut", "Molasses"))
+            roast.contains("light", ignoreCase = true) -> {
+                acidity = 6
+                bitterness = 4
+                body = 4
+                directions.add("Lighter roasting may retain more perceived acidity; verify by tasting.")
             }
-            else -> { // Medium
-                sweetness += 2
-                balance += 1
-                clarity += 1
-                descriptors.addAll(listOf("Milk Chocolate", "Caramel", "Red Apple"))
-            }
+            roast.isNotBlank() -> directions.add("Roast metadata alone does not establish exact sensory descriptors.")
+            else -> directions.add("No directional roast basis is available; record an observation first.")
         }
-
-        when {
-            process.contains("natural") -> {
-                sweetness += 1
-                body += 1
-                aroma += 1
-                clarity -= 1
-                descriptors.addAll(listOf("Berry Jam", "Dried Fruit", "Winey"))
-            }
-            process.contains("honey") -> {
-                sweetness += 2
-                descriptors.addAll(listOf("Honey", "Peach", "Cane Sugar"))
-            }
-            process.contains("washed") -> {
-                acidity += 1
-                balance += 1
-                clarity += 1
-                descriptors.addAll(listOf("Clean Citrus", "Crisp Apple", "Floral Jasmine"))
-            }
-            process.contains("wet hulled") -> {
-                body += 2
-                acidity -= 1
-                bitterness += 1
-                clarity -= 1
-                descriptors.addAll(listOf("Earthy", "Herbal", "Cedar"))
-            }
-        }
-
-        if (origin.contains("ethiopia") || origin.contains("kenya")) {
-            aroma += 1
-            acidity += 1
-            clarity += 1
-            descriptors.add("Bergamot / Blackcurrant")
-        }
-
-        if (extractionYieldPercent != null) {
-            when {
-                extractionYieldPercent < 18.0 -> {
-                    // Under-extracted
-                    acidity += 1
-                    sweetness -= 1
-                    finish -= 1
-                    balance -= 2
-                    descriptors.add("(Under-extracted tendency: Sour / Hollow)")
-                }
-                extractionYieldPercent > 22.0 -> {
-                    // Over-extracted
-                    sweetness -= 1
-                    finish -= 1
-                    balance -= 2
-                    bitterness += 3
-                    clarity -= 1
-                    body += 1
-                    descriptors.add("(Over-extracted tendency: Bitter / Astringent)")
-                }
-                else -> {
-                    // Ideal Specialty range (18-22%)
-                    sweetness += 1
-                    balance += 1
-                }
-            }
-        }
-
-        // Clamp to 1-10 range
-        fun clamp(v: Int) = v.coerceIn(1, 10)
-
+        val extractionBasis = extractionYieldPercent?.let { "Caller-provided approximate cup extraction: $it%; no flavor is inferred from this value." }
+            ?: "Measured extraction inputs not provided; no extraction value is inferred."
         return SensoryEstimate(
-            aroma = clamp(aroma),
-            acidity = clamp(acidity),
-            sweetness = clamp(sweetness),
-            bitterness = clamp(bitterness),
-            body = clamp(body),
-            clarity = clamp(clarity),
-            finish = clamp(finish),
-            balance = clamp(balance),
-            suggestedDescriptors = descriptors.distinct().take(6),
-            method = "Heuristic SCA Flavor Vocabulary Rule-Engine v1.0",
-            confidencePercent = 70,
-            uncertaintyDisclaimer = "Warning: This is a directional heuristic estimate based on recipe variables and roast profile. It is NOT a laboratory physical measurement or calibrated instrument reading."
+            aroma = 5,
+            acidity = acidity,
+            sweetness = 5,
+            bitterness = bitterness,
+            body = body,
+            clarity = 5,
+            finish = 5,
+            balance = 5,
+            suggestedDescriptors = directions,
+            method = "roast-direction/1.0.0 (uncalibrated)",
+            confidencePercent = null,
+            basis = "Roast: ${roast.ifBlank { "not provided" }}. Brew method: ${recipe.brewMethod}. $extractionBasis Origin is not a flavor predictor.",
+            uncertaintyDisclaimer = "Uncalibrated directional heuristic, not measured sensory intensity. The ordinal diagram positions and midpoints are qualitative suggestions, not laboratory predictions. Confidence is unknown; actual sensory observation is required."
         )
     }
 }
