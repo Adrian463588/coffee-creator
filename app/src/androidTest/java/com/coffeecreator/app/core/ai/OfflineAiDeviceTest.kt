@@ -35,7 +35,7 @@ class OfflineAiDeviceTest {
     private val targetContext get() = instrumentation.targetContext
 
     @Test
-    fun givenVerifiedMiniLm_whenEmbeddingOnDevice_thenMatchCpuReferenceAndTokenIds() = runBlocking {
+    fun givenVerifiedMiniLm_whenEmbeddingOnDevice_thenMatchCpuReferenceAndTokenIds() = runBlocking<Unit> {
         val directory = ownedDirectory(targetContext)
         val model = File(directory, "model_quantized.onnx")
         val vocabulary = File(directory, "vocab.txt")
@@ -85,7 +85,7 @@ class OfflineAiDeviceTest {
     }
 
     @Test
-    fun givenVerifiedQwen_whenStreamingCancellingAndReloading_thenProduceRealTextAndReleaseSession() = runBlocking {
+    fun givenVerifiedQwen_whenStreamingCancellingAndReloading_thenProduceRealTextAndReleaseSession() = runBlocking<Unit> {
         val model = File(targetContext.filesDir, "native-test/qwen2.5-0.5b-instruct-q4_k_m.gguf")
         assertTrue("Integrator must stage the actual Qwen GGUF in native-test before this check.", model.isFile)
         assertEquals("Actual GGUF byte length", 491400032L, model.length())
@@ -159,7 +159,7 @@ class OfflineAiDeviceTest {
     }
 
     @Test
-    fun givenMalformedGguf_whenLoading_thenReportRecoverableFailureWithoutInitializingNativeModel() = runBlocking {
+    fun givenMalformedGguf_whenLoading_thenReportRecoverableFailureWithoutInitializingNativeModel() = runBlocking<Unit> {
         val directory = ownedDirectory(targetContext)
         val malformed = File(directory, "malformed.gguf")
         val engine = NativeLlmEngine(targetContext)
