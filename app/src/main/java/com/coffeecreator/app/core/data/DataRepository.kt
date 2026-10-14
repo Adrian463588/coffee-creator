@@ -1,188 +1,391 @@
 package com.coffeecreator.app.core.data
 
+import android.content.Context
+import androidx.room.withTransaction
+import com.coffeecreator.app.core.engine.DomainValidation
 import com.coffeecreator.app.core.model.AssistantPersona
+import com.coffeecreator.app.core.model.ChatMessage
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.DocumentChunk
+import com.coffeecreator.app.core.model.Ingredient
 import com.coffeecreator.app.core.model.KnowledgeDocument
 import com.coffeecreator.app.core.model.ModelAsset
 import com.coffeecreator.app.core.model.ModelStatus
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.SensoryObservation
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
-object DataRepository : CoffeeCatalogRepository, RecipeRepository, SensoryRepository, KnowledgeRepository, ModelAssetRepository {
+/** One application-owned instance. All durable reads/writes run off the UI thread. */
+class DataRepository(
+    context: Context,
+    private val database: CoffeeDatabase = CoffeeDatabase.open(context),
+) : CoffeeCatalogRepository, RecipeRepository, SensoryRepository, KnowledgeRepository, ModelAssetRepository {
+    private val mutex = Mutex()
+    private val dao = database.dao()
+    private val _ready = MutableStateFlow(false)
+    val ready: StateFlow<Boolean> = _ready.asStateFlow()
+    private val _errorState = MutableStateFlow<String?>(null)
+    val errorState: StateFlow<String?> = _errorState.asStateFlow()
 
-    private val _beans = MutableStateFlow<List<CoffeeBean>>(SeedData.curatedBeans)
+    private val _beans = MutableStateFlow<List<CoffeeBean>>(emptyList())
     override val beans: StateFlow<List<CoffeeBean>> = _beans.asStateFlow()
-
-    private val _recipes = MutableStateFlow<List<Recipe>>(SeedData.sampleRecipes)
+    private val _ingredients = MutableStateFlow<List<Ingredient>>(emptyList())
+    override val ingredients: StateFlow<List<Ingredient>> = _ingredients.asStateFlow()
+    private val _recipes = MutableStateFlow<List<Recipe>>(emptyList())
     override val recipes: StateFlow<List<Recipe>> = _recipes.asStateFlow()
-
-    private val _sensoryObservations = MutableStateFlow<List<SensoryObservation>>(
-        listOf(
-            SensoryObservation(
-                id = "obs-01",
-                recipeId = "rec-01",
-                aroma = 9,
-                acidity = 8,
-                sweetness = 8,
-                body = 6,
-                finish = 8,
-                balance = 9,
-                tastingDescriptors = listOf("Floral Jasmine", "Bergamot", "Peach"),
-                notes = "Very sweet cup, bright citric acidity, elegant finish.",
-                assessor = "Head Barista"
-            )
-        )
-    )
+    private val _sensoryObservations = MutableStateFlow<List<SensoryObservation>>(emptyList())
     override val sensoryObservations: StateFlow<List<SensoryObservation>> = _sensoryObservations.asStateFlow()
-
-    private val _documents = MutableStateFlow<List<KnowledgeDocument>>(SeedData.curatedDocuments)
+    private val _documents = MutableStateFlow<List<KnowledgeDocument>>(emptyList())
     override val documents: StateFlow<List<KnowledgeDocument>> = _documents.asStateFlow()
-
-    private val _chunks = MutableStateFlow<List<DocumentChunk>>(SeedData.curatedChunks)
+    private val _chunks = MutableStateFlow<List<DocumentChunk>>(emptyList())
     override val chunks: StateFlow<List<DocumentChunk>> = _chunks.asStateFlow()
-
-    private val _models = MutableStateFlow<List<ModelAsset>>(SeedData.curatedModels)
+    private val _models = MutableStateFlow<List<ModelAsset>>(emptyList())
     override val models: StateFlow<List<ModelAsset>> = _models.asStateFlow()
-
-    private val _personas = MutableStateFlow<List<AssistantPersona>>(SeedData.personas)
+    private val _personas = MutableStateFlow<List<AssistantPersona>>(emptyList())
     val personas: StateFlow<List<AssistantPersona>> = _personas.asStateFlow()
-
-    private val _selectedPersona = MutableStateFlow<AssistantPersona>(SeedData.personas.first())
+    private val _selectedPersona = MutableStateFlow(SeedData.personas.first())
     val selectedPersona: StateFlow<AssistantPersona> = _selectedPersona.asStateFlow()
-
-    private val _safDirectoryUri = MutableStateFlow<String?>("content://com.android.externalstorage.documents/tree/primary%3ACoffeeCreatorModels")
+    private val _safDirectoryUri = MutableStateFlow<String?>(null)
     override val safDirectoryUri: StateFlow<String?> = _safDirectoryUri.asStateFlow()
+    private val _chatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
+    private val _settings = MutableStateFlow<Map<String, String>>(emptyMap())
+    val settings: StateFlow<Map<String, String>> = _settings.asStateFlow()
 
-    // Bean actions
-    override fun addBean(bean: CoffeeBean) {
-        _beans.value = _beans.value + bean
-    }
-
-    override fun updateBean(bean: CoffeeBean) {
-        _beans.value = _beans.value.map { if (it.id == bean.id) bean else it }
-    }
-
-    override fun deleteBean(id: String) {
-        _beans.value = _beans.value.filterNot { it.id == id }
-    }
-
-    override fun findBeanById(id: String?): CoffeeBean? {
-        return _beans.value.find { it.id == id }
-    }
-
-    // Recipe actions
-    override fun saveRecipe(recipe: Recipe): Recipe {
-        val existingIndex = _recipes.value.indexOfFirst { it.id == recipe.id }
-        return if (existingIndex >= 0) {
-            val updated = recipe.copy(updatedAt = System.currentTimeMillis())
-            _recipes.value = _recipes.value.toMutableList().also { it[existingIndex] = updated }
-            updated
-        } else {
-            val newRecipe = recipe.copy(
-                id = if (recipe.id.isBlank()) UUID.randomUUID().toString() else recipe.id,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
-            )
-            _recipes.value = _recipes.value + newRecipe
-            newRecipe
-        }
-    }
-
-    override fun duplicateRecipe(recipe: Recipe): Recipe {
-        val clone = recipe.copy(
-            id = UUID.randomUUID().toString(),
-            name = "${recipe.name} (Copy)",
-            version = recipe.version + 1,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
-        _recipes.value = _recipes.value + clone
-        return clone
-    }
-
-    override fun deleteRecipe(id: String) {
-        _recipes.value = _recipes.value.filterNot { it.id == id }
-    }
-
-    override fun findRecipeById(id: String?): Recipe? {
-        return _recipes.value.find { it.id == id }
-    }
-
-    // Sensory actions
-    override fun saveSensoryObservation(observation: SensoryObservation) {
-        _sensoryObservations.value = _sensoryObservations.value + observation
-    }
-
-    override fun getObservationsForRecipe(recipeId: String): List<SensoryObservation> {
-        return _sensoryObservations.value.filter { it.recipeId == recipeId }
-    }
-
-    // Document actions
-    override fun addDocumentWithChunks(doc: KnowledgeDocument, newChunks: List<DocumentChunk>) {
-        _documents.value = _documents.value + doc
-        _chunks.value = _chunks.value + newChunks
-    }
-
-    override fun removeDocument(documentId: String) {
-        _documents.value = _documents.value.filterNot { it.id == documentId }
-        _chunks.value = _chunks.value.filterNot { it.documentId == documentId }
-    }
-
-    // Model management
-    override fun updateModelStatus(modelId: String, status: ModelStatus, progress: Int) {
-        _models.value = _models.value.map {
-            if (it.id == modelId) {
-                it.copy(
-                    status = status,
-                    progressPercent = progress,
-                    localUri = if (status == ModelStatus.INSTALLED) "saf://CoffeeCreatorModels/${it.name}" else it.localUri
-                )
-            } else it
-        }
-    }
-
-    override fun setSafDirectoryUri(uri: String?) {
-        _safDirectoryUri.value = uri
-    }
-
-    fun selectPersona(persona: AssistantPersona) {
-        _selectedPersona.value = persona
-    }
-
-    // Backup & Restore
-    fun exportBackupJson(): String {
-        val beanCount = _beans.value.size
-        val recipeCount = _recipes.value.size
-        val obsCount = _sensoryObservations.value.size
-        val docCount = _documents.value.size
-        return """
-        {
-          "manifest": {
-            "app": "Coffee Creator",
-            "version": "1.0.0",
-            "timestamp": ${System.currentTimeMillis()},
-            "records": {
-              "beans": $beanCount,
-              "recipes": $recipeCount,
-              "sensory": $obsCount,
-              "documents": $docCount
+    suspend fun initialize() = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            if (_ready.value) return@withLock
+            guarded {
+                val snapshot = database.withTransaction {
+                    if (dao.record("meta", "initialized") == null) {
+                        val seed = SeedData.curatedBeans.map { record("bean", it.id, it) } +
+                            SeedData.personas.map { record("persona", it.id, it) }
+                        seed.forEach { require(dao.record(it.kind, it.id) == null) { "Existing records require explicit recovery; defaults will not overwrite them." } }
+                        dao.putRecords(seed + record("meta", "initialized", SeedData.VERSION))
+                    }
+                    readSnapshot()
+                }
+                publishSnapshot(snapshot)
+                _ready.value = true
             }
-          },
-          "status": "VALID_INTEGRITY_CHECK_OK"
         }
-        """.trimIndent()
     }
 
-    fun resetToDefaults() {
-        _beans.value = SeedData.curatedBeans
-        _recipes.value = SeedData.sampleRecipes
-        _documents.value = SeedData.curatedDocuments
-        _chunks.value = SeedData.curatedChunks
-        _models.value = SeedData.curatedModels
+    suspend fun waitReady() = initialize()
+
+    override suspend fun addBean(bean: CoffeeBean) = mutate {
+        BackupCodec.validateId(bean.id)
+        DomainValidation.validateBean(bean)
+        require(dao.record("bean", bean.id) == null) { "Bean identifier already exists." }
+        require(bean.blendComponents.all { findBeanById(it.beanId) != null }) { "Blend component refers to a missing bean." }
+        dao.putRecords(listOf(record("bean", bean.id, bean)))
+    }
+
+    override suspend fun updateBean(bean: CoffeeBean) = mutate {
+        BackupCodec.validateId(bean.id)
+        DomainValidation.validateBean(bean)
+        require(dao.record("bean", bean.id) != null) { "Bean not found." }
+        require(bean.blendComponents.all { it.beanId != bean.id && findBeanById(it.beanId) != null }) { "Blend components must refer to other existing beans." }
+        dao.putRecords(listOf(record("bean", bean.id, bean)))
+    }
+
+    override suspend fun deleteBean(id: String) = mutate {
+        require(_recipes.value.none { it.beanId == id } && _beans.value.none { bean -> bean.blendComponents.any { it.beanId == id } }) {
+            "Bean is referenced by a recipe or blend. Preserve it to retain history."
+        }
+        dao.deleteRecord("bean", id)
+    }
+
+    override fun findBeanById(id: String?): CoffeeBean? = _beans.value.find { it.id == id }
+
+    override suspend fun addIngredient(ingredient: Ingredient) = mutate {
+        BackupCodec.validateId(ingredient.id)
+        DomainValidation.validateIngredient(ingredient)
+        require(dao.record("ingredient", ingredient.id) == null) { "Ingredient identifier already exists." }
+        dao.putRecords(listOf(record("ingredient", ingredient.id, ingredient)))
+    }
+
+    override suspend fun updateIngredient(ingredient: Ingredient) = mutate {
+        BackupCodec.validateId(ingredient.id)
+        DomainValidation.validateIngredient(ingredient)
+        require(dao.record("ingredient", ingredient.id) != null) { "Ingredient not found." }
+        val changedCatalog = _ingredients.value.map { if (it.id == ingredient.id) ingredient else it }
+        _recipes.value.filter { recipe -> recipe.lines.any { it.ingredientId == ingredient.id } }
+            .forEach { DomainValidation.validateRecipe(it, changedCatalog) }
+        dao.putRecords(listOf(record("ingredient", ingredient.id, ingredient)))
+    }
+
+    override suspend fun saveRecipe(recipe: Recipe): Recipe = mutate {
+        val existing = findRecipeById(recipe.id)
+        val id = if (existing != null || recipe.id.isBlank()) UUID.randomUUID().toString() else recipe.id
+        val group = existing?.revisionGroupId ?: recipe.revisionGroupId.ifBlank { id }
+        val groupRevisions = _recipes.value.filter { it.revisionGroupId == group }
+        val highest = groupRevisions.maxOfOrNull { it.version } ?: 0
+        require(highest < Int.MAX_VALUE) { "Recipe revision limit reached." }
+        val now = System.currentTimeMillis()
+        val saved = recipe.copy(
+            id = id,
+            revisionGroupId = group,
+            version = highest + 1,
+            createdAt = now,
+            updatedAt = now,
+        )
+        validateRecipe(saved)
+        require(dao.record("recipe", saved.id) == null) { "Recipe revisions cannot overwrite existing records." }
+        dao.putRecords(listOf(record("recipe", saved.id, saved)))
+        saved
+    }
+
+    override suspend fun duplicateRecipe(recipe: Recipe): Recipe {
+        val id = UUID.randomUUID().toString()
+        return saveRecipe(recipe.copy(id = id, revisionGroupId = id, name = "${recipe.name} (Copy)", version = 1))
+    }
+
+    override suspend fun deleteRecipe(id: String) = mutate {
+        _sensoryObservations.value.filter { it.recipeId == id }.forEach { dao.deleteRecord("observation", it.id) }
+        dao.deleteRecord("recipe", id)
+    }
+
+    override fun findRecipeById(id: String?): Recipe? = _recipes.value.find { it.id == id }
+
+    override suspend fun saveSensoryObservation(observation: SensoryObservation) = mutate {
+        BackupCodec.validateId(observation.id)
+        DomainValidation.validateObservation(observation)
+        require(findRecipeById(observation.recipeId) != null) { "Observation requires an existing recipe revision." }
+        require(observation.timestamp >= 0L && dao.record("observation", observation.id) == null) { "Observation identifier or timestamp is invalid." }
+        dao.putRecords(listOf(record("observation", observation.id, observation)))
+    }
+
+    override fun getObservationsForRecipe(recipeId: String): List<SensoryObservation> =
+        _sensoryObservations.value.filter { it.recipeId == recipeId }
+
+    override suspend fun addDocumentWithChunks(doc: KnowledgeDocument, newChunks: List<DocumentChunk>): KnowledgeDocument = mutate {
+        BackupCodec.validateDocument(doc, newChunks)
+        val duplicate = _documents.value.find { it.contentHash == doc.contentHash && it.id != doc.id }
+        if (duplicate != null) return@mutate duplicate
+        require(newChunks.all { chunk -> _chunks.value.none { it.id == chunk.id && it.documentId != doc.id } }) {
+            "Chunk identifier belongs to another document."
+        }
+        dao.removeDocumentIndex(doc.id)
+        dao.removeDocumentChunks(doc.id)
+        dao.putRecords(listOf(record("document", doc.id, doc)))
+        putChunks(newChunks)
+        doc
+    }
+
+    override suspend fun removeDocument(documentId: String) = mutate {
+        dao.removeDocumentIndex(documentId)
+        dao.removeDocumentChunks(documentId)
+        dao.deleteRecord("document", documentId)
+    }
+
+    override suspend fun lexicalSearch(query: String, limit: Int): List<DocumentChunk> {
+        require(limit in 1..1000) { "Search result limit is invalid." }
+        initialize()
+        val tokens = Regex("[\\p{L}\\p{N}]+").findAll(query.take(4096))
+            .map { it.value.take(64) }.distinct().take(24).toList()
+        if (tokens.isEmpty()) return emptyList()
+        // Only literal tokens reach MATCH; user-supplied FTS operators/quotes cannot alter its grammar.
+        val matchQuery = tokens.joinToString(" OR ") { "\"$it\"" }
+        return withContext(Dispatchers.IO) {
+            guarded { dao.search(matchQuery, limit).map { decode<DocumentChunk>(it.json) } }
+        }
+    }
+
+    override suspend fun upsertModel(model: ModelAsset) = mutate {
+        validateModel(model)
+        dao.putRecords(listOf(record("model", model.id, model)))
+    }
+
+    suspend fun removeModel(modelId: String) = mutate { dao.deleteRecord("model", modelId) }
+
+    override suspend fun setSafDirectoryUri(uri: String?) = mutate {
+        require(uri == null || uri.startsWith("content://") && uri.length <= 4096) { "SAF location must be a granted content URI." }
+        if (uri == null) dao.deleteRecord("setting", "storage.safTree")
+        else dao.putRecords(listOf(record("setting", "storage.safTree", uri)))
+    }
+
+    suspend fun selectPersona(persona: AssistantPersona) = mutate {
+        require(_personas.value.any { it.id == persona.id }) { "Persona is not in the local catalog." }
+        dao.putRecords(listOf(record("setting", "persona.selected", persona.id)))
+    }
+
+    suspend fun updatePersona(persona: AssistantPersona) = mutate {
+        BackupCodec.validatePersona(persona)
+        dao.putRecords(listOf(record("persona", persona.id, persona)))
+    }
+
+    suspend fun saveChatMessages(messages: List<ChatMessage>) = mutate {
+        require(messages.size <= BackupCodec.MAX_RECORDS && messages.map { it.id }.toSet().size == messages.size) { "Invalid chat history." }
+        messages.forEach { BackupCodec.validateChatMessage(it) }
+        dao.putRecords(listOf(record("chat", "history", messages)))
+    }
+
+    suspend fun saveSetting(key: String, value: String) = mutate {
+        BackupCodec.validateSetting(key, value)
+        require(key != "storage.safTree" && key != "persona.selected") { "Use the dedicated ownership/persona action for this setting." }
+        dao.putRecords(listOf(record("setting", key, value)))
+    }
+
+    suspend fun exportBackupJson(): String {
+        initialize()
+        return withContext(Dispatchers.IO) {
+            mutex.withLock { guarded { BackupCodec.encode(backupPayload()) } }
+        }
+    }
+
+    suspend fun restoreBackupJson(json: String): BackupManifest {
+        // Validate completely before opening any write transaction.
+        val backup = withContext(Dispatchers.IO) { guarded { BackupCodec.decode(json) } }
+        return mutate {
+            val payload = backup.payload
+            val retainedOwnershipSettings = _settings.value.filterKeys { BackupCodec.isAssetSetting(it) }
+            dao.deleteKinds(listOf("bean", "ingredient", "recipe", "observation", "document", "persona", "chat", "setting"))
+            dao.clearIndex()
+            dao.clearChunks()
+            val records = payload.beans.map { record("bean", it.id, it) } +
+                payload.ingredients.map { record("ingredient", it.id, it) } +
+                payload.recipes.map { record("recipe", it.id, it) } +
+                payload.observations.map { record("observation", it.id, it) } +
+                payload.documents.map { record("document", it.id, it) } +
+                payload.personas.map { record("persona", it.id, it) } +
+                (payload.settings + retainedOwnershipSettings).map { (key, value) -> record("setting", key, value) } +
+                record("chat", "history", payload.chatMessages)
+            dao.putRecords(records)
+            putChunks(payload.chunks)
+            backup.manifest
+        }
+    }
+
+    /** Explicit local deletion keeps independently user-owned SAF assets and their grant metadata. */
+    suspend fun deleteApplicationRecords() = mutate {
+        val ownership = _settings.value.filterKeys { BackupCodec.isAssetSetting(it) }
+        dao.deleteKinds(listOf("bean", "ingredient", "recipe", "observation", "document", "persona", "chat", "setting"))
+        dao.clearIndex()
+        dao.clearChunks()
+        dao.putRecords(SeedData.personas.map { record("persona", it.id, it) } + ownership.map { (key, value) -> record("setting", key, value) })
+    }
+
+    fun close() = database.close()
+
+    private suspend fun <T> mutate(block: suspend () -> T): T {
+        initialize()
+        return withContext(Dispatchers.IO) {
+            mutex.withLock {
+                guarded {
+                    val (result, snapshot) = database.withTransaction {
+                        val result = block()
+                        result to readSnapshot()
+                    }
+                    // Once committed, cache publication must finish even if the requesting screen is cancelled.
+                    withContext(NonCancellable) { publishSnapshot(snapshot) }
+                    result
+                }
+            }
+        }
+    }
+
+    private data class RepositorySnapshot(
+        val payload: BackupPayload,
+        val models: List<ModelAsset>,
+        val settings: Map<String, String>,
+    )
+
+    private suspend fun readSnapshot(): RepositorySnapshot {
+        val records = dao.allRecords().groupBy { it.kind }
+        fun <T> items(kind: String, type: Class<T>): List<T> = records[kind].orEmpty().map { row -> RecordJson.gson.fromJson(row.json, type) }
+        val beans = items("bean", CoffeeBean::class.java)
+        val ingredients = items("ingredient", Ingredient::class.java)
+        val recipes = items("recipe", Recipe::class.java).sortedByDescending { it.updatedAt }
+        val observations = items("observation", SensoryObservation::class.java).sortedBy { it.timestamp }
+        val documents = items("document", KnowledgeDocument::class.java).sortedByDescending { it.importedAt }
+        val chunks = dao.allChunks().map { decode<DocumentChunk>(it.json) }.sortedWith(compareBy({ it.documentId }, { it.chunkIndex }))
+        val personas = items("persona", AssistantPersona::class.java)
+        val settings = records["setting"].orEmpty().associate { it.id to decode<String>(it.json) }
+        val historyJson = records["chat"].orEmpty().find { it.id == "history" }?.json
+        val history = if (historyJson == null) emptyList() else decode<List<ChatMessage>>(historyJson)
+        val payload = BackupPayload(beans, ingredients, recipes, observations, documents, chunks, history, personas, settings.filterKeys { !BackupCodec.isAssetSetting(it) })
+        BackupCodec.validatePayload(payload)
+        val models = items("model", ModelAsset::class.java)
+        models.forEach { validateModel(it) }
+        return RepositorySnapshot(payload, models, settings)
+    }
+
+    private fun publishSnapshot(snapshot: RepositorySnapshot) {
+        val payload = snapshot.payload
+        _beans.value = payload.beans
+        _ingredients.value = payload.ingredients
+        _recipes.value = payload.recipes
+        _sensoryObservations.value = payload.observations
+        _documents.value = payload.documents
+        _chunks.value = payload.chunks
+        _personas.value = payload.personas
+        _models.value = snapshot.models
+        _settings.value = snapshot.settings
+        _chatMessages.value = payload.chatMessages
+        _safDirectoryUri.value = snapshot.settings["storage.safTree"]
+        _selectedPersona.value = payload.personas.find { it.id == snapshot.settings["persona.selected"] } ?: payload.personas.first()
+    }
+
+    private fun backupPayload(): BackupPayload = BackupPayload(
+        beans = _beans.value,
+        ingredients = _ingredients.value,
+        recipes = _recipes.value,
+        observations = _sensoryObservations.value,
+        documents = _documents.value,
+        chunks = _chunks.value,
+        chatMessages = _chatMessages.value,
+        personas = _personas.value,
+        settings = _settings.value.filterKeys { !BackupCodec.isAssetSetting(it) },
+    )
+
+    private fun validateRecipe(recipe: Recipe) {
+        BackupCodec.validateId(recipe.id)
+        BackupCodec.validateId(recipe.revisionGroupId)
+        DomainValidation.validateRecipe(recipe, _ingredients.value)
+        require(recipe.beanId == null || findBeanById(recipe.beanId) != null) { "Recipe bean is missing." }
+    }
+
+    private fun validateModel(model: ModelAsset) {
+        BackupCodec.validateId(model.id)
+        require(model.name.isNotBlank() && model.name.length <= 256 && model.revision.isNotBlank()) { "Invalid model metadata." }
+        require(model.expectedSizeBytes > 0 && model.sha256.matches(Regex("[0-9a-fA-F]{64}"))) { "Model size or checksum is invalid." }
+        require(model.downloadUrl.isEmpty() || model.downloadUrl.startsWith("https://")) { "Model download must use HTTPS." }
+        require(model.downloadedBytes in 0..model.expectedSizeBytes && model.progressPercent in 0..100) { "Model progress is invalid." }
+        if (model.status in setOf(ModelStatus.INSTALLED, ModelStatus.READY, ModelStatus.LOADING)) {
+            require(model.localUri?.startsWith("content://") == true && model.downloadedBytes == model.expectedSizeBytes) {
+                "Installed models require verified bytes and a real SAF source URI."
+            }
+        }
+    }
+
+    private suspend fun putChunks(chunks: List<DocumentChunk>) {
+        if (chunks.isEmpty()) return
+        dao.putChunks(chunks.map { StoredChunk(it.id, it.documentId, it.content, RecordJson.gson.toJson(it)) })
+        dao.indexChunks(chunks.map { ChunkFts(it.id, it.content) })
+    }
+
+    private fun record(kind: String, id: String, value: Any): StoredRecord = StoredRecord(kind, id, RecordJson.gson.toJson(value))
+    private inline fun <reified T> decode(json: String): T = RecordJson.gson.fromJson(json, object : TypeToken<T>() {}.type)
+
+    private suspend fun <T> guarded(block: suspend () -> T): T = try {
+        val result = block()
+        _errorState.value = null
+        result
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        _errorState.value = error.message ?: "Local storage operation failed. Existing data was preserved."
+        throw error
     }
 }
