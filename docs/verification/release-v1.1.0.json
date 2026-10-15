@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-15",
+  "release": "https://github.com/Adrian463588/coffee-creator/releases/tag/v1.1.0",
+  "tag": "v1.1.0",
+  "source_commit": "fd9e5ed7a9ef5281038f7df07786ef21ec1634cf",
+  "tag_matches_source": true,
+  "latest_release": true,
+  "debug_preview": true,
+  "source_ci": "https://github.com/Adrian463588/coffee-creator/actions/runs/38722136701",
+  "source_ci_conclusion": "success",
+  "assets": [
+    {
+      "name": "coffee-creator-v1.1.0.apk",
+      "url": "https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk",
+      "bytes": 127647021,
+      "sha256": "e25474341ca5df7905118bfdd7f3e9a6e747b0b7a877e4a8817e0e6b279bcca8",
+      "public_unauthenticated_download": "passed"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "url": "https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/SHA256SUMS.txt",
+      "bytes": 92,
+      "sha256": "8a2d873e7e8b4a43687cee7219fa8843cc0c3ff9c4f9720611edcd2bef2f79df",
+      "public_unauthenticated_download": "passed"
+    }
+  ],
+  "historical_v1_0_0_preserved": true,
+  "physical_current_retest": "not_run_user_requested_no_adb"
+}

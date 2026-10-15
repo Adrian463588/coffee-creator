@@ -63,7 +63,9 @@ Historical physical evidence is separate from current local tests.
   later failed RAG retest retained without replacing it with host proof.
 - [x] Final aggregate static/JVM/build gates:110/110 tests;83 host C++ checks;
   debug/androidTest/benchmark APK builds and16KiB alignment/signature/checksum.
-- [ ] Remote CI and downloadable release verification; tick after command evidence.
+- [x] Remote source CI passed; public/latest v1.1.0 APK and checksum file downloaded
+  without authentication and verified against the build. README/history/topics/
+  description complete. Exact release/source receipt in docs/VERIFICATION.md.
 
 ## Remaining production acceptance
 

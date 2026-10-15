@@ -14,6 +14,8 @@
   failing physical39/40 vs fixed host40/40 evidence in docs/VERIFICATION.md.
 - [ ] Current Android RAG retest, answer-faithfulness evaluation and successful
   reference-device benchmark execution/Baseline Profile generation.
-- [ ] Publish APK, checksum, README/screenshots/history and remote metadata.
+- [x] Commit/push, passing source CI, public/latest v1.1.0 debug APK/checksum,
+  README/screenshots/history and repository metadata. Public re-download hashes
+  and exact tag/source verified; docs/verification/release-v1.1.0.json.
 
 Unchecked items describe execution status, not approval requests.

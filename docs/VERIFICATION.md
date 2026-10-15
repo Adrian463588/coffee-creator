@@ -44,13 +44,22 @@ No physical-device run or macrobenchmark is claimed for the new Brew UI/dataset.
   draft/model/SAF/release changes. `git diff --check` and publication scan pass.
   Existing three historical APK blobs are preserved; the current historical APK
   equals origin/main byte-for-byte. No new APK/LLM weights/signing secrets staged.
-- [ ] Remote source CI and published asset download verification; record after execution.
+- [x] [Remote source CI](https://github.com/Adrian463588/coffee-creator/actions/runs/38722136701)
+  passed on Ubuntu24.04 at release commit
+  `fd9e5ed7a9ef5281038f7df07786ef21ec1634cf`.
+- [x] [v1.1.0 release](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.1.0)
+  is public/latest; tag and source commit match. Downloaded APK and checksum file
+  again through public URLs without authentication: expected sizes and both SHA256
+  digests match. Historical v1.0.0 remains available.
 
 Machine-readable executed receipts: [local gates](verification/local-gates-2026-10-15.json),
 [ORT alignment](verification/ort-1.21.1.json), [host parity](verification/ort-host-parity-1.21.1.json),
 [model metadata](verification/model-catalog-receipts.json). Screenshots in README
 are real local native-graphics renders. They were visually inspected, including
 warm semantic navigation colors and separate Brew cards.
+Distribution evidence: [release receipt](verification/release-v1.1.0.json).
+Later runner-pinning/documentation changes preserve the application tree
+`6b20675b17f8c94f5a064394b58c45a3c1ac683d`; no application code changed after release.
 
 Lint completed with **zero errors,85 warnings,one informational finding**:
 75 dependency advisories,6 AGP advisories,1 target-API advisory,3 transitive
