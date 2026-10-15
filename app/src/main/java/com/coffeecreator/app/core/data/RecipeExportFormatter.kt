@@ -79,4 +79,16 @@ object RecipeExportFormatter {
         chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(chooser)
     }
+
+    fun shareJournalCsv(context: Context, csvContent: String) {
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(Intent.EXTRA_TEXT, csvContent)
+            putExtra(Intent.EXTRA_SUBJECT, "Coffee Creator — Brew Journal Export.csv")
+            putExtra(Intent.EXTRA_TITLE, "Export Brew Journal CSV")
+        }
+        val chooser = Intent.createChooser(sendIntent, "Export Brew Journal CSV via")
+        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(chooser)
+    }
 }

@@ -1,0 +1,25 @@
+# OpenSpec Tasks: Epic S2-E04 — Brew Journal, Espresso Dial-In, and Local Analytics
+
+- [ ] **Task 1: Domain Models & Engine**
+  - Implement `BrewJournalModels.kt`: `BrewJournalEntry`, `EspressoJournalDetails`, `BrewFilterCriteria`, `BrewSessionComparison`, `OvatRecommendation`, `CaffeineEstimate`, `BrewStreakResult`, `MonthlyBrewStatistics`, `CafeCupEntry`, `ImportConflictPreview`.
+  - Implement `BrewAnalyticsEngine.kt`: OVAT logic, side-by-side delta calculator, streak & monthly aggregation, caffeine estimator, and Beanconqueror JSON mapper.
+- [ ] **Task 2: Repository & Storage Integration**
+  - Wire journal entries and cafe cup entries into `DataRepository.kt` or `CoffeeViewModel.kt` utilizing `records` table in Room.
+  - Implement CSV export formatter for journal entries.
+  - Implement Beanconqueror JSON importer parser.
+- [ ] **Task 3: ViewModel & UI Presentation**
+  - Extend `CoffeeViewModel.kt` with journal filtering, comparison, dial-in tracking, OVAT evaluation, streak stats, caffeine estimator, and repeat brew.
+  - Upgrade `CoffeeApp.kt` Journal section with Anti-AI Slop design:
+    - Chip selectors for "All Brews", "Espresso Dial-In", "Analytics & Streaks", "Cafe Cups", and "Export / Import".
+    - Side-by-side comparison modal with numeric delta badges.
+    - Espresso target vs actual kinematic comparison.
+    - Single-variable OVAT adjustment suggestion card.
+    - Local monthly stats & streak counter.
+    - Cafe cup logger (no remote maps).
+    - Caffeine estimation badge with uncertainty disclaimer.
+- [ ] **Task 4: Automated Testing & Verification**
+  - Unit tests in `ActiveBrewJournalAnalyticsTest.kt` verifying all 12 stories S2-039 through S2-050.
+  - Execute `./gradlew testDebugUnitTest` and `./gradlew assembleDebug`.
+- [ ] **Task 5: Git & GitHub Release v1.5.0**
+  - Stage, commit, push to GitHub.
+  - Create release `v1.5.0` with APK artifact attached.

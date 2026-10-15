@@ -1,5 +1,8 @@
 package com.coffeecreator.app.core.data
 
+import com.coffeecreator.app.core.journal.BrewJournalEntry
+import com.coffeecreator.app.core.journal.CafeCupEntry
+import com.coffeecreator.app.core.journal.EspressoJournalDetails
 import com.coffeecreator.app.core.model.BrewStep
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.Recipe
@@ -557,6 +560,76 @@ object CuratedCoffeeCatalog {
             assessor = "World Brewers Cup Competitor",
             panel = "Competition Preparation Panel",
             timestamp = 1729016400000L
+        )
+    )
+
+    val curatedJournalEntries: List<BrewJournalEntry> by lazy {
+        recipes.mapIndexed { idx, r ->
+            val bean = beans.find { it.id == r.beanId }
+            val isEsp = r.brewMethod.contains("Espresso", true)
+            val espDetails = if (isEsp) {
+                EspressoJournalDetails(
+                    targetDoseGrams = r.doseGrams,
+                    actualDoseGrams = r.doseGrams + 0.2,
+                    targetYieldGrams = r.beverageMassGrams ?: 36.0,
+                    actualYieldGrams = (r.beverageMassGrams ?: 36.0) + 1.2,
+                    targetDurationSeconds = r.brewTimeSeconds,
+                    actualDurationSeconds = r.brewTimeSeconds - 2,
+                    puckPrepMethods = listOf("WDT", "Leveler", "Puck Screen"),
+                    firstDropSeconds = r.firstDropSeconds ?: 5
+                )
+            } else null
+
+            BrewJournalEntry(
+                id = "journal-entry-${r.id}",
+                recipeId = r.id,
+                beanId = r.beanId,
+                beanName = bean?.name ?: "Curated Specialty Bean",
+                brewMethod = r.brewMethod,
+                equipment = r.equipment,
+                doseGrams = r.doseGrams,
+                waterGrams = r.waterGrams,
+                beverageMassGrams = r.beverageMassGrams,
+                grinderModel = r.grinderModel ?: "Comandante C40 MK4",
+                grindSetting = r.grindSize,
+                waterTemperatureCelsius = r.temperatureCelsius,
+                brewDurationSeconds = r.brewTimeSeconds,
+                drawdownSeconds = if (!isEsp) 45 else null,
+                measuredTdsPercent = r.measuredTdsPercent,
+                rating = 8.5 + (idx % 3) * 0.5,
+                tasteNotes = if (isEsp) listOf("Blackcurrant", "Dark Chocolate", "Cane Sugar") else listOf("Floral", "Jasmine", "Citrus"),
+                generalNotes = r.notes,
+                tags = listOf(r.brewMethod.substringBefore(" "), "Curated", if (isEsp) "DialIn" else "Filter"),
+                createdAt = System.currentTimeMillis() - (10 - idx) * 86_400_000L,
+                isEspresso = isEsp,
+                espressoDetails = espDetails,
+                dialInChainId = if (isEsp) "dialin-espresso-kenya" else null
+            )
+        }
+    }
+
+    val curatedCafeCups: List<CafeCupEntry> = listOf(
+        CafeCupEntry(
+            id = "cafe-tim-wendelboe",
+            cafeName = "Tim Wendelboe",
+            roaster = "Tim Wendelboe",
+            drinkName = "Espresso (Caballero Geisha)",
+            originOrBean = "Honduras Geisha",
+            pricePaid = "65 NOK",
+            rating = 9.8,
+            notes = "Jasmine blossoms, sparkling bergamot, crystalline sweetness.",
+            timestamp = System.currentTimeMillis() - 86_400_000L * 2
+        ),
+        CafeCupEntry(
+            id = "cafe-fuglen-tokyo",
+            cafeName = "Fuglen Tokyo",
+            roaster = "Fuglen Coffee Roasters",
+            drinkName = "Aeropress Single Origin",
+            originOrBean = "Kenya Nyeri Hill",
+            pricePaid = "850 JPY",
+            rating = 9.2,
+            notes = "Bright blackcurrant, juicy red grapefruit, brown sugar finish.",
+            timestamp = System.currentTimeMillis() - 86_400_000L * 4
         )
     )
 }

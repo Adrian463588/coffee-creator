@@ -47,13 +47,27 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OfflineBolt
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Tune
+import com.coffeecreator.app.core.journal.AdjustmentDirection
+import com.coffeecreator.app.core.journal.BrewFilterCriteria
+import com.coffeecreator.app.core.journal.BrewJournalEntry
+import com.coffeecreator.app.core.journal.CafeCupEntry
+import com.coffeecreator.app.core.journal.ImportRecordStatus
+import com.coffeecreator.app.core.journal.OvatRecommendation
+import com.coffeecreator.app.core.journal.OvatTargetVariable
+import java.util.UUID
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -1488,78 +1502,589 @@ private fun ingredientForm(ingredient: Ingredient) = mapOf(
     }
 )
 
+private enum class JournalTab {
+    BREWS, DIAL_IN, COMPARISON, ANALYTICS, CAFE_CUPS, TOOLS
+}
+
 @Composable
 private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe) -> Unit) {
     val context = LocalContext.current
+    var activeTab by rememberSaveable { mutableStateOf(JournalTab.BREWS) }
     var query by rememberSaveable { mutableStateOf("") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
+    var selectedMethodFilter by rememberSaveable { mutableStateOf("All") }
     var comparing by rememberSaveable { mutableStateOf<String?>(null) }
+    var newCafeName by rememberSaveable { mutableStateOf("") }
+    var newDrinkName by rememberSaveable { mutableStateOf("") }
+    var newCafeRoaster by rememberSaveable { mutableStateOf("") }
+    var newCafePrice by rememberSaveable { mutableStateOf("") }
+    var newCafeRating by rememberSaveable { mutableStateOf("8.5") }
+    var newCafeNotes by rememberSaveable { mutableStateOf("") }
+    var showAddCafeDialog by rememberSaveable { mutableStateOf(false) }
+    var beanconquerorJsonInput by rememberSaveable { mutableStateOf("") }
+    var backupJsonInput by rememberSaveable { mutableStateOf("") }
+    var caffeineDoseInput by rememberSaveable { mutableStateOf(18.0) }
+    var caffeineArabicaFraction by rememberSaveable { mutableStateOf(1.0) }
+
     Page("Journal") {
-        item { Heading("Brew journal", "Saved revisions are immutable. Repeat a brew, make a copy, or compare observations.") }
         item {
-            Row(
+            Heading(
+                "Brew journal & analytics",
+                "Deterministic brew history, espresso dial-in progression, single-variable guidance, and local streaks."
+            )
+        }
+
+        item {
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(Modifier.weight(1f)) {
-                    Field("Search recipes", query, { query = it }, "journal:query")
-                }
                 FilterChip(
-                    selected = showArchived,
-                    onClick = { showArchived = !showArchived },
-                    label = { Text("Archived") },
-                    modifier = Modifier.testTag("journal:show_archived")
+                    selected = activeTab == JournalTab.BREWS,
+                    onClick = { activeTab = JournalTab.BREWS },
+                    label = { Text("Brews & Logs") },
+                    leadingIcon = { Icon(Icons.Default.Book, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("journal:tab_brews")
+                )
+                FilterChip(
+                    selected = activeTab == JournalTab.DIAL_IN,
+                    onClick = { activeTab = JournalTab.DIAL_IN },
+                    label = { Text("Espresso Dial-In") },
+                    leadingIcon = { Icon(Icons.Default.Tune, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("journal:tab_dialin")
+                )
+                FilterChip(
+                    selected = activeTab == JournalTab.COMPARISON,
+                    onClick = { activeTab = JournalTab.COMPARISON },
+                    label = { Text("Compare (${if (state.activeComparison != null) "Active" else "Select"})") },
+                    leadingIcon = { Icon(Icons.Default.CompareArrows, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("journal:tab_compare")
+                )
+                FilterChip(
+                    selected = activeTab == JournalTab.ANALYTICS,
+                    onClick = {
+                        activeTab = JournalTab.ANALYTICS
+                        model.refreshStreakAndStats()
+                        model.estimateCaffeineForDose(caffeineDoseInput, caffeineArabicaFraction)
+                    },
+                    label = { Text("Analytics & Streak") },
+                    leadingIcon = { Icon(Icons.Default.BarChart, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("journal:tab_analytics")
+                )
+                FilterChip(
+                    selected = activeTab == JournalTab.CAFE_CUPS,
+                    onClick = { activeTab = JournalTab.CAFE_CUPS },
+                    label = { Text("Cafe Cups (${state.cafeCupEntries.size})") },
+                    leadingIcon = { Icon(Icons.Default.LocalCafe, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("journal:tab_cafecups")
+                )
+                FilterChip(
+                    selected = activeTab == JournalTab.TOOLS,
+                    onClick = { activeTab = JournalTab.TOOLS },
+                    label = { Text("Export & Tools") },
+                    leadingIcon = { Icon(Icons.Default.FileDownload, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("journal:tab_tools")
                 )
             }
         }
-        val hasCuratedRecipes = state.recipes.any { r -> CuratedCoffeeCatalog.recipes.any { it.id == r.id } }
-        if (!hasCuratedRecipes) {
-            item {
-                InfoCard(
-                    "Specialty Preset Library",
-                    "Load 10 world-standard recipes (Hoffmann V60, Kasuya 4:6, AeroPress Champion, Chemex, etc.) and real sensory logs."
-                ) {
-                    Button(
-                        onClick = model::importCuratedCatalog,
-                        enabled = !state.busy,
-                        modifier = Modifier.testTag("journal:import_catalog")
+
+        when (activeTab) {
+            JournalTab.BREWS -> {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Load 10 Curated Recipes & Journal")
+                        Box(Modifier.weight(1f)) {
+                            Field("Search brews / beans / notes", query, { query = it }, "journal:query")
+                        }
+                        FilterChip(
+                            selected = showArchived,
+                            onClick = { showArchived = !showArchived },
+                            label = { Text("Archived") },
+                            modifier = Modifier.testTag("journal:show_archived")
+                        )
+                    }
+                }
+
+                item {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("All", "V60", "Espresso", "AeroPress", "Chemex", "High Rated").forEach { filter ->
+                            FilterChip(
+                                selected = selectedMethodFilter == filter,
+                                onClick = { selectedMethodFilter = filter },
+                                label = { Text(filter) }
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { model.repeatLastBrew() },
+                            modifier = Modifier.weight(1f).testTag("journal:repeat_last_brew")
+                        ) {
+                            Text("⚡ Repeat Last Brew")
+                        }
+                        OutlinedButton(
+                            onClick = { model.exportJournalCsv(context) },
+                            modifier = Modifier.testTag("journal:export_csv_quick")
+                        ) {
+                            Text("Export CSV")
+                        }
+                    }
+                }
+
+                val hasCuratedRecipes = state.recipes.any { r -> CuratedCoffeeCatalog.recipes.any { it.id == r.id } }
+                if (!hasCuratedRecipes) {
+                    item {
+                        InfoCard(
+                            "Specialty Preset Library",
+                            "Load 10 world-standard recipes (Hoffmann V60, Kasuya 4:6, AeroPress Champion, Chemex, etc.) and real sensory logs."
+                        ) {
+                            Button(
+                                onClick = model::importCuratedCatalog,
+                                enabled = !state.busy,
+                                modifier = Modifier.testTag("journal:import_catalog")
+                            ) {
+                                Text("Load 10 Curated Recipes & Journal")
+                            }
+                        }
+                    }
+                }
+
+                val visibleEntries = state.journalEntries.filter { entry ->
+                    val matchesQuery = query.isBlank() ||
+                        entry.beanName.contains(query, ignoreCase = true) ||
+                        entry.brewMethod.contains(query, ignoreCase = true) ||
+                        entry.generalNotes.contains(query, ignoreCase = true) ||
+                        entry.tags.any { it.contains(query, ignoreCase = true) }
+
+                    val matchesMethod = when (selectedMethodFilter) {
+                        "All" -> true
+                        "High Rated" -> (entry.rating ?: 0.0) >= 8.5
+                        else -> entry.brewMethod.contains(selectedMethodFilter, ignoreCase = true)
+                    }
+                    matchesQuery && matchesMethod
+                }
+
+                if (visibleEntries.isEmpty()) {
+                    item { InfoCard("No brew logs match filter", "Complete a brew in Timer or click 'Load 10 Curated Recipes & Journal'.") }
+                }
+
+                items(visibleEntries, key = { it.id }) { entry ->
+                    InfoCard(
+                        "${entry.beanName} · ${entry.brewMethod}",
+                        listOf(
+                            "${entry.doseGrams}g dose / ${entry.waterGrams}g water (1:${entry.ratioDenominator}) · ${entry.brewDurationSeconds}s · ${entry.waterTemperatureCelsius}°C",
+                            "Grind: ${entry.grinderModel.ifBlank { "Burr Grinder" }} [${entry.grindSetting}] · TDS: ${entry.measuredTdsPercent?.let { "$it%" } ?: "—"} · Approx EY: ${entry.extractionYieldPercent?.let { "$it%" } ?: "—"}",
+                            "Rating: ⭐ ${entry.rating ?: "—"}/10 · Tags: ${entry.tags.joinToString(", ")}",
+                            if (entry.tasteNotes.isNotEmpty()) "Notes: ${entry.tasteNotes.joinToString(", ")}" else "",
+                            if (entry.generalNotes.isNotBlank()) "\"${entry.generalNotes}\"" else ""
+                        ).filter { it.isNotBlank() }.joinToString("\n")
+                    ) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            val recipe = state.recipes.find { it.id == entry.recipeId }
+                            if (recipe != null) {
+                                TextButton(onClick = { edit(recipe) }, modifier = Modifier.testTag("journal:edit:${recipe.id}")) {
+                                    Text("Repeat / edit")
+                                }
+                            }
+                            TextButton(onClick = {
+                                model.selectComparisonSlot(entry, "A")
+                                activeTab = JournalTab.COMPARISON
+                            }) { Text("Set Slot A") }
+                            TextButton(onClick = {
+                                model.selectComparisonSlot(entry, "B")
+                                activeTab = JournalTab.COMPARISON
+                            }) { Text("Set Slot B") }
+                            TextButton(onClick = {
+                                model.evaluateOvatForEntry(entry)
+                                activeTab = JournalTab.DIAL_IN
+                            }) { Text("OVAT Coach") }
+                            TextButton(onClick = {
+                                model.saveEntryAsTemplate(entry, "${entry.beanName} ${entry.brewMethod}")
+                            }) { Text("Save Template") }
+                            TextButton(onClick = { model.deleteJournalEntry(entry.id) }) { Text("Delete") }
+                        }
                     }
                 }
             }
-        }
-        val visibleRecipes = state.recipes.filter {
-            (showArchived || !it.isArchived) && it.name.contains(query, true)
-        }
-        if (visibleRecipes.isEmpty()) item { InfoCard("No saved brews", "Create and save your first manual recipe in Brew.") }
-        items(visibleRecipes, key = { it.id }) { recipe ->
-            InfoCard(
-                "${recipe.name} · v${recipe.version}${if (recipe.isArchived) " [ARCHIVED]" else ""}",
-                listOf(
-                    "${recipe.brewMethod} · ${recipe.doseGrams} g coffee / ${recipe.waterGrams} g water",
-                    "Measured TDS: ${recipe.measuredTdsPercent?.let { "$it%" } ?: "not measured"}",
-                    "Measured beverage: ${recipe.beverageMassGrams?.let { "$it g" } ?: "not measured"}",
-                    "${state.observations.count { it.recipeId == recipe.id }} human observations"
-                ).joinToString("\n")
-            ) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = {
-                        edit(recipe)
-                    }, modifier = Modifier.testTag("journal:edit:${recipe.id}")) { Text("Repeat / edit") }
-                    TextButton(onClick = { model.copyRecipe(recipe) }) { Text("Copy") }
-                    TextButton(onClick = { model.shareRecipe(context, recipe, formatJson = false) }) { Text("Share") }
-                    TextButton(onClick = { model.shareRecipe(context, recipe, formatJson = true) }) { Text("JSON") }
-                    TextButton(onClick = { model.toggleArchiveRecipe(recipe) }) {
-                        Text(if (recipe.isArchived) "Unarchive" else "Archive")
+
+            JournalTab.DIAL_IN -> {
+                item {
+                    InfoCard(
+                        "Espresso Dial-In Progression",
+                        "Evaluate target vs actual extraction parameters, track flow rate dynamics, and receive single-variable adjustment advice."
+                    )
+                }
+
+                state.activeOvatRecommendation?.let { rec ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                        ) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("🎯 One-Variable-at-a-Time (OVAT) Recommendation", style = MaterialTheme.typography.titleMedium)
+                                Text("Target Variable: ${rec.targetVariable.name} → ${rec.direction.name}", style = MaterialTheme.typography.bodyLarge)
+                                Text("Recommended Adjustment: ${rec.suggestedMagnitude}", style = MaterialTheme.typography.bodyMedium)
+                                Text("Physical Mechanism: ${rec.physicalReasoning}", style = MaterialTheme.typography.bodySmall)
+                                Text("Expected Extraction Impact: ${rec.expectedImpact}", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
-                    TextButton(onClick = { comparing = recipe.revisionGroupId }) { Text("Compare history") }
-                    TextButton(onClick = { model.requestDeletion("recipe", recipe.id) }) { Text("Delete") }
+                }
+
+                val espressoEntries = state.journalEntries.filter { it.isEspresso || it.brewMethod.contains("Espresso", true) }
+                if (espressoEntries.isEmpty()) {
+                    item { InfoCard("No espresso shots logged", "Complete an espresso session or tap 'Load Curated Catalog' to view dial-in benchmarks.") }
+                }
+
+                items(espressoEntries, key = { it.id }) { shot ->
+                    val esp = shot.espressoDetails
+                    InfoCard(
+                        "Espresso Shot: ${shot.beanName}",
+                        listOf(
+                            "Dose: ${shot.doseGrams}g ${if (esp != null) "(Target: ${esp.targetDoseGrams}g, Δ: ${(shot.doseGrams - esp.targetDoseGrams).let { if (it >= 0) "+$it" else "$it" }}g)" else ""}",
+                            "Liquid Yield: ${shot.beverageMassGrams ?: shot.waterGrams}g ${if (esp != null) "(Target: ${esp.targetYieldGrams}g, Δ: ${((shot.beverageMassGrams ?: shot.waterGrams) - esp.targetYieldGrams).let { if (it >= 0) "+$it" else "$it" }}g)" else ""}",
+                            "Shot Time: ${shot.brewDurationSeconds}s ${if (esp != null) "(Target: ${esp.targetDurationSeconds}s, Δ: ${shot.brewDurationSeconds - esp.targetDurationSeconds}s)" else ""}",
+                            "Mean Flow Rate: ${esp?.meanFlowRateGps ?: "—"} g/s · TDS: ${shot.measuredTdsPercent ?: "—"}%",
+                            "Puck Prep: ${esp?.puckPrepMethods?.joinToString(", ") ?: "Standard Tamp"}",
+                            "Grind Setting: ${shot.grinderModel} [${shot.grindSetting}]"
+                        ).joinToString("\n")
+                    ) {
+                        Button(onClick = { model.evaluateOvatForEntry(shot) }) {
+                            Text("Diagnose with OVAT Coach")
+                        }
+                    }
+                }
+            }
+
+            JournalTab.COMPARISON -> {
+                item {
+                    InfoCard(
+                        "Side-by-Side Session Comparison",
+                        "Compare two brewing sessions with deterministic numeric deltas across dose, yield, ratio, time, TDS, and EY."
+                    )
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Card(Modifier.weight(1f)) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text("Slot A (Baseline)", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    state.selectedComparisonA?.let { "${it.beanName}\n${it.brewMethod} (${it.doseGrams}g/${it.waterGrams}g)" } ?: "No brew selected",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                        Card(Modifier.weight(1f)) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text("Slot B (Target)", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    state.selectedComparisonB?.let { "${it.beanName}\n${it.brewMethod} (${it.doseGrams}g/${it.waterGrams}g)" } ?: "No brew selected",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { model.clearComparison() }) {
+                            Text("Clear Comparison")
+                        }
+                    }
+                }
+
+                state.activeComparison?.let { comp ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                        ) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("📊 Deterministic Numeric Deltas (B minus A)", style = MaterialTheme.typography.titleMedium)
+                                Text("• Coffee Dose Δ: ${if (comp.doseDeltaGrams >= 0) "+${comp.doseDeltaGrams}" else "${comp.doseDeltaGrams}"} g", style = MaterialTheme.typography.bodyMedium)
+                                Text("• Water Mass Δ: ${if (comp.waterDeltaGrams >= 0) "+${comp.waterDeltaGrams}" else "${comp.waterDeltaGrams}"} g", style = MaterialTheme.typography.bodyMedium)
+                                Text("• Brew Ratio Δ: ${if (comp.ratioDelta >= 0) "+${comp.ratioDelta}" else "${comp.ratioDelta}"}", style = MaterialTheme.typography.bodyMedium)
+                                Text("• Duration Δ: ${if (comp.durationDeltaSeconds >= 0) "+${comp.durationDeltaSeconds}" else "${comp.durationDeltaSeconds}"} s", style = MaterialTheme.typography.bodyMedium)
+                                Text("• Measured TDS Δ: ${comp.tdsDeltaPercent?.let { "${if (it >= 0) "+$it" else "$it"}%" } ?: "N/A"}", style = MaterialTheme.typography.bodyMedium)
+                                Text("• Extraction Yield Δ: ${comp.eyDeltaPercent?.let { "${if (it >= 0) "+$it" else "$it"}%" } ?: "N/A"}", style = MaterialTheme.typography.bodyMedium)
+                                Text("• Rating Δ: ${comp.ratingDelta?.let { "${if (it >= 0) "+$it" else "$it"}" } ?: "N/A"}", style = MaterialTheme.typography.bodyMedium)
+                                Text("• Water Temp Δ: ${if (comp.temperatureDeltaCelsius >= 0) "+${comp.temperatureDeltaCelsius}" else "${comp.temperatureDeltaCelsius}"} °C", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Text("Select a brew below to assign to Slot A or Slot B:", style = MaterialTheme.typography.titleSmall)
+                }
+
+                items(state.journalEntries.take(6), key = { it.id }) { entry ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("${entry.beanName} (${entry.brewMethod})", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = { model.selectComparisonSlot(entry, "A") }) { Text("Slot A") }
+                        TextButton(onClick = { model.selectComparisonSlot(entry, "B") }) { Text("Slot B") }
+                    }
+                }
+            }
+
+            JournalTab.ANALYTICS -> {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("🔥 Local Brewing Streak", style = MaterialTheme.typography.titleMedium)
+                            Text("Current Streak: ${state.brewStreak?.currentStreakDays ?: 0} Days Active", style = MaterialTheme.typography.bodyLarge)
+                            Text("Longest Recorded Streak: ${state.brewStreak?.longestStreakDays ?: 0} Days", style = MaterialTheme.typography.bodyMedium)
+                            Text("Total Days Brewed: ${state.brewStreak?.activeDaysCount ?: 0} Days", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            val stats = state.monthlyStats
+                            Text("📅 Monthly Consumption Stats (${stats?.year ?: 2026}-${stats?.month ?: 10})", style = MaterialTheme.typography.titleMedium)
+                            Text("• Total Brew Sessions: ${stats?.totalBrewsCount ?: 0}", style = MaterialTheme.typography.bodyMedium)
+                            Text("• Total Dry Coffee Consumed: ${stats?.totalDoseGrams ?: 0.0} g", style = MaterialTheme.typography.bodyMedium)
+                            Text("• Preferred Brewing Method: ${stats?.topBrewMethod ?: "None"}", style = MaterialTheme.typography.bodyMedium)
+                            Text("• Average Rating: ${stats?.averageRating?.let { "⭐ $it / 10" } ?: "Not rated"}", style = MaterialTheme.typography.bodyMedium)
+                            Text("• Average Extraction Yield: ${stats?.averageExtractionYield?.let { "$it%" } ?: "Not measured"}", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("☕ Caffeine Intake Estimator (S2-050)", style = MaterialTheme.typography.titleMedium)
+                            Text("Adjust dose and species blend to estimate dissolved caffeine mass:")
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Dose: ${"%.1f".format(java.util.Locale.US, caffeineDoseInput)} g", Modifier.weight(1f))
+                                Slider(
+                                    value = caffeineDoseInput.toFloat(),
+                                    onValueChange = {
+                                        caffeineDoseInput = it.toDouble()
+                                        model.estimateCaffeineForDose(caffeineDoseInput, caffeineArabicaFraction)
+                                    },
+                                    valueRange = 10f..35f,
+                                    steps = 24,
+                                    modifier = Modifier.weight(2f)
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                FilterChip(
+                                    selected = caffeineArabicaFraction >= 0.99,
+                                    onClick = {
+                                        caffeineArabicaFraction = 1.0
+                                        model.estimateCaffeineForDose(caffeineDoseInput, 1.0)
+                                    },
+                                    label = { Text("100% Arabica") }
+                                )
+                                FilterChip(
+                                    selected = caffeineArabicaFraction in 0.4..0.6,
+                                    onClick = {
+                                        caffeineArabicaFraction = 0.5
+                                        model.estimateCaffeineForDose(caffeineDoseInput, 0.5)
+                                    },
+                                    label = { Text("50/50 Blend") }
+                                )
+                                FilterChip(
+                                    selected = caffeineArabicaFraction <= 0.01,
+                                    onClick = {
+                                        caffeineArabicaFraction = 0.0
+                                        model.estimateCaffeineForDose(caffeineDoseInput, 0.0)
+                                    },
+                                    label = { Text("100% Robusta") }
+                                )
+                            }
+                            state.activeCaffeineEstimate?.let { est ->
+                                Text("Estimated Caffeine: ~${est.estimatedCaffeineMg} mg", style = MaterialTheme.typography.titleMedium)
+                                Text("Uncertainty Range: [${est.uncertaintyRangeMg.first} mg — ${est.uncertaintyRangeMg.second} mg]", style = MaterialTheme.typography.bodyMedium)
+                                Text("Species Basis: ${est.speciesRatioDescription}", style = MaterialTheme.typography.bodySmall)
+                                Text(est.disclaimer, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
+
+            JournalTab.CAFE_CUPS -> {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Cafe Cup Logbook (Manual, Zero Maps)", style = MaterialTheme.typography.titleMedium)
+                        Button(onClick = { showAddCafeDialog = true }) {
+                            Text("+ Add Cafe Cup")
+                        }
+                    }
+                }
+
+                if (showAddCafeDialog) {
+                    item {
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Log Specialty Cafe Visit", style = MaterialTheme.typography.titleMedium)
+                                Field("Cafe Name", newCafeName, { newCafeName = it }, "cafecup:name")
+                                Field("Roaster", newCafeRoaster, { newCafeRoaster = it }, "cafecup:roaster")
+                                Field("Drink Name", newDrinkName, { newDrinkName = it }, "cafecup:drink")
+                                Field("Price Paid", newCafePrice, { newCafePrice = it }, "cafecup:price")
+                                Field("Rating (1-10)", newCafeRating, { newCafeRating = it }, "cafecup:rating")
+                                Field("Tasting Notes", newCafeNotes, { newCafeNotes = it }, "cafecup:notes")
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = {
+                                        if (newCafeName.isNotBlank() && newDrinkName.isNotBlank()) {
+                                            model.saveCafeCup(
+                                                CafeCupEntry(
+                                                    id = UUID.randomUUID().toString(),
+                                                    cafeName = newCafeName,
+                                                    roaster = newCafeRoaster,
+                                                    drinkName = newDrinkName,
+                                                    pricePaid = newCafePrice,
+                                                    rating = newCafeRating.toDoubleOrNull() ?: 8.0,
+                                                    notes = newCafeNotes
+                                                )
+                                            )
+                                            newCafeName = ""
+                                            newDrinkName = ""
+                                            newCafeRoaster = ""
+                                            newCafePrice = ""
+                                            newCafeNotes = ""
+                                            showAddCafeDialog = false
+                                        }
+                                    }) { Text("Save Cafe Cup") }
+                                    TextButton(onClick = { showAddCafeDialog = false }) { Text("Cancel") }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (state.cafeCupEntries.isEmpty()) {
+                    item { InfoCard("No cafe visits logged yet", "Tap '+ Add Cafe Cup' to record an artisan coffee experience.") }
+                }
+
+                items(state.cafeCupEntries, key = { it.id }) { cup ->
+                    InfoCard(
+                        "${cup.drinkName} @ ${cup.cafeName}",
+                        listOf(
+                            "Roaster: ${cup.roaster.ifBlank { "In-house" }} · Rating: ⭐ ${cup.rating}/10",
+                            "Price: ${cup.pricePaid.ifBlank { "—" }}",
+                            if (cup.notes.isNotBlank()) "\"${cup.notes}\"" else ""
+                        ).filter { it.isNotBlank() }.joinToString("\n")
+                    ) {
+                        TextButton(onClick = { model.deleteCafeCup(cup.id) }) { Text("Delete") }
+                    }
+                }
+            }
+
+            JournalTab.TOOLS -> {
+                item {
+                    InfoCard(
+                        "Data Portability & Migration (S2-047, S2-048)",
+                        "Export complete journal history to standard CSV or import JSON backups from Beanconqueror."
+                    ) {
+                        Button(onClick = { model.exportJournalCsv(context) }) {
+                            Text("Export Journal to CSV")
+                        }
+                    }
+                }
+
+                item {
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("📥 Beanconqueror JSON Importer (S2-048)", style = MaterialTheme.typography.titleMedium)
+                            Text("Paste Beanconqueror export JSON below to migrate beans and brew logs into Coffee Creator:", style = MaterialTheme.typography.bodySmall)
+                            OutlinedTextField(
+                                value = beanconquerorJsonInput,
+                                onValueChange = { beanconquerorJsonInput = it },
+                                label = { Text("Beanconqueror JSON payload") },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp)
+                            )
+                            Button(
+                                onClick = {
+                                    if (beanconquerorJsonInput.isNotBlank()) {
+                                        model.importBeanconquerorJson(beanconquerorJsonInput)
+                                        beanconquerorJsonInput = ""
+                                    }
+                                },
+                                enabled = beanconquerorJsonInput.isNotBlank()
+                            ) {
+                                Text("Import Beanconqueror Records")
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("🔍 Backup Import Conflict Preview (S2-047)", style = MaterialTheme.typography.titleMedium)
+                            Text("Paste Coffee Creator JSON backup to detect 3-way conflicts before writing:", style = MaterialTheme.typography.bodySmall)
+                            OutlinedTextField(
+                                value = backupJsonInput,
+                                onValueChange = { backupJsonInput = it },
+                                label = { Text("Backup JSON envelope") },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp)
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = { model.previewBackup(backupJsonInput) },
+                                    enabled = backupJsonInput.isNotBlank()
+                                ) {
+                                    Text("Preview Conflicts")
+                                }
+                                if (state.importConflictPreview != null) {
+                                    TextButton(onClick = { model.clearConflictPreview() }) {
+                                        Text("Clear Preview")
+                                    }
+                                }
+                            }
+
+                            state.importConflictPreview?.let { preview ->
+                                Text("New Records: ${preview.newRecordsCount} · Identical: ${preview.identicalCount} · Conflicting: ${preview.conflictCount}", style = MaterialTheme.typography.bodyMedium)
+                                preview.items.take(5).forEach { item ->
+                                    Text("• [${item.status}] ID: ${item.recordId}", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+
     comparing?.let { group ->
         AlertDialog(onDismissRequest = { comparing = null }, title = { Text("Revision comparison") }, text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {

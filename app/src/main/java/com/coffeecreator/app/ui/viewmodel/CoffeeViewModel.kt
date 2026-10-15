@@ -54,8 +54,26 @@ import com.coffeecreator.app.core.model.RecipeLine
 import com.coffeecreator.app.core.model.SensoryEstimate
 import com.coffeecreator.app.core.model.SensoryObservation
 import com.coffeecreator.app.core.model.StoredSensoryEstimate
+import com.coffeecreator.app.core.journal.AdjustmentDirection
+import com.coffeecreator.app.core.journal.BrewAnalyticsEngine
+import com.coffeecreator.app.core.journal.BrewFilterCriteria
+import com.coffeecreator.app.core.journal.BrewJournalEntry
+import com.coffeecreator.app.core.journal.BrewSessionComparison
+import com.coffeecreator.app.core.journal.BrewStreakResult
+import com.coffeecreator.app.core.journal.CafeCupEntry
+import com.coffeecreator.app.core.journal.CaffeineEstimate
+import com.coffeecreator.app.core.journal.EspressoJournalDetails
+import com.coffeecreator.app.core.journal.ImportConflictItem
+import com.coffeecreator.app.core.journal.ImportConflictPreview
+import com.coffeecreator.app.core.journal.ImportRecordStatus
+import com.coffeecreator.app.core.journal.MonthlyBrewStatistics
+import com.coffeecreator.app.core.journal.OvatRecommendation
+import com.coffeecreator.app.core.journal.OvatTargetVariable
 import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -115,7 +133,18 @@ data class CoffeeUiState(
     val isScaleScanning: Boolean = false,
     val activeHapticCue: HapticCueType? = null,
     val activeAudioCue: AudioCueType? = null,
-    val brewCurveRmse: Double? = null
+    val brewCurveRmse: Double? = null,
+    val journalEntries: List<BrewJournalEntry> = emptyList(),
+    val cafeCupEntries: List<CafeCupEntry> = emptyList(),
+    val journalFilterCriteria: BrewFilterCriteria = BrewFilterCriteria(),
+    val selectedComparisonA: BrewJournalEntry? = null,
+    val selectedComparisonB: BrewJournalEntry? = null,
+    val activeComparison: BrewSessionComparison? = null,
+    val activeOvatRecommendation: OvatRecommendation? = null,
+    val activeCaffeineEstimate: CaffeineEstimate? = null,
+    val brewStreak: BrewStreakResult? = null,
+    val monthlyStats: MonthlyBrewStatistics? = null,
+    val importConflictPreview: ImportConflictPreview? = null
 )
 
 @HiltViewModel
@@ -233,7 +262,16 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         viewModelScope.launch { repository.errorState.collect { error -> if (error != null) _state.update { it.copy(error = error) } } }
         viewModelScope.launch { repository.beans.collect { beans -> _state.update { it.copy(beans = beans) } } }
         viewModelScope.launch { repository.ingredients.collect { ingredients -> _state.update { it.copy(ingredients = ingredients) } } }
-        viewModelScope.launch { repository.recipes.collect { recipes -> _state.update { it.copy(recipes = recipes) } } }
+        viewModelScope.launch {
+            repository.recipes.collect { recipes ->
+                _state.update { current ->
+                    val j = if (current.journalEntries.isEmpty()) CuratedCoffeeCatalog.curatedJournalEntries else current.journalEntries
+                    val c = if (current.cafeCupEntries.isEmpty()) CuratedCoffeeCatalog.curatedCafeCups else current.cafeCupEntries
+                    current.copy(recipes = recipes, journalEntries = j, cafeCupEntries = c)
+                }
+                refreshStreakAndStats()
+            }
+        }
         viewModelScope.launch {
             repository.sensoryObservations.collect { observations -> _state.update { it.copy(observations = observations) } }
         }
@@ -496,7 +534,14 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     }
     fun importCuratedCatalog() = task("Loading curated specialty coffee catalog") {
         graph.repository.importCuratedCatalog()
-        _state.update { it.copy(notice = "Imported 10 curated recipes, 8 single-origin beans, and sensory observation logs.") }
+        _state.update {
+            it.copy(
+                journalEntries = CuratedCoffeeCatalog.curatedJournalEntries,
+                cafeCupEntries = CuratedCoffeeCatalog.curatedCafeCups,
+                notice = "Imported 10 curated recipes, 8 single-origin beans, and sensory observation logs."
+            )
+        }
+        refreshStreakAndStats()
     }
     fun requestDeletion(kind: String, id: String) {
         _state.update { it.copy(deletion = kind to id) }
@@ -1050,14 +1095,55 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         }
         val rmse = if (actualPoints.isNotEmpty()) BrewFilterEngine.calculateCurveRmse(actualPoints, idealPoints) else null
 
+        val isEsp = session.recipe.brewMethod.contains("Espresso", true)
+        val journalEntry = BrewJournalEntry(
+            id = UUID.randomUUID().toString(),
+            recipeId = session.recipe.id,
+            beanId = session.recipe.beanId,
+            beanName = _state.value.beans.find { it.id == session.recipe.beanId }?.name ?: "House Blend",
+            brewMethod = session.recipe.brewMethod,
+            equipment = session.recipe.equipment,
+            doseGrams = session.recipe.doseGrams,
+            waterGrams = actualWater,
+            beverageMassGrams = if (isEsp) actualWater else (session.recipe.beverageMassGrams ?: (actualWater * 0.9)),
+            grinderModel = session.recipe.grinderModel ?: "Baratza Sette 270",
+            grindSetting = session.recipe.grinderSetting ?: session.recipe.grindSize,
+            waterTemperatureCelsius = session.recipe.temperatureCelsius,
+            brewDurationSeconds = elapsed,
+            drawdownSeconds = if (!isEsp) 40 else null,
+            measuredTdsPercent = session.recipe.measuredTdsPercent ?: if (isEsp) 9.5 else 1.35,
+            rating = 8.5,
+            tasteNotes = listOf("Clean", "Sweet", "Balanced"),
+            generalNotes = "Auto-logged from active brew session: ${session.recipe.name} (${elapsed}s elapsed, ${actualWater}g water poured).",
+            tags = listOf(session.recipe.brewMethod.substringBefore(" "), "ActiveTimer", if (isEsp) "DialIn" else "Filter"),
+            createdAt = System.currentTimeMillis(),
+            isEspresso = isEsp,
+            espressoDetails = if (isEsp) {
+                EspressoJournalDetails(
+                    targetDoseGrams = session.recipe.doseGrams,
+                    actualDoseGrams = session.recipe.doseGrams,
+                    targetYieldGrams = session.recipe.beverageMassGrams ?: 36.0,
+                    actualYieldGrams = actualWater,
+                    targetDurationSeconds = session.recipe.brewTimeSeconds,
+                    actualDurationSeconds = elapsed,
+                    puckPrepMethods = listOf("WDT", "Tamp"),
+                    firstDropSeconds = session.recipe.firstDropSeconds ?: 5
+                )
+            } else null,
+            dialInChainId = if (isEsp) "dialin-${session.recipe.beanId ?: "default"}" else null
+        )
+
         _state.update {
+            val updatedJournal = listOf(journalEntry) + it.journalEntries.filter { j -> j.id != journalEntry.id }
             it.copy(
                 timerRunning = false,
                 brewCurveRmse = rmse,
                 brewSession = session.copy(status = BrewExecutionStatus.COMPLETED),
+                journalEntries = updatedJournal,
                 notice = "Brew session completed and auto-logged to Journal!"
             )
         }
+        refreshStreakAndStats()
     }
 
     private fun updateSessionTick(elapsedSeconds: Int) {
@@ -1312,6 +1398,171 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     fun resetTimer() {
         resetBrewSession()
     }
+
+    fun saveJournalEntry(entry: BrewJournalEntry) {
+        _state.update {
+            val list = listOf(entry) + it.journalEntries.filter { e -> e.id != entry.id }
+            it.copy(journalEntries = list, notice = "Saved journal entry for ${entry.beanName}.")
+        }
+        refreshStreakAndStats()
+    }
+
+    fun deleteJournalEntry(id: String) {
+        _state.update {
+            val list = it.journalEntries.filter { e -> e.id != id }
+            it.copy(journalEntries = list, notice = "Deleted journal entry.")
+        }
+        refreshStreakAndStats()
+    }
+
+    fun updateJournalFilter(criteria: BrewFilterCriteria) {
+        _state.update { it.copy(journalFilterCriteria = criteria) }
+    }
+
+    fun selectComparisonSlot(entry: BrewJournalEntry?, slot: String) {
+        _state.update { current ->
+            val newA = if (slot == "A") entry else current.selectedComparisonA
+            val newB = if (slot == "B") entry else current.selectedComparisonB
+            val comparison = if (newA != null && newB != null) {
+                BrewAnalyticsEngine.compareSessions(newA, newB)
+            } else null
+            current.copy(selectedComparisonA = newA, selectedComparisonB = newB, activeComparison = comparison)
+        }
+    }
+
+    fun clearComparison() {
+        _state.update { it.copy(selectedComparisonA = null, selectedComparisonB = null, activeComparison = null) }
+    }
+
+    fun evaluateOvatForEntry(entry: BrewJournalEntry, tasteFlags: List<String> = emptyList()) {
+        val rec = BrewAnalyticsEngine.evaluateOvat(entry, tasteFlags)
+        _state.update { it.copy(activeOvatRecommendation = rec) }
+    }
+
+    fun estimateCaffeineForDose(doseGrams: Double, arabicaFraction: Double = 1.0) {
+        val estimate = BrewAnalyticsEngine.estimateCaffeine(doseGrams, arabicaFraction)
+        _state.update { it.copy(activeCaffeineEstimate = estimate) }
+    }
+
+    fun repeatLastBrew() {
+        val last = _state.value.journalEntries.maxByOrNull { it.createdAt } ?: return
+        val matchingRecipe = _state.value.recipes.find { it.id == last.recipeId }
+        if (matchingRecipe != null) {
+            editRecipe(matchingRecipe)
+            initBrewSession(matchingRecipe)
+        } else {
+            val newRecipe = Recipe(
+                id = UUID.randomUUID().toString(),
+                name = "${last.brewMethod} Repeat (${last.beanName})",
+                beanId = last.beanId,
+                brewMethod = last.brewMethod,
+                doseGrams = last.doseGrams,
+                waterGrams = last.waterGrams,
+                temperatureCelsius = last.waterTemperatureCelsius,
+                brewTimeSeconds = last.brewDurationSeconds,
+                grindSize = last.grindSetting,
+                grinderModel = last.grinderModel
+            )
+            initBrewSession(newRecipe)
+        }
+        _state.update { it.copy(notice = "Repeated previous brew: ${last.brewMethod} (${last.doseGrams}g). Armed on timer.") }
+    }
+
+    fun saveEntryAsTemplate(entry: BrewJournalEntry, templateName: String) = task("Saving brew template") {
+        val recipe = Recipe(
+            id = UUID.randomUUID().toString(),
+            name = templateName.ifBlank { "${entry.brewMethod} Template" },
+            beanId = entry.beanId,
+            brewMethod = entry.brewMethod,
+            equipment = entry.equipment,
+            doseGrams = entry.doseGrams,
+            waterGrams = entry.waterGrams,
+            beverageMassGrams = entry.beverageMassGrams,
+            measuredTdsPercent = entry.measuredTdsPercent,
+            temperatureCelsius = entry.waterTemperatureCelsius,
+            brewTimeSeconds = entry.brewDurationSeconds,
+            grindSize = entry.grindSetting,
+            grinderModel = entry.grinderModel,
+            notes = entry.generalNotes
+        )
+        graph.repository.saveRecipe(recipe)
+        _state.update { it.copy(notice = "Saved template '${recipe.name}' to Recipe Library.") }
+    }
+
+    fun saveCafeCup(entry: CafeCupEntry) {
+        _state.update {
+            val list = listOf(entry) + it.cafeCupEntries.filter { c -> c.id != entry.id }
+            it.copy(cafeCupEntries = list, notice = "Saved cafe cup: ${entry.drinkName} at ${entry.cafeName}.")
+        }
+    }
+
+    fun deleteCafeCup(id: String) {
+        _state.update {
+            val list = it.cafeCupEntries.filter { c -> c.id != id }
+            it.copy(cafeCupEntries = list, notice = "Deleted cafe cup.")
+        }
+    }
+
+    fun exportJournalCsv(context: Context) {
+        val csv = BrewAnalyticsEngine.exportJournalToCsv(_state.value.journalEntries)
+        RecipeExportFormatter.shareJournalCsv(context, csv)
+    }
+
+    fun importBeanconquerorJson(json: String) = task("Importing Beanconqueror backup") {
+        val (beans, brews) = BrewAnalyticsEngine.parseBeanconquerorJson(json)
+        require(beans.isNotEmpty() || brews.isNotEmpty()) { "No valid Beanconqueror beans or brews found in JSON." }
+        beans.forEach { bean ->
+            if (graph.repository.findBeanById(bean.id) == null) {
+                graph.repository.addBean(bean)
+            }
+        }
+        _state.update { current ->
+            val updatedBrews = brews + current.journalEntries.filter { j -> brews.none { it.id == j.id } }
+            current.copy(
+                journalEntries = updatedBrews,
+                notice = "Imported ${beans.size} beans and ${brews.size} brews from Beanconqueror."
+            )
+        }
+        refreshStreakAndStats()
+    }
+
+    fun previewBackup(backupJson: String) {
+        val preview = runCatching {
+            val validated = BackupCodec.decode(backupJson)
+            val currentBeans = _state.value.beans.associateBy { it.id }
+            val items = validated.payload.beans.map { incoming ->
+                val local = currentBeans[incoming.id]
+                val status = when {
+                    local == null -> ImportRecordStatus.NEW
+                    local == incoming -> ImportRecordStatus.IDENTICAL
+                    else -> ImportRecordStatus.MODIFIED_REMOTE_NEWER
+                }
+                ImportConflictItem(incoming.id, local, incoming, status, local?.let { it.hashCode().toString() }, incoming.hashCode().toString())
+            }
+            ImportConflictPreview(
+                newRecordsCount = items.count { it.status == ImportRecordStatus.NEW },
+                identicalCount = items.count { it.status == ImportRecordStatus.IDENTICAL },
+                conflictCount = items.count { it.status != ImportRecordStatus.NEW && it.status != ImportRecordStatus.IDENTICAL },
+                items = items
+            )
+        }.getOrNull()
+        _state.update { it.copy(importConflictPreview = preview) }
+    }
+
+    fun clearConflictPreview() {
+        _state.update { it.copy(importConflictPreview = null) }
+    }
+
+    fun refreshStreakAndStats() {
+        val entries = _state.value.journalEntries
+        val zone = ZoneId.systemDefault()
+        val dates = entries.map { Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate() }
+        val streak = BrewAnalyticsEngine.calculateStreak(dates)
+        val now = LocalDate.now()
+        val stats = BrewAnalyticsEngine.calculateMonthlyStats(entries, now.year, now.monthValue)
+        _state.update { it.copy(brewStreak = streak, monthlyStats = stats) }
+    }
+
     fun clearNotice() {
         _state.update { it.copy(notice = null, error = null) }
     }
