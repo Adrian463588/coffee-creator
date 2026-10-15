@@ -261,6 +261,16 @@ inline ModelBounds validate_gguf(const std::string & path, const std::atomic_boo
     }
     const std::set<std::string> supported = {"llama", "qwen2", "gemma", "gemma2", "gemma4", "phi3"};
     if (!supported.count(architecture)) throw std::runtime_error("Unsupported architecture. Choose a small dense Llama, Qwen2, Gemma or Phi3 chat model.");
+    // The architecture may appear after dimensions; validate ownership once all keys are known.
+    for (const auto & key : keys) {
+        for (const std::string suffix : {".embedding_length", ".block_count", ".attention.head_count",
+                                         ".attention.head_count_kv", ".attention.key_length", ".attention.value_length",
+                                         ".feed_forward_length", ".expert_count"}) {
+            if (ends_with(key, suffix) && key != architecture + suffix) {
+                throw std::runtime_error("GGUF dimension key does not belong to the declared architecture.");
+            }
+        }
+    }
     if (!feed_forward_array_key.empty() &&
         (architecture != "gemma4" || feed_forward_array_key != "gemma4.feed_forward_length" ||
          feed_forward_widths.size() != bounds.layers)) {

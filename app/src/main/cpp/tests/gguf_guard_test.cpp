@@ -27,18 +27,24 @@ void number_field(std::vector<char> & bytes, const std::string & key, uint32_t v
 }
 
 // Parser fixture only: structurally bounded data, never supplied to model inference.
-std::vector<char> fixture(uint32_t embedding = 64, uint32_t tensor_type = 0) {
+std::vector<char> fixture(uint32_t embedding = 64, uint32_t tensor_type = 0,
+                          const std::string & architecture = "qwen2", bool architecture_last = false,
+                          const std::string & extra_dimension = "") {
     std::vector<char> bytes;
     integer(bytes, 0x46554747, 4);
     integer(bytes, 3, 4);
     integer(bytes, 1, 8);
-    integer(bytes, 6, 8);
-    string_field(bytes, "general.architecture", "qwen2");
+    integer(bytes, extra_dimension.empty() ? 6 : 7, 8);
+    if (!architecture_last) string_field(bytes, "general.architecture", architecture);
     string_field(bytes, "tokenizer.chat_template", "chatml");
-    number_field(bytes, "qwen2.embedding_length", embedding);
-    number_field(bytes, "qwen2.block_count", 1);
-    number_field(bytes, "qwen2.attention.head_count", 1);
-    number_field(bytes, "qwen2.attention.head_count_kv", 1);
+    const uint32_t extra_value = coffee::ends_with(extra_dimension, ".expert_count") ? 0 : 1;
+    if (architecture_last && !extra_dimension.empty()) number_field(bytes, extra_dimension, extra_value);
+    number_field(bytes, architecture + ".embedding_length", embedding);
+    number_field(bytes, architecture + ".block_count", 1);
+    number_field(bytes, architecture + ".attention.head_count", 1);
+    number_field(bytes, architecture + ".attention.head_count_kv", 1);
+    if (!architecture_last && !extra_dimension.empty()) number_field(bytes, extra_dimension, extra_value);
+    if (architecture_last) string_field(bytes, "general.architecture", architecture);
     text(bytes, "test.weight");
     integer(bytes, 1, 4);
     integer(bytes, 1, 8);
@@ -149,7 +155,24 @@ int main(int argc, char ** argv) {
     rejects(path, gemma_fixture(widths, 9));
     rejects(path, gemma_fixture(widths, 4, "qwen2"));
     rejects(path, gemma_fixture(widths, 4, "unknown"));
+
+    // Foreign/nested keys must not overwrite architecture-owned RAM admission bounds.
+    for (const std::string suffix : {".embedding_length", ".block_count", ".attention.head_count",
+                                     ".attention.head_count_kv", ".attention.key_length", ".attention.value_length",
+                                     ".feed_forward_length", ".expert_count"}) {
+        for (const auto architecture_last : {false, true}) {
+            rejects(path, fixture(64, 0, "qwen2", architecture_last, "llama" + suffix));
+            rejects(path, fixture(64, 0, "qwen2", architecture_last, "qwen2.foreign" + suffix));
+        }
+    }
+    for (const std::string architecture : {"llama", "qwen2", "gemma", "gemma2", "gemma4", "phi3"}) {
+        for (const auto architecture_last : {false, true}) {
+            write(path, fixture(64, 0, architecture, architecture_last));
+            const auto ordered = coffee::validate_gguf(path, cancelled);
+            assert(ordered.architecture == architecture && ordered.embedding == 64 && ordered.layers == 1);
+        }
+    }
     static_assert(coffee::max_model_bytes == 4ULL * 1024 * coffee::mib, "Native file budget must match Kotlin's 4 GiB cap.");
     assert(std::remove(path.c_str()) == 0);
-    std::cout << "GGUF guard: 20 structural/adversarial checks passed.\n";
+    std::cout << "GGUF guard: 64 structural/adversarial checks passed.\n";
 }
