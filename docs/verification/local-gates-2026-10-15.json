@@ -1,0 +1,326 @@
+{
+  "date": "2026-10-15",
+  "environment": "Windows host, JDK21, no ADB",
+  "gradle_result": "BUILD SUCCESSFUL",
+  "gradle_tasks": ":app:detekt :app:ktlintCheck :app:lintDebug :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleBenchmark :benchmark:assembleBenchmark",
+  "jvm": {
+    "totals": {
+      "tests": 110,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "suites": [
+      {
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.ai.EmbeddingContractTest"
+      },
+      {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.ai.HybridRagEngineTest"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.ai.MeasurementAuthorityTest"
+      },
+      {
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.ai.NativeRuntimeContractTest"
+      },
+      {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.ai.RagEvidencePolicyTest"
+      },
+      {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.ai.ToolExecutorTest"
+      },
+      {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.data.BackupCodecTest"
+      },
+      {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.data.DataRepositoryTest"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.data.RecoveryRegressionTest"
+      },
+      {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.data.ReferenceCatalogTest"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.data.ReferenceSeedMigrationTest"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.data.SeedDataTest"
+      },
+      {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.engine.CoffeeScienceEngineTest"
+      },
+      {
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest"
+      },
+      {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.engine.DomainValidationTest"
+      },
+      {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.engine.JsonInputPolicyTest"
+      },
+      {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.engine.SensoryRulesEngineTest"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.filesystem.BuiltInAssetsTest"
+      },
+      {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.core.filesystem.TransferPolicyTest"
+      },
+      {
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.ui.BrewLocalTest"
+      },
+      {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "suite": "com.coffeecreator.app.ui.CompactBrewLocalTest"
+      }
+    ]
+  },
+  "lint": {
+    "severity": {
+      "Warning": 85,
+      "Information": 1
+    },
+    "issues": {
+      "OldTargetApi": 1,
+      "AndroidGradlePluginVersion": 6,
+      "GradleDependency": 75,
+      "TrustAllX509TrustManager": 3,
+      "AutoboxingStateCreation": 1
+    },
+    "warnings_suppressed_for_release": false
+  },
+  "host_cpp": {
+    "gguf_guard": 64,
+    "gemma4_text": 13,
+    "prompt_guard": 6,
+    "compiler": "g++ -std=c++17 -Wall -Wextra -Werror",
+    "inference": "not_run"
+  },
+  "apk": {
+    "apk": "app-debug.apk",
+    "bytes": 127647021,
+    "sha256": "e25474341ca5df7905118bfdd7f3e9a6e747b0b7a877e4a8817e0e6b279bcca8",
+    "zip_integrity": "passed",
+    "libraries": [
+      {
+        "path": "lib/arm64-v8a/libandroidx.graphics.path.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/arm64-v8a/libcoffee_llama.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/arm64-v8a/libdatastore_shared_counter.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/arm64-v8a/libjpeg.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/arm64-v8a/libleptonica.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/arm64-v8a/libobjectbox-jni.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/arm64-v8a/libonnxruntime.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/arm64-v8a/libonnxruntime4j_jni.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/arm64-v8a/libpngx.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/arm64-v8a/libtesseract.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libandroidx.graphics.path.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libcoffee_llama.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libdatastore_shared_counter.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libjpeg.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libleptonica.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libobjectbox-jni.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libonnxruntime.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libonnxruntime4j_jni.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libpngx.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      },
+      {
+        "path": "lib/x86_64/libtesseract.so",
+        "minimum_load_alignment": 16384,
+        "offsets_congruent_16k": true,
+        "aligned_16k": true
+      }
+    ],
+    "all_native_libraries_aligned_16k": true,
+    "device_runtime": "not_proven_by_static_inspection"
+  },
+  "signature": {
+    "verified": true,
+    "certificate_sha256": "fc6cc5cec1eb93984bc0cb0842b6d2f9c4bb6549f97617d42f457dc8983b55b4",
+    "matches_historical_v1_0_0": true,
+    "distribution": "debug"
+  },
+  "zipalign": "16 KiB page / 4 byte alignment verified",
+  "runtime": {
+    "physical_current_retest": "not_run_user_requested_no_adb",
+    "macrobenchmark_execution": "not_run",
+    "kafi_gemma_full_transfer_inference": "not_run"
+  }
+}

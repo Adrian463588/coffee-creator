@@ -28,6 +28,14 @@ pooling and L2 normalization on ORT CPU. Three vectors and token IDs compare wit
 an independently executed host CPU reference at tolerance1e-4. This proves parity
 on that corpus/device, not general retrieval or multilingual accuracy.
 
+ONNX Runtime Android is now pinned1.21.1: ELF inspection found1.19.2's core/JNI
+libraries only4KiB aligned. Official Maven1.21.1 is the smallest checked release
+with16KiB aligned/congruent PT_LOAD segments on both selected ABIs (1.21.0 JNI
+still failed). AAR SHA25630e594a4b9246fe3ca25768570e90f71e6d33ceb7b7dd72f92dcd7c267611d3f.
+Existing Java APIs were checked. Isolated host ORT1.21.1 passed three parity cases
+at maximum error2.9802322387695312e-8 versus1e-4 tolerance. This does not substitute
+for Android runtime retesting. Source: https://github.com/microsoft/onnxruntime/releases/tag/v1.21.1.
+
 ## ADR-004: native runtime and prompt boundaries
 
 Pinned llama.cpp3fb47677eaf0ebb569a1f94c756dcf58b8584cc0 with verified source archive;
@@ -88,3 +96,42 @@ Detekt remains active with zero allowed findings; explicit facade/Composable bud
 avoid speculative module splitting. Boundary exception handlers rethrow cancellation
 and expose recovery. No blanket suppression or disabled lint/format gates. Authoring
 methods OpenSpec/BMAD/RTK/Ponytail/Caveman are not Android runtime dependencies.
+
+## ADR-010: local Android verification without ADB
+
+The user's final test instruction permits no current connected-device run.
+Use test-only Robolectric4.14.1 native graphics/SQLite on SDK33 to execute the real
+Compose activity and isolated Room repositories locally. This is local framework
+evidence, separate from physical inference/SAF/performance. Short descriptive BDD
+method names avoid Windows temporary database paths exceeding MAX_PATH; test
+assertions and native SQLite behavior remain enabled. Render actual decor views
+to PNG and label these local renders. Device test cleanup first closes the
+activity and awaits its app-scoped writes before restoring the prior draft.
+
+## ADR-011: text-only Gemma4 and model metadata ownership
+
+Keep the existing immutable llama.cpp revision, which includes Gemma4 support.
+Specialize the official pinned Google text-only turn template; reject unsupported
+architectures/control markers and cap context, output, metadata and per-layer
+arrays. Every dimension key must match the exact declared architecture after all
+metadata is read, independent of key order. Foreign/nested prefixes must never
+override RAM bounds. Host regressions prove parsing/formatting, not successful
+inference. Full Kafi/Gemma downloads/inference remain untested. Use actual GGUF
+size3,106,738,272bytes; the approximately2.58GB LiteRT file is a different format.
+
+## ADR-012: draft recovery and record replacement
+
+Keep a single previous destructive draft edit in SavedStateHandle; no-op resets
+preserve it. Later edits/save clear it. Saved immutable recipe revisions remain
+independent. Validate restored draft fields before any records are replaced.
+Cancel/join the debounce writer and drain queued lifecycle writes around export,
+restore and whole-record deletion. Synchronize active draft, SavedStateHandle and
+autosave state before writes resume; discard obsolete Undo and pending AI edits.
+Export first saves the current draft so a fast export cannot omit recent input.
+Keep the record/draft restore operation separate from derived native vector-cache
+invalidation so the real Room/state recovery is locally testable without claiming
+host execution of Android JNI. Confirm permanent record deletion explicitly.
+Close/reopen the write gate on Main, serialized with lifecycle check/enqueue.
+Complete bounded record replacement and state synchronization if the caller is
+cancelled after commit. Reject new chat/tool starts while records are busy so
+late generation writes cannot overwrite restored conversation history.

@@ -2,6 +2,7 @@ package com.coffeecreator.app.core.data
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.coffeecreator.app.core.model.ChatMessage
 import com.coffeecreator.app.core.model.CoffeeBean
@@ -18,12 +19,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
 
+@RunWith(AndroidJUnit4::class)
 class DataRepositoryTest {
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
-    fun givenSavedRecipeAndDraft_whenDatabaseReopens_thenDataAndRevisionHistorySurvive() = runBlocking {
+    fun givenSavedDraft_whenReopened_thenRevisionsSurvive() = runBlocking {
         val name = "persistence-${UUID.randomUUID()}.db"
         val repository = DataRepository(context, CoffeeDatabase.open(context, name))
         try {
@@ -76,7 +79,7 @@ class DataRepositoryTest {
     }
 
     @Test
-    fun givenIndexedDocument_whenRestartedAndSearched_thenFtsReturnsRealStoredChunkAndDeduplicates() = runBlocking {
+    fun givenIndexedText_whenReopened_thenLiteralFtsDeduplicates() = runBlocking {
         val name = "fts-${UUID.randomUUID()}.db"
         val repository = DataRepository(context, CoffeeDatabase.open(context, name))
         try {
@@ -119,7 +122,7 @@ class DataRepositoryTest {
     }
 
     @Test
-    fun givenVersionOneRecords_whenRoomMigratesToVersionTwo_thenRecipesAndChunksArePreserved() = runBlocking {
+    fun givenVersionOne_whenMigrated_thenRecordsAndChunksSurvive() = runBlocking {
         val name = "migration-${UUID.randomUUID()}.db"
         val file = context.getDatabasePath(name)
         file.parentFile?.mkdirs()
@@ -166,7 +169,7 @@ class DataRepositoryTest {
     }
 
     @Test
-    fun givenGoodRecipe_whenInvalidRevisionIsSaved_thenTransactionPreservesOriginal() = runBlocking {
+    fun givenInvalidRevision_whenSaved_thenOriginalSurvives() = runBlocking {
         val name = "validation-${UUID.randomUUID()}.db"
         val repository = DataRepository(context, CoffeeDatabase.open(context, name))
         try {
@@ -189,7 +192,7 @@ class DataRepositoryTest {
     }
 
     @Test
-    fun givenCompleteExport_whenRestoredOnFreshDatabase_thenRecordsSurviveAndAssetOwnershipStaysSeparate() = runBlocking {
+    fun givenExport_whenRestored_thenRecordsAndOwnershipSurvive() = runBlocking {
         val sourceName = "source-${UUID.randomUUID()}.db"
         val destinationName = "destination-${UUID.randomUUID()}.db"
         val source = DataRepository(context, CoffeeDatabase.open(context, sourceName))

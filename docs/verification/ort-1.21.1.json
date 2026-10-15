@@ -1,0 +1,98 @@
+{
+  "version": "1.21.1",
+  "url": "https://repo.maven.apache.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/1.21.1/onnxruntime-android-1.21.1.aar",
+  "artifact_size": 27944395,
+  "artifact_sha256": "30e594a4b9246fe3ca25768570e90f71e6d33ceb7b7dd72f92dcd7c267611d3f",
+  "tls_verification": true,
+  "libraries": [
+    {
+      "path": "jni/arm64-v8a/libonnxruntime.so",
+      "sha256": "11ef853b751532dc827bd7799f557f9495e2ee7523b9b355753fc0344576bd5e",
+      "pt_load": [
+        {
+          "offset": 0,
+          "vaddr": 0,
+          "alignment": 16384,
+          "congruent_16k": true
+        },
+        {
+          "offset": 17490240,
+          "vaddr": 17506624,
+          "alignment": 16384,
+          "congruent_16k": true
+        },
+        {
+          "offset": 17899400,
+          "vaddr": 17932168,
+          "alignment": 16384,
+          "congruent_16k": true
+        }
+      ],
+      "passes_16k": true
+    },
+    {
+      "path": "jni/arm64-v8a/libonnxruntime4j_jni.so",
+      "sha256": "f657216254a2f88fcbd89c5e73a2f7ae5a8145d092f8700951aedba8e4a60ef2",
+      "pt_load": [
+        {
+          "offset": 0,
+          "vaddr": 0,
+          "alignment": 16384,
+          "congruent_16k": true
+        },
+        {
+          "offset": 73056,
+          "vaddr": 89440,
+          "alignment": 16384,
+          "congruent_16k": true
+        }
+      ],
+      "passes_16k": true
+    },
+    {
+      "path": "jni/x86_64/libonnxruntime.so",
+      "sha256": "66032672c3f62a42c6345e5cf3931c88e3cf9443ba104fee5370e8e3f6640ca8",
+      "pt_load": [
+        {
+          "offset": 0,
+          "vaddr": 0,
+          "alignment": 16384,
+          "congruent_16k": true
+        },
+        {
+          "offset": 21009456,
+          "vaddr": 21025840,
+          "alignment": 16384,
+          "congruent_16k": true
+        },
+        {
+          "offset": 21411264,
+          "vaddr": 21444032,
+          "alignment": 16384,
+          "congruent_16k": true
+        }
+      ],
+      "passes_16k": true
+    },
+    {
+      "path": "jni/x86_64/libonnxruntime4j_jni.so",
+      "sha256": "cc9fc0591222fc5c90a07ef055d7bacde08e62c49a5ec9e629be2c6b535cf94b",
+      "pt_load": [
+        {
+          "offset": 0,
+          "vaddr": 0,
+          "alignment": 16384,
+          "congruent_16k": true
+        },
+        {
+          "offset": 70848,
+          "vaddr": 87232,
+          "alignment": 16384,
+          "congruent_16k": true
+        }
+      ],
+      "passes_16k": true
+    }
+  ],
+  "both_libraries_both_abis_pass_16k": true
+}

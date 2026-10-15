@@ -1,0 +1,28 @@
+{
+  "evidence": "host_windows_python_cpu_parity_not_android_execution",
+  "runtime": "1.21.1",
+  "module": "D:\\SEMESTER13\\KodeProject\\CoffeCreator-rag-fix\\artifacts\\ort-aar-audit\\host-wheel-1.21.1\\onnxruntime\\__init__.py",
+  "model_sha256": "afdb6f1a0e45b715d0bb9b11772f032c399babd23bfc31fed1c170afc848bdb1",
+  "vocab_sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3",
+  "tolerance": 0.0001,
+  "cases": [
+    {
+      "case": 0,
+      "max_absolute_error": 2.9802322387695312e-08,
+      "dimensions": 384,
+      "tokens": 9
+    },
+    {
+      "case": 1,
+      "max_absolute_error": 1.4901161193847656e-08,
+      "dimensions": 384,
+      "tokens": 9
+    },
+    {
+      "case": 2,
+      "max_absolute_error": 2.9802322387695312e-08,
+      "dimensions": 384,
+      "tokens": 12
+    }
+  ]
+}

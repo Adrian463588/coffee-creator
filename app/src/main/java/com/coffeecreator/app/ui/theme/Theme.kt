@@ -30,6 +30,7 @@ private val LightColorScheme = lightColorScheme(
     surface = CoffeeSurface,
     onSurface = CoffeeOnSurface,
     surfaceContainerLow = Color(0xFFF6F0EB),
+    surfaceContainer = CoffeeSurfaceVariant,
     surfaceVariant = CoffeeSurfaceVariant,
     onSurfaceVariant = CoffeeOnSurfaceVariant,
     outline = Color(0xFF7E7570),
@@ -53,6 +54,7 @@ private val DarkColorScheme = darkColorScheme(
     surface = Color(0xFF221C1A),
     onSurface = Color(0xFFEDE0DC),
     surfaceContainerLow = Color(0xFF2A221E),
+    surfaceContainer = Color(0xFF302822),
     surfaceVariant = Color(0xFF382F2C),
     onSurfaceVariant = Color(0xFFD4C4BF),
     outline = Color(0xFF9D8E86)
@@ -65,11 +67,7 @@ private val CoffeeShapes = Shapes(
 )
 
 @Composable
-fun CoffeeCreatorTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
+fun CoffeeCreatorTheme(darkTheme: Boolean = isSystemInDarkTheme(), dynamicColor: Boolean = false, content: @Composable () -> Unit) {
     val colorScheme = if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val context = LocalContext.current
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)

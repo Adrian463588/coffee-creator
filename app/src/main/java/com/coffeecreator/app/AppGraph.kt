@@ -33,6 +33,7 @@ class AppGraph @Inject constructor(@ApplicationContext private val context: Cont
     val tools = ToolExecutor({ repository.beans.value }, { repository.ingredients.value }, { repository.recipes.value }, rag::search)
     val coordinator = LocalLlmCoordinator(native, tools)
     fun persistDraft(json: String) = (context as CoffeeApplication).persistDraft(json)
+    suspend fun awaitBackgroundWrites() = (context as CoffeeApplication).awaitBackgroundWrites()
 
     private suspend fun embed(text: String): FloatArray = embeddingMutex.withLock {
         withContext(Dispatchers.IO) {

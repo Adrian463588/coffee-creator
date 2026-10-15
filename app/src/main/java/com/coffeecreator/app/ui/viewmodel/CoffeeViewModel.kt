@@ -13,6 +13,7 @@ import com.coffeecreator.app.core.ai.NativeChatTurn
 import com.coffeecreator.app.core.ai.NativeGenerationOptions
 import com.coffeecreator.app.core.ai.NativeLlmStatus
 import com.coffeecreator.app.core.ai.RagSearchResult
+import com.coffeecreator.app.core.data.BackupCodec
 import com.coffeecreator.app.core.engine.CoffeeScienceEngine
 import com.coffeecreator.app.core.engine.DomainValidation
 import com.coffeecreator.app.core.engine.JsonInputPolicy
@@ -40,31 +41,17 @@ import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-data class RecipeDraft(
-    val id: String? = null,
-    val group: String? = null,
-    val fields: Map<String, String> = defaultFields(),
-    val lines: List<RecipeLine> = emptyList()
-) {
-    companion object {
-        fun defaultFields() = mapOf(
-            "name" to "", "bean" to "", "method" to "V60", "dose" to "18", "water" to "300", "beverage" to "",
-            "tds" to "", "temperature" to "93", "pressure" to "", "seconds" to "180", "equipment" to "", "grind" to "",
-            "bypass" to "0", "agitation" to "", "notes" to "", "allergens" to ""
-        )
-    }
-}
 
 data class CoffeeUiState(
     val ready: Boolean = false,
@@ -85,6 +72,7 @@ data class CoffeeUiState(
     val messages: List<ChatMessage> = emptyList(),
     val directory: String? = null,
     val draft: RecipeDraft = RecipeDraft(),
+    val canUndoDraft: Boolean = false,
     val calculation: String = "",
     val manualToolResult: String? = null,
     val selectedRecipeId: String? = null,
@@ -114,12 +102,18 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     private var generation: Job? = null
     private var timer: Job? = null
     private var timerOrigin = 0L
+    private var undoDraft: RecipeDraft? = null
+    private var draftAutosave: Job? = null
+
+    @Volatile private var replacingDraft = false
 
     init {
         observeRepository()
         task("Opening local records") {
             graph.repository.initialize()
-            if (graph.repository.models.value.none { it.id == BuiltInAssets.qwen.id }) graph.repository.upsertModel(BuiltInAssets.qwen)
+            BuiltInAssets.catalog.forEach { asset ->
+                if (graph.repository.models.value.none { it.id == asset.id }) graph.repository.upsertModel(asset)
+            }
             graph.repository.models.value.filter {
                 it.status in
                     setOf(com.coffeecreator.app.core.model.ModelStatus.VERIFYING, com.coffeecreator.app.core.model.ModelStatus.PUBLISHING)
@@ -136,12 +130,18 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
             if (!draftJson.isNullOrBlank()) {
                 runCatching {
                     JsonInputPolicy.validateDepth(draftJson)
-                    gson.fromJson(draftJson, RecipeDraft::class.java).also(::validateDraft)
+                    gson.fromJson(draftJson, RecipeDraft::class.java).also { it.validate() }
                 }.getOrNull()?.let { draft ->
                     _state.update { it.copy(draft = draft) }
                 }
             }
-            _state.update { it.copy(ready = true) }
+            undoDraft = saved.get<String>("undoDraft")?.let { json ->
+                runCatching {
+                    JsonInputPolicy.validateDepth(json)
+                    gson.fromJson(json, RecipeDraft::class.java).also { it.validate() }
+                }.getOrNull()
+            }
+            _state.update { it.copy(ready = true, canUndoDraft = undoDraft != null) }
             calculate()
         }
         viewModelScope.launch {
@@ -158,26 +158,43 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                 }
             }
         }
+        observeDraftWrites()
         viewModelScope.launch {
-            draftWrites.drop(1).debounce(DRAFT_DEBOUNCE_MS).collect { draft ->
+            graph.native.status.collect { status ->
+                if (status is NativeLlmStatus.Unloaded || status is NativeLlmStatus.Failed) {
+                    _state.update { it.copy(loadedModel = null) }
+                }
+            }
+        }
+    }
+
+    private fun observeDraftWrites() {
+        draftAutosave = viewModelScope.launch {
+            draftWrites.debounce(DRAFT_DEBOUNCE_MS).collect { draft ->
                 if (draft != null && graph.repository.ready.value) {
                     try {
                         graph.repository.saveSetting("draft", gson.toJson(draft))
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (boundaryFailure: Exception) {
-                        _state.update {
-                            it.copy(error = "Draft not autosaved: ${boundaryFailure.message}. Saved revisions remain available.")
-                        }
+                        _state.update { it.copy(error = "Draft not autosaved: ${boundaryFailure.message}. Saved revisions are retained.") }
                     }
                 }
             }
         }
-        viewModelScope.launch {
-            graph.native.status.collect { status ->
-                if (status is NativeLlmStatus.Unloaded || status is NativeLlmStatus.Failed) {
-                    _state.update { it.copy(loadedModel = null) }
-                }
+    }
+
+    private suspend fun <T> withDraftWritesPaused(block: suspend () -> T): T {
+        // Serialize closing the gate with lifecycle flush check-through-enqueue.
+        withContext(Dispatchers.Main.immediate) { replacingDraft = true }
+        try {
+            draftAutosave?.cancelAndJoin()
+            graph.awaitBackgroundWrites()
+            return block()
+        } finally {
+            withContext(NonCancellable + Dispatchers.Main.immediate) {
+                replacingDraft = false
+                observeDraftWrites()
             }
         }
     }
@@ -212,35 +229,30 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         updateDraft(draft)
         calculate()
     }
-    private fun updateDraft(draft: RecipeDraft) {
-        _state.update { it.copy(draft = draft, notice = null, error = null) }
+    private fun updateDraft(draft: RecipeDraft, recordUndo: Boolean = false) {
+        if (replacingDraft) return
+        publishDraft(draft, recordUndo)
+    }
+    private fun publishDraft(draft: RecipeDraft, recordUndo: Boolean = false) {
+        if (recordUndo && draft == _state.value.draft) return
+        undoDraft = _state.value.draft.takeIf { recordUndo && it != draft }
+        if (undoDraft != null) saved["undoDraft"] = gson.toJson(undoDraft) else saved.remove<String>("undoDraft")
+        _state.update { it.copy(draft = draft, canUndoDraft = undoDraft != null, notice = null, error = null) }
         val json = gson.toJson(draft)
         saved["draft"] = json
         draftWrites.value = draft
     }
     fun newRecipe() {
-        updateDraft(RecipeDraft())
+        updateDraft(RecipeDraft(), recordUndo = true)
+        calculate()
+    }
+    fun undoDraftChange() {
+        val previous = undoDraft ?: return
+        updateDraft(previous)
         calculate()
     }
     fun editRecipe(recipe: Recipe) {
-        updateDraft(
-            RecipeDraft(
-                recipe.id,
-                recipe.revisionGroupId,
-                mapOf(
-                    "name" to recipe.name, "bean" to recipe.beanId.orEmpty(), "method" to recipe.brewMethod,
-                    "dose" to recipe.doseGrams.toString(), "water" to recipe.waterGrams.toString(),
-                    "beverage" to recipe.beverageMassGrams?.toString().orEmpty(),
-                    "tds" to recipe.measuredTdsPercent?.toString().orEmpty(), "temperature" to recipe.temperatureCelsius.toString(),
-                    "pressure" to recipe.pressureBars?.toString().orEmpty(), "seconds" to recipe.brewTimeSeconds.toString(),
-                    "equipment" to recipe.equipment,
-                    "grind" to recipe.grindSize, "bypass" to recipe.bypassGrams.toString(), "agitation" to recipe.agitation,
-                    "notes" to recipe.notes,
-                    "allergens" to if (recipe.acknowledgedAllergens.isNotEmpty()) "yes" else ""
-                ),
-                recipe.lines
-            )
-        )
+        updateDraft(RecipeDraft.fromRecipe(recipe), recordUndo = true)
         calculate()
     }
     fun addLine(ingredientId: String, quantity: String, unit: String, density: String) = task("Validating ingredient line") {
@@ -259,12 +271,14 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         )
     }
     fun removeLine(index: Int) {
+        if (index !in _state.value.draft.lines.indices) return
         updateDraft(
             _state.value.draft.copy(
                 lines = _state.value.draft.lines.filterIndexed { i, _ -> i != index },
                 fields =
                 _state.value.draft.fields + ("allergens" to "")
-            )
+            ),
+            recordUndo = true
         )
     }
 
@@ -351,29 +365,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         _state.update { it.copy(manualToolResult = text) }
     }
 
-    private fun buildRecipe(): Recipe {
-        val draft = _state.value.draft
-        val fields = draft.fields
-        val id = draft.id ?: UUID.randomUUID().toString()
-        val acknowledged = if (fields["allergens"] == "yes") {
-            draft.lines.flatMap { line ->
-                _state.value.ingredients.find { it.id == line.ingredientId }?.allergens.orEmpty()
-            }.distinct()
-        } else {
-            emptyList()
-        }
-        return Recipe(
-            id = id, revisionGroupId = draft.group ?: id, name = fields.getValue("name").trim(),
-            beanId = fields.getValue("bean").ifBlank { null }, brewMethod = fields.getValue("method"),
-            doseGrams = decimal(fields.getValue("dose")), waterGrams = decimal(fields.getValue("water")),
-            beverageMassGrams = optionalDecimal(fields.getValue("beverage")), measuredTdsPercent = optionalDecimal(fields.getValue("tds")),
-            temperatureCelsius = decimal(fields.getValue("temperature")), pressureBars = optionalDecimal(fields.getValue("pressure")),
-            brewTimeSeconds = fields.getValue("seconds").toIntOrNull() ?: error("Brew time must be whole seconds."),
-            equipment = fields.getValue("equipment"), grindSize = fields.getValue("grind"), notes = fields.getValue("notes"),
-            agitation = fields.getValue("agitation"), bypassGrams = decimal(fields.getValue("bypass")),
-            lines = draft.lines, acknowledgedAllergens = acknowledged
-        ).also { DomainValidation.validateRecipe(it, _state.value.ingredients) }
-    }
+    private fun buildRecipe() = _state.value.draft.build(_state.value.ingredients)
     fun saveRecipe() = task("Saving immutable recipe revision") {
         val recipe = graph.repository.saveRecipe(buildRecipe())
         updateDraft(_state.value.draft.copy(id = recipe.id, group = recipe.revisionGroupId))
@@ -403,9 +395,13 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                 cancelGeneration()
                 generation?.join()
                 graph.native.unload()
-                graph.repository.deleteApplicationRecords()
+                withDraftWritesPaused {
+                    withContext(NonCancellable) {
+                        graph.repository.deleteApplicationRecords()
+                        withContext(Dispatchers.Main.immediate) { publishDraft(RecipeDraft()) }
+                    }
+                }
                 graph.rag.clearVectors()
-                updateDraft(RecipeDraft())
                 _state.update { it.copy(loadedModel = null, selectedRecipeId = null, estimate = null, searchResult = null) }
             }
             else -> error("Unsupported deletion.")
@@ -570,7 +566,10 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     fun importModel(asset: ModelAsset, uri: Uri) = task("Verifying and publishing local GGUF") { graph.assets.importModel(asset, uri) }
 
     fun exportBackup(uri: Uri, resolver: android.content.ContentResolver) = task("Exporting complete local records") {
-        val json = graph.repository.exportBackupJson()
+        val json = withDraftWritesPaused {
+            graph.repository.saveSetting("draft", gson.toJson(_state.value.draft))
+            graph.repository.exportBackupJson()
+        }
         resolver.openOutputStream(uri, "wt")?.use { it.write(json.toByteArray(Charsets.UTF_8)) } ?: error("Cannot write export.")
         _state.update {
             it.copy(notice = "Complete integrity-checked backup exported. This file contains personal records; keep it private.")
@@ -579,9 +578,44 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     fun restoreBackup(uri: Uri, resolver: android.content.ContentResolver) = task("Validating and restoring backup") {
         val json = resolver.openInputStream(uri)?.use { it.readBytesBounded(20 * 1024 * 1024).toString(Charsets.UTF_8) }
             ?: error("Cannot read backup.")
-        graph.repository.restoreBackupJson(json)
+        restoreRecords(json)
         graph.rag.clearVectors()
         _state.update { it.copy(notice = "Validated backup restored atomically. Reselect source/model directories to restore grants.") }
+    }
+    internal suspend fun restoreRecords(json: String) {
+        // Validate UI-owned draft fields before the repository replaces any records.
+        val restored = withContext(Dispatchers.IO) {
+            val draftJson = BackupCodec.decode(json).payload.settings["draft"]
+            if (draftJson.isNullOrBlank()) {
+                RecipeDraft()
+            } else {
+                JsonInputPolicy.validateDepth(draftJson)
+                gson.fromJson(draftJson, RecipeDraft::class.java).also { it.validate() }
+            }
+        }
+        cancelGeneration()
+        generation?.join()
+        withDraftWritesPaused {
+            // Finish synchronizing state after the bounded transaction commits,
+            // even when the originating activity is finishing.
+            withContext(NonCancellable) {
+                graph.repository.restoreBackupJson(json)
+                withContext(Dispatchers.Main.immediate) {
+                    publishDraft(restored)
+                    calculate()
+                    _state.update {
+                        it.copy(
+                            selectedRecipeId = null,
+                            estimate = null,
+                            searchResult = null,
+                            inspectedChunk = null,
+                            pendingRecipe = null,
+                            pendingToolJson = null
+                        )
+                    }
+                }
+            }
+        }
     }
     fun setTheme(theme: String) = task("Saving theme preference") { graph.preferences.setTheme(theme) }
     fun setGeneration(tokens: Int, temperature: Float) = task("Saving bounded generation preferences") {
@@ -595,7 +629,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     }
 
     fun sendChat(prompt: String) {
-        if (prompt.isBlank() || _state.value.generating) return
+        if (prompt.isBlank() || _state.value.generating || _state.value.busy || replacingDraft) return
         if (prompt.length > InputLimits.QUERY_CHARS || '\u0000' in prompt) {
             _state.update { it.copy(error = "Message exceeds the safe input budget; shorten it before sending.") }
             return
@@ -721,6 +755,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         _state.update { it.copy(pendingRecipe = null) }
     }
     fun confirmToolInputs() {
+        if (_state.value.busy || replacingDraft) return
         val json = _state.value.pendingToolJson ?: return
         _state.update { it.copy(pendingToolJson = null) }
         sendChat(json)
@@ -752,7 +787,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         _state.update { it.copy(notice = null, error = null) }
     }
     fun flushDraft() {
-        if (_state.value.ready) graph.persistDraft(gson.toJson(_state.value.draft))
+        if (_state.value.ready && !replacingDraft) graph.persistDraft(gson.toJson(_state.value.draft))
     }
     private fun progress(message: String) {
         _state.update { it.copy(progress = message) }
@@ -761,24 +796,6 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     private fun optionalDecimal(input: String) = input.takeIf(String::isNotBlank)?.let(::decimal)
     private fun optionalInt(input: String, label: String): Int? = input.takeIf(String::isNotBlank)?.let {
         it.toIntOrNull() ?: error("$label must be a whole number.")
-    }
-    private fun validateDraft(draft: RecipeDraft) {
-        require(
-            draft.fields.keys == RecipeDraft.defaultFields().keys &&
-                draft.fields.values.all {
-                    it.length <= InputLimits.METADATA_CHARS
-                }
-        ) {
-            "Stored draft is incomplete; begin a new recipe. Saved revisions are retained."
-        }
-        require(
-            draft.lines.size <= InputLimits.COLLECTION_ITEMS &&
-                draft.lines.all {
-                    it.quantity.isFinite() && it.quantity > 0 && it.unit in setOf("g", "mg", "mL")
-                }
-        ) {
-            "Stored ingredient draft is invalid."
-        }
     }
 
     private fun task(description: String, block: suspend () -> Unit) {

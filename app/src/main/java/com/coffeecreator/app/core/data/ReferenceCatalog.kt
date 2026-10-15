@@ -42,8 +42,10 @@ object ReferenceCatalog {
         require(entry.sourceFieldsSha256.values.all { hashPattern.matches(it) }) { "Invalid field provenance hash." }
         require(entry.retrievedAt.matches(Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}"))) { "Invalid retrieval date." }
         require(runCatching { LocalDate.parse(entry.retrievedAt) }.isSuccess) { "Invalid retrieval date." }
-        require(listOf(entry.name, entry.geneticGroup, entry.lineage).all { text ->
-            text.isNotBlank() && text.length <= 512 && text.none { it.isISOControl() }
-        }) { "Missing or oversized reference fact." }
+        require(
+            listOf(entry.name, entry.geneticGroup, entry.lineage).all { text ->
+                text.isNotBlank() && text.length <= 512 && text.none { it.isISOControl() }
+            }
+        ) { "Missing or oversized reference fact." }
     }
 }

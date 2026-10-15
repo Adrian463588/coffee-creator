@@ -8,11 +8,11 @@ network access; models need a first-time install before natural-language chat.
 
 ## Download
 
-[Download the latest APK](https://github.com/Adrian463588/coffee-creator/releases/latest/download/coffee-creator-v1.1.0.apk)
+[Download the latest debug preview APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk)
 · [Release notes](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.1.0)
 · [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/SHA256SUMS.txt)
 
-The distribution APK is debug-signed, supports Android8/API26+ and arm64-v8a/x86_64.
+The distribution APK is debug-signed, targets Android8/API26+ and arm64-v8a/x86_64.
 The physical test reference is Samsung SM-G988B, Android13/API33. Other device/RAM/
 provider tiers are separate validation work; see [verification](docs/VERIFICATION.md).
 Install an APK from GitHub using Android's explicit install permission. For ADB:
@@ -34,7 +34,9 @@ Historical1.0.0 SHA256: `2843362ff29dd536da78f4263d5e2b66d1a98482c47c1376db037e3
 
 ## Screenshots
 
-Actual reference-device captures, not mockups. Empty/unavailable states reflect real state.
+Actual local Robolectric/Compose renders from isolated BDD tests, not physical-device
+captures. Test recipe values are authored QA inputs, not measured user brews.
+The latest UI is tested without ADB, following the user's final testing instruction.
 
 | Home | Formulation | Models |
 |---|---|---|
@@ -42,7 +44,12 @@ Actual reference-device captures, not mockups. Empty/unavailable states reflect 
 
 ## Features
 
-- Search/edit local beans and ingredients; missing provenance/facts remain Unknown.
+- Search/edit local beans and ingredients;34 sourced reference cards on a fresh install,
+ including32 newly researched varieties with per-field source receipts. Lot facts remain
+ Unknown. See [dataset provenance and reuse restrictions](docs/DATASET.md).
+- Brew uses Recipe, Measurements, Ingredients and Tools chips with separate cards,
+ persistent input/selection, compact/large-text scrolling, destructive draft Undo
+ and a visible Save/ratio bar.
 - Mass/volume formulation with density, food-grade/supplier limits and allergen acknowledgement.
 - Immutable recipe revisions/copy/compare, timer and human sensory annotations.
 - BigDecimal Kotlin math: ratio, approximate extraction, dilution, mass ppm and density conversions.
@@ -58,7 +65,11 @@ Actual reference-device captures, not mockups. Empty/unavailable states reflect 
  review; generated recipe saves require confirmation. No runtime shell/browser/network tools.
 - User-selected SAF model directory, strict manifest/size/SHA verification, private staging,
  HTTP Range/identity checkpoints, pause/cancel/retry and verified bundle rediscovery.
+- Download catalog: Qwen2.5 0.5B (491.40MB), Kafi Llama3.2 1B (807.69MB),
+ Gemma4 E2B IT Q4_K_M (3.11GB). All require a selected SAF folder. Actual immutable
+ artifacts, licenses, text-only constraints and validation status: [model guide](docs/MODELS.md).
 - Complete integrity-checked plaintext SAF backup/restore of records, chat and source metadata.
+ Export includes recent draft input; restore replaces stale active/autosaved drafts safely.
  External models and exports are independently owned; deleting records does not delete them.
 - Adaptive phone/rail navigation, light/dark, large controls, local diagnostics and privacy settings.
 
@@ -100,6 +111,15 @@ records must be preserved. Benchmark instructions/evidence are in verification.
 CI runs pinned static/unit/build gates; physical-device outcomes are not inferred
 from CI. Re-run regression gates before release. Release CLI workflow is
 `scripts/publish_release.ps1`; notes/checksums and source target must match the APK.
+Local JVM tests include actual Compose activity/Room execution through Robolectric;
+native guard/format tests also run on the host. See [complete evidence and checklist](docs/VERIFICATION.md).
+
+Optional development-only source audit (requires internet; never runs in the app):
+
+```powershell
+python -m pip install -r scripts/requirements-research.txt
+python scripts/research_reference_catalog.py --verify
+```
 
 ## Privacy, limits and licenses
 
@@ -114,6 +134,10 @@ answers; generated text is labeled unverified and source inspection remains esse
 The authored RAG fixture measures retrieval/tool contracts; independently adjudicated
 answer faithfulness, broad provider/RAM/device coverage and field usability are
 separate gates listed honestly in verification. No exact flavor prediction is promised.
+The last physical RAG run failed39/40 direct facts; the subsequent fix passed a
+host reproduction40/40, with no new Android retest. Kafi/Gemma full transfer and
+inference are not claimed tested. This release is a debug preview, not a declaration
+that all production/device acceptance gates have passed.
 
 See [third-party assets and licenses](docs/THIRD_PARTY.md). Do not infer an application
 license from dependency licenses. Contributions must preserve provenance, scientific

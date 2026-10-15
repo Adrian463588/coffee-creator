@@ -1,6 +1,7 @@
 package com.coffeecreator.app.core.data
 
 import android.content.Context
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.Recipe
@@ -10,12 +11,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
 
+@RunWith(AndroidJUnit4::class)
 class ReferenceSeedMigrationTest {
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
-    fun givenVersionTwoEditsAndDeletion_whenReferenceUpgradeRuns_thenUserRecordsAndDeletionsSurvive() = runBlocking {
+    fun givenEditedVersionTwo_whenUpgraded_thenUserDataSurvives() = runBlocking {
         val name = "reference-upgrade-${UUID.randomUUID()}.db"
         val database = CoffeeDatabase.open(context, name)
         val edited = CoffeeBean("reference-arabica-ethiopia", "My edited reference", provenance = "User edit")
@@ -59,7 +62,7 @@ class ReferenceSeedMigrationTest {
     }
 
     @Test
-    fun givenDeletedReferenceInBackup_whenRestoredAndReopened_thenExplicitRestoreIsNotUndoneBySeeding() = runBlocking {
+    fun givenDeletedSeed_whenBackupRestored_thenStaysDeleted() = runBlocking {
         val sourceName = "reference-source-${UUID.randomUUID()}.db"
         val destinationName = "reference-destination-${UUID.randomUUID()}.db"
         val source = DataRepository(context, CoffeeDatabase.open(context, sourceName))

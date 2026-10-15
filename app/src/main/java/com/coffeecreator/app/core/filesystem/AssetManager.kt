@@ -11,6 +11,7 @@ import androidx.work.workDataOf
 import com.coffeecreator.app.core.data.DataRepository
 import com.coffeecreator.app.core.engine.JsonInputPolicy
 import com.coffeecreator.app.core.filesystem.DocumentImporter.Companion.readBytesBounded
+import com.coffeecreator.app.core.model.InputLimits
 import com.coffeecreator.app.core.model.ModelAsset
 import com.coffeecreator.app.core.model.ModelStatus
 import com.google.gson.Gson
@@ -71,7 +72,7 @@ class AssetManager(
         TransferPolicy.safeIdentifier(asset.id)
         TransferPolicy.safeIdentifier(asset.revision)
         TransferPolicy.validateHash(asset.sha256)
-        require(asset.expectedSizeBytes in 1..MAX_MODEL_BYTES) { "Model size must be between 1 byte and 2 GiB." }
+        require(asset.expectedSizeBytes in 1..MAX_MODEL_BYTES) { "Model size must be between 1 byte and 4 GiB." }
         require(asset.format.startsWith("GGUF", ignoreCase = true)) { "This runtime supports GGUF decoder models." }
         require(asset.runtime == "llama.cpp" && asset.tokenizerSupport.isNotBlank()) { "Unsupported runtime/tokenizer." }
         require(asset.name.isNotBlank() && asset.license.isNotBlank()) { "Name and license are required." }
@@ -461,7 +462,7 @@ class AssetManager(
 
     companion object {
         private const val NETWORK_TIMEOUT_SECONDS = 30L
-        const val MAX_MODEL_BYTES = 2L * 1024 * 1024 * 1024
+        const val MAX_MODEL_BYTES = InputLimits.MODEL_BYTES_MAX
         private const val STORAGE_RESERVE = 64L * 1024 * 1024
         private const val BUFFER_BYTES = 64 * 1024
         private const val PROGRESS_BYTES = 16L * 1024 * 1024

@@ -40,7 +40,7 @@ class ReferenceCatalogTest {
     @Test
     fun givenReviewedDataset_whenReceiptIsRead_thenEveryFieldMatchesBundledRuntimeRecords() {
         val root = if (Files.exists(Paths.get("src/main"))) Paths.get("") else Paths.get("app")
-        val json = Files.readString(root.resolve("src/main/assets/reference/varieties-v3.json"))
+        val json = String(Files.readAllBytes(root.resolve("src/main/assets/reference/varieties-v3.json")), Charsets.UTF_8)
         val receipt = RecordJson.gson.fromJson(json, ReferenceCatalogReceipt::class.java)
         assertEquals(3, receipt.version)
         assertEquals("2026-10-15", receipt.retrievedAt)

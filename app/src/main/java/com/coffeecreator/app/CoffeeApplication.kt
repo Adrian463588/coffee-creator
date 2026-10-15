@@ -6,7 +6,9 @@ import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
 @HiltAndroidApp
@@ -23,6 +25,9 @@ class CoffeeApplication : Application() {
                 graph.repository.reportFailure(boundaryFailure)
             }
         }
+    }
+    internal suspend fun awaitBackgroundWrites() {
+        applicationScope.coroutineContext[Job]?.children?.toList()?.joinAll()
     }
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)

@@ -118,6 +118,7 @@ object RagRanking {
         )
     fun tokens(text: String): Set<String> = text.lowercase().split(Regex("[^\\p{L}\\p{N}]+"))
         .filter { it.length > 2 && it !in stopWords }.map(::normalize).toSet()
+
     /** Light English inflection handling for retrieval only; stored excerpts and citations stay exact. */
     private fun normalize(word: String): String {
         val singular = when {

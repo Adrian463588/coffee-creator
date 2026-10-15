@@ -53,10 +53,7 @@ class ManualJourneyTest {
             assertEquals(275.0, revisions[1].waterGrams, 0.0)
             assertEquals(first, revisions[0])
         } finally {
-            runBlocking(Dispatchers.IO) {
-                repository.recipes.value.filter { it.name == name }.forEach { repository.deleteRecipe(it.id) }
-                repository.saveSetting("draft", previousDraft.orEmpty())
-            }
+            restoreAfterScenario(previousDraft, name)
         }
     }
 
@@ -83,10 +80,7 @@ class ManualJourneyTest {
             assertEquals(null, recipe.measuredTdsPercent)
             assertEquals(null, recipe.beverageMassGrams)
         } finally {
-            runBlocking(Dispatchers.IO) {
-                repository.recipes.value.filter { it.name == title }.forEach { repository.deleteRecipe(it.id) }
-                repository.saveSetting("draft", previousDraft.orEmpty())
-            }
+            restoreAfterScenario(previousDraft, title)
         }
     }
 
@@ -103,7 +97,7 @@ class ManualJourneyTest {
             rule.onNodeWithText("Enter a decimal number without grouping separators.").assertIsDisplayed()
             assertTrue(repository.recipes.value.none { it.name == title })
         } finally {
-            runBlocking(Dispatchers.IO) { repository.saveSetting("draft", previousDraft.orEmpty()) }
+            restoreAfterScenario(previousDraft, title)
         }
     }
 
@@ -130,6 +124,17 @@ class ManualJourneyTest {
         rule.waitUntil(15_000) { repository.ready.value }
         rule.onNodeWithTag("nav:Home").performClick()
         rule.onNodeWithTag("home:new").assertIsEnabled()
+    }
+
+    private fun restoreAfterScenario(previousDraft: String?, ownedName: String) {
+        val application = rule.activity.application as CoffeeApplication
+        val localRepository = application.graph.repository
+        rule.activityRule.scenario.close()
+        runBlocking(Dispatchers.IO) {
+            application.awaitBackgroundWrites()
+            localRepository.recipes.value.filter { it.name == ownedName }.forEach { localRepository.deleteRecipe(it.id) }
+            localRepository.saveSetting("draft", previousDraft.orEmpty())
+        }
     }
 
     private fun field(key: String, value: String) {

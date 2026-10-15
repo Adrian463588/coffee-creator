@@ -29,3 +29,4 @@ artifacts-*.log
 *.keystore
 !/app/src/main/assets/ocr/eng.traineddata
 **/build/
+.kotlin/

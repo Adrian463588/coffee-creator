@@ -30,8 +30,25 @@ internet-sourced data. This extends IMPLEMENTATION_PLAN.md before implementation
 7. Integrator runs formatter, detekt, lint, JVM tests and debug builds sequentially.
    Run physical Compose journeys, offline RAG/SAF/native suites and benchmark when
    ADB reconnects. Capture actual screenshots; record all untested device tiers.
+   Updated user instruction: continue without ADB. Add test-only Robolectric
+   4.14.1 (supports SDK33 and Windows native graphics) to execute the real Compose
+   activity and isolated local Room state on the JVM. Label rendered screenshots
+   as local Robolectric renders, never physical-device captures. Keep these
+   dependencies out of the application runtime. Physical retest remains not run.
 8. Finalize requirement checklist, third-party notices, README/history, then
    commit/push and publish a versioned debug APK with verified download checksum.
+9. Final DESIGN audit: provide one-step Undo for destructive draft replacement
+   (new recipe, opening another recipe, removing an ingredient). Retain the prior
+   draft in SavedStateHandle across recreation; clear Undo after subsequent edits
+   or save. Confirm permanent record deletion separately. Add a failing real local
+   Compose check before implementation, then verify Undo restores entered fields.
+10. Independent final review found two draft recovery defects: a no-op second
+    reset discards Undo, and backup restore leaves a stale active/autosaved draft.
+    Preserve Undo on equal replacement. During restore, suspend draft autosave,
+    drain already queued lifecycle writes, restore records, synchronize validated
+    draft/SavedStateHandle and clear obsolete Undo before resuming writes. Add
+    actual local activity regressions for double reset and restore/recreate/flush.
+    Invalid backups must leave existing draft and records unchanged.
 
 Parallel work uses isolated worktrees with one integrator. UI owns screen/theme
 and UI tests; data research owns dataset/catalog migration and its tests; RAG

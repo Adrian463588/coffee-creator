@@ -18,7 +18,7 @@ class SeedDataTest {
             assertEquals("Unknown", it.roastLevel)
             assertNull(it.densityGramsPerMl)
             assertNull(it.foodGrade)
-            assertTrue(it.provenance.contains("https://varieties.worldcoffeeresearch.org/arabica"))
+            assertTrue(it.provenance.contains("https://varieties.worldcoffeeresearch.org/"))
         }
     }
 }

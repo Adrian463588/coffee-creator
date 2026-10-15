@@ -18,11 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -64,8 +64,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -85,6 +85,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.coffeecreator.app.core.filesystem.BuiltInAssets
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.Ingredient
 import com.coffeecreator.app.core.model.ModelStatus
@@ -94,6 +95,8 @@ import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
+private const val DECIMAL_GIGABYTE_BYTES = 1_000_000_000.0
+private const val LICENSE_SUMMARY_CHARS = 120
 private val destinations = listOf(
     Destination("Home", "Home", Icons.Default.Home),
     Destination("Formulate", "Brew", Icons.Default.Coffee),
@@ -202,6 +205,13 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                                 TextButton(onClick = model::clearNotice) { Text("Dismiss") }
                             }
                         }
+                    }
+                    if (route == "Formulate" && state.canUndoDraft) {
+                        TextButton(
+                            onClick = model::undoDraftChange,
+                            enabled = !state.busy,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        ) { Text("Undo draft change") }
                     }
                     NavHost(navController, startDestination = "Home", modifier = Modifier.weight(1f)) {
                         composable("Home") {
@@ -495,7 +505,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                     }
                                 }
                                 item {
-                                    TextButton(onClick = model::newRecipe, modifier = Modifier.heightIn(min = 48.dp)) {
+                                    TextButton(onClick = model::newRecipe, modifier = Modifier.heightIn(min = 48.dp).testTag("form:new")) {
                                         Text("Start a separate recipe")
                                     }
                                 }
@@ -679,11 +689,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
 }
 
 @Composable
-private fun BrewCard(
-    title: String,
-    detail: String,
-    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
-) {
+private fun BrewCard(title: String, detail: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     InfoCard(title, detail) { Column(verticalArrangement = Arrangement.spacedBy(12.dp), content = content) }
 }
 
@@ -1086,6 +1092,7 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
     var importingId by rememberSaveable { mutableStateOf<String?>(null) }
     var showManifest by rememberSaveable { mutableStateOf(false) }
     var manifest by rememberSaveable { mutableStateOf("") }
+    var expandedModel by rememberSaveable { mutableStateOf<String?>(null) }
     val directoryPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let(model::selectDirectory) }
     val modelPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -1095,12 +1102,15 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
     Page("Models") {
         item {
             Heading(
-                "Verified local AI assets",
+                "Local AI models",
                 "A model is installed only after exact size and SHA-256 validation. Downloads use network only when you request them."
             )
         }
         item {
-            InfoCard("User-owned model directory", state.directory ?: "No directory grant. Choose a folder to publish or recover models.") {
+            InfoCard(
+                "User-owned model directory",
+                state.directory ?: "Choose a SAF folder before downloading. Verified model files and manifests are published there."
+            ) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         directoryPicker.launch(null)
@@ -1116,10 +1126,10 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
             InfoCard(
                 asset.name,
                 listOf(
-                    "${asset.format} · ${asset.expectedSizeBytes / (1024 * 1024)} MiB",
-                    "Status: ${asset.status.name.lowercase()} · ${asset.downloadedBytes} received bytes",
-                    asset.license,
-                    "SHA-256 ${asset.sha256}",
+                    "${asset.format} · ${"%.2f".format(java.util.Locale.ROOT, asset.expectedSizeBytes / DECIMAL_GIGABYTE_BYTES)} GB",
+                    BuiltInAssets.purpose(asset),
+                    "Status: ${asset.status.name.lowercase()}",
+                    "License: ${asset.license.substringBefore(';').take(LICENSE_SUMMARY_CHARS)}",
                     asset.error.orEmpty()
                 ).joinToString("\n")
             ) {
@@ -1142,7 +1152,11 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
                             ModelStatus.PUBLISHING
                         )
                     ) {
-                        Button(onClick = { model.modelAction(asset, "download") }, enabled = state.directory != null && !state.busy) {
+                        Button(
+                            onClick = { model.modelAction(asset, "download") },
+                            enabled = state.directory != null && !state.busy && asset.downloadUrl.isNotBlank(),
+                            modifier = Modifier.testTag("models:download:${asset.id}")
+                        ) {
                             Text(
                                 if (asset.downloadedBytes >
                                     0
@@ -1182,6 +1196,20 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
                             model.modelAction(asset, "forget")
                         }, enabled = !state.busy) { Text("Forget registry entry") }
                     }
+                }
+                TextButton(
+                    onClick = { expandedModel = if (expandedModel == asset.id) null else asset.id },
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("models:details:${asset.id}")
+                ) { Text(if (expandedModel == asset.id) "Hide model details" else "Source, license & integrity") }
+                if (expandedModel == asset.id) {
+                    HorizontalDivider()
+                    Text(BuiltInAssets.guidance(asset).orEmpty())
+                    Text("Context limit in this app: 1024 tokens. Load succeeds only after runtime and RAM validation.")
+                    Text("Expected ${asset.expectedSizeBytes} bytes · ${asset.downloadedBytes} received bytes")
+                    Text("Revision ${asset.revision}")
+                    Text(asset.license)
+                    Text("SHA-256 ${asset.sha256}")
+                    Text("Source ${asset.downloadUrl}")
                 }
             }
         }
@@ -1270,7 +1298,9 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     "Review quantities before calculation",
                     "Check each value, unit and measured field. Edit by sending corrected JSON.\n$json"
                 ) {
-                    Button(onClick = model::confirmToolInputs, enabled = !state.generating) { Text("Confirm inputs and calculate") }
+                    Button(onClick = model::confirmToolInputs, enabled = !state.generating && !state.busy) {
+                        Text("Confirm inputs and calculate")
+                    }
                     TextButton(onClick = model::dismissToolInputs) { Text("Discard") }
                 }
             }
@@ -1296,10 +1326,14 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
             }, modifier = Modifier.fillMaxWidth().testTag("chat:input"), minLines = 2, maxLines = 5)
         }
         item {
-            Button(onClick = {
-                model.sendChat(prompt)
-                prompt = ""
-            }, enabled = prompt.isNotBlank() && !state.generating && state.ready, modifier = Modifier.fillMaxWidth().testTag("chat:send")) {
+            Button(
+                onClick = {
+                    model.sendChat(prompt)
+                    prompt = ""
+                },
+                enabled = prompt.isNotBlank() && !state.generating && !state.busy && state.ready,
+                modifier = Modifier.fillMaxWidth().testTag("chat:send")
+            ) {
                 Text("Send locally")
             }
         }

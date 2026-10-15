@@ -10,6 +10,8 @@ $dirty = & git status --porcelain
 if ($LASTEXITCODE -ne 0 -or $dirty) { throw 'Commit reviewed source and evidence before releasing.' }
 & .\gradlew.bat :app:detekt :app:ktlintCheck :app:lintDebug :app:testDebugUnitTest :app:assembleDebug --console=plain
 if ($LASTEXITCODE -ne 0) { throw 'Android quality gates failed.' }
+& python scripts/verify_apk.py app/build/outputs/apk/debug/app-debug.apk
+if ($LASTEXITCODE -ne 0) { throw 'APK structural/native alignment verification failed.' }
 $commit = (& git rev-parse HEAD).Trim()
 & git push origin HEAD:main
 if ($LASTEXITCODE -ne 0) { throw 'Source push failed.' }
@@ -18,12 +20,15 @@ New-Item -ItemType Directory -Path $distribution -Force | Out-Null
 $assetName = "coffee-creator-$Version.apk"
 $apk = Join-Path $distribution $assetName
 Copy-Item -LiteralPath 'app/build/outputs/apk/debug/app-debug.apk' -Destination $apk
-$checksum = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
+$sha256 = [Security.Cryptography.SHA256]::Create()
+$stream = [IO.File]::OpenRead($apk)
+try { $checksum = [BitConverter]::ToString($sha256.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() }
+finally { $stream.Dispose(); $sha256.Dispose() }
 $checksumFile = Join-Path $distribution 'SHA256SUMS.txt'
 [IO.File]::WriteAllText($checksumFile, "$checksum  $assetName`n", [Text.UTF8Encoding]::new($false))
 $notes = Join-Path $projectRoot "docs/releases/$Version.md"
 if (!(Test-Path -LiteralPath $notes)) { throw 'Reviewed release notes are required.' }
-& gh release create $Version $apk $checksumFile --target $commit --title "Coffee Creator $Version" --notes-file $notes --latest
+& gh release create $Version $apk $checksumFile --target $commit --title "Coffee Creator $Version - debug preview" --notes-file $notes --latest
 if ($LASTEXITCODE -ne 0) { throw 'Release publication failed; do not claim a download exists.' }
 & gh release view $Version --json url,targetCommitish,assets
 if ($LASTEXITCODE -ne 0) { throw 'Release verification failed.' }

@@ -2,6 +2,7 @@ package com.coffeecreator.app.core.model
 
 /** Shared trust-boundary budgets, independent of Android and storage adapters. */
 object InputLimits {
+    const val MODEL_BYTES_MAX = 4L * 1024 * 1024 * 1024
     const val DECIMAL_CHARS = 64
     const val METADATA_CHARS = 4096
     const val COLLECTION_ITEMS = 1000
