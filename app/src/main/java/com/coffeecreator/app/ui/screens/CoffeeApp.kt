@@ -96,6 +96,15 @@ import com.coffeecreator.app.core.sensory.StandardCuppingTemplates
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
+import com.coffeecreator.app.core.ai.personalization.AcidityTolerance
+import com.coffeecreator.app.core.ai.personalization.BaristaPersonaPreset
+import com.coffeecreator.app.core.ai.personalization.BitternessSensitivity
+import com.coffeecreator.app.core.ai.personalization.BodyPreference
+import com.coffeecreator.app.core.ai.personalization.IngredientSafetyLevel
+import com.coffeecreator.app.core.ai.personalization.PalateQuizAnswers
+import com.coffeecreator.app.core.ai.personalization.RoastPreference
+import com.coffeecreator.app.core.ai.personalization.SensoryFeedbackDiagnosis
+import com.coffeecreator.app.core.ai.personalization.SweetnessPriority
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -3528,25 +3537,409 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
 @Composable
 private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
     var prompt by rememberSaveable { mutableStateOf("") }
+    var showQuizDialog by rememberSaveable { mutableStateOf(false) }
+    var quizRoast by rememberSaveable { mutableStateOf(RoastPreference.MEDIUM_LIGHT) }
+    var quizAcidity by rememberSaveable { mutableStateOf(AcidityTolerance.HIGH_ENTHUSIAST) }
+    var quizSweetness by rememberSaveable { mutableStateOf(SweetnessPriority.CORE_CRUCIAL) }
+    var quizBitterness by rememberSaveable { mutableStateOf(BitternessSensitivity.AVERSE) }
+    var quizBody by rememberSaveable { mutableStateOf(BodyPreference.SILKY_MEDIUM) }
+
+    var customPersonaText by rememberSaveable { mutableStateOf("") }
+    var showCustomPersonaDialog by rememberSaveable { mutableStateOf(false) }
+
+    var ocrInputText by rememberSaveable { mutableStateOf("") }
+    var selectedRecMethod by rememberSaveable { mutableStateOf("Pour Over (V60)") }
+
+    var ovatDiagnosis by rememberSaveable { mutableStateOf(SensoryFeedbackDiagnosis.SOUR_UNDER_EXTRACTED) }
+    var ovatActualSec by rememberSaveable { mutableStateOf("130") }
+    var ovatTargetSec by rememberSaveable { mutableStateOf("155") }
+
+    var elevationInput by rememberSaveable { mutableStateOf("0") }
+    var auditIngName by rememberSaveable { mutableStateOf("") }
+    var auditIngPct by rememberSaveable { mutableStateOf("0.5") }
+    var auditFoodGrade by rememberSaveable { mutableStateOf(true) }
+
     Page("AI Chat") {
         item {
             Heading(
-                "Local coffee assistant",
-                "${state.loadedModel ?: "No model loaded"}. Generated text may be wrong. " +
-                    "Measurements and exact Kotlin cards remain authoritative."
+                "Local coffee assistant & personalization",
+                "${state.loadedModel ?: "No model loaded"}. Grounded on-device intelligence. " +
+                    "Exact Kotlin domain cards and physics rules remain authoritative."
             )
         }
+
+        // ====================================================================
+        // 1. Barista Persona Presets & Custom Prompt (S2-072)
+        // ====================================================================
         item {
-            Select("Persona", state.selectedPersona?.id.orEmpty(), state.personas.map { it.id to it.title }, { id ->
-                state.personas.find {
-                    it.id ==
-                        id
-                }?.let(model::selectPersona)
-            }, "chat:persona")
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Barista Persona", style = MaterialTheme.typography.titleMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = state.selectedPersona?.id == BaristaPersonaPreset.SPECIALTY_Q_GRADER.id,
+                            onClick = { model.selectBaristaPersonaPreset(BaristaPersonaPreset.SPECIALTY_Q_GRADER) },
+                            label = { Text("Specialty Q-Grader") }
+                        )
+                        FilterChip(
+                            selected = state.selectedPersona?.id == BaristaPersonaPreset.FRIENDLY_HOME_BARISTA.id,
+                            onClick = { model.selectBaristaPersonaPreset(BaristaPersonaPreset.FRIENDLY_HOME_BARISTA) },
+                            label = { Text("Friendly Barista") }
+                        )
+                        FilterChip(
+                            selected = state.selectedPersona?.id == BaristaPersonaPreset.RD_COFFEE_CHEMIST.id,
+                            onClick = { model.selectBaristaPersonaPreset(BaristaPersonaPreset.RD_COFFEE_CHEMIST) },
+                            label = { Text("R&D Chemist") }
+                        )
+                        FilterChip(
+                            selected = state.selectedPersona?.id == "custom_persona",
+                            onClick = { showCustomPersonaDialog = true },
+                            label = { Text("Custom Prompt") }
+                        )
+                    }
+                    Text(
+                        state.selectedPersona?.description ?: "Select a persona to guide response tone and extraction focus.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // ====================================================================
+        // 2. Offline Personal Palate Quiz & Dynamic Profile (S2-063, S2-064)
+        // ====================================================================
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Personal Palate Profile", style = MaterialTheme.typography.titleMedium)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                "Evidence: ${state.palateProfile.qualifiedSessionCount} sessions",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        "Roast: ${(state.palateProfile.vector.roast * 10).toInt()}/10 · " +
+                            "Acidity: ${(state.palateProfile.vector.acidity * 10).toInt()}/10 · " +
+                            "Sweetness: ${(state.palateProfile.vector.sweetness * 10).toInt()}/10 · " +
+                            "Bitterness: ${(state.palateProfile.vector.bitterness * 10).toInt()}/10 · " +
+                            "Body: ${(state.palateProfile.vector.body * 10).toInt()}/10",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { showQuizDialog = true }) {
+                            Text(if (state.palateProfile.isQuizCompleted) "Retake Palate Quiz" else "Take Palate Quiz")
+                        }
+                        OutlinedButton(onClick = {
+                            model.updatePalateSliders(
+                                acidity = ((state.palateProfile.vector.acidity + 0.1).coerceAtMost(1.0))
+                            )
+                        }) {
+                            Text("+ Acidity Bias")
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // 3. Explainable Inventory Recommendations (S2-065)
+        // ====================================================================
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Inventory Recommendations", style = MaterialTheme.typography.titleMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Pour Over (V60)", "Espresso", "AeroPress", "French Press").forEach { method ->
+                            FilterChip(
+                                selected = selectedRecMethod == method,
+                                onClick = {
+                                    selectedRecMethod = method
+                                    model.generateInventoryRecommendations(method)
+                                },
+                                label = { Text(method) }
+                            )
+                        }
+                    }
+                    Button(
+                        onClick = { model.generateInventoryRecommendations(selectedRecMethod) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Find Best Bean Matches for $selectedRecMethod")
+                    }
+                    if (state.inventoryRecommendations.isNotEmpty()) {
+                        state.inventoryRecommendations.take(3).forEachIndexed { idx, item ->
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                            ) {
+                                Column(Modifier.padding(10.dp)) {
+                                    Text(
+                                        "#${idx + 1} ${item.beanName} · ${(item.cosineSimilarity * 100).toInt()}% Match",
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    Text(item.explanationText, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // 4. OVAT Brewing Feedback Loop (S2-066)
+        // ====================================================================
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Single-Variable Dial-In (OVAT)", style = MaterialTheme.typography.titleMedium)
+                    Text("Proposes one controlled physical variable adjustment without confounding other variables.", style = MaterialTheme.typography.bodySmall)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SensoryFeedbackDiagnosis.values().forEach { diag ->
+                            FilterChip(
+                                selected = ovatDiagnosis == diag,
+                                onClick = { ovatDiagnosis = diag },
+                                label = { Text(diag.name.replace("_", " ")) }
+                            )
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = ovatActualSec,
+                            onValueChange = { ovatActualSec = it },
+                            label = { Text("Actual (s)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = ovatTargetSec,
+                            onValueChange = { ovatTargetSec = it },
+                            label = { Text("Target (s)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            val act = ovatActualSec.toIntOrNull() ?: 130
+                            val tgt = ovatTargetSec.toIntOrNull() ?: 155
+                            model.proposeSingleVariableAdjustment(ovatDiagnosis, act, tgt)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Diagnose & Propose Adjustment")
+                    }
+                    state.ovatAdjustmentProposal?.let { prop ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Proposed: ${prop.variableAdjusted} -> ${prop.proposedValue}", style = MaterialTheme.typography.titleSmall)
+                                Text(prop.diagnosticReason, style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = model::applyOvatAdjustmentToDraft) { Text("Apply to Recipe Draft") }
+                                    OutlinedButton(onClick = model::dismissOvatAdjustment) { Text("Dismiss") }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // 5. Offline Camera/OCR Bean Scanner (S2-067)
+        // ====================================================================
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Scan Coffee Bag Label (OCR)", style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(
+                        value = ocrInputText,
+                        onValueChange = { ocrInputText = it },
+                        label = { Text("Paste/Recognized Bag Label Lines") },
+                        placeholder = { Text("e.g.\nETHIOPIA YIRGACHEFFE\nVARIETY: HEIRLOOM\nPROCESS: WASHED\nROAST DATE: 2026-10-01\n250G") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
+                    )
+                    Button(
+                        onClick = {
+                            val lines = ocrInputText.split("\n").map(String::trim).filter(String::isNotBlank)
+                            model.parseBeanOcrText(lines)
+                        },
+                        enabled = ocrInputText.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Parse Bag Label Lines")
+                    }
+                    state.parsedBeanDraft?.let { draft ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Parsed Draft (Review Gate)", style = MaterialTheme.typography.titleSmall)
+                                Text("Country: ${draft.originCountry ?: "Unknown"} · Variety: ${draft.variety ?: "Unknown"}")
+                                Text("Process: ${draft.process ?: "Unknown"} · Roast Date: ${draft.roastDateIso ?: "Unknown"}")
+                                Text("Elevation: ${draft.elevationMasl ?: "Unknown"} MASL · Net: ${draft.packageWeightGrams ?: 250}g")
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = {
+                                        model.commitParsedBeanDraft(
+                                            name = "${draft.originCountry.orEmpty()} ${draft.variety.orEmpty()}".trim(),
+                                            roaster = draft.roaster ?: "Local Roaster",
+                                            country = draft.originCountry ?: "Ethiopia",
+                                            region = draft.region ?: "Yirgacheffe",
+                                            variety = draft.variety ?: "Heirloom",
+                                            process = draft.process ?: "Washed",
+                                            roastLevel = "Light",
+                                            elevation = (draft.elevationMasl ?: 1900).toString()
+                                        )
+                                    }) {
+                                        Text("Confirm & Save Bean")
+                                    }
+                                    OutlinedButton(onClick = model::dismissParsedBeanDraft) { Text("Discard Draft") }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // 6. Offline Weather & Altitude Boiling Point (S2-073)
+        // ====================================================================
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Local Altitude & Thermodynamics", style = MaterialTheme.typography.titleMedium)
+                    Text("Pure offline thermodynamic calculation. Never requests live GPS or weather APIs.", style = MaterialTheme.typography.bodySmall)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = elevationInput,
+                            onValueChange = { elevationInput = it },
+                            label = { Text("Elevation (m)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(
+                            onClick = {
+                                val elev = elevationInput.toDoubleOrNull() ?: 0.0
+                                model.updateWeatherParameters(elev)
+                            },
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text("Compute")
+                        }
+                    }
+                    Text(
+                        "Elevation: ${state.weatherParams.elevationMeters.toInt()}m · Boiling Point: ${state.weatherParams.calculatedBoilingPointCelsius}°C · Safe Brew Max: ${state.weatherParams.calculatedBoilingPointCelsius - 0.5}°C",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+
+        // ====================================================================
+        // 7. Ingredient & Allergen Safety Gate (S2-074)
+        // ====================================================================
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Ingredient & Allergen Safety Gate", style = MaterialTheme.typography.titleMedium)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = auditIngName,
+                            onValueChange = { auditIngName = it },
+                            label = { Text("Ingredient Name") },
+                            modifier = Modifier.weight(1.5f)
+                        )
+                        OutlinedTextField(
+                            value = auditIngPct,
+                            onValueChange = { auditIngPct = it },
+                            label = { Text("Dose %") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = auditFoodGrade,
+                            onClick = { auditFoodGrade = !auditFoodGrade },
+                            label = { Text(if (auditFoodGrade) "FCC Food-Grade: YES" else "Food-Grade: NO") }
+                        )
+                        Button(onClick = {
+                            val pct = auditIngPct.toDoubleOrNull() ?: 0.5
+                            model.auditIngredientSafety(auditIngName, auditFoodGrade, emptyList(), pct)
+                        }) {
+                            Text("Audit Safety")
+                        }
+                    }
+                    state.safetyAuditResult?.let { res ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = when (res.level) {
+                                IngredientSafetyLevel.SAFE_FOOD_GRADE -> MaterialTheme.colorScheme.primaryContainer
+                                IngredientSafetyLevel.WARNING_ALLERGEN_PRESENT -> MaterialTheme.colorScheme.secondaryContainer
+                                IngredientSafetyLevel.CRITICAL_NON_FOOD_PROHIBITED -> MaterialTheme.colorScheme.errorContainer
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Column(Modifier.padding(10.dp)) {
+                                Text("Safety Level: ${res.level.name}", style = MaterialTheme.typography.titleSmall)
+                                res.flags.forEach { flag -> Text("• $flag", style = MaterialTheme.typography.bodySmall) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // 8. Grounded AI Barista Chat & Messages (S2-068, S2-071)
+        // ====================================================================
+        item {
+            Text("Barista Chat Session", style = MaterialTheme.typography.titleMedium)
         }
         item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Ask from my sources", "Help plan a brew", "Explain my observations").forEach { preset ->
+                listOf("Ask from my sources", "Help plan a brew", "Explain my observations", "Calculate extraction yield").forEach { preset ->
                     OutlinedButton(onClick = { prompt = preset }, enabled = !state.generating) { Text(preset) }
                 }
             }
@@ -3592,11 +3985,14 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
             }
         }
         item {
-            OutlinedTextField(prompt, {
-                prompt = it
-            }, label = {
-                Text("Message or typed tool JSON")
-            }, modifier = Modifier.fillMaxWidth().testTag("chat:input"), minLines = 2, maxLines = 5)
+            OutlinedTextField(
+                prompt,
+                { prompt = it },
+                label = { Text("Message or typed tool JSON") },
+                modifier = Modifier.fillMaxWidth().testTag("chat:input"),
+                minLines = 2,
+                maxLines = 5
+            )
         }
         item {
             Button(
@@ -3622,6 +4018,101 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     "calculate_brew_ratio; arguments = doseGrams and waterGrams. No generated code runs."
             )
         }
+    }
+
+    // Dialog for Palate Quiz
+    if (showQuizDialog) {
+        AlertDialog(
+            onDismissRequest = { showQuizDialog = false },
+            title = { Text("Offline Palate Quiz") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("1. Roast Preference:", style = MaterialTheme.typography.bodyMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        RoastPreference.values().forEach { r ->
+                            FilterChip(selected = quizRoast == r, onClick = { quizRoast = r }, label = { Text(r.name) })
+                        }
+                    }
+                    Text("2. Acidity Tolerance:", style = MaterialTheme.typography.bodyMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        AcidityTolerance.values().forEach { a ->
+                            FilterChip(selected = quizAcidity == a, onClick = { quizAcidity = a }, label = { Text(a.name) })
+                        }
+                    }
+                    Text("3. Sweetness Priority:", style = MaterialTheme.typography.bodyMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SweetnessPriority.values().forEach { s ->
+                            FilterChip(selected = quizSweetness == s, onClick = { quizSweetness = s }, label = { Text(s.name) })
+                        }
+                    }
+                    Text("4. Bitterness Sensitivity:", style = MaterialTheme.typography.bodyMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        BitternessSensitivity.values().forEach { b ->
+                            FilterChip(selected = quizBitterness == b, onClick = { quizBitterness = b }, label = { Text(b.name) })
+                        }
+                    }
+                    Text("5. Body Preference:", style = MaterialTheme.typography.bodyMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        BodyPreference.values().forEach { m ->
+                            FilterChip(selected = quizBody == m, onClick = { quizBody = m }, label = { Text(m.name) })
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    model.submitPalateQuiz(
+                        PalateQuizAnswers(
+                            roast = quizRoast,
+                            acidity = quizAcidity,
+                            sweetness = quizSweetness,
+                            bitterness = quizBitterness,
+                            body = quizBody
+                        )
+                    )
+                    showQuizDialog = false
+                }) {
+                    Text("Save & Calibrate")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showQuizDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Dialog for Custom Persona
+    if (showCustomPersonaDialog) {
+        AlertDialog(
+            onDismissRequest = { showCustomPersonaDialog = false },
+            title = { Text("Custom Persona System Prompt") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Max 300 characters. Automatically sanitized against prompt injection.", style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        value = customPersonaText,
+                        onValueChange = { customPersonaText = it.take(300) },
+                        label = { Text("System Prompt (${customPersonaText.length}/300)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        model.updateCustomPersonaPrompt(customPersonaText)
+                        showCustomPersonaDialog = false
+                    },
+                    enabled = customPersonaText.isNotBlank()
+                ) {
+                    Text("Save & Apply")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCustomPersonaDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 

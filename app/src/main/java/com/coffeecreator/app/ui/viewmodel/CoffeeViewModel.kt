@@ -14,6 +14,32 @@ import com.coffeecreator.app.core.ai.NativeChatTurn
 import com.coffeecreator.app.core.ai.NativeGenerationOptions
 import com.coffeecreator.app.core.ai.NativeLlmStatus
 import com.coffeecreator.app.core.ai.RagSearchResult
+import com.coffeecreator.app.core.ai.personalization.AcidityTolerance
+import com.coffeecreator.app.core.ai.personalization.BaristaPersonaPreset
+import com.coffeecreator.app.core.ai.personalization.BeanInventoryCandidate
+import com.coffeecreator.app.core.ai.personalization.BitternessSensitivity
+import com.coffeecreator.app.core.ai.personalization.BodyPreference
+import com.coffeecreator.app.core.ai.personalization.ElevationUnit
+import com.coffeecreator.app.core.ai.personalization.FeedbackLoopEngine
+import com.coffeecreator.app.core.ai.personalization.IngredientSafetyValidator
+import com.coffeecreator.app.core.ai.personalization.OcrBeanParser
+import com.coffeecreator.app.core.ai.personalization.OvatAdjustmentProposal
+import com.coffeecreator.app.core.ai.personalization.PalateBayesianEngine
+import com.coffeecreator.app.core.ai.personalization.PalateProfile
+import com.coffeecreator.app.core.ai.personalization.PalateQuizAnswers
+import com.coffeecreator.app.core.ai.personalization.PalateQuizMapper
+import com.coffeecreator.app.core.ai.personalization.PalateVector
+import com.coffeecreator.app.core.ai.personalization.ParsedBeanDraft
+import com.coffeecreator.app.core.ai.personalization.PersonaSanitizer
+import com.coffeecreator.app.core.ai.personalization.PersonalSensoryEvidence
+import com.coffeecreator.app.core.ai.personalization.RecommendationEngine
+import com.coffeecreator.app.core.ai.personalization.RecommendationItem
+import com.coffeecreator.app.core.ai.personalization.RoastPreference
+import com.coffeecreator.app.core.ai.personalization.SafetyAuditResult
+import com.coffeecreator.app.core.ai.personalization.SensoryFeedbackDiagnosis
+import com.coffeecreator.app.core.ai.personalization.SweetnessPriority
+import com.coffeecreator.app.core.ai.personalization.WeatherAltitudeCalculator
+import com.coffeecreator.app.core.ai.personalization.WeatherParameters
 import com.coffeecreator.app.core.ble.BleScaleDevice
 import com.coffeecreator.app.core.ble.BleScaleDriver
 import com.coffeecreator.app.core.ble.ScaleConnectionState
@@ -177,7 +203,13 @@ data class CoffeeUiState(
     val selectedCuppingSampleId: String? = null,
     val physicalQcRecords: Map<String, PhysicalQcRecord> = emptyMap(),
     val roastRestObservations: List<RoastRestObservation> = emptyList(),
-    val generatedQcReceipt: QcReportReceipt? = null
+    val generatedQcReceipt: QcReportReceipt? = null,
+    val palateProfile: PalateProfile = PalateProfile(),
+    val parsedBeanDraft: ParsedBeanDraft? = null,
+    val weatherParams: WeatherParameters = WeatherParameters(),
+    val ovatAdjustmentProposal: OvatAdjustmentProposal? = null,
+    val inventoryRecommendations: List<RecommendationItem> = emptyList(),
+    val safetyAuditResult: SafetyAuditResult? = null
 )
 
 @HiltViewModel
@@ -1434,9 +1466,22 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     }
 
     fun saveJournalEntry(entry: BrewJournalEntry) {
-        _state.update {
-            val list = listOf(entry) + it.journalEntries.filter { e -> e.id != entry.id }
-            it.copy(journalEntries = list, notice = "Saved journal entry for ${entry.beanName}.")
+        _state.update { current ->
+            val list = listOf(entry) + current.journalEntries.filter { e -> e.id != entry.id }
+            val updatedPalate = if (entry.rating != null && entry.rating >= 7.5) {
+                val norm = { v: Double -> (v / 10.0).coerceIn(0.0, 1.0) }
+                val evidence = PersonalSensoryEvidence(
+                    roast = 0.3,
+                    acidity = norm(entry.sensoryScores["acidity"]?.toDouble() ?: 7.5),
+                    sweetness = norm(entry.sensoryScores["sweetness"]?.toDouble() ?: 7.5),
+                    bitterness = norm(entry.sensoryScores["bitterness"]?.toDouble() ?: 2.5),
+                    body = norm(entry.sensoryScores["body"]?.toDouble() ?: 6.0),
+                    rating = entry.rating,
+                    daysAgo = 0.0
+                )
+                PalateBayesianEngine.updateProfile(current.palateProfile, evidence)
+            } else current.palateProfile
+            current.copy(journalEntries = list, palateProfile = updatedPalate, notice = "Saved journal entry for ${entry.beanName}.")
         }
         refreshStreakAndStats()
     }
@@ -1762,7 +1807,24 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                     s.copy(sheets = newSheets)
                 } else s
             }
-            current.copy(cuppingSessions = updated, notice = "Submitted score: $totalScore.")
+            val updatedPalate = if (totalScore.toDouble() >= 80.0) {
+                val acidity = attributeScores["acidity"]?.toDouble() ?: 7.5
+                val sweetness = attributeScores["sweetness"]?.toDouble() ?: 7.5
+                val bitterness = attributeScores["bitterness"]?.toDouble() ?: 7.5
+                val body = attributeScores["body"]?.toDouble() ?: 7.5
+                val norm = { v: Double -> ((v - 6.0) / 4.0).coerceIn(0.0, 1.0) }
+                val evidence = PersonalSensoryEvidence(
+                    roast = 0.3,
+                    acidity = norm(acidity),
+                    sweetness = norm(sweetness),
+                    bitterness = norm(bitterness),
+                    body = norm(body),
+                    rating = (totalScore.toDouble() / 10.0).coerceIn(7.5, 10.0),
+                    daysAgo = 0.0
+                )
+                PalateBayesianEngine.updateProfile(current.palateProfile, evidence)
+            } else current.palateProfile
+            current.copy(cuppingSessions = updated, palateProfile = updatedPalate, notice = "Submitted score: $totalScore.")
         }
     }
 
@@ -1981,6 +2043,234 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                 selectedCuppingSampleId = sample1.sampleId,
                 physicalQcRecords = mapOf(sample1.sampleId to physicalQc),
                 roastRestObservations = listOf(obs2, obs1)
+            )
+        }
+    }
+
+    // ========================================================================
+    // Epic S2-E06: Personalization, Local AI & RAG Integration
+    // ========================================================================
+
+    fun submitPalateQuiz(answers: PalateQuizAnswers) {
+        val profile = PalateQuizMapper.createFromQuiz(answers)
+        _state.update {
+            it.copy(
+                palateProfile = profile,
+                notice = "Calibrated personal palate profile! Light/Acidity/Sweetness calibrated."
+            )
+        }
+    }
+
+    fun updatePalateSliders(
+        roast: Double? = null,
+        acidity: Double? = null,
+        sweetness: Double? = null,
+        bitterness: Double? = null,
+        body: Double? = null
+    ) {
+        val updated = PalateQuizMapper.updateManualSliders(_state.value.palateProfile, roast, acidity, sweetness, bitterness, body)
+        _state.update { it.copy(palateProfile = updated, notice = "Updated palate preference sliders.") }
+    }
+
+    fun recordSensoryEvidence(evidence: PersonalSensoryEvidence) {
+        val updated = PalateBayesianEngine.updateProfile(_state.value.palateProfile, evidence)
+        _state.update {
+            it.copy(
+                palateProfile = updated,
+                notice = "Bayesian palate vector updated from qualified session (${evidence.rating}/10)."
+            )
+        }
+    }
+
+    fun parseBeanOcrText(lines: List<String>) {
+        val draft = OcrBeanParser.parseLines(lines)
+        _state.update {
+            it.copy(
+                parsedBeanDraft = draft,
+                notice = "Parsed coffee bag OCR: ${draft.originCountry ?: "Origin"} / ${draft.variety ?: "Variety"}. Review below."
+            )
+        }
+    }
+
+    fun commitParsedBeanDraft(
+        name: String,
+        roaster: String,
+        country: String,
+        region: String,
+        variety: String,
+        process: String,
+        roastLevel: String,
+        elevation: String
+    ) {
+        val bean = CoffeeBean(
+            id = UUID.randomUUID().toString(),
+            name = name.ifBlank { "$country $variety" },
+            producer = roaster,
+            country = country,
+            region = region,
+            variety = variety,
+            process = process,
+            roastLevel = roastLevel,
+            altitudeMeters = elevation.toIntOrNull()
+        )
+        task("Saving scanned bean") {
+            graph.repository.addBean(bean)
+            _state.update {
+                it.copy(
+                    parsedBeanDraft = null,
+                    notice = "Saved scanned bean '${bean.name}' to inventory."
+                )
+            }
+        }
+    }
+
+    fun dismissParsedBeanDraft() {
+        _state.update { it.copy(parsedBeanDraft = null) }
+    }
+
+    fun updateWeatherParameters(elevationMeters: Double, ambientTemp: Double = 22.0, humidity: Double = 50.0) {
+        val tBoil = WeatherAltitudeCalculator.calculateBoilingPointCelsius(elevationMeters, ElevationUnit.METERS)
+        val params = WeatherParameters(
+            elevationMeters = elevationMeters,
+            ambientTempCelsius = ambientTemp,
+            relativeHumidityPercent = humidity,
+            calculatedBoilingPointCelsius = tBoil
+        )
+        _state.update {
+            it.copy(
+                weatherParams = params,
+                notice = "Elevation set to ${elevationMeters.toInt()}m. Water boiling point is ${tBoil}°C."
+            )
+        }
+    }
+
+    fun generateInventoryRecommendations(brewMethod: String = "Pour Over (V60)") {
+        val candidates = _state.value.beans.map { b ->
+            val acidityScore = if (b.process.contains("wash", true)) 0.85 else 0.60
+            val sweetnessScore = if (b.process.contains("nat", true)) 0.85 else 0.70
+            BeanInventoryCandidate(
+                beanId = b.id,
+                beanName = b.name,
+                sensoryProfile = PalateVector(0.30, acidityScore, sweetnessScore, 0.20, 0.50),
+                roastDate = LocalDate.now().minusDays(14),
+                availableMassGrams = 250.0
+            )
+        }
+        val recommendations = RecommendationEngine.rankInventory(
+            palate = _state.value.palateProfile,
+            candidates = candidates,
+            availableGearMethods = setOf("Pour Over (V60)", "Espresso", "AeroPress", "French Press"),
+            brewMethod = brewMethod
+        )
+        _state.update {
+            it.copy(
+                inventoryRecommendations = recommendations,
+                notice = "Generated ${recommendations.size} recommendations for $brewMethod."
+            )
+        }
+    }
+
+    fun proposeSingleVariableAdjustment(
+        diagnosis: SensoryFeedbackDiagnosis,
+        actualSec: Int,
+        targetSec: Int
+    ) {
+        val currentRecipeMap = mapOf(
+            "grindClicks" to 18,
+            "waterTempCelsius" to (_state.value.draft.fields["temperature"]?.toDoubleOrNull() ?: 93.0),
+            "doseGrams" to (_state.value.draft.fields["dose"]?.toDoubleOrNull() ?: 15.0),
+            "waterGrams" to (_state.value.draft.fields["water"]?.toDoubleOrNull() ?: 250.0)
+        )
+        val proposal = FeedbackLoopEngine.proposeAdjustment(
+            previousRecipe = currentRecipeMap,
+            actualDurationSeconds = actualSec,
+            targetDurationSeconds = targetSec,
+            diagnosis = diagnosis,
+            boilingPointCelsius = _state.value.weatherParams.calculatedBoilingPointCelsius
+        )
+        _state.update {
+            it.copy(
+                ovatAdjustmentProposal = proposal,
+                notice = "Proposed adjustment: ${proposal.variableAdjusted} -> ${proposal.proposedValue}"
+            )
+        }
+    }
+
+    fun applyOvatAdjustmentToDraft() {
+        val proposal = _state.value.ovatAdjustmentProposal ?: return
+        val currentDraft = _state.value.draft
+        val newFields = currentDraft.fields.toMutableMap()
+        when (proposal.variableAdjusted) {
+            "Grind Size" -> {
+                val newClicks = proposal.modifiedRecipePayload["grindClicks"] as? Int
+                newFields["grind"] = "$newClicks clicks (${proposal.proposedValue})"
+            }
+            "Water Temperature" -> {
+                val newTemp = proposal.modifiedRecipePayload["waterTempCelsius"] as? Double
+                newFields["temperature"] = (newTemp ?: 93.0).toString()
+            }
+            "Coffee Dose" -> {
+                val newDose = proposal.modifiedRecipePayload["doseGrams"] as? Double
+                newFields["dose"] = (newDose ?: 15.0).toString()
+            }
+            "Water Volume" -> {
+                val newWater = proposal.modifiedRecipePayload["waterGrams"] as? Double
+                newFields["water"] = (newWater ?: 250.0).toString()
+            }
+        }
+        val updatedDraft = currentDraft.copy(fields = newFields)
+        _state.update {
+            it.copy(
+                draft = updatedDraft,
+                ovatAdjustmentProposal = null,
+                notice = "Applied OVAT adjustment (${proposal.variableAdjusted}) to current recipe draft."
+            )
+        }
+    }
+
+    fun dismissOvatAdjustment() {
+        _state.update { it.copy(ovatAdjustmentProposal = null) }
+    }
+
+    fun selectBaristaPersonaPreset(preset: BaristaPersonaPreset) {
+        val persona = AssistantPersona(
+            id = preset.id,
+            title = preset.title,
+            description = preset.baseSystemPrompt,
+            systemPrompt = preset.baseSystemPrompt
+        )
+        _state.update {
+            val list = if (it.personas.none { p -> p.id == preset.id }) it.personas + persona else it.personas
+            it.copy(personas = list, selectedPersona = persona, notice = "Switched persona to '${preset.title}'.")
+        }
+    }
+
+    fun updateCustomPersonaPrompt(customPrompt: String) {
+        val sanitized = PersonaSanitizer.sanitizeCustomPrompt(customPrompt)
+        val customPersona = AssistantPersona(
+            id = "custom_persona",
+            title = "Custom Persona",
+            description = sanitized,
+            systemPrompt = sanitized
+        )
+        _state.update {
+            val list = it.personas.filter { p -> p.id != "custom_persona" } + customPersona
+            it.copy(personas = list, selectedPersona = customPersona, notice = "Custom persona prompt sanitized and saved.")
+        }
+    }
+
+    fun auditIngredientSafety(
+        name: String,
+        foodGrade: Boolean?,
+        allergens: List<String>,
+        massFractionPercent: Double,
+        supplierMaxPercent: Double? = null
+    ) {
+        val audit = IngredientSafetyValidator.auditIngredient(name, foodGrade, allergens, massFractionPercent, supplierMaxPercent)
+        _state.update {
+            it.copy(
+                safetyAuditResult = audit,
+                notice = if (audit.permitsBeverageConsumption) "Ingredient audit passed." else "CRITICAL: Ingestion hazard detected!"
             )
         }
     }

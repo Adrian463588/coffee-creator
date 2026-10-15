@@ -1,0 +1,34 @@
+# Implementation Tasks: Epic S2-E06 — Personalization, Local AI, and RAG Integration
+
+- [x] **Task 1: OpenSpec & BDD Scenarios**
+  - [x] Create `proposal.md`, `design.md`, `bdd-scenarios.md`, `tasks.md` in `openspec/changes/s2-e06-personalization-ai-rag/`.
+- [ ] **Task 2: Pure Domain Layer Implementation (`com.coffeecreator.app.core.ai.personalization`)**
+  - [ ] Implement `PalateProfileModels.kt` (Quiz choices, palate vector, dynamic profile, recommendation models, OVAT models, OCR draft models, weather models, food safety models).
+  - [ ] Implement `PersonalizationEngine.kt` (Bayesian EMA updater, cosine recommendation ranking, single-variable feedback loop, OCR parser heuristics, altitude boiling point calculator, food safety and allergen validator).
+- [ ] **Task 3: ToolExecutor Expansion & Schema Gates**
+  - [ ] Add `recommend_inventory_bean`, `propose_feedback_adjustment`, `calculate_altitude_boiling_point`, `audit_ingredient_safety` tools.
+  - [ ] Enforce strict schema bounds and `requiresUserConfirmation` on write operations.
+- [ ] **Task 4: ViewModel Integration (`CoffeeViewModel.kt`)**
+  - [ ] Add palate profile, dynamic taste vector, and quiz submit/update methods.
+  - [ ] Automatically update Bayesian palate profile when a session with rating >= 7.50 is saved.
+  - [ ] Add OCR bean parsing, draft review/edit/commit actions.
+  - [ ] Add barista persona presets and sanitized custom system prompt handler.
+  - [ ] Add user-supplied weather/elevation inputs and altitude boiling point clamping.
+  - [ ] Add ingredient food-grade and allergen audit gate.
+- [ ] **Task 5: UI & Microinteraction Polish (`CoffeeApp.kt`)**
+  - [ ] Add Persona selector with presets (Specialty Q-Grader, Friendly Barista, R&D Chemist) and custom prompt dialog.
+  - [ ] Add Palate Quiz dialog with 5 questions and radar preview.
+  - [ ] Add Inventory Recommendation list with explainable cards.
+  - [ ] Add Single-Variable Feedback Loop card for quick recipe correction.
+  - [ ] Add OCR Bean Scanner review card/dialog.
+  - [ ] Add Manual Weather & Altitude card displaying local boiling point.
+  - [ ] Add Food-grade safety badge and allergen warnings on recipe & ingredient cards.
+- [ ] **Task 6: Test Suite & Quality Verification**
+  - [ ] Implement `ActivePersonalizationRagTest.kt` covering all 12 stories S2-063 through S2-074.
+  - [ ] Run `./gradlew testDebugUnitTest`.
+  - [ ] Run `./gradlew assembleDebug` to build release APK.
+- [ ] **Task 7: Release & Documentation**
+  - [ ] Create `docs/releases/v1.7.0.md` with release notes and SHA-256 hashes.
+  - [ ] Update `README.md` with historical releases table and latest download link.
+  - [ ] Git commit and push to `origin main`.
+  - [ ] Publish GitHub Release `v1.7.0` via `gh release create`.

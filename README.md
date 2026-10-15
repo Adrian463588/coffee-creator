@@ -10,9 +10,9 @@ network access; models need a first-time install before natural-language chat.
 
 ## Download
 
-[Download the latest debug preview APK (v1.6.0)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.6.0/coffee-creator-v1.6.0.apk)
-· [Release notes](docs/releases/v1.6.0.md)
-· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.6.0/SHA256SUMS.txt)
+[Download the latest debug preview APK (v1.7.0)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.7.0/coffee-creator-v1.7.0.apk)
+· [Release notes](docs/releases/v1.7.0.md)
+· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.7.0/SHA256SUMS.txt)
 
 The distribution APK is debug-signed, targets Android 8/API 26+ and arm64-v8a/x86_64.
 The physical test reference is Samsung SM-G988B, Android 13/API 33. Other device/RAM/
@@ -20,7 +20,7 @@ provider tiers are separate validation work; see [verification](docs/VERIFICATIO
 Install an APK from GitHub using Android's explicit install permission. For ADB:
 
 ```powershell
-adb install --user 0 -r coffee-creator-v1.6.0.apk
+adb install --user 0 -r coffee-creator-v1.7.0.apk
 ```
 
 Replacement installation preserves app records when the signing key matches.
@@ -28,15 +28,17 @@ Uninstall removes private records/grants; export a backup first if you want them
 
 | Version | Date | APK | History |
 |---|---|---|---|
-| v1.6.0 | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.6.0/coffee-creator-v1.6.0.apk) | [Notes](docs/releases/v1.6.0.md) · Epic S2-E05: Hierarchical flavor wheel, accessible list alternative, safe food-grade calibration reference lab, blind cupping sessions with controlled reveal, multi-evaluator consensus & IRAI agreement, physical green/roasted QC, and roast-rest degassing curve |
+| v1.7.0 | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.7.0/coffee-creator-v1.7.0.apk) | [Notes](docs/releases/v1.7.0.md) · Epic S2-E06: Offline personal palate quiz, Bayesian taste adaptation, explainable inventory recommendations, single-variable OVAT feedback loop, OCR coffee bag scanner, grounded AI barista chat, schema-validated tools, persona presets, weather/altitude boiling point thermodynamics, and food-grade safety & allergen warnings |
+| v1.6.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.6.0/coffee-creator-v1.6.0.apk) | [Notes](docs/releases/v1.6.0.md) · Epic S2-E05: Hierarchical flavor wheel, accessible list alternative, safe food-grade calibration reference lab, blind cupping sessions with controlled reveal, multi-evaluator consensus & IRAI agreement, physical green/roasted QC, and roast-rest degassing curve |
 | v1.5.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.5.0/coffee-creator-v1.5.0.apk) | [Notes](docs/releases/v1.5.0.md) · Epic S2-E04: Brew journal, espresso dial-in progression, single-variable OVAT suggestions, side-by-side numeric deltas, calendar streak, caffeine estimation, and Beanconqueror JSON import |
 | v1.4.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.4.0/coffee-creator-v1.4.0.apk) | [Notes](docs/releases/v1.4.0.md) · Epic S2-E03: Active brew timer, BLE scale abstraction, rolling flow rate (g/s), swirl artifact filter, auto-start/stop, proximity cues, and journal logging |
 | v1.3.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.3.0/coffee-creator-v1.3.0.apk) | [Notes](docs/releases/v1.3.0.md) · Epic S2-E02: Recipe composer, Hamilton-Hare pour scaling, optical Brix→TDS refractometer lab, expert dial-in, and offline Android Sharesheet |
 | v1.2.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.2.0/coffee-creator-v1.2.0.apk) | [Notes](docs/releases/v1.2.0.md) · Modern UI cards, FlowRow chip Brew navigation, custom bean/method inputs, curated library (10 recipes, 8 single-origins, 5 sensory logs) |
 | v1.1.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk) | [Notes](docs/releases/v1.1.0.md) · Real Room/FTS4 records, local llama.cpp GGUF/ONNX RAG, SAF storage |
-| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.6.0. |
+| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.7.0. |
 
-v1.6.0 APK verification: 127,645,800 bytes, SHA256: `9b2060e67ff69d29aa90468dfd4b00d92f63f78778524f5e6961502764c4958b`.
+v1.7.0 APK verification: 121,240,555 bytes, SHA256: `1CB40B36E6DCB734B60656F1E3539AB8BE34722283C85B08B0EEB3FD54A1C9B7`.
+Historical 1.6.0 SHA256: `9b2060e67ff69d29aa90468dfd4b00d92f63f78778524f5e6961502764c4958b`.
 Historical 1.5.0 SHA256: `99a32c636b467063d451e1a8b0a5dae5f8431ad5a648d3fc126816bc963bfc6f`.
 Historical 1.4.0 SHA256: `def99509dadd541a93ae5dfdd81085d1f7af7902ddb92ade38b07895f2bb7712`.
 Historical 1.3.0 SHA256: `78ca7128c350c40ab5ff3b4d8148ed09bc7a1a68a0212fc753896f4b91bccc89`.
@@ -44,7 +46,7 @@ Historical 1.2.0 SHA256: `4c197fcee278508ee62ba57b3a8ac6524186c9f56ebcc07bce5891
 Historical 1.0.0 SHA256: `2843362ff29dd536da78f4263d5e2b66d1a98482c47c1376db037e3439ca02ff`.
 [All releases](https://github.com/Adrian463588/coffee-creator/releases).
 
-Local checks: 170+ JVM tests pass with 0 failures; Compose UI tested via Robolectric and physical Samsung SM-G988B.
+Local checks: 181 JVM tests pass with 0 failures; Compose UI tested via Robolectric and physical Samsung SM-G988B.
 See [requirement checklist and remaining acceptance](docs/VERIFICATION.md).
 
 ## Screenshots

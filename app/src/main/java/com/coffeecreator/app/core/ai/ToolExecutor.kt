@@ -11,6 +11,15 @@ import com.coffeecreator.app.core.model.Recipe
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.Strictness
+import com.coffeecreator.app.core.ai.personalization.BeanInventoryCandidate
+import com.coffeecreator.app.core.ai.personalization.FeedbackLoopEngine
+import com.coffeecreator.app.core.ai.personalization.IngredientSafetyValidator
+import com.coffeecreator.app.core.ai.personalization.PalateProfile
+import com.coffeecreator.app.core.ai.personalization.PalateVector
+import com.coffeecreator.app.core.ai.personalization.RecommendationEngine
+import com.coffeecreator.app.core.ai.personalization.SensoryFeedbackDiagnosis
+import com.coffeecreator.app.core.ai.personalization.WeatherAltitudeCalculator
+import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 
@@ -96,6 +105,30 @@ class ToolExecutor(
                 "brewMethod" to "string"
             ),
             isWriteOperation = true
+        ),
+        ToolDefinition(
+            "calculate_altitude_boiling_point",
+            "Thermodynamic boiling point and maximum brew water temperature for given elevation",
+            mapOf("elevationMeters" to "number")
+        ),
+        ToolDefinition(
+            "audit_ingredient_safety",
+            "Verify food-grade status, cosmetic chemical absence, and allergen presence",
+            mapOf("ingredientName" to "string", "massFractionPercent" to "number")
+        ),
+        ToolDefinition(
+            "propose_feedback_adjustment",
+            "Single-variable-at-a-time (OVAT) recipe correction from sensory diagnosis",
+            mapOf(
+                "actualDurationSeconds" to "number",
+                "targetDurationSeconds" to "number",
+                "diagnosis" to "string"
+            )
+        ),
+        ToolDefinition(
+            "recommend_inventory_bean",
+            "Recommend available bean from inventory matching method and palate",
+            mapOf("brewMethod" to "string")
         )
     )
 
@@ -170,6 +203,60 @@ class ToolExecutor(
                 waterGrams = number("waterGrams"),
                 brewMethod = string("brewMethod")
             ).also { DomainValidation.validateRecipe(it, ingredients()) }
+            "calculate_altitude_boiling_point" -> {
+                val elevation = number("elevationMeters")
+                val tBoil = WeatherAltitudeCalculator.calculateBoilingPointCelsius(elevation)
+                val maxBrewTemp = WeatherAltitudeCalculator.clampWaterTemperature(95.0, elevation)
+                mapOf(
+                    "elevationMeters" to elevation,
+                    "boilingPointCelsius" to tBoil,
+                    "maxSafeBrewTempCelsius" to maxBrewTemp,
+                    "status" to "At ${elevation}m, water boils at ${tBoil}°C"
+                )
+            }
+            "audit_ingredient_safety" -> {
+                val ingName = string("ingredientName")
+                val pct = number("massFractionPercent")
+                val matched = ingredients().find { it.name.contains(ingName, ignoreCase = true) }
+                val foodGrade = matched?.foodGrade ?: true
+                val allergens = matched?.allergens.orEmpty()
+                IngredientSafetyValidator.auditIngredient(ingName, foodGrade, allergens, pct, matched?.supplierMaxPercent)
+            }
+            "propose_feedback_adjustment" -> {
+                val actualDur = number("actualDurationSeconds").toInt()
+                val targetDur = number("targetDurationSeconds").toInt()
+                val diagStr = string("diagnosis")
+                val diag = try {
+                    SensoryFeedbackDiagnosis.valueOf(diagStr.uppercase())
+                } catch (_: Exception) {
+                    SensoryFeedbackDiagnosis.SOUR_UNDER_EXTRACTED
+                }
+                val sampleRecipe = mapOf(
+                    "grindClicks" to 18,
+                    "waterTempCelsius" to 93.0,
+                    "doseGrams" to 15.0,
+                    "waterGrams" to 250.0
+                )
+                FeedbackLoopEngine.proposeAdjustment(sampleRecipe, actualDur, targetDur, diag)
+            }
+            "recommend_inventory_bean" -> {
+                val method = string("brewMethod")
+                val candidates = beans().map { b ->
+                    BeanInventoryCandidate(
+                        beanId = b.id,
+                        beanName = b.name,
+                        sensoryProfile = PalateVector(0.3, 0.8, 0.7, 0.2, 0.5),
+                        roastDate = LocalDate.now().minusDays(14),
+                        availableMassGrams = 250.0
+                    )
+                }
+                RecommendationEngine.rankInventory(
+                    palate = PalateProfile(),
+                    candidates = candidates,
+                    availableGearMethods = setOf(method),
+                    brewMethod = method
+                )
+            }
             else -> error("Tool not implemented.")
         }
         val confirmation = tool.isWriteOperation
