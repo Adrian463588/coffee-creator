@@ -1,2 +1,3 @@
+ab068dea442fafbf44939cc96730387be5b1862e345d4c30733c41ed1aaea648  coffee-creator-v1.9.2.apk
 917f9cdbab661c5d991a105047f6cff93aa64d37b8c0a06be826c380152bb921  coffee-creator-v1.9.1.apk
 4801d10dbc143dfa8e7d0f47b252ecf955e571c0e6219ecc4a9e3cb8ebe5ab35  coffee-creator-v1.9.0.apk

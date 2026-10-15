@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.ViewModelProvider
@@ -89,7 +90,14 @@ class BrewLocalTest {
     }
 
     private fun select(section: String) {
-        compose.onNodeWithTag("brew:section:$section").performClick()
+        try {
+            compose.onNodeWithTag("page:Formulate").performScrollToIndex(0)
+        } catch (_: Throwable) {}
+        val node = compose.onNodeWithTag("brew:section:$section")
+        try {
+            node.performScrollTo()
+        } catch (_: Throwable) {}
+        node.performClick()
         compose.onNodeWithTag("brew:content:$section").assertIsDisplayed()
     }
 

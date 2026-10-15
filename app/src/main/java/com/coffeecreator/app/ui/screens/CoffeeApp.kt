@@ -2266,56 +2266,57 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
         }
 
         item {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == JournalTab.BREWS,
                     onClick = { activeTab = JournalTab.BREWS },
-                    label = { Text("Brews & Logs") },
+                    label = { Text("Brews & Logs", fontWeight = if (activeTab == JournalTab.BREWS) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.Book, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("journal:tab_brews")
+                    modifier = Modifier.testTag("journal:tab_brews").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == JournalTab.DIAL_IN,
                     onClick = { activeTab = JournalTab.DIAL_IN },
-                    label = { Text("Espresso Dial-In") },
+                    label = { Text("Espresso Dial-In", fontWeight = if (activeTab == JournalTab.DIAL_IN) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.Tune, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("journal:tab_dialin")
+                    modifier = Modifier.testTag("journal:tab_dialin").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == JournalTab.COMPARISON,
                     onClick = { activeTab = JournalTab.COMPARISON },
-                    label = { Text("Compare (${if (state.activeComparison != null) "Active" else "Select"})") },
+                    label = { Text("Compare (${if (state.activeComparison != null) "Active" else "Select"})", fontWeight = if (activeTab == JournalTab.COMPARISON) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.CompareArrows, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("journal:tab_compare")
+                    modifier = Modifier.testTag("journal:tab_compare").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == JournalTab.ANALYTICS,
                     onClick = {
                         activeTab = JournalTab.ANALYTICS
                         model.refreshStreakAndStats()
                         model.estimateCaffeineForDose(caffeineDoseInput, caffeineArabicaFraction)
                     },
-                    label = { Text("Analytics & Streak") },
+                    label = { Text("Analytics & Streak", fontWeight = if (activeTab == JournalTab.ANALYTICS) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.BarChart, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("journal:tab_analytics")
+                    modifier = Modifier.testTag("journal:tab_analytics").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == JournalTab.CAFE_CUPS,
                     onClick = { activeTab = JournalTab.CAFE_CUPS },
-                    label = { Text("Cafe Cups (${state.cafeCupEntries.size})") },
+                    label = { Text("Cafe Cups (${state.cafeCupEntries.size})", fontWeight = if (activeTab == JournalTab.CAFE_CUPS) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.LocalCafe, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("journal:tab_cafecups")
+                    modifier = Modifier.testTag("journal:tab_cafecups").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == JournalTab.TOOLS,
                     onClick = { activeTab = JournalTab.TOOLS },
-                    label = { Text("Export & Tools") },
+                    label = { Text("Export & Tools", fontWeight = if (activeTab == JournalTab.TOOLS) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.FileDownload, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("journal:tab_tools")
+                    modifier = Modifier.testTag("journal:tab_tools").heightIn(min = 48.dp)
                 )
             }
         }
@@ -2341,12 +2342,18 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                 }
 
                 item {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         listOf("All", "V60", "Espresso", "AeroPress", "Chemex", "High Rated").forEach { filter ->
-                            FilterChip(
+                            TactileFilterChip(
                                 selected = selectedMethodFilter == filter,
                                 onClick = { selectedMethodFilter = filter },
-                                label = { Text(filter) }
+                                label = { Text(filter, fontWeight = if (selectedMethodFilter == filter) FontWeight.SemiBold else FontWeight.Normal) },
+                                modifier = Modifier.heightIn(min = 44.dp)
                             )
                         }
                     }
@@ -2922,52 +2929,53 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
         }
 
         item {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == SensoryTab.WHEEL,
                     onClick = { activeTab = SensoryTab.WHEEL },
-                    label = { Text("Flavor Wheel") },
+                    label = { Text("Flavor Wheel", fontWeight = if (activeTab == SensoryTab.WHEEL) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.Psychology, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("sensory:tab_wheel")
+                    modifier = Modifier.testTag("sensory:tab_wheel").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == SensoryTab.ACCESSIBLE_LIST,
                     onClick = { activeTab = SensoryTab.ACCESSIBLE_LIST },
-                    label = { Text("Accessible List") },
+                    label = { Text("Accessible List", fontWeight = if (activeTab == SensoryTab.ACCESSIBLE_LIST) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.MenuBook, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("sensory:tab_accessible")
+                    modifier = Modifier.testTag("sensory:tab_accessible").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == SensoryTab.SESSIONS,
                     onClick = { activeTab = SensoryTab.SESSIONS },
-                    label = { Text("Cupping Sessions (${state.cuppingSessions.size})") },
+                    label = { Text("Cupping Sessions (${state.cuppingSessions.size})", fontWeight = if (activeTab == SensoryTab.SESSIONS) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.Coffee, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("sensory:tab_sessions")
+                    modifier = Modifier.testTag("sensory:tab_sessions").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == SensoryTab.CONSENSUS,
                     onClick = { activeTab = SensoryTab.CONSENSUS },
-                    label = { Text("Consensus & Radar") },
+                    label = { Text("Consensus & Radar", fontWeight = if (activeTab == SensoryTab.CONSENSUS) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.BarChart, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("sensory:tab_consensus")
+                    modifier = Modifier.testTag("sensory:tab_consensus").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == SensoryTab.PHYSICAL_QC,
                     onClick = { activeTab = SensoryTab.PHYSICAL_QC },
-                    label = { Text("Physical QC & Rest") },
+                    label = { Text("Physical QC & Rest", fontWeight = if (activeTab == SensoryTab.PHYSICAL_QC) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.Tune, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("sensory:tab_physical")
+                    modifier = Modifier.testTag("sensory:tab_physical").heightIn(min = 48.dp)
                 )
-                FilterChip(
+                TactileFilterChip(
                     selected = activeTab == SensoryTab.CALIBRATION,
                     onClick = { activeTab = SensoryTab.CALIBRATION },
-                    label = { Text("Calibration Lab") },
+                    label = { Text("Calibration Lab", fontWeight = if (activeTab == SensoryTab.CALIBRATION) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { Icon(Icons.Default.Star, null, Modifier.padding(end = 4.dp)) },
-                    modifier = Modifier.testTag("sensory:tab_calibration")
+                    modifier = Modifier.testTag("sensory:tab_calibration").heightIn(min = 48.dp)
                 )
             }
         }
@@ -2986,15 +2994,18 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
 
                 item {
                     val categories = listOf("All") + SensoryTaxonomyRegistry.DEFAULT_CATEGORIES.map { it.name }
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         categories.forEach { cat ->
-                            FilterChip(
+                            TactileFilterChip(
                                 selected = selectedCategoryFilter == cat,
                                 onClick = { selectedCategoryFilter = cat },
-                                label = { Text(cat) }
+                                label = { Text(cat, fontWeight = if (selectedCategoryFilter == cat) FontWeight.SemiBold else FontWeight.Normal) },
+                                modifier = Modifier.heightIn(min = 44.dp)
                             )
                         }
                     }
