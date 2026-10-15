@@ -2,6 +2,15 @@ package com.coffeecreator.app.core.ai
 
 import android.app.ActivityManager
 import android.content.Context
+import com.coffeecreator.app.core.model.InputLimits
+import java.io.File
+import java.io.RandomAccessFile
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.CharBuffer
+import java.nio.charset.CodingErrorAction
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.max
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -21,14 +30,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.RandomAccessFile
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.CharBuffer
-import java.nio.charset.CodingErrorAction
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.max
 
 sealed interface NativeLlmStatus {
     data object Unloaded : NativeLlmStatus
@@ -41,7 +42,7 @@ sealed interface NativeLlmStatus {
 data class NativeChatTurn(val role: String, val content: String) {
     init {
         require(role == "user" || role == "assistant") { "History roles must be user or assistant." }
-        require(content.isNotBlank() && content.length <= 32768 && '\u0000' !in content) {
+        require(content.isNotBlank() && content.length <= InputLimits.NATIVE_TEXT_CHARS && '\u0000' !in content) {
             "History message is empty, too long or contains a null character."
         }
     }
@@ -70,8 +71,11 @@ class NativeLlmEngine(context: Context) {
     private val mutableStatus = MutableStateFlow<NativeLlmStatus>(NativeLlmStatus.Unloaded)
     private var libraryLoaded = false
     private var modelName = ""
+    var contextLimit: Int = 1024
+        private set
 
     @Volatile private var handle = 0L
+
     @Volatile private var modelLoaded = false
 
     val status: StateFlow<NativeLlmStatus> = mutableStatus.asStateFlow()
@@ -98,7 +102,11 @@ class NativeLlmEngine(context: Context) {
                 val memory = ActivityManager.MemoryInfo()
                 activityManager.getMemoryInfo(memory)
                 NativeModelPolicy.requireMemory(
-                    model.length(), memory.availMem, memory.totalMem, memory.threshold, memory.lowMemory
+                    model.length(),
+                    memory.availMem,
+                    memory.totalMem,
+                    memory.threshold,
+                    memory.lowMemory
                 )
                 if (!libraryLoaded) {
                     System.loadLibrary("coffee_llama")
@@ -117,16 +125,17 @@ class NativeLlmEngine(context: Context) {
                     if (cancellationRequested.get()) throw CancellationException("Model load cancelled.")
                 }
                 modelName = model.name
+                contextLimit = contextSize
                 modelLoaded = true
                 mutableStatus.value = NativeLlmStatus.Ready(modelName)
             } catch (cancelled: CancellationException) {
                 releaseLocked()
                 mutableStatus.value = NativeLlmStatus.Unloaded
                 throw cancelled
-            } catch (failure: Exception) {
+            } catch (boundaryFailure: Exception) {
                 releaseLocked()
-                mutableStatus.value = NativeLlmStatus.Failed(failure.message ?: "Model load failed.")
-                throw failure
+                mutableStatus.value = NativeLlmStatus.Failed(boundaryFailure.message ?: "Model load failed.")
+                throw boundaryFailure
             } catch (failure: LinkageError) {
                 releaseLocked()
                 mutableStatus.value = NativeLlmStatus.Failed("Native runtime is unavailable for this device ABI.")
@@ -145,7 +154,7 @@ class NativeLlmEngine(context: Context) {
         require(history.size <= 12) { "Use at most 12 recent history messages." }
         val turns = listOf("system" to systemPrompt) + history.map { it.role to it.content } +
             listOf("user" to userPrompt)
-        require(turns.sumOf { it.second.length.toLong() } <= 32768 && turns.none { '\u0000' in it.second }) {
+        require(turns.sumOf { it.second.length.toLong() } <= InputLimits.NATIVE_TEXT_CHARS && turns.none { '\u0000' in it.second }) {
             "Prompt is too long or contains a null character."
         }
         session.withLock {
@@ -160,7 +169,11 @@ class NativeLlmEngine(context: Context) {
                         localHandle,
                         turns.map { it.first }.toTypedArray(),
                         turns.map { it.second.toByteArray(Charsets.UTF_8) }.toTypedArray(),
-                        options.maxTokens, options.temperature, options.topP, options.topK, options.seed
+                        options.maxTokens,
+                        options.temperature,
+                        options.topP,
+                        options.topK,
+                        options.seed
                     )
                     val decoder = Utf8TokenDecoder()
                     while (true) {
@@ -230,9 +243,28 @@ class NativeLlmEngine(context: Context) {
     private external fun nativeLoad(handle: Long, path: ByteArray, contextSize: Int, threads: Int, memoryBudget: Long)
     private external fun nativePrepare(handle: Long)
     private external fun nativeStart(
-        handle: Long, roles: Array<String>, content: Array<ByteArray>, maxTokens: Int,
-        temperature: Float, topP: Float, topK: Int, seed: Int
+        handle: Long,
+        roles: Array<String>,
+        content: Array<ByteArray>,
+        maxTokens: Int,
+        temperature: Float,
+        topP: Float,
+        topK: Int,
+        seed: Int
     )
+    suspend fun promptTokenCount(systemPrompt: String, prompt: String, history: List<NativeChatTurn>): Int = withContext(Dispatchers.IO) {
+        session.withLock {
+            check(initialized) { "Load a verified local model first." }
+            require(history.size <= 12 && systemPrompt.length + prompt.length <= InputLimits.NATIVE_TEXT_CHARS)
+            val turns = listOf("system" to systemPrompt) + history.map { it.role to it.content } + listOf("user" to prompt)
+            nativeTokenCount(
+                handle,
+                turns.map { it.first }.toTypedArray(),
+                turns.map { it.second.toByteArray(Charsets.UTF_8) }.toTypedArray()
+            )
+        }
+    }
+    private external fun nativeTokenCount(handle: Long, roles: Array<String>, content: Array<ByteArray>): Int
     private external fun nativeNext(handle: Long): ByteArray?
     private external fun nativeEnd(handle: Long)
     private external fun nativeCancel(handle: Long)
@@ -240,21 +272,20 @@ class NativeLlmEngine(context: Context) {
 }
 
 internal object NativeModelPolicy {
+    private val GGUF_MAGIC = "GGUF".toByteArray(Charsets.US_ASCII)
     private const val MIB = 1024L * 1024
     private const val MAX_MODEL_BYTES = 2L * 1024 * MIB
 
     fun requireHeader(header: ByteArray, fileLength: Long) {
         require(header.size == 24 && fileLength in 24..MAX_MODEL_BYTES) { "Model is truncated or exceeds 2 GiB." }
-        require(header.copyOfRange(0, 4).contentEquals(byteArrayOf(71, 71, 85, 70))) { "File is not GGUF." }
+        require(header.copyOfRange(0, 4).contentEquals(GGUF_MAGIC)) { "File is not GGUF." }
         val fields = ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN)
         fields.position(4)
         require(fields.int in 2..3) { "Only GGUF versions 2 and 3 are supported." }
         require(fields.long in 1..4096 && fields.long in 1..4096) { "Model header counts exceed safe limits." }
     }
 
-    fun requireMemory(
-        modelBytes: Long, availableBytes: Long, totalBytes: Long, thresholdBytes: Long, lowMemory: Boolean
-    ): Long {
+    fun requireMemory(modelBytes: Long, availableBytes: Long, totalBytes: Long, thresholdBytes: Long, lowMemory: Boolean): Long {
         require(modelBytes in 24..MAX_MODEL_BYTES) { "Choose a compatible model smaller than 2 GiB." }
         require(!lowMemory) { "Device memory is low. Close other apps or choose a smaller model." }
         require(totalBytes > 0 && availableBytes in 1..totalBytes && thresholdBytes in 0..totalBytes) {

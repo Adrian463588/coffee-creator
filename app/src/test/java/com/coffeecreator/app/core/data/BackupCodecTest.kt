@@ -13,6 +13,7 @@ import com.google.gson.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BackupCodecTest {
@@ -43,7 +44,7 @@ class BackupCodecTest {
     fun givenUnsupportedSchema_whenDecoded_thenNoMigrationIsInvented() {
         val encoded = BackupCodec.encode(completePayload())
         assertThrows(IllegalArgumentException::class.java) {
-            BackupCodec.decode(encoded.replace("\"schemaVersion\":2", "\"schemaVersion\":99"))
+            BackupCodec.decode(encoded.replace("\"schemaVersion\":3", "\"schemaVersion\":99"))
         }
     }
 
@@ -98,6 +99,29 @@ class BackupCodecTest {
         assertThrows(IllegalArgumentException::class.java) { BackupCodec.decode(RecordJson.gson.toJson(tree)) }
     }
 
+    @Test
+    fun givenRuntimeCacheOrOwnershipKeys_whenEncoded_thenTheyCannotEnterRecordsBackup() {
+        listOf("vector:minilm-afdb6f1a:chunk-1", "checkpoint:model-1", "assetDiscoveryError").forEach { key ->
+            assertThrows(IllegalArgumentException::class.java) {
+                BackupCodec.encode(completePayload().copy(settings = mapOf(key to "private runtime metadata")))
+            }
+        }
+    }
+
+    @Test
+    fun given384DimensionalFloatVector_whenSerialized_thenSettingsLimitCanStoreIt() {
+        val serialized = RecordJson.gson.toJson(FloatArray(384) { index -> kotlin.math.sin(index.toDouble()).toFloat() })
+        assertTrue(serialized.length < BackupCodec.MAX_SETTING_CHARS)
+        BackupCodec.validateSetting("vector:minilm-afdb6f1a:chunk-1", serialized)
+    }
+
+    @Test
+    fun givenOversizedSetting_whenValidated_thenItIsRejected() {
+        assertThrows(IllegalArgumentException::class.java) {
+            BackupCodec.validateSetting("draft", "x".repeat(BackupCodec.MAX_SETTING_CHARS + 1))
+        }
+    }
+
     companion object {
         fun completePayload(): BackupPayload {
             val content = "Storage test document supplied by the test."
@@ -109,7 +133,7 @@ class BackupCodecTest {
                 pageCount = 0,
                 chunkCount = 1,
                 contentHash = BackupCodec.sha256(content),
-                importedAt = 1L,
+                importedAt = 1L
             )
             return BackupPayload(
                 beans = listOf(CoffeeBean("bean-1", "User bean", "Unknown", "Unknown")),
@@ -123,21 +147,21 @@ class BackupCodecTest {
                         measuredTdsPercent = null,
                         lines = listOf(RecipeLine("ingredient-1", 10.0)),
                         createdAt = 1L,
-                        updatedAt = 1L,
-                    ),
+                        updatedAt = 1L
+                    )
                 ),
                 observations = listOf(
                     SensoryObservation(
                         "observation-1", "recipe-1", aroma = 8, acidity = 7,
                         sweetness = 8, body = 6, finish = 7, balance = 8,
-                        assessor = "Test assessor", timestamp = 2L,
-                    ),
+                        assessor = "Test assessor", timestamp = 2L
+                    )
                 ),
                 documents = listOf(document),
                 chunks = listOf(DocumentChunk("chunk-1", document.id, document.title, 0, 1, content)),
                 chatMessages = listOf(ChatMessage("message-1", "user", "User conversation", timestamp = 3L)),
                 personas = listOf(AssistantPersona("persona-1", "Custom persona", "User editable", "Answer with evidence.")),
-                settings = mapOf("appearance.darkTheme" to "true", "recipe.draft" to "{\"dose\":\"18,5\"}"),
+                settings = mapOf("appearance.darkTheme" to "true", "recipe.draft" to "{\"dose\":\"18,5\"}")
             )
         }
     }

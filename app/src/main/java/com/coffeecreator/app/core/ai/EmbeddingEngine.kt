@@ -5,16 +5,17 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import ai.onnxruntime.TensorInfo
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.withContext
+import com.coffeecreator.app.core.model.InputLimits
 import java.io.Closeable
 import java.io.File
 import java.nio.LongBuffer
 import java.text.Normalizer
 import java.util.Locale
 import kotlin.math.sqrt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
 
 /** BERT-uncased WordPiece adapter for the verified local all-MiniLM-L6-v2 ONNX export. */
 class OnnxEmbeddingEngine(modelFile: File, vocabFile: File) : Closeable {
@@ -39,29 +40,36 @@ class OnnxEmbeddingEngine(modelFile: File, vocabFile: File) : Closeable {
             environment.createSession(modelFile.canonicalPath, options)
         }
         try {
-            require(session.inputNames.containsAll(listOf("input_ids", "attention_mask")) &&
-                session.inputNames.all { it in setOf("input_ids", "attention_mask", "token_type_ids") }) {
+            require(
+                session.inputNames.containsAll(listOf("input_ids", "attention_mask")) &&
+                    session.inputNames.all { it in setOf("input_ids", "attention_mask", "token_type_ids") }
+            ) {
                 "ONNX model inputs do not match BERT WordPiece."
             }
             session.inputInfo.values.forEach { node ->
                 val info = node.info as? TensorInfo ?: error("Embedding input is not a tensor.")
-                require(info.type == OnnxJavaType.INT64 && info.shape.size == 2 &&
-                    (info.shape[0] == -1L || info.shape[0] == 1L) &&
-                    (info.shape[1] == -1L || info.shape[1] in 2..256)) {
+                require(
+                    info.type == OnnxJavaType.INT64 &&
+                        info.shape.size == 2 &&
+                        (info.shape[0] == -1L || info.shape[0] == 1L) &&
+                        (info.shape[1] == -1L || info.shape[1] in 2..256)
+                ) {
                     "Embedding model input shape/type is unsupported."
                 }
             }
             require("last_hidden_state" in session.outputNames || "sentence_embedding" in session.outputNames) {
                 "ONNX model has no supported sentence/token embedding output."
             }
-        } catch (failure: Exception) {
+        } catch (boundaryFailure: Exception) {
             session.close()
-            throw failure
+            throw boundaryFailure
         }
     }
 
     suspend fun embed(text: String): FloatArray = withContext(Dispatchers.IO) {
-        require(text.isNotBlank() && text.length <= 32768) { "Embedding text is empty or exceeds 32768 characters." }
+        require(text.isNotBlank() && text.length <= InputLimits.NATIVE_TEXT_CHARS) {
+            "Embedding text is empty or exceeds 32768 characters."
+        }
         currentCoroutineContext().ensureActive()
         val result = synchronized(lock) {
             check(!closed) { "Embedding engine has been closed." }
@@ -84,16 +92,24 @@ class OnnxEmbeddingEngine(modelFile: File, vocabFile: File) : Closeable {
                     val outputShape = tensor.info.shape
                     require(tensor.info.type == OnnxJavaType.FLOAT) { "Embedding output must be float32." }
                     if (tokenOutput != null) {
-                        require(outputShape.size == 3 && outputShape[0] == 1L && outputShape[1] == input.ids.size.toLong() &&
-                            outputShape[2] in 1..4096) { "Token embedding output shape is invalid." }
+                        require(
+                            outputShape.size == 3 &&
+                                outputShape[0] == 1L &&
+                                outputShape[1] == input.ids.size.toLong() &&
+                                outputShape[2] in 1..4096
+                        ) { "Token embedding output shape is invalid." }
                         val buffer = tensor.floatBuffer ?: error("Embedding output is not floating point.")
                         require(buffer.remaining() == input.ids.size * outputShape[2].toInt()) { "Embedding buffer size is invalid." }
                         val values = FloatArray(buffer.remaining())
                         buffer.get(values)
                         EmbeddingPooling.meanNormalize(values, input.ids.size, outputShape[2].toInt(), input.attentionMask)
                     } else {
-                        require(outputShape.size == 2 && outputShape[0] == 1L && outputShape[1] in 1..4096 &&
-                            outputShape[1] <= 4096) { "Sentence embedding output shape is invalid." }
+                        require(
+                            outputShape.size == 2 &&
+                                outputShape[0] == 1L &&
+                                outputShape[1] in 1..4096 &&
+                                outputShape[1] <= 4096
+                        ) { "Sentence embedding output shape is invalid." }
                         val buffer = tensor.floatBuffer ?: error("Embedding output is not floating point.")
                         require(buffer.remaining() == outputShape[1].toInt()) { "Embedding buffer size is invalid." }
                         val values = FloatArray(buffer.remaining())
@@ -140,7 +156,7 @@ internal class BertWordPieceTokenizer(vocabulary: List<String>) {
     }
 
     fun encode(text: String, maxTokens: Int = 256, padToMax: Boolean = false): BertTokens {
-        require(maxTokens in 2..256 && text.length <= 32768) { "Invalid embedding token/text budget." }
+        require(maxTokens in 2..256 && text.length <= InputLimits.NATIVE_TEXT_CHARS) { "Invalid embedding token/text budget." }
         val ids = mutableListOf(start)
         for (word in basicTokens(text)) {
             val pieces = if (word in special) listOf(vocabulary.getValue(word)) else wordPieces(word)
@@ -176,7 +192,11 @@ internal class BertWordPieceTokenizer(vocabulary: List<String>) {
                     code == 0 || code == 0xfffd -> Unit
                     isWhitespace(code) -> append(' ')
                     type == Character.CONTROL.toInt() || type == Character.FORMAT.toInt() -> Unit
-                    isCjk(code) -> { append(' '); appendCodePoint(code); append(' ') }
+                    isCjk(code) -> {
+                        append(' ')
+                        appendCodePoint(code)
+                        append(' ')
+                    }
                     else -> appendCodePoint(code)
                 }
             }
@@ -185,13 +205,19 @@ internal class BertWordPieceTokenizer(vocabulary: List<String>) {
         val result = mutableListOf<String>()
         val word = StringBuilder()
         fun flush() {
-            if (word.isNotEmpty()) { result += word.toString(); word.setLength(0) }
+            if (word.isNotEmpty()) {
+                result += word.toString()
+                word.setLength(0)
+            }
         }
         normalized.codePoints().forEach { code ->
             when {
                 Character.getType(code) == Character.NON_SPACING_MARK.toInt() -> Unit
                 isWhitespace(code) -> flush()
-                isPunctuation(code) -> { flush(); result += String(Character.toChars(code)) }
+                isPunctuation(code) -> {
+                    flush()
+                    result += String(Character.toChars(code))
+                }
                 else -> word.appendCodePoint(code)
             }
         }
@@ -220,23 +246,38 @@ internal class BertWordPieceTokenizer(vocabulary: List<String>) {
         return pieces
     }
 
-    private fun isWhitespace(code: Int): Boolean = code == 32 || code == 9 || code == 10 || code == 13 ||
+    private fun isWhitespace(code: Int): Boolean = code == 32 ||
+        code == '\t'.code ||
+        code == 10 ||
+        code == '\r'.code ||
         Character.getType(code) == Character.SPACE_SEPARATOR.toInt()
 
-    private fun isPunctuation(code: Int): Boolean = code in 33..47 || code in 58..64 || code in 91..96 || code in 123..126 ||
+    private fun isPunctuation(code: Int): Boolean = code in 33..47 ||
+        code in 58..64 ||
+        code in 91..96 ||
+        code in 123..126 ||
         Character.getType(code) in setOf(
-            Character.CONNECTOR_PUNCTUATION.toInt(), Character.DASH_PUNCTUATION.toInt(),
-            Character.START_PUNCTUATION.toInt(), Character.END_PUNCTUATION.toInt(),
-            Character.INITIAL_QUOTE_PUNCTUATION.toInt(), Character.FINAL_QUOTE_PUNCTUATION.toInt(),
+            Character.CONNECTOR_PUNCTUATION.toInt(),
+            Character.DASH_PUNCTUATION.toInt(),
+            Character.START_PUNCTUATION.toInt(),
+            Character.END_PUNCTUATION.toInt(),
+            Character.INITIAL_QUOTE_PUNCTUATION.toInt(),
+            Character.FINAL_QUOTE_PUNCTUATION.toInt(),
             Character.OTHER_PUNCTUATION.toInt()
         )
 
-    private fun isCjk(code: Int): Boolean = code in 0x4e00..0x9fff || code in 0x3400..0x4dbf ||
-        code in 0x20000..0x2a6df || code in 0x2a700..0x2b73f || code in 0x2b740..0x2b81f ||
-        code in 0x2b820..0x2ceaf || code in 0xf900..0xfaff || code in 0x2f800..0x2fa1f
+    private fun isCjk(code: Int): Boolean = code in 0x4e00..0x9fff ||
+        code in 0x3400..0x4dbf ||
+        code in 0x20000..0x2a6df ||
+        code in 0x2a700..0x2b73f ||
+        code in 0x2b740..0x2b81f ||
+        code in 0x2b820..0x2ceaf ||
+        code in 0xf900..0xfaff ||
+        code in 0x2f800..0x2fa1f
 }
 
 internal object EmbeddingPooling {
+    private const val MIN_VECTOR_NORM = 1e-12
     fun meanNormalize(values: FloatArray, tokens: Int, dimensions: Int, mask: LongArray): FloatArray {
         require(tokens in 1..256 && dimensions in 1..4096 && values.size == tokens * dimensions && mask.size == tokens) {
             "Embedding shape/mask mismatch."
@@ -246,17 +287,25 @@ internal object EmbeddingPooling {
         require(count > 0) { "Embedding attention mask is empty." }
         val sums = DoubleArray(dimensions)
         for (token in 0 until tokens) {
-            if (mask[token] == 1L) for (dimension in 0 until dimensions) {
-                sums[dimension] += values[token * dimensions + dimension]
+            if (mask[token] == 1L) {
+                for (dimension in 0 until dimensions) {
+                    sums[dimension] += values[token * dimensions + dimension]
+                }
             }
         }
         return normalize(FloatArray(dimensions) { (sums[it] / count).toFloat() })
     }
 
     fun normalize(values: FloatArray): FloatArray {
-        require(values.isNotEmpty() && values.size <= 4096 && values.all { it.isFinite() }) { "Embedding is empty/nonfinite." }
+        require(
+            values.isNotEmpty() &&
+                values.size <= InputLimits.EMBEDDING_DIMENSIONS &&
+                values.all {
+                    it.isFinite()
+                }
+        ) { "Embedding is empty/nonfinite." }
         val norm = sqrt(values.sumOf { it.toDouble() * it.toDouble() })
-        require(norm.isFinite() && norm > 1e-12) { "Embedding has zero or invalid norm." }
+        require(norm.isFinite() && norm > MIN_VECTOR_NORM) { "Embedding has zero or invalid norm." }
         return FloatArray(values.size) { (values[it] / norm).toFloat() }
     }
 }

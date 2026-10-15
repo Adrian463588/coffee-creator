@@ -1,42 +1,32 @@
 package com.coffeecreator.app.core.ai
 
+import com.coffeecreator.app.core.model.DocumentChunk
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class HybridRagEngineTest {
-
-    @Test
-    fun `FR-06 Hybrid RAG search retrieves matching chunks and provides citations`() {
-        val result = HybridRagEngine.search("brewing water temperature 93")
-
-        assertFalse(result.didAbstain)
-        assertTrue(result.citations.isNotEmpty())
-        assertTrue(result.text.contains("SCA"))
-        assertTrue(result.citations.any { it.contains("SCA Coffee Brewing Handbook") })
+    @Test fun givenLexicalAndSemanticRankings_whenFused_thenSharedSourceRanksFirst() {
+        val a = chunk("a")
+        val b = chunk("b")
+        val c = chunk("c")
+        assertEquals(listOf(b, a, c), RagRanking.fuse(listOf(a, b), listOf(b, c)))
     }
 
-    @Test
-    fun `FR-06 Hybrid RAG search abstains when no evidence exists in local corpus`() {
-        val result = HybridRagEngine.search("quantum teleportation interstellar spaceflight")
-
-        assertTrue(result.didAbstain)
-        assertTrue(result.citations.isEmpty())
-        assertTrue(result.text.contains("Abstaining to avoid ungrounded statements"))
+    @Test fun givenNormalizedEmbeddings_whenCompared_thenCosineMatchesReference() {
+        assertEquals(1.0, RagRanking.cosine(floatArrayOf(1f, 0f), floatArrayOf(1f, 0f)), 1e-9)
+        assertEquals(0.0, RagRanking.cosine(floatArrayOf(1f, 0f), floatArrayOf(0f, 1f)), 1e-9)
     }
 
-    @Test
-    fun `FR-06 Document ingestion creates hash and searchable chunks`() {
-        val title = "Espresso Pressure Profiling"
-        val content = "Modern espresso machines allow declining pressure profiles from 9 bar to 6 bar to prevent channeling in late extraction.\n\nPre-infusion at 3 bar allows full puck saturation before ramp-up."
-
-        val doc = HybridRagEngine.ingestDocument(title, content)
-
-        assertTrue(doc.chunkCount >= 2)
-        assertTrue(doc.contentHash.isNotEmpty())
-
-        val search = HybridRagEngine.search("declining pressure profiling")
-        assertFalse(search.didAbstain)
-        assertTrue(search.citations.any { it.contains(title) })
+    @Test fun givenInvalidVector_whenCompared_thenRejectWithoutSilentScore() {
+        assertThrows(IllegalArgumentException::class.java) { RagRanking.cosine(floatArrayOf(Float.NaN), floatArrayOf(1f)) }
+        assertThrows(IllegalArgumentException::class.java) { RagRanking.cosine(floatArrayOf(1f), floatArrayOf(1f, 2f)) }
     }
+
+    @Test fun givenCommonWords_whenQueryTokenized_thenDoNotCreateFalseEvidence() {
+        assertEquals(emptySet<String>(), RagRanking.tokens("What are the and for?"))
+        assertFalse("temp" in RagRanking.tokens("temperature"))
+    }
+    private fun chunk(id: String) = DocumentChunk(id, "source", "User document", 0, 1, "Coffee extraction")
 }

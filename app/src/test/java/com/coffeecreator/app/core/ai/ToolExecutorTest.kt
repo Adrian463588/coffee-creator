@@ -1,112 +1,70 @@
 package com.coffeecreator.app.core.ai
 
-import com.coffeecreator.app.core.model.CalculationResult
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ToolExecutorTest {
+    private val executor = ToolExecutor({ emptyList() }, { emptyList() }, { emptyList() }, {
+        RagSearchResult("No evidence", emptyList(), didAbstain = true)
+    })
 
-    @Test
-    fun `FR-07 execute calculate_extraction_yield returns exact math and metadata`() {
-        val result = ToolExecutor.execute(
+    @Test fun givenExplicitMeasurements_whenTypedToolCalled_thenGoldenMathPreserved() = runTest {
+        val result = executor.execute(
             "calculate_extraction_yield",
-            mapOf("doseGrams" to 18.0, "beverageMassGrams" to 270.0, "measuredTdsPercent" to 1.30)
+            mapOf(
+                "doseGrams" to 18.0,
+                "beverageMassGrams" to 270.0,
+                "measuredTdsPercent" to 1.3
+            )
         )
-
         assertTrue(result.isSuccess)
-        assertFalse(result.requiresUserConfirmation)
-        val data = result.structuredData as? CalculationResult.ExtractionYield
-        assertNotNull(data)
-        assertEquals(19.50, data!!.extractionYieldPercent, 0.001)
-        assertTrue(result.output.contains("19.5%"))
+        assertTrue(result.output.contains("19.5"))
     }
 
-    @Test
-    fun `FR-07 execute calculate_brew_ratio returns correct ratio`() {
-        val result = ToolExecutor.execute(
-            "calculate_brew_ratio",
-            mapOf("doseGrams" to 15.0, "waterGrams" to 250.0)
-        )
-
-        assertTrue(result.isSuccess)
-        val ratio = result.structuredData as? CalculationResult.BrewRatio
-        assertNotNull(ratio)
-        assertEquals(16.67, ratio!!.ratioDenominator, 0.01)
+    @Test fun givenMissingOrWrongOrExtraArguments_whenCalled_thenRejectInsteadOfInventingDefaults() = runTest {
+        assertFalse(executor.execute("calculate_extraction_yield", emptyMap()).isSuccess)
+        assertFalse(executor.execute("calculate_brew_ratio", mapOf("doseGrams" to "18", "waterGrams" to 300)).isSuccess)
+        assertFalse(executor.execute("calculate_brew_ratio", mapOf("doseGrams" to 18, "waterGrams" to 300, "shell" to "id")).isSuccess)
+        assertFalse(executor.execute("calculate_brew_ratio", mapOf("doseGrams" to Double.NaN, "waterGrams" to 300)).isSuccess)
     }
 
-    @Test
-    fun `FR-07 execute calculate_dilution returns mass-fraction weighted TDS`() {
-        val result = ToolExecutor.execute(
-            "calculate_dilution",
-            mapOf("initialMassGrams" to 100.0, "initialTdsPercent" to 2.0, "addedWaterGrams" to 100.0)
-        )
-
-        assertTrue(result.isSuccess)
-        val dilution = result.structuredData as? CalculationResult.Dilution
-        assertNotNull(dilution)
-        assertEquals(200.0, dilution!!.finalMassGrams, 0.001)
-        assertEquals(1.00, dilution.finalTdsPercent, 0.001)
+    @Test fun givenUnknownToolOrMalformedJson_whenRequested_thenRejectWithoutExecution() = runTest {
+        assertFalse(executor.execute("shell", mapOf("command" to "id")).isSuccess)
+        assertFalse(executor.executeJson("{ broken json }").isSuccess)
+        assertFalse(executor.executeJson("{\"tool\":\"calculate_brew_ratio\",\"arguments\":{}}").isSuccess)
     }
 
-    @Test
-    fun `FR-07 execute convert_units without density is rejected`() {
-        val result = ToolExecutor.execute(
-            "convert_units",
-            mapOf("volumeMl" to 250.0, "densityGramsPerMl" to null)
-        )
-
-        assertFalse(result.isSuccess)
-        assertTrue(result.output.contains("Conversion failed"))
-    }
-
-    @Test
-    fun `FR-07 execute save_recipe triggers write confirmation gate`() {
-        val result = ToolExecutor.execute(
+    @Test fun givenSaveTool_whenValidated_thenReturnDraftAndRequireConfirmation() = runTest {
+        val result = executor.execute(
             "save_recipe",
-            mapOf("name" to "Test Recipe", "doseGrams" to 18.0, "waterGrams" to 300.0, "brewMethod" to "V60")
+            mapOf(
+                "name" to "My recipe",
+                "doseGrams" to 18.0,
+                "waterGrams" to 300.0,
+                "brewMethod" to "V60"
+            )
         )
-
         assertTrue(result.isSuccess)
         assertTrue(result.requiresUserConfirmation)
-        assertTrue(result.output.contains("Confirm write operation"))
+        val recipe = result.structuredData as com.coffeecreator.app.core.model.Recipe
+        assertEquals(null, recipe.measuredTdsPercent)
+        assertEquals(null, recipe.beverageMassGrams)
     }
 
-    @Test
-    fun `FR-07 unallowlisted tool invocation is safely rejected`() {
-        val result = ToolExecutor.execute(
-            "execute_arbitrary_shell_command",
-            emptyMap()
+    @Test fun givenRegistry_whenInspected_thenContainsAllPrdToolsAndNoNetworkTools() {
+        val names = executor.registry.map { it.name }.toSet()
+        assertTrue(
+            names.containsAll(
+                setOf(
+                    "calculate_brew_ratio", "calculate_extraction_yield", "calculate_dilution",
+                    "convert_units", "lookup_ingredient", "lookup_coffee_origin", "search_documents", "estimate_sensory_profile",
+                    "recommend_recipe", "save_recipe"
+                )
+            )
         )
-
-        assertFalse(result.isSuccess)
-        assertTrue(result.output.contains("not in the allowlist registry"))
-    }
-
-    @Test
-    fun `FR-07 execute calculate_concentration_ppm computes mass fraction and ppm`() {
-        val result = ToolExecutor.execute(
-            "calculate_concentration_ppm",
-            mapOf("soluteMassGrams" to 2.0, "solutionMassGrams" to 1000.0)
-        )
-
-        assertTrue(result.isSuccess)
-        val conc = result.structuredData as? CalculationResult.Concentration
-        assertNotNull(conc)
-        assertEquals(2000.0, conc!!.ppm, 0.01)
-        assertTrue(result.output.contains("2000.0 ppm"))
-    }
-
-    @Test
-    fun `FR-07 execute get_coffee_details retrieves origin and allergen specs`() {
-        val result = ToolExecutor.execute(
-            "get_coffee_details",
-            mapOf("query" to "Ethiopia")
-        )
-
-        assertTrue(result.isSuccess)
-        assertTrue(result.output.contains("Chelchele") || result.output.contains("Ethiopia"))
+        assertFalse(names.any { it.contains("network") || it.contains("shell") })
     }
 }

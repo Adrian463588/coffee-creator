@@ -18,3 +18,14 @@
 *.ap_
 *.dex
 *.zip
+/app/src/main/cpp/vendor/
+/artifacts/
+artifacts-*.log
+/models/
+*.gguf
+*.onnx
+*.traineddata
+*.jks
+*.keystore
+!/app/src/main/assets/ocr/eng.traineddata
+**/build/

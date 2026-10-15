@@ -21,12 +21,7 @@ import com.coffeecreator.app.core.model.DocumentChunk
 data class StoredRecord(val kind: String, val id: String, val json: String)
 
 @Entity(tableName = "document_chunks", indices = [Index("documentId")])
-data class StoredChunk(
-    @PrimaryKey val id: String,
-    val documentId: String,
-    val content: String,
-    val json: String,
-)
+data class StoredChunk(@PrimaryKey val id: String, val documentId: String, val content: String, val json: String)
 
 @Fts4(tokenizer = FtsOptions.TOKENIZER_UNICODE61, notIndexed = ["chunkId"])
 @Entity(tableName = "chunk_fts")
@@ -58,6 +53,12 @@ interface CoffeeDao {
     @Query("DELETE FROM records WHERE kind IN (:kinds)")
     suspend fun deleteKinds(kinds: List<String>)
 
+    @Query("DELETE FROM records WHERE kind = 'setting' AND id IN (:keys)")
+    suspend fun deleteSettings(keys: List<String>)
+
+    @Query("DELETE FROM records WHERE kind = 'setting' AND substr(id, 1, length(:prefix)) = :prefix")
+    suspend fun deleteSettingsWithPrefix(prefix: String)
+
     @Query("DELETE FROM chunk_fts WHERE chunkId IN (SELECT id FROM document_chunks WHERE documentId = :documentId)")
     suspend fun removeDocumentIndex(documentId: String)
 
@@ -82,9 +83,15 @@ abstract class CoffeeDatabase : RoomDatabase() {
         /** Version 1's durable records are retained; version 2 adds real chunk storage and FTS. */
         val MIGRATION_1_2: Migration = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("CREATE TABLE IF NOT EXISTS `document_chunks` (`id` TEXT NOT NULL, `documentId` TEXT NOT NULL, `content` TEXT NOT NULL, `json` TEXT NOT NULL, PRIMARY KEY(`id`))")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `document_chunks` (`id` TEXT NOT NULL, `documentId` TEXT NOT " +
+                        "NULL, `content` TEXT NOT NULL, `json` TEXT NOT NULL, PRIMARY KEY(`id`))"
+                )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_document_chunks_documentId` ON `document_chunks` (`documentId`)")
-                db.execSQL("CREATE VIRTUAL TABLE IF NOT EXISTS `chunk_fts` USING FTS4(`chunkId` TEXT NOT NULL, `content` TEXT NOT NULL, notindexed=`chunkId`, tokenize=unicode61)")
+                db.execSQL(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS `chunk_fts` USING FTS4(`chunkId` TEXT NOT NULL, " +
+                        "`content` TEXT NOT NULL, notindexed=`chunkId`, tokenize=unicode61)"
+                )
                 db.query("SELECT id, json FROM records WHERE kind = 'chunk'").use { cursor ->
                     while (cursor.moveToNext()) {
                         val json = cursor.getString(1)
@@ -94,7 +101,7 @@ abstract class CoffeeDatabase : RoomDatabase() {
                         }
                         db.execSQL(
                             "INSERT INTO document_chunks(id, documentId, content, json) VALUES (?, ?, ?, ?)",
-                            arrayOf(chunk.id, chunk.documentId, chunk.content, json),
+                            arrayOf(chunk.id, chunk.documentId, chunk.content, json)
                         )
                         db.execSQL("INSERT INTO chunk_fts(chunkId, content) VALUES (?, ?)", arrayOf(chunk.id, chunk.content))
                     }

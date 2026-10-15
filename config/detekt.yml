@@ -1,0 +1,45 @@
+build:
+  maxIssues: 0
+complexity:
+  LongMethod:
+    threshold: 90
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    functionThreshold: 12
+    constructorThreshold: 30
+    ignoreDefaultParameters: true
+  LargeClass:
+    threshold: 750
+  TooManyFunctions:
+    thresholdInFiles: 40
+    thresholdInClasses: 60
+    thresholdInInterfaces: 18
+    thresholdInObjects: 40
+  CyclomaticComplexMethod:
+    threshold: 25
+    ignoreAnnotated: ['Composable']
+  ComplexCondition:
+    threshold: 6
+style:
+  MagicNumber:
+    ignoreNumbers: ['-1', '0', '1', '2', '3', '4', '5', '6', '8', '10', '12', '16', '20', '24', '32', '48', '60', '100', '128', '256', '512', '1024']
+    ignorePropertyDeclaration: true
+    ignoreLocalVariableDeclaration: true
+    ignoreAnnotation: true
+    ignoreEnums: true
+    ignoreNamedArgument: true
+    ignoreRanges: true
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    max: 5
+  ThrowsCount:
+    max: 4
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+exceptions:
+  TooGenericExceptionCaught:
+    allowedExceptionNameRegex: '^(boundaryFailure|providerFailure|runtimeFailure)$'

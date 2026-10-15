@@ -35,7 +35,7 @@
 - **Scenario: Seed catalog offline search and filtering**
   - **Given** App is running in offline airplane mode with curated seed beans
   - **When** User searches by origin "Ethiopia" or process "Washed"
-  - **Then** Matching curated beans are returned with altitude, variety, and provenance
+  - **Then** Matching local beans show provenance and Unknown for unavailable facts
 
 - **Scenario: Custom coffee bean entry and validation**
   - **Given** User inputs new coffee bean with origin, variety, and roast level
@@ -88,7 +88,7 @@
 ### Feature 7: Model & Asset Management with SAF (FR-08)
 - **Scenario: Checkpoint and verification of model asset**
   - **Given** Model manifest with SHA-256 and expected size
-  - **When** Download simulation / verification executes
+  - **When** A real user-requested transfer validates bytes, range identity and SHA-256
   - **Then** Asset is marked "Installed" only after checksum and size verification pass
   - **And** State supports pause, resume, and recovery
 

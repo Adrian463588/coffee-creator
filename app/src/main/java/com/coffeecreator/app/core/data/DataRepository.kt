@@ -8,12 +8,15 @@ import com.coffeecreator.app.core.model.ChatMessage
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.DocumentChunk
 import com.coffeecreator.app.core.model.Ingredient
+import com.coffeecreator.app.core.model.InputLimits
 import com.coffeecreator.app.core.model.KnowledgeDocument
 import com.coffeecreator.app.core.model.ModelAsset
 import com.coffeecreator.app.core.model.ModelStatus
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.SensoryObservation
+import com.coffeecreator.app.core.model.StoredSensoryEstimate
 import com.google.gson.reflect.TypeToken
+import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -23,19 +26,26 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 /** One application-owned instance. All durable reads/writes run off the UI thread. */
-class DataRepository(
-    context: Context,
-    private val database: CoffeeDatabase = CoffeeDatabase.open(context),
-) : CoffeeCatalogRepository, RecipeRepository, SensoryRepository, KnowledgeRepository, ModelAssetRepository {
+class DataRepository(context: Context, private val database: CoffeeDatabase = CoffeeDatabase.open(context)) :
+    CoffeeCatalogRepository,
+    RecipeRepository,
+    SensoryRepository,
+    KnowledgeRepository,
+    ModelAssetRepository {
+    private companion object {
+        const val SQL_BIND_BATCH = 500
+    }
     private val mutex = Mutex()
     private val dao = database.dao()
     private val _ready = MutableStateFlow(false)
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
     private val _errorState = MutableStateFlow<String?>(null)
     val errorState: StateFlow<String?> = _errorState.asStateFlow()
+    fun reportFailure(failure: Throwable) {
+        _errorState.value = failure.message ?: "Local storage operation failed; records are retained."
+    }
 
     private val _beans = MutableStateFlow<List<CoffeeBean>>(emptyList())
     override val beans: StateFlow<List<CoffeeBean>> = _beans.asStateFlow()
@@ -45,6 +55,8 @@ class DataRepository(
     override val recipes: StateFlow<List<Recipe>> = _recipes.asStateFlow()
     private val _sensoryObservations = MutableStateFlow<List<SensoryObservation>>(emptyList())
     override val sensoryObservations: StateFlow<List<SensoryObservation>> = _sensoryObservations.asStateFlow()
+    private val _sensoryEstimates = MutableStateFlow<List<StoredSensoryEstimate>>(emptyList())
+    override val sensoryEstimates: StateFlow<List<StoredSensoryEstimate>> = _sensoryEstimates.asStateFlow()
     private val _documents = MutableStateFlow<List<KnowledgeDocument>>(emptyList())
     override val documents: StateFlow<List<KnowledgeDocument>> = _documents.asStateFlow()
     private val _chunks = MutableStateFlow<List<DocumentChunk>>(emptyList())
@@ -70,7 +82,11 @@ class DataRepository(
                     if (dao.record("meta", "initialized") == null) {
                         val seed = SeedData.curatedBeans.map { record("bean", it.id, it) } +
                             SeedData.personas.map { record("persona", it.id, it) }
-                        seed.forEach { require(dao.record(it.kind, it.id) == null) { "Existing records require explicit recovery; defaults will not overwrite them." } }
+                        seed.forEach {
+                            require(dao.record(it.kind, it.id) == null) {
+                                "Existing records require explicit recovery; defaults will not overwrite them."
+                            }
+                        }
                         dao.putRecords(seed + record("meta", "initialized", SeedData.VERSION))
                     }
                     readSnapshot()
@@ -95,7 +111,11 @@ class DataRepository(
         BackupCodec.validateId(bean.id)
         DomainValidation.validateBean(bean)
         require(dao.record("bean", bean.id) != null) { "Bean not found." }
-        require(bean.blendComponents.all { it.beanId != bean.id && findBeanById(it.beanId) != null }) { "Blend components must refer to other existing beans." }
+        require(
+            bean.blendComponents.all {
+                it.beanId != bean.id && findBeanById(it.beanId) != null
+            }
+        ) { "Blend components must refer to other existing beans." }
         dao.putRecords(listOf(record("bean", bean.id, bean)))
     }
 
@@ -138,7 +158,7 @@ class DataRepository(
             revisionGroupId = group,
             version = highest + 1,
             createdAt = now,
-            updatedAt = now,
+            updatedAt = now
         )
         validateRecipe(saved)
         require(dao.record("recipe", saved.id) == null) { "Recipe revisions cannot overwrite existing records." }
@@ -153,16 +173,24 @@ class DataRepository(
 
     override suspend fun deleteRecipe(id: String) = mutate {
         _sensoryObservations.value.filter { it.recipeId == id }.forEach { dao.deleteRecord("observation", it.id) }
+        _sensoryEstimates.value.filter { it.recipeId == id }.forEach { dao.deleteRecord("estimate", it.id) }
         dao.deleteRecord("recipe", id)
     }
 
     override fun findRecipeById(id: String?): Recipe? = _recipes.value.find { it.id == id }
 
+    override suspend fun saveSensoryEstimate(estimate: StoredSensoryEstimate) = mutate {
+        BackupCodec.validateEstimate(estimate, _recipes.value.map { it.id }.toSet())
+        dao.putRecords(listOf(record("estimate", estimate.id, estimate)))
+    }
+
     override suspend fun saveSensoryObservation(observation: SensoryObservation) = mutate {
         BackupCodec.validateId(observation.id)
         DomainValidation.validateObservation(observation)
         require(findRecipeById(observation.recipeId) != null) { "Observation requires an existing recipe revision." }
-        require(observation.timestamp >= 0L && dao.record("observation", observation.id) == null) { "Observation identifier or timestamp is invalid." }
+        require(observation.timestamp >= 0L && dao.record("observation", observation.id) == null) {
+            "Observation identifier or timestamp is invalid."
+        }
         dao.putRecords(listOf(record("observation", observation.id, observation)))
     }
 
@@ -176,6 +204,7 @@ class DataRepository(
         require(newChunks.all { chunk -> _chunks.value.none { it.id == chunk.id && it.documentId != doc.id } }) {
             "Chunk identifier belongs to another document."
         }
+        removeDocumentVectors(doc.id)
         dao.removeDocumentIndex(doc.id)
         dao.removeDocumentChunks(doc.id)
         dao.putRecords(listOf(record("document", doc.id, doc)))
@@ -184,6 +213,7 @@ class DataRepository(
     }
 
     override suspend fun removeDocument(documentId: String) = mutate {
+        removeDocumentVectors(documentId)
         dao.removeDocumentIndex(documentId)
         dao.removeDocumentChunks(documentId)
         dao.deleteRecord("document", documentId)
@@ -196,7 +226,7 @@ class DataRepository(
             .map { it.value.take(64) }.distinct().take(24).toList()
         if (tokens.isEmpty()) return emptyList()
         // Only literal tokens reach MATCH; user-supplied FTS operators/quotes cannot alter its grammar.
-        val matchQuery = tokens.joinToString(" OR ") { "\"$it\"" }
+        val matchQuery = tokens.joinToString(" OR ") { "\"$it*\"" }
         return withContext(Dispatchers.IO) {
             guarded { dao.search(matchQuery, limit).map { decode<DocumentChunk>(it.json) } }
         }
@@ -210,9 +240,14 @@ class DataRepository(
     suspend fun removeModel(modelId: String) = mutate { dao.deleteRecord("model", modelId) }
 
     override suspend fun setSafDirectoryUri(uri: String?) = mutate {
-        require(uri == null || uri.startsWith("content://") && uri.length <= 4096) { "SAF location must be a granted content URI." }
-        if (uri == null) dao.deleteRecord("setting", "storage.safTree")
-        else dao.putRecords(listOf(record("setting", "storage.safTree", uri)))
+        require(uri == null || uri.startsWith("content://") && uri.length <= InputLimits.METADATA_CHARS) {
+            "SAF location must be a granted content URI."
+        }
+        if (uri == null) {
+            dao.deleteRecord("setting", "storage.safTree")
+        } else {
+            dao.putRecords(listOf(record("setting", "storage.safTree", uri)))
+        }
     }
 
     suspend fun selectPersona(persona: AssistantPersona) = mutate {
@@ -226,15 +261,35 @@ class DataRepository(
     }
 
     suspend fun saveChatMessages(messages: List<ChatMessage>) = mutate {
-        require(messages.size <= BackupCodec.MAX_RECORDS && messages.map { it.id }.toSet().size == messages.size) { "Invalid chat history." }
+        require(
+            messages.size <= BackupCodec.MAX_RECORDS &&
+                messages.map {
+                    it.id
+                }.toSet().size == messages.size
+        ) { "Invalid chat history." }
         messages.forEach { BackupCodec.validateChatMessage(it) }
         dao.putRecords(listOf(record("chat", "history", messages)))
     }
 
-    suspend fun saveSetting(key: String, value: String) = mutate {
-        BackupCodec.validateSetting(key, value)
-        require(key != "storage.safTree" && key != "persona.selected") { "Use the dedicated ownership/persona action for this setting." }
-        dao.putRecords(listOf(record("setting", key, value)))
+    suspend fun saveSetting(key: String, value: String) = saveSettings(mapOf(key to value))
+
+    /** One index batch has one transaction and one snapshot validation/publication. */
+    suspend fun saveSettings(values: Map<String, String>) = mutate {
+        values.forEach { (key, value) ->
+            BackupCodec.validateSetting(key, value)
+            require(key != "storage.safTree" && key != "persona.selected") {
+                "Use the dedicated ownership/persona action for this setting."
+            }
+        }
+        dao.putRecords(values.map { (key, value) -> record("setting", key, value) })
+    }
+
+    suspend fun removeSettings(prefix: String) = mutate {
+        BackupCodec.validateId(prefix)
+        require(!"storage.safTree".startsWith(prefix) && !"persona.selected".startsWith(prefix)) {
+            "Use the dedicated ownership/persona action for this setting."
+        }
+        dao.deleteSettingsWithPrefix(prefix)
     }
 
     suspend fun exportBackupJson(): String {
@@ -249,14 +304,15 @@ class DataRepository(
         val backup = withContext(Dispatchers.IO) { guarded { BackupCodec.decode(json) } }
         return mutate {
             val payload = backup.payload
-            val retainedOwnershipSettings = _settings.value.filterKeys { BackupCodec.isAssetSetting(it) }
-            dao.deleteKinds(listOf("bean", "ingredient", "recipe", "observation", "document", "persona", "chat", "setting"))
+            val retainedOwnershipSettings = _settings.value.filterKeys { BackupCodec.isOwnershipSetting(it) }
+            dao.deleteKinds(listOf("bean", "ingredient", "recipe", "observation", "estimate", "document", "persona", "chat", "setting"))
             dao.clearIndex()
             dao.clearChunks()
             val records = payload.beans.map { record("bean", it.id, it) } +
                 payload.ingredients.map { record("ingredient", it.id, it) } +
                 payload.recipes.map { record("recipe", it.id, it) } +
                 payload.observations.map { record("observation", it.id, it) } +
+                payload.estimates.map { record("estimate", it.id, it) } +
                 payload.documents.map { record("document", it.id, it) } +
                 payload.personas.map { record("persona", it.id, it) } +
                 (payload.settings + retainedOwnershipSettings).map { (key, value) -> record("setting", key, value) } +
@@ -269,11 +325,13 @@ class DataRepository(
 
     /** Explicit local deletion keeps independently user-owned SAF assets and their grant metadata. */
     suspend fun deleteApplicationRecords() = mutate {
-        val ownership = _settings.value.filterKeys { BackupCodec.isAssetSetting(it) }
-        dao.deleteKinds(listOf("bean", "ingredient", "recipe", "observation", "document", "persona", "chat", "setting"))
+        val ownership = _settings.value.filterKeys { BackupCodec.isOwnershipSetting(it) }
+        dao.deleteKinds(listOf("bean", "ingredient", "recipe", "observation", "estimate", "document", "persona", "chat", "setting"))
         dao.clearIndex()
         dao.clearChunks()
-        dao.putRecords(SeedData.personas.map { record("persona", it.id, it) } + ownership.map { (key, value) -> record("setting", key, value) })
+        dao.putRecords(
+            SeedData.personas.map { record("persona", it.id, it) } + ownership.map { (key, value) -> record("setting", key, value) }
+        )
     }
 
     fun close() = database.close()
@@ -295,15 +353,12 @@ class DataRepository(
         }
     }
 
-    private data class RepositorySnapshot(
-        val payload: BackupPayload,
-        val models: List<ModelAsset>,
-        val settings: Map<String, String>,
-    )
+    private data class RepositorySnapshot(val payload: BackupPayload, val models: List<ModelAsset>, val settings: Map<String, String>)
 
     private suspend fun readSnapshot(): RepositorySnapshot {
         val records = dao.allRecords().groupBy { it.kind }
-        fun <T> items(kind: String, type: Class<T>): List<T> = records[kind].orEmpty().map { row -> RecordJson.gson.fromJson(row.json, type) }
+        fun <T> items(kind: String, type: Class<T>): List<T> =
+            records[kind].orEmpty().map { row -> RecordJson.gson.fromJson(row.json, type) }
         val beans = items("bean", CoffeeBean::class.java)
         val ingredients = items("ingredient", Ingredient::class.java)
         val recipes = items("recipe", Recipe::class.java).sortedByDescending { it.updatedAt }
@@ -314,7 +369,14 @@ class DataRepository(
         val settings = records["setting"].orEmpty().associate { it.id to decode<String>(it.json) }
         val historyJson = records["chat"].orEmpty().find { it.id == "history" }?.json
         val history = if (historyJson == null) emptyList() else decode<List<ChatMessage>>(historyJson)
-        val payload = BackupPayload(beans, ingredients, recipes, observations, documents, chunks, history, personas, settings.filterKeys { !BackupCodec.isAssetSetting(it) })
+        val payload =
+            BackupPayload(
+                beans, ingredients, recipes, observations, documents, chunks, history, personas,
+                settings.filterKeys {
+                    !BackupCodec.isNonBackupSetting(it)
+                },
+                items("estimate", StoredSensoryEstimate::class.java).sortedByDescending { it.timestamp }
+            )
         BackupCodec.validatePayload(payload)
         val models = items("model", ModelAsset::class.java)
         models.forEach { validateModel(it) }
@@ -327,6 +389,7 @@ class DataRepository(
         _ingredients.value = payload.ingredients
         _recipes.value = payload.recipes
         _sensoryObservations.value = payload.observations
+        _sensoryEstimates.value = payload.estimates
         _documents.value = payload.documents
         _chunks.value = payload.chunks
         _personas.value = payload.personas
@@ -346,7 +409,8 @@ class DataRepository(
         chunks = _chunks.value,
         chatMessages = _chatMessages.value,
         personas = _personas.value,
-        settings = _settings.value.filterKeys { !BackupCodec.isAssetSetting(it) },
+        settings = _settings.value.filterKeys { !BackupCodec.isNonBackupSetting(it) },
+        estimates = _sensoryEstimates.value
     )
 
     private fun validateRecipe(recipe: Recipe) {
@@ -375,6 +439,15 @@ class DataRepository(
         dao.indexChunks(chunks.map { ChunkFts(it.id, it.content) })
     }
 
+    private suspend fun removeDocumentVectors(documentId: String) {
+        val chunkIds = _chunks.value.filter { it.documentId == documentId }.map { it.id }.toSet()
+        val keys = _settings.value.keys.filter { key ->
+            BackupCodec.isRuntimeCacheSetting(key) && key.substringAfter(':').substringAfter(':', "") in chunkIds
+        }
+        // Keep each query below SQLite's bound-parameter limit on the oldest supported Android tier.
+        keys.chunked(SQL_BIND_BATCH).forEach { dao.deleteSettings(it) }
+    }
+
     private fun record(kind: String, id: String, value: Any): StoredRecord = StoredRecord(kind, id, RecordJson.gson.toJson(value))
     private inline fun <reified T> decode(json: String): T = RecordJson.gson.fromJson(json, object : TypeToken<T>() {}.type)
 
@@ -384,8 +457,8 @@ class DataRepository(
         result
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (error: Exception) {
-        _errorState.value = error.message ?: "Local storage operation failed. Existing data was preserved."
-        throw error
+    } catch (boundaryFailure: Exception) {
+        _errorState.value = boundaryFailure.message ?: "Local storage operation failed. Existing data was preserved."
+        throw boundaryFailure
     }
 }

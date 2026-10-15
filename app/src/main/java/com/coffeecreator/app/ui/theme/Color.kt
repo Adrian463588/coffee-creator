@@ -12,7 +12,7 @@ val CoffeeOnSecondary = Color(0xFFFFFFFF)
 val CoffeeSecondaryContainer = Color(0xFFEFEBE9)
 val CoffeeOnSecondaryContainer = Color(0xFF3E2723)
 
-val CoffeeAccent = Color(0xFFC78D4E) // Golden Caramel
+val CoffeeAccent = Color(0xFF805025) // Caramel adjusted for white-text contrast
 val CoffeeOnAccent = Color(0xFFFFFFFF)
 
 val CoffeeBackground = Color(0xFFFAF7F2) // Light Warm Foam

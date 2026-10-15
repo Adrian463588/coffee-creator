@@ -1,270 +1,202 @@
 package com.coffeecreator.app.core.ai
 
-import com.coffeecreator.app.core.data.DataRepository
 import com.coffeecreator.app.core.engine.CoffeeScienceEngine
+import com.coffeecreator.app.core.engine.DomainValidation
+import com.coffeecreator.app.core.engine.JsonInputPolicy
 import com.coffeecreator.app.core.engine.SensoryRulesEngine
-import com.coffeecreator.app.core.model.CalculationResult
 import com.coffeecreator.app.core.model.CoffeeBean
+import com.coffeecreator.app.core.model.Ingredient
+import com.coffeecreator.app.core.model.InputLimits
 import com.coffeecreator.app.core.model.Recipe
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
+import com.google.gson.Strictness
+import java.util.UUID
+import kotlinx.coroutines.CancellationException
 
 data class ToolDefinition(
     val name: String,
     val description: String,
-    val parametersDescription: String,
+    val parameters: Map<String, String>,
     val isWriteOperation: Boolean = false
 )
-
 data class ToolExecutionResult(
     val toolName: String,
     val isSuccess: Boolean,
     val output: String,
     val requiresUserConfirmation: Boolean = false,
-    val structuredData: Any? = null
+    val structuredData: Any? = null,
+    val inputConfirmationJson: String? = null
 )
 
-object ToolExecutor {
-
-    val registry: List<ToolDefinition> = listOf(
+class ToolExecutor(
+    private val beans: () -> List<CoffeeBean>,
+    private val ingredients: () -> List<Ingredient>,
+    private val recipes: () -> List<Recipe>,
+    private val search: suspend (String) -> RagSearchResult
+) {
+    private val gson = GsonBuilder().setStrictness(Strictness.STRICT).create()
+    val registry = listOf(
+        ToolDefinition("calculate_brew_ratio", "Water:coffee ratio by mass", mapOf("doseGrams" to "number", "waterGrams" to "number")),
         ToolDefinition(
-            name = "calculate_extraction_yield",
-            description = "Calculate deterministic Extraction Yield (%) from measured beverage mass, TDS%, and dose.",
-            parametersDescription = "doseGrams: Double, beverageMassGrams: Double, measuredTdsPercent: Double"
+            "calculate_extraction_yield",
+            "Approximate EY from explicit measurements",
+            mapOf(
+                "doseGrams" to "number",
+                "beverageMassGrams" to "number",
+                "measuredTdsPercent" to "number"
+            )
         ),
         ToolDefinition(
-            name = "calculate_brew_ratio",
-            description = "Calculate deterministic brew water-to-coffee ratio.",
-            parametersDescription = "doseGrams: Double, waterGrams: Double"
+            "calculate_dilution",
+            "Mass-conserving dilution",
+            mapOf(
+                "initialMassGrams" to "number",
+                "initialTdsPercent" to "number",
+                "addedWaterGrams" to "number"
+            )
         ),
         ToolDefinition(
-            name = "calculate_dilution",
-            description = "Calculate bypass water addition or concentrate dilution.",
-            parametersDescription = "initialMassGrams: Double, initialTdsPercent: Double, addedWaterGrams: Double"
+            "calculate_concentration_ppm",
+            "Concentration by solution mass",
+            mapOf(
+                "soluteMassGrams" to "number",
+                "solutionMassGrams" to "number"
+            )
         ),
         ToolDefinition(
-            name = "calculate_concentration_ppm",
-            description = "Calculate mass fraction (%) and concentration (ppm) of solute in solution.",
-            parametersDescription = "soluteMassGrams: Double, solutionMassGrams: Double"
+            "convert_units",
+            "Convert mL to g with explicit density",
+            mapOf(
+                "volumeMl" to "number",
+                "densityGramsPerMl" to "number"
+            )
+        ),
+        ToolDefinition("lookup_ingredient", "Local ingredient constraints and provenance", mapOf("query" to "string")),
+        ToolDefinition("lookup_coffee_origin", "Local coffee catalog provenance", mapOf("query" to "string")),
+        ToolDefinition("search_documents", "Evidence from imported local sources", mapOf("query" to "string")),
+        ToolDefinition("estimate_sensory_profile", "Uncalibrated directional estimate", mapOf("recipeId" to "string")),
+        ToolDefinition(
+            "recommend_recipe",
+            "Prepare a draft using explicit requested quantities; no sensory guarantee",
+            mapOf(
+                "name" to "string",
+                "doseGrams" to "number",
+                "waterGrams" to "number",
+                "brewMethod" to "string"
+            )
         ),
         ToolDefinition(
-            name = "convert_volume_to_mass",
-            description = "Convert liquid volume (mL) to mass (g) with required density (g/mL).",
-            parametersDescription = "volumeMl: Double, densityGramsPerMl: Double?"
-        ),
-        ToolDefinition(
-            name = "search_knowledge",
-            description = "Search local offline coffee brewing guides, SCA standards, and water chemistry documents.",
-            parametersDescription = "query: String"
-        ),
-        ToolDefinition(
-            name = "estimate_sensory_profile",
-            description = "Generate heuristic sensory direction (clearly labeled uncalibrated).",
-            parametersDescription = "roastLevel: String, process: String, extractionYieldPercent: Double?"
-        ),
-        ToolDefinition(
-            name = "get_coffee_details",
-            description = "Lookup coffee bean origins, altitude, processing, and ingredient specs from catalog.",
-            parametersDescription = "query: String"
-        ),
-        ToolDefinition(
-            name = "save_recipe",
-            description = "Save proposed recipe to the local database (Requires explicit confirmation).",
-            parametersDescription = "name: String, doseGrams: Double, waterGrams: Double, brewMethod: String",
+            "save_recipe",
+            "Prepare a recipe for explicit user confirmation",
+            mapOf(
+                "name" to "string",
+                "doseGrams" to "number",
+                "waterGrams" to "number",
+                "brewMethod" to "string"
+            ),
             isWriteOperation = true
         )
     )
 
-    fun execute(toolName: String, arguments: Map<String, Any?>): ToolExecutionResult {
-        return try {
-            when (toolName) {
-                "calculate_extraction_yield" -> {
-                    val dose = (arguments["doseGrams"] as? Number)?.toDouble() ?: 18.0
-                    val beverage = (arguments["beverageMassGrams"] as? Number)?.toDouble() ?: 270.0
-                    val tds = (arguments["measuredTdsPercent"] as? Number)?.toDouble() ?: 1.30
-
-                    val result = CoffeeScienceEngine.calculateExtractionYield(dose, beverage, tds)
-                    if (result.isSuccess) {
-                        val ey = result.getOrThrow()
-                        ToolExecutionResult(
-                            toolName = toolName,
-                            isSuccess = true,
-                            output = "Extraction Yield: ${ey.extractionYieldPercent}%\nMethod: ${ey.methodLabel}\nAssumptions: ${ey.assumptions}\nProvenance: ${ey.provenance}",
-                            structuredData = ey
-                        )
-                    } else {
-                        ToolExecutionResult(
-                            toolName = toolName,
-                            isSuccess = false,
-                            output = "Calculation failed: ${result.exceptionOrNull()?.message}"
-                        )
-                    }
-                }
-
-                "calculate_brew_ratio" -> {
-                    val dose = (arguments["doseGrams"] as? Number)?.toDouble() ?: 15.0
-                    val water = (arguments["waterGrams"] as? Number)?.toDouble() ?: 250.0
-                    val result = CoffeeScienceEngine.calculateBrewRatio(dose, water)
-                    if (result.isSuccess) {
-                        val ratio = result.getOrThrow()
-                        ToolExecutionResult(
-                            toolName = toolName,
-                            isSuccess = true,
-                            output = "Brew Ratio: ${ratio.ratioString} (${ratio.waterGrams}g water / ${ratio.doseGrams}g dose)",
-                            structuredData = ratio
-                        )
-                    } else {
-                        ToolExecutionResult(
-                            toolName = toolName,
-                            isSuccess = false,
-                            output = "Error: ${result.exceptionOrNull()?.message}"
-                        )
-                    }
-                }
-
-                "calculate_dilution" -> {
-                    val initialMass = (arguments["initialMassGrams"] as? Number)?.toDouble() ?: 100.0
-                    val initialTds = (arguments["initialTdsPercent"] as? Number)?.toDouble() ?: 2.00
-                    val addedWater = (arguments["addedWaterGrams"] as? Number)?.toDouble() ?: 100.0
-                    val result = CoffeeScienceEngine.calculateDilution(initialMass, initialTds, addedWater)
-                    if (result.isSuccess) {
-                        val dil = result.getOrThrow()
-                        ToolExecutionResult(
-                            toolName = toolName,
-                            isSuccess = true,
-                            output = "Final Mass: ${dil.finalMassGrams}g, Final TDS: ${dil.finalTdsPercent}%\nProvenance: ${dil.provenance}",
-                            structuredData = dil
-                        )
-                    } else {
-                        ToolExecutionResult(toolName = toolName, isSuccess = false, output = "Error: ${result.exceptionOrNull()?.message}")
-                    }
-                }
-
-                "calculate_concentration_ppm" -> {
-                    val solute = (arguments["soluteMassGrams"] as? Number)?.toDouble() ?: 0.5
-                    val solution = (arguments["solutionMassGrams"] as? Number)?.toDouble() ?: 1000.0
-                    val result = CoffeeScienceEngine.calculateConcentration(solute, solution)
-                    if (result.isSuccess) {
-                        val conc = result.getOrThrow()
-                        ToolExecutionResult(
-                            toolName = toolName,
-                            isSuccess = true,
-                            output = "Concentration: ${conc.ppm} ppm (${conc.massFractionPercent}% w/w)\nSolute: ${conc.soluteMassGrams}g in ${conc.solutionMassGrams}g solution\nProvenance: ${conc.provenance}",
-                            structuredData = conc
-                        )
-                    } else {
-                        ToolExecutionResult(toolName = toolName, isSuccess = false, output = "Error: ${result.exceptionOrNull()?.message}")
-                    }
-                }
-
-                "convert_volume_to_mass", "convert_units" -> {
-                    val volume = (arguments["volumeMl"] as? Number)?.toDouble() ?: 250.0
-                    val density = (arguments["densityGramsPerMl"] as? Number)?.toDouble()
-                    val result = CoffeeScienceEngine.convertVolumeToMass(volume, density)
-                    if (result.isSuccess) {
-                        ToolExecutionResult(
-                            toolName = toolName,
-                            isSuccess = true,
-                            output = "Converted Mass: ${result.getOrThrow()}g for $volume mL at density $density g/mL"
-                        )
-                    } else {
-                        ToolExecutionResult(
-                            toolName = toolName,
-                            isSuccess = false,
-                            output = "Conversion failed: ${result.exceptionOrNull()?.message}"
-                        )
-                    }
-                }
-
-                "get_coffee_details", "lookup_ingredient", "lookup_coffee_origin" -> {
-                    val query = (arguments["query"] as? String
-                        ?: arguments["countryOrRegion"] as? String
-                        ?: "").lowercase()
-                    val matched = DataRepository.beans.value.filter {
-                        it.name.lowercase().contains(query) ||
-                                it.country.lowercase().contains(query) ||
-                                it.region.lowercase().contains(query) ||
-                                it.allergens.lowercase().contains(query)
-                    }
-                    val info = if (matched.isNotEmpty()) {
-                        matched.joinToString("\n\n") {
-                            "• ${it.name} (${it.country}, ${it.region})\n  Process: ${it.process} | Altitude: ${it.altitudeMeters ?: "Unknown"}m\n  Roast: ${it.roastLevel} | Density: ${it.densityGramsPerMl ?: "Unknown"} g/mL\n  Food Grade: ${it.foodGrade} | Allergens: ${it.allergens}\n  Notes: ${it.supplierLimitsNotes ?: "N/A"}"
-                        }
-                    } else {
-                        "No specific bean or ingredient matched for query '$query'. Allergen standard: safe food-grade only."
-                    }
-                    ToolExecutionResult(toolName = toolName, isSuccess = true, output = info)
-                }
-
-                "search_knowledge", "search_documents" -> {
-                    val query = (arguments["query"] as? String) ?: ""
-                    val ragResult = HybridRagEngine.search(query)
-                    ToolExecutionResult(
-                        toolName = toolName,
-                        isSuccess = true,
-                        output = ragResult.text,
-                        structuredData = ragResult.citations
-                    )
-                }
-
-                "estimate_sensory_profile" -> {
-                    val roast = (arguments["roastLevel"] as? String) ?: "Light"
-                    val process = (arguments["process"] as? String) ?: "Washed"
-                    val ey = (arguments["extractionYieldPercent"] as? Number)?.toDouble() ?: 19.5
-                    val dummyBean = CoffeeBean(
-                        id = "temp",
-                        name = "Sample",
-                        country = "Ethiopia",
-                        region = "Yirgacheffe",
-                        roastLevel = roast,
-                        process = process
-                    )
-                    val dummyRecipe = Recipe(
-                        id = "temp-rec",
-                        name = "Sample"
-                    )
-                    val estimate = SensoryRulesEngine.estimateProfile(dummyBean, dummyRecipe, ey)
-                    ToolExecutionResult(
-                        toolName = toolName,
-                        isSuccess = true,
-                        output = "Estimated Sensory Direction:\n• Aroma: ${estimate.aroma}/10\n• Acidity: ${estimate.acidity}/10\n• Sweetness: ${estimate.sweetness}/10\n• Body: ${estimate.body}/10\n• Finish: ${estimate.finish}/10\n• Balance: ${estimate.balance}/10\nDescriptors: ${estimate.suggestedDescriptors.joinToString(", ")}\n${estimate.uncertaintyDisclaimer}",
-                        structuredData = estimate
-                    )
-                }
-
-                "recommend_recipe" -> {
-                    val method = (arguments["brewMethod"] as? String) ?: "Pour Over (V60)"
-                    val flavor = (arguments["targetFlavor"] as? String) ?: "Bright & Floral"
-                    val rec = "Recommended Recipe for $method ($flavor):\n• Dose: 18.0g\n• Brew Water: 300.0g (Ratio 1:16.67)\n• Temp: 93°C\n• Grind: Medium-Fine\n• Target Yield: 270g cup, 1.30% TDS (19.5% Extraction Yield)"
-                    ToolExecutionResult(toolName = toolName, isSuccess = true, output = rec)
-                }
-
-                "save_recipe" -> {
-                    // Confirmed write gate
-                    val name = (arguments["name"] as? String) ?: "New Formulation"
-                    val dose = (arguments["doseGrams"] as? Number)?.toDouble() ?: 18.0
-                    val water = (arguments["waterGrams"] as? Number)?.toDouble() ?: 300.0
-                    val method = (arguments["brewMethod"] as? String) ?: "V60"
-
-                    ToolExecutionResult(
-                        toolName = toolName,
-                        isSuccess = true,
-                        output = "Recipe draft prepared: '$name' ($dose g / $water g via $method). Confirm write operation to persist to local database?",
-                        requiresUserConfirmation = true,
-                        structuredData = mapOf("name" to name, "dose" to dose, "water" to water, "method" to method)
-                    )
-                }
-
-                else -> ToolExecutionResult(
-                    toolName = toolName,
-                    isSuccess = false,
-                    output = "Tool '$toolName' is not in the allowlist registry."
-                )
+    suspend fun executeJson(json: String): ToolExecutionResult = try {
+        require(json.length <= InputLimits.TOOL_JSON_CHARS) { "Tool request too large." }
+        JsonInputPolicy.validateDepth(json)
+        val root = gson.fromJson(json, JsonObject::class.java)
+        require(root.keySet() == setOf("tool", "arguments")) { "Tool JSON requires exactly tool and arguments." }
+        require(root["tool"].isJsonPrimitive && root["tool"].asJsonPrimitive.isString) { "Tool name must be a string." }
+        val name = root["tool"].asString
+        require(root["arguments"].isJsonObject) { "Arguments must be an object." }
+        val args = root["arguments"].asJsonObject.entrySet().associate { (key, value) ->
+            require(value.isJsonPrimitive) { "Only typed scalar arguments are allowed." }
+            key to when {
+                value.asJsonPrimitive.isNumber -> value.asDouble
+                value.asJsonPrimitive.isString -> value.asString
+                else -> error("Unsupported argument type.")
             }
-        } catch (e: Exception) {
-            ToolExecutionResult(
-                toolName = toolName,
-                isSuccess = false,
-                output = "Exception during tool execution: ${e.message}"
-            )
+        }
+        execute(name, args)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (boundaryFailure: Exception) {
+        ToolExecutionResult("invalid", false, boundaryFailure.message ?: "Malformed tool schema.")
+    }
+
+    suspend fun execute(toolName: String, arguments: Map<String, Any?>): ToolExecutionResult = try {
+        val tool = registry.find { it.name == toolName } ?: error("Tool is not allowlisted: $toolName")
+        validateArguments(tool, arguments)
+        fun number(name: String) = (arguments.getValue(name) as Number).toDouble()
+        fun string(name: String) = arguments.getValue(name) as String
+        val result: Any = when (toolName) {
+            "calculate_brew_ratio" -> CoffeeScienceEngine.calculateBrewRatio(number("doseGrams"), number("waterGrams")).getOrThrow()
+            "calculate_extraction_yield" -> CoffeeScienceEngine.calculateExtractionYield(
+                number("doseGrams"),
+                number("beverageMassGrams"),
+                number("measuredTdsPercent")
+            ).getOrThrow()
+            "calculate_dilution" -> CoffeeScienceEngine.calculateDilution(
+                number("initialMassGrams"),
+                number("initialTdsPercent"),
+                number("addedWaterGrams")
+            ).getOrThrow()
+            "calculate_concentration_ppm" -> CoffeeScienceEngine.calculateConcentration(
+                number("soluteMassGrams"),
+                number("solutionMassGrams")
+            ).getOrThrow()
+            "convert_units" -> CoffeeScienceEngine.calculateVolumeToMass(number("volumeMl"), number("densityGramsPerMl")).getOrThrow()
+            "lookup_ingredient" -> ingredients().filter { it.name.contains(string("query"), true) }
+            "lookup_coffee_origin" -> beans().filter {
+                listOf(it.name, it.country, it.region, it.process).any { value -> value.contains(string("query"), true) }
+            }
+            "search_documents" -> search(string("query"))
+            "estimate_sensory_profile" -> {
+                val recipe = recipes().find { it.id == string("recipeId") } ?: error("Recipe not found.")
+                val bean = beans().find { it.id == recipe.beanId }
+                val ey = if (recipe.beverageMassGrams != null && recipe.measuredTdsPercent != null) {
+                    CoffeeScienceEngine.calculateExtractionYield(
+                        recipe.doseGrams,
+                        recipe.beverageMassGrams,
+                        recipe.measuredTdsPercent
+                    ).getOrNull()?.extractionYieldPercent
+                } else {
+                    null
+                }
+                SensoryRulesEngine.estimateProfile(bean, recipe, ey)
+            }
+            "recommend_recipe", "save_recipe" -> Recipe(
+                id = UUID.randomUUID().toString(),
+                name = string("name"),
+                doseGrams = number("doseGrams"),
+                waterGrams = number("waterGrams"),
+                brewMethod = string("brewMethod")
+            ).also { DomainValidation.validateRecipe(it, ingredients()) }
+            else -> error("Tool not implemented.")
+        }
+        val confirmation = tool.isWriteOperation
+        ToolExecutionResult(toolName, true, gson.toJson(result), confirmation, result)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (boundaryFailure: Exception) {
+        ToolExecutionResult(toolName, false, boundaryFailure.message ?: "Tool validation failed.")
+    }
+
+    private fun validateArguments(tool: ToolDefinition, arguments: Map<String, Any?>) {
+        require(arguments.keys == tool.parameters.keys) { "Missing or unknown arguments for ${tool.name}." }
+        tool.parameters.forEach { (name, type) ->
+            val value = arguments[name]
+            require(
+                if (type ==
+                    "number"
+                ) {
+                    value is Number && value.toDouble().isFinite()
+                } else {
+                    value is String &&
+                        value.isNotBlank() &&
+                        value.length <= InputLimits.QUERY_CHARS
+                }
+            ) {
+                "Invalid $type argument: $name"
+            }
         }
     }
 }

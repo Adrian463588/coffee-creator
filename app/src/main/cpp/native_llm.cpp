@@ -1,4 +1,5 @@
 #include "gguf_guard.h"
+#include "prompt_guard.h"
 #include "llama.h"
 #include <jni.h>
 #include <memory>
@@ -16,6 +17,7 @@ struct Runtime {
     int context_size = 1024;
     int threads = 1;
     int remaining = 0;
+    std::vector<std::string> reserved_pieces;
 
     void end() {
         if (sampler) llama_sampler_free(sampler);
@@ -83,6 +85,59 @@ void check_decode(Runtime & state, llama_batch batch) {
     }
 }
 
+
+std::vector<llama_token> tokenize_messages(JNIEnv * env, Runtime & state, jobjectArray roles, jobjectArray content) {
+    if (!roles || !content || !state.model) throw std::runtime_error("Model/prompt unavailable.");
+        const jsize count = env->GetArrayLength(roles);
+        if (count < 2 || count > 14 || env->GetArrayLength(content) != count) {
+            throw std::runtime_error("Prompt role/content count is invalid.");
+        }
+        std::vector<std::string> role_strings;
+        std::vector<std::string> content_strings;
+        role_strings.reserve(static_cast<size_t>(count));
+        content_strings.reserve(static_cast<size_t>(count));
+        size_t total_bytes = 0;
+        for (jsize i = 0; i < count; ++i) {
+            const auto role = static_cast<jstring>(env->GetObjectArrayElement(roles, i));
+            if (!role) throw std::runtime_error("Prompt role is missing.");
+            const auto chars = env->GetStringUTFChars(role, nullptr);
+            if (!chars) throw std::runtime_error("Prompt role could not be read.");
+            role_strings.emplace_back(chars);
+            env->ReleaseStringUTFChars(role, chars);
+            env->DeleteLocalRef(role);
+            const auto & current_role = role_strings.back();
+            if ((i == 0 && current_role != "system") || (i == count - 1 && current_role != "user") ||
+                (i > 0 && i < count - 1 && current_role != "user" && current_role != "assistant")) {
+                throw std::runtime_error("Prompt roles violate the system/history boundary.");
+            }
+            const auto body = static_cast<jbyteArray>(env->GetObjectArrayElement(content, i));
+            content_strings.push_back(coffee::escape_reserved(bytes(env, body, 131072), state.reserved_pieces));
+            env->DeleteLocalRef(body);
+            total_bytes += content_strings.back().size();
+            if (total_bytes > 131072) throw std::runtime_error("Prompt exceeds the native byte limit.");
+        }
+        std::vector<llama_chat_message> messages;
+        for (jsize i = 0; i < count; ++i) messages.push_back({role_strings[i].c_str(), content_strings[i].c_str()});
+        const auto chat_template = llama_model_chat_template(state.model, nullptr);
+        const int prompt_bytes = llama_chat_apply_template(chat_template, messages.data(), messages.size(), true, nullptr, 0);
+        if (prompt_bytes <= 0 || prompt_bytes > 262144) throw std::runtime_error("Unsupported or oversized model chat template.");
+        std::vector<char> prompt(static_cast<size_t>(prompt_bytes) + 1);
+        if (llama_chat_apply_template(chat_template, messages.data(), messages.size(), true, prompt.data(),
+                                      static_cast<int>(prompt.size())) != prompt_bytes) {
+            throw std::runtime_error("Chat template formatting failed.");
+        }
+        const auto vocab = llama_model_get_vocab(state.model);
+        const int required = -llama_tokenize(vocab, prompt.data(), prompt_bytes, nullptr, 0, true, true);
+        if (required <= 0 || required > 32768) {
+            throw std::runtime_error("Prompt exceeds model context. Shorten the question/history or reduce output tokens.");
+        }
+        std::vector<llama_token> tokens(static_cast<size_t>(required));
+        if (llama_tokenize(vocab, prompt.data(), prompt_bytes, tokens.data(), required, true, true) != required) {
+            throw std::runtime_error("Model tokenizer failed.");
+        }
+    return tokens;
+}
+
 } // namespace
 
 extern "C" JNIEXPORT jlong JNICALL
@@ -139,6 +194,32 @@ Java_com_coffeecreator_app_core_ai_NativeLlmEngine_nativeLoad(
         if (!vocab || llama_vocab_n_tokens(vocab) < 1 || llama_vocab_n_tokens(vocab) > 262144) {
             throw std::runtime_error("Model tokenizer is unsupported.");
         }
+        state->reserved_pieces.clear();
+        for (llama_token token = 0; token < llama_vocab_n_tokens(vocab); ++token) {
+            const auto attributes = llama_vocab_get_attr(vocab, token);
+            if (!(attributes & (LLAMA_TOKEN_ATTR_CONTROL | LLAMA_TOKEN_ATTR_USER_DEFINED))) continue;
+            char fixed[256];
+            int size = llama_token_to_piece(vocab, token, fixed, sizeof(fixed), 0, true);
+            std::string piece;
+            if (size >= 0) {
+                piece.assign(fixed, static_cast<size_t>(size));
+            } else {
+                if (size < -16384) throw std::runtime_error("Unsupported reserved tokenizer token.");
+                std::vector<char> extended(static_cast<size_t>(-size));
+                const int written = llama_token_to_piece(vocab, token, extended.data(), -size, 0, true);
+                if (written != -size) throw std::runtime_error("Reserved tokenizer token could not be read.");
+                piece.assign(extended.data(), static_cast<size_t>(written));
+            }
+            if (!piece.empty()) state->reserved_pieces.push_back(std::move(piece));
+            if (state->reserved_pieces.size() > 1024) throw std::runtime_error("Too many reserved tokenizer pieces.");
+        }
+        size_t reserved_bytes = 0;
+        for (const auto & piece : state->reserved_pieces) reserved_bytes += piece.size();
+        if (reserved_bytes > 1048576) throw std::runtime_error("Reserved tokenizer spellings exceed resource limits.");
+        std::sort(state->reserved_pieces.begin(), state->reserved_pieces.end(), [](const auto & a, const auto & b) {
+            return a.size() != b.size() ? a.size() > b.size() : a < b;
+        });
+        state->reserved_pieces.erase(std::unique(state->reserved_pieces.begin(), state->reserved_pieces.end()), state->reserved_pieces.end());
         const auto chat_template = llama_model_chat_template(state->model, nullptr);
         const llama_chat_message probe[] = {{"system", "Coffee assistant."}, {"user", "Hello."}};
         if (!chat_template || llama_chat_apply_template(chat_template, probe, 2, true, nullptr, 0) <= 0) {
@@ -175,52 +256,10 @@ Java_com_coffeecreator_app_core_ai_NativeLlmEngine_nativeStart(
             !std::isfinite(top_p) || top_p <= 0 || top_p > 1 || top_k < 1 || top_k > 100) {
             throw std::runtime_error("Invalid native generation state or parameters.");
         }
-        const jsize count = env->GetArrayLength(roles);
-        if (count < 2 || count > 14 || env->GetArrayLength(content) != count) {
-            throw std::runtime_error("Prompt role/content count is invalid.");
-        }
-        std::vector<std::string> role_strings;
-        std::vector<std::string> content_strings;
-        role_strings.reserve(static_cast<size_t>(count));
-        content_strings.reserve(static_cast<size_t>(count));
-        size_t total_bytes = 0;
-        for (jsize i = 0; i < count; ++i) {
-            const auto role = static_cast<jstring>(env->GetObjectArrayElement(roles, i));
-            if (!role) throw std::runtime_error("Prompt role is missing.");
-            const auto chars = env->GetStringUTFChars(role, nullptr);
-            if (!chars) throw std::runtime_error("Prompt role could not be read.");
-            role_strings.emplace_back(chars);
-            env->ReleaseStringUTFChars(role, chars);
-            env->DeleteLocalRef(role);
-            const auto & current_role = role_strings.back();
-            if ((i == 0 && current_role != "system") || (i == count - 1 && current_role != "user") ||
-                (i > 0 && i < count - 1 && current_role != "user" && current_role != "assistant")) {
-                throw std::runtime_error("Prompt roles violate the system/history boundary.");
-            }
-            const auto body = static_cast<jbyteArray>(env->GetObjectArrayElement(content, i));
-            content_strings.push_back(bytes(env, body, 131072));
-            env->DeleteLocalRef(body);
-            total_bytes += content_strings.back().size();
-            if (total_bytes > 131072) throw std::runtime_error("Prompt exceeds the native byte limit.");
-        }
-        std::vector<llama_chat_message> messages;
-        for (jsize i = 0; i < count; ++i) messages.push_back({role_strings[i].c_str(), content_strings[i].c_str()});
-        const auto chat_template = llama_model_chat_template(state->model, nullptr);
-        const int prompt_bytes = llama_chat_apply_template(chat_template, messages.data(), messages.size(), true, nullptr, 0);
-        if (prompt_bytes <= 0 || prompt_bytes > 262144) throw std::runtime_error("Unsupported or oversized model chat template.");
-        std::vector<char> prompt(static_cast<size_t>(prompt_bytes) + 1);
-        if (llama_chat_apply_template(chat_template, messages.data(), messages.size(), true, prompt.data(),
-                                      static_cast<int>(prompt.size())) != prompt_bytes) {
-            throw std::runtime_error("Chat template formatting failed.");
-        }
-        const auto vocab = llama_model_get_vocab(state->model);
-        const int required = -llama_tokenize(vocab, prompt.data(), prompt_bytes, nullptr, 0, true, true);
-        if (required <= 0 || required + max_tokens > state->context_size) {
+        auto tokens = tokenize_messages(env, *state, roles, content);
+        const int required = static_cast<int>(tokens.size());
+        if (required + max_tokens > state->context_size) {
             throw std::runtime_error("Prompt exceeds model context. Shorten the question/history or reduce output tokens.");
-        }
-        std::vector<llama_token> tokens(static_cast<size_t>(required));
-        if (llama_tokenize(vocab, prompt.data(), prompt_bytes, tokens.data(), required, true, true) != required) {
-            throw std::runtime_error("Model tokenizer failed.");
         }
         if (state->cancelled.load()) return;
         auto params = llama_context_default_params();
@@ -327,4 +366,17 @@ Java_com_coffeecreator_app_core_ai_NativeLlmEngine_nativeRelease(JNIEnv *, jobje
         runtimes.erase(found);
     }
     // In-flight calls keep shared ownership; destruction cannot race a decode/cancel.
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_coffeecreator_app_core_ai_NativeLlmEngine_nativeTokenCount(
+        JNIEnv * env, jobject, jlong handle, jobjectArray roles, jobjectArray content) {
+    try {
+        auto state = runtime(handle);
+        std::lock_guard<std::mutex> lock(state->operation);
+        return static_cast<jint>(tokenize_messages(env, *state, roles, content).size());
+    } catch (const std::exception & failure) {
+        throw_java(env, failure);
+        return 0;
+    }
 }

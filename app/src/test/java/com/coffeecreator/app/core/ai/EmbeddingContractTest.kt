@@ -46,7 +46,10 @@ class EmbeddingContractTest {
     @Test
     fun givenMaskedTokenEmbeddings_whenPooling_thenIgnorePaddingAndNormalize() {
         val pooled = EmbeddingPooling.meanNormalize(
-            floatArrayOf(3f, 4f, 3f, 4f, 1000f, 1000f), 3, 2, longArrayOf(1, 1, 0)
+            floatArrayOf(3f, 4f, 3f, 4f, 1000f, 1000f),
+            3,
+            2,
+            longArrayOf(1, 1, 0)
         )
         assertArrayEquals(floatArrayOf(0.6f, 0.8f), pooled, 0.000001f)
     }

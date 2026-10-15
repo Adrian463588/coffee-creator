@@ -45,7 +45,9 @@ value class MassFractionPercent(val value: BigDecimal) {
 @JvmInline
 value class TemperatureCelsius(val value: BigDecimal) {
     init {
-        require(value >= BigDecimal("-273.15") && value.toDouble().isFinite()) { "Temperature must be finite and at least absolute zero (°C)." }
+        require(value >= BigDecimal("-273.15") && value.toDouble().isFinite()) {
+            "Temperature must be finite and at least absolute zero (°C)."
+        }
     }
 }
 
@@ -60,21 +62,12 @@ data class Ingredient(
 )
 
 /** quantity is the supplied food-grade ingredient/solution, never inferred active-compound mass. */
-data class RecipeLine(
-    val ingredientId: String,
-    val quantity: Double,
-    val unit: String = "g",
-    val densityGramsPerMl: Double? = null
-)
+data class RecipeLine(val ingredientId: String, val quantity: Double, val unit: String = "g", val densityGramsPerMl: Double? = null)
 
 /**
  * Blend component for multi-bean lots.
  */
-data class BlendComponent(
-    val beanId: String,
-    val beanName: String,
-    val percentage: Double // 0.0 to 100.0
-)
+data class BlendComponent(val beanId: String, val beanName: String, val percentage: Double)
 
 /**
  * Curated and user-created coffee beans with origin, processing, and provenance metadata.
@@ -103,12 +96,7 @@ data class CoffeeBean(
 /**
  * Multi-step brew guide for timer.
  */
-data class BrewStep(
-    val stepNumber: Int,
-    val description: String,
-    val targetWaterGrams: Double,
-    val durationSeconds: Int
-)
+data class BrewStep(val stepNumber: Int, val description: String, val targetWaterGrams: Double, val durationSeconds: Int)
 
 /**
  * Full recipe formulation.
@@ -117,7 +105,7 @@ data class Recipe(
     val id: String,
     val name: String,
     val beanId: String? = null,
-    val brewMethod: String = "Pour Over (V60)", // V60, Aeropress, Espresso, French Press, Chemex, Immersion
+    val brewMethod: String = "Pour Over (V60)",
     val equipment: String = "",
     val doseGrams: Double = 18.0,
     val waterGrams: Double = 300.0,
@@ -222,15 +210,15 @@ sealed class CalculationResult {
 data class SensoryObservation(
     val id: String,
     val recipeId: String,
-    val aroma: Int, // 1 to 10
-    val acidity: Int, // 1 to 10
-    val sweetness: Int, // 1 to 10
-    val bitterness: Int = 3, // 1 to 10
-    val body: Int, // 1 to 10
-    val clarity: Int = 8, // 1 to 10
-    val finish: Int, // 1 to 10
-    val balance: Int, // 1 to 10
-    val tastingDescriptors: List<String> = emptyList(), // e.g. "Jasmine", "Bergamot", "Stone Fruit"
+    val aroma: Int,
+    val acidity: Int,
+    val sweetness: Int,
+    val bitterness: Int = 3,
+    val body: Int,
+    val clarity: Int = 8,
+    val finish: Int,
+    val balance: Int,
+    val tastingDescriptors: List<String> = emptyList(),
     val notes: String = "",
     val assessor: String = "",
     val timestamp: Long = System.currentTimeMillis(),
@@ -253,8 +241,17 @@ data class SensoryEstimate(
     val suggestedDescriptors: List<String>,
     val method: String = "Heuristic Rule-Based Profile",
     val confidencePercent: Int? = null,
-    val uncertaintyDisclaimer: String = "Uncalibrated directional heuristic; validate by observation. No measured intensity or laboratory accuracy is claimed.",
+    val uncertaintyDisclaimer: String = "Uncalibrated heuristic; validate by observation. " +
+        "No measured intensity or laboratory accuracy is claimed.",
     val basis: String = "No directional basis provided."
+)
+
+/** Persisted separately from human observations; never promoted to a measurement. */
+data class StoredSensoryEstimate(
+    val id: String,
+    val recipeId: String,
+    val profile: SensoryEstimate,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 /**
@@ -265,7 +262,7 @@ data class KnowledgeDocument(
     val title: String,
     val sourceUri: String = "",
     val fileType: String = "TXT",
-    val pageCount: Int = 1,
+    val pageCount: Int = 0,
     val chunkCount: Int = 0,
     val contentHash: String = "",
     val importedAt: Long = System.currentTimeMillis()
@@ -281,7 +278,13 @@ data class DocumentChunk(
     val pageNumber: Int,
     val chunkIndex: Int,
     val content: String,
-    val citationText: String = "[$documentTitle, P.$pageNumber, Chunk $chunkIndex]"
+    val citationText: String = if (pageNumber >
+        0
+    ) {
+        "[$documentTitle, page $pageNumber, chunk $chunkIndex]"
+    } else {
+        "[$documentTitle, text chunk $chunkIndex]"
+    }
 )
 
 /**
@@ -289,24 +292,20 @@ data class DocumentChunk(
  */
 data class ChatMessage(
     val id: String,
-    val role: String, // "user", "assistant", "system", "tool"
+    val role: String,
     val content: String,
     val toolCallName: String? = null,
     val toolArgumentsJson: String? = null,
     val toolResultJson: String? = null,
     val citations: List<String> = emptyList(),
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val sourceChunkIds: List<String> = emptyList()
 )
 
 /**
  * Persona for local assistant.
  */
-data class AssistantPersona(
-    val id: String,
-    val title: String,
-    val description: String,
-    val systemPrompt: String
-)
+data class AssistantPersona(val id: String, val title: String, val description: String, val systemPrompt: String)
 
 /**
  * Model asset for SAF local GGUF / ONNX manager.

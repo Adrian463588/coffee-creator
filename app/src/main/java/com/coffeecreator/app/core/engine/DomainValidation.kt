@@ -2,6 +2,7 @@ package com.coffeecreator.app.core.engine
 
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.Ingredient
+import com.coffeecreator.app.core.model.InputLimits
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.RecipeLine
 import com.coffeecreator.app.core.model.SensoryObservation
@@ -15,7 +16,7 @@ object DomainValidation {
     /** Decimal separators are accepted explicitly; grouping and exponent notation are not. */
     fun parseDecimal(input: String, locale: Locale = Locale.getDefault()): BigDecimal {
         val value = input.trim()
-        require(value.length in 1..64) { "Enter a decimal number without grouping separators." }
+        require(value.length in 1..InputLimits.DECIMAL_CHARS) { "Enter a decimal number without grouping separators." }
         val commaAllowed = DecimalFormatSymbols.getInstance(locale).decimalSeparator == ','
         val pattern = if (commaAllowed) "[+-]?(?:[0-9]+(?:[.,][0-9]+)?|[.,][0-9]+)" else "[+-]?(?:[0-9]+(?:[.][0-9]+)?|[.][0-9]+)"
         require(Regex(pattern).matches(value)) { "Enter a decimal number without grouping separators." }
@@ -26,8 +27,8 @@ object DomainValidation {
         requireText(bean.id, "Bean identifier", 128)
         requireText(bean.name, "Bean name", 256)
         listOf(bean.country, bean.region, bean.producer, bean.variety, bean.process, bean.roastLevel, bean.allergens)
-            .forEach { requireText(it, "Bean metadata (use Unknown for missing facts)", 4096) }
-        requireText(bean.provenance, "Bean provenance (use Unknown if unavailable)", 4096)
+            .forEach { requireText(it, "Bean metadata (use Unknown for missing facts)", InputLimits.METADATA_CHARS) }
+        requireText(bean.provenance, "Bean provenance (use Unknown if unavailable)", InputLimits.METADATA_CHARS)
         bean.altitudeMeters?.let { require(it >= 0) { "Altitude cannot be negative." } }
         bean.degasDays?.let { require(it >= 0) { "Degas days cannot be negative." } }
         bean.densityGramsPerMl?.let { positive(it, "Density (g/mL)") }
@@ -40,10 +41,10 @@ object DomainValidation {
     fun validateIngredient(ingredient: Ingredient) {
         requireText(ingredient.id, "Ingredient identifier", 128)
         requireText(ingredient.name, "Ingredient name", 256)
-        requireText(ingredient.provenance, "Ingredient provenance (use Unknown if unavailable)", 4096)
+        requireText(ingredient.provenance, "Ingredient provenance (use Unknown if unavailable)", InputLimits.METADATA_CHARS)
         ingredient.densityGramsPerMl?.let { positive(it, "Density (g/mL)") }
         ingredient.supplierMaxPercent?.let { percent(it, "Supplier maximum (% w/w)") }
-        require(ingredient.allergens.size <= 64) { "Too many allergen entries." }
+        require(ingredient.allergens.size <= InputLimits.ALLERGEN_ITEMS) { "Too many allergen entries." }
         ingredient.allergens.forEach { requireText(it, "Allergen", 128) }
     }
 
@@ -63,8 +64,8 @@ object DomainValidation {
         require(recipe.brewTimeSeconds > 0) { "Brew time must be positive (seconds)." }
         require(recipe.version > 0) { "Recipe version must be positive." }
         require(recipe.createdAt >= 0L && recipe.updatedAt >= 0L) { "Recipe timestamps cannot be negative." }
-        require(recipe.lines.size <= 1000) { "Recipe has too many ingredient lines." }
-        require(recipe.acknowledgedAllergens.size <= 64) { "Too many allergen acknowledgements." }
+        require(recipe.lines.size <= InputLimits.COLLECTION_ITEMS) { "Recipe has too many ingredient lines." }
+        require(recipe.acknowledgedAllergens.size <= InputLimits.ALLERGEN_ITEMS) { "Too many allergen acknowledgements." }
         recipe.acknowledgedAllergens.forEach { requireText(it, "Acknowledged allergen", 128) }
 
         val ingredientById = ingredients.associateBy { it.id }
@@ -74,7 +75,9 @@ object DomainValidation {
             requireText(line.ingredientId, "Ingredient identifier", 128)
             val ingredient = requireNotNull(ingredientById[line.ingredientId]) { "Unknown ingredient '${line.ingredientId}'." }
             validateIngredient(ingredient)
-            require(ingredient.foodGrade == true) { "Ingredient '${ingredient.name}' must have verified food-grade status before beverage use." }
+            require(ingredient.foodGrade == true) {
+                "Ingredient '${ingredient.name}' must have verified food-grade status before beverage use."
+            }
             val mass = lineMassGrams(line, ingredient)
             masses[line.ingredientId] = (masses[line.ingredientId] ?: BigDecimal.ZERO).add(mass)
             ingredient.allergens.forEach { allergen ->
@@ -96,15 +99,22 @@ object DomainValidation {
             }
         }
         beverage?.let {
-            require(it <= water.add(bypass).add(dose).add(additions)) { "Measured beverage mass exceeds the formulation's total input mass." }
+            require(it <= water.add(bypass).add(dose).add(additions)) {
+                "Measured beverage mass exceeds the formulation's total input mass."
+            }
             if (tds != null && recipe.lines.isEmpty()) {
-                CoffeeScienceEngine.calculateExtractionYield(recipe.doseGrams, it.toDouble(), tds.toDouble(), recipe.brewMethod).getOrThrow()
+                CoffeeScienceEngine.calculateExtractionYield(
+                    recipe.doseGrams,
+                    it.toDouble(),
+                    tds.toDouble(),
+                    recipe.brewMethod
+                ).getOrThrow()
             }
         }
-        require(recipe.brewSteps.size <= 1000) { "Recipe has too many brew steps." }
+        require(recipe.brewSteps.size <= InputLimits.COLLECTION_ITEMS) { "Recipe has too many brew steps." }
         recipe.brewSteps.forEach { step ->
             require(step.stepNumber > 0 && step.durationSeconds > 0) { "Brew steps require positive step numbers and durations." }
-            requireText(step.description, "Brew-step description", 4096)
+            requireText(step.description, "Brew-step description", InputLimits.METADATA_CHARS)
             nonNegative(step.targetWaterGrams, "Brew-step water (g)")
         }
     }
@@ -112,13 +122,23 @@ object DomainValidation {
     fun validateObservation(observation: SensoryObservation) {
         requireText(observation.id, "Observation identifier", 128)
         requireText(observation.recipeId, "Observation recipe identifier", 128)
-        listOf(observation.aroma, observation.acidity, observation.sweetness, observation.bitterness,
-            observation.body, observation.clarity, observation.finish, observation.balance).forEach {
+        listOf(
+            observation.aroma,
+            observation.acidity,
+            observation.sweetness,
+            observation.bitterness,
+            observation.body,
+            observation.clarity,
+            observation.finish,
+            observation.balance
+        ).forEach {
             require(it in 1..10) { "Observed sensory intensities must be between 1 and 10." }
         }
         require(observation.timestamp >= 0L) { "Observation timestamp cannot be negative." }
         require(observation.assessor.length <= 256 && observation.panel.length <= 256) { "Assessor or panel metadata is too long." }
-        require(observation.tastingDescriptors.size <= 256 && observation.descriptorIntensities.size <= 256) { "Too many sensory descriptors." }
+        require(observation.tastingDescriptors.size <= 256 && observation.descriptorIntensities.size <= 256) {
+            "Too many sensory descriptors."
+        }
         observation.tastingDescriptors.forEach { requireText(it, "Sensory descriptor", 256) }
         observation.descriptorIntensities.forEach { (descriptor, intensity) ->
             require(descriptor in observation.tastingDescriptors) { "Descriptor intensity must refer to a recorded descriptor." }
@@ -133,7 +153,10 @@ object DomainValidation {
             "g" -> quantity
             "mg" -> quantity.movePointLeft(3)
             "mL" -> {
-                val density = requireNotNull(line.densityGramsPerMl ?: ingredient.densityGramsPerMl) { "Volume cannot be converted without a density (g/mL)." }
+                val density =
+                    requireNotNull(line.densityGramsPerMl ?: ingredient.densityGramsPerMl) {
+                        "Volume cannot be converted without a density (g/mL)."
+                    }
                 quantity.multiply(positive(density, "Density (g/mL)"))
             }
             else -> throw IllegalArgumentException("Ingredient unit must be g, mg or mL.")

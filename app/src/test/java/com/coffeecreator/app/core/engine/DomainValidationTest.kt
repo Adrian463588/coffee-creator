@@ -86,12 +86,20 @@ class DomainValidationTest {
     @Test
     fun `given supplier dosage limit when validating then total solution dosage is bounded`() {
         val ingredient = Ingredient("aroma", "Food-grade aroma solution", foodGrade = true, supplierMaxPercent = 1.0)
-        val recipe = Recipe(id = "recipe", name = "Manual", doseGrams = 18.0, waterGrams = 300.0,
-            lines = listOf(RecipeLine("aroma", 5.0)))
+        val recipe = Recipe(
+            id = "recipe",
+            name = "Manual",
+            doseGrams = 18.0,
+            waterGrams = 300.0,
+            lines = listOf(RecipeLine("aroma", 5.0))
+        )
         assertThrows(IllegalArgumentException::class.java) { DomainValidation.validateRecipe(recipe, listOf(ingredient)) }
         DomainValidation.validateRecipe(recipe.copy(lines = listOf(RecipeLine("aroma", 2.0))), listOf(ingredient))
         assertThrows(IllegalArgumentException::class.java) {
-            DomainValidation.validateRecipe(recipe.copy(lines = listOf(RecipeLine("aroma", 2.0), RecipeLine("aroma", 3.0))), listOf(ingredient))
+            DomainValidation.validateRecipe(
+                recipe.copy(lines = listOf(RecipeLine("aroma", 2.0), RecipeLine("aroma", 3.0))),
+                listOf(ingredient)
+            )
         }
     }
 
@@ -106,26 +114,44 @@ class DomainValidationTest {
     @Test
     fun `given invalid metadata when importing then malformed catalog data is rejected`() {
         assertThrows(IllegalArgumentException::class.java) { DomainValidation.validateBean(CoffeeBean("bean", "Lot", altitudeMeters = -1)) }
-        assertThrows(IllegalArgumentException::class.java) { DomainValidation.validateIngredient(Ingredient("id", "Name", densityGramsPerMl = Double.NaN)) }
-        assertThrows(IllegalArgumentException::class.java) { DomainValidation.validateIngredient(Ingredient("id", "Name", supplierMaxPercent = 101.0)) }
+        assertThrows(IllegalArgumentException::class.java) {
+            DomainValidation.validateIngredient(Ingredient("id", "Name", densityGramsPerMl = Double.NaN))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            DomainValidation.validateIngredient(Ingredient("id", "Name", supplierMaxPercent = 101.0))
+        }
         assertThrows(IllegalArgumentException::class.java) { DomainValidation.validateBean(CoffeeBean("", "Lot")) }
     }
 
     @Test
     fun `given observed descriptor intensity when recording then descriptor and assessor metadata persist`() {
-        val observation = SensoryObservation("observation", "recipe", 8, 7, 8, body = 6, finish = 7, balance = 8,
-            tastingDescriptors = listOf("Citrus"), assessor = "Assessor A", panel = "Panel 1", descriptorIntensities = mapOf("Citrus" to 4))
+        val observation = SensoryObservation(
+            "observation", "recipe", 8, 7, 8, body = 6, finish = 7, balance = 8,
+            tastingDescriptors = listOf("Citrus"), assessor = "Assessor A", panel = "Panel 1", descriptorIntensities = mapOf("Citrus" to 4)
+        )
         DomainValidation.validateObservation(observation)
         assertEquals("Panel 1", observation.panel)
         assertEquals(4, observation.descriptorIntensities["Citrus"])
         assertThrows(IllegalArgumentException::class.java) { DomainValidation.validateObservation(observation.copy(aroma = 11)) }
-        assertThrows(IllegalArgumentException::class.java) { DomainValidation.validateObservation(observation.copy(descriptorIntensities = mapOf("Citrus" to 0))) }
+        assertThrows(IllegalArgumentException::class.java) {
+            DomainValidation.validateObservation(
+                observation.copy(
+                    descriptorIntensities = mapOf(
+                        "Citrus" to 0
+                    )
+                )
+            )
+        }
     }
 
     @Test
     fun `given typed exact quantities when calculating then scale and method provenance are retained`() {
-        val result = CoffeeScienceEngine.calculateExtractionYield(MassGrams(BigDecimal("18.00")),
-            MassGrams(BigDecimal("270.00")), MassFractionPercent(BigDecimal("1.30")), "French Press").getOrThrow()
+        val result = CoffeeScienceEngine.calculateExtractionYield(
+            MassGrams(BigDecimal("18.00")),
+            MassGrams(BigDecimal("270.00")),
+            MassFractionPercent(BigDecimal("1.30")),
+            "French Press"
+        ).getOrThrow()
         assertEquals(19.50, result.extractionYieldPercent, 0.0001)
         assertEquals("1.30", result.exactInputs["measuredTdsPercent"])
         assertTrue(result.assumptions.contains("immersion", ignoreCase = true))

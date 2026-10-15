@@ -5,6 +5,11 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
+import java.security.MessageDigest
+import java.util.Locale
+import java.util.UUID
+import kotlin.math.abs
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -22,11 +27,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
-import java.security.MessageDigest
-import java.util.Locale
-import java.util.UUID
-import kotlin.math.abs
 
 /** Uses real verified assets and private engine instances; never touches the application graph/DB. */
 @RunWith(AndroidJUnit4::class)
@@ -71,9 +71,12 @@ class OfflineAiDeviceTest {
                 assertEquals("Reference dimensions case $index", expected.size, actual.size)
                 assertTrue("Embedding must be finite.", actual.all { it.isFinite() })
                 val maxError = actual.indices.maxOf { abs(actual[it].toDouble() - expected[it].toDouble()) }
-                Log.i(TAG, JSONObject().put("check", "embedding_parity").put("case", index)
-                    .put("dimensions", actual.size).put("max_absolute_error", maxError)
-                    .put("elapsed_ms", elapsedMs).put("model_sha256", reference.getString("model_sha256")).toString())
+                Log.i(
+                    TAG,
+                    JSONObject().put("check", "embedding_parity").put("case", index)
+                        .put("dimensions", actual.size).put("max_absolute_error", maxError)
+                        .put("elapsed_ms", elapsedMs).put("model_sha256", reference.getString("model_sha256")).toString()
+                )
                 assertEquals("ONNX CPU reference parity case $index", 0.0, maxError, tolerance)
             }
         } finally {
@@ -102,8 +105,11 @@ class OfflineAiDeviceTest {
             var firstTokenMs: Double? = null
             val generationStarted = SystemClock.elapsedRealtimeNanos()
             withTimeout(90_000) {
-                engine.generate(SYSTEM_PROMPT, "Reply with one short coffee greeting.",
-                    options = NativeGenerationOptions(maxTokens = 32, temperature = 0f)).collect { delta ->
+                engine.generate(
+                    SYSTEM_PROMPT,
+                    "Reply with one short coffee greeting.",
+                    options = NativeGenerationOptions(maxTokens = 32, temperature = 0f)
+                ).collect { delta ->
                     if (firstTokenMs == null) firstTokenMs = (SystemClock.elapsedRealtimeNanos() - generationStarted) / 1_000_000.0
                     output.append(delta)
                 }
@@ -114,9 +120,11 @@ class OfflineAiDeviceTest {
             val firstDelta = CompletableDeferred<Unit>()
             val generation = async(Dispatchers.Default) {
                 try {
-                    engine.generate(SYSTEM_PROMPT,
+                    engine.generate(
+                        SYSTEM_PROMPT,
                         "Write a long numbered list of 100 different coffee brewing tips. Continue the list without a summary.",
-                        options = NativeGenerationOptions(maxTokens = 256, temperature = 0f)).collect { delta ->
+                        options = NativeGenerationOptions(maxTokens = 256, temperature = 0f)
+                    ).collect { delta ->
                         if (delta.isNotEmpty()) firstDelta.complete(Unit)
                     }
                     "completed"
@@ -141,17 +149,23 @@ class OfflineAiDeviceTest {
             withTimeout(90_000) { engine.load(model) }
             val afterReload = StringBuilder()
             withTimeout(90_000) {
-                engine.generate(SYSTEM_PROMPT, "Reply with one short coffee greeting.",
-                    options = NativeGenerationOptions(maxTokens = 24, temperature = 0f)).collect { afterReload.append(it) }
+                engine.generate(
+                    SYSTEM_PROMPT,
+                    "Reply with one short coffee greeting.",
+                    options = NativeGenerationOptions(maxTokens = 24, temperature = 0f)
+                ).collect { afterReload.append(it) }
             }
             assertTrue("Reloaded model must still generate actual text.", afterReload.isNotBlank())
             engine.unload()
             assertFalse(engine.initialized)
             assertEquals(NativeLlmStatus.Unloaded, engine.status.value)
-            Log.i(TAG, JSONObject().put("check", "gguf_stream_cancel_reload").put("model_sha256", QWEN_SHA256)
-                .put("load_ms", loadMs).put("first_token_ms", firstTokenMs)
-                .put("cancel_ms", cancelMs).put("output_characters", output.length)
-                .put("reload_output_characters", afterReload.length).toString())
+            Log.i(
+                TAG,
+                JSONObject().put("check", "gguf_stream_cancel_reload").put("model_sha256", QWEN_SHA256)
+                    .put("load_ms", loadMs).put("first_token_ms", firstTokenMs)
+                    .put("cancel_ms", cancelMs).put("output_characters", output.length)
+                    .put("reload_output_characters", afterReload.length).toString()
+            )
         } finally {
             withContext(NonCancellable) { engine.close() }
             // The integrator-owned staged GGUF is preserved for subsequent tests and app QA.

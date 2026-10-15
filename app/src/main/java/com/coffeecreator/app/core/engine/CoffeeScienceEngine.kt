@@ -3,6 +3,7 @@ package com.coffeecreator.app.core.engine
 import com.coffeecreator.app.core.model.BlendComponent
 import com.coffeecreator.app.core.model.CalculationMetadata
 import com.coffeecreator.app.core.model.CalculationResult
+import com.coffeecreator.app.core.model.InputLimits
 import com.coffeecreator.app.core.model.MassFractionPercent
 import com.coffeecreator.app.core.model.MassGrams
 import java.math.BigDecimal
@@ -32,12 +33,18 @@ object CoffeeScienceEngine {
     ): Result<CalculationResult.ExtractionYield> = runCatching {
         require(dose.value.signum() > 0 && beverage.value.signum() > 0) { "Dose and beverage mass must be greater than zero." }
         val solidsTimesHundred = beverage.value.multiply(measuredTds.value)
-        require(solidsTimesHundred <= dose.value.multiply(BigDecimal("100"))) { "Extraction yield cannot exceed 100% of coffee dose; check measurements and non-coffee solutes." }
+        require(solidsTimesHundred <= dose.value.multiply(BigDecimal("100"))) {
+            "Extraction yield cannot exceed 100% of coffee dose; check measurements and non-coffee solutes."
+        }
         val immersion = listOf("immersion", "french press", "aeropress", "cupping", "cold brew")
             .any { brewMethod.contains(it, ignoreCase = true) }
         val assumption = "EY% = (Beverage Mass * Measured TDS%) / Dose. Approximate cup-only mass balance; " +
             "TDS must represent coffee-derived dissolved solids, excluding additives. " +
-            if (immersion) "Immersion limitation: dissolved solids retained with grounds are omitted; this is not total immersion extraction yield." else "Dissolved solids retained with grounds are omitted; beverage mass is measured, never inferred from brew water."
+            if (immersion) {
+                "Immersion limitation: retained dissolved solids are omitted; this is not total immersion extraction yield."
+            } else {
+                "Dissolved solids retained with grounds are omitted; beverage mass is measured, never inferred from brew water."
+            }
         CalculationResult.ExtractionYield(
             extractionYieldPercent = finiteOutput(solidsTimesHundred.divide(dose.value, 2, RoundingMode.HALF_UP)),
             beverageMassGrams = beverage.value.toDouble(),
@@ -48,9 +55,11 @@ object CoffeeScienceEngine {
             metadata = metadata(
                 mapOf("doseGrams" to dose.value, "beverageMassGrams" to beverage.value, "measuredTdsPercent" to measuredTds.value),
                 mapOf("doseGrams" to "g", "beverageMassGrams" to "g", "measuredTdsPercent" to "% w/w"),
-                mapOf("doseGrams" to "Caller-provided dose mass; not independently verified.",
+                mapOf(
+                    "doseGrams" to "Caller-provided dose mass; not independently verified.",
                     "beverageMassGrams" to "Provided as measured by caller; instrument uncertainty not supplied.",
-                    "measuredTdsPercent" to "Provided as measured by caller; refractometer method and uncertainty not supplied.")
+                    "measuredTdsPercent" to "Provided as measured by caller; refractometer method and uncertainty not supplied."
+                )
             )
         )
     }
@@ -83,8 +92,10 @@ object CoffeeScienceEngine {
             addedWaterGrams = addedWaterGrams,
             finalMassGrams = finiteOutput(finalMass),
             finalTdsPercent = finiteOutput(initial.multiply(tds).divide(finalMass, 2, RoundingMode.HALF_UP)),
-            metadata = metadata(mapOf("initialMassGrams" to initial, "initialTdsPercent" to tds, "addedWaterGrams" to water),
-                mapOf("initialMassGrams" to "g", "initialTdsPercent" to "% w/w", "addedWaterGrams" to "g"))
+            metadata = metadata(
+                mapOf("initialMassGrams" to initial, "initialTdsPercent" to tds, "addedWaterGrams" to water),
+                mapOf("initialMassGrams" to "g", "initialTdsPercent" to "% w/w", "addedWaterGrams" to "g")
+            )
         )
     }
 
@@ -97,8 +108,10 @@ object CoffeeScienceEngine {
             solutionMassGrams = solutionMassGrams,
             massFractionPercent = finiteOutput(solute.multiply(BigDecimal("100")).divide(solution, 8, RoundingMode.HALF_UP)),
             ppm = finiteOutput(solute.multiply(BigDecimal("1000000")).divide(solution, 6, RoundingMode.HALF_UP)),
-            metadata = metadata(mapOf("soluteMassGrams" to solute, "solutionMassGrams" to solution),
-                mapOf("soluteMassGrams" to "g", "solutionMassGrams" to "g"))
+            metadata = metadata(
+                mapOf("soluteMassGrams" to solute, "solutionMassGrams" to solution),
+                mapOf("soluteMassGrams" to "g", "solutionMassGrams" to "g")
+            )
         )
     }
 
@@ -108,24 +121,31 @@ object CoffeeScienceEngine {
 
     fun calculateVolumeToMass(volumeMl: Double, densityGramsPerMl: Double?): Result<CalculationResult.UnitConversion> = runCatching {
         val volume = DomainValidation.nonNegative(volumeMl, "Volume (mL)")
-        val density = DomainValidation.positive(requireNotNull(densityGramsPerMl) {
-            "Volume cannot be converted to mass without a density (g/mL)."
-        }, "Density (g/mL)")
+        val density = DomainValidation.positive(
+            requireNotNull(densityGramsPerMl) {
+                "Volume cannot be converted to mass without a density (g/mL)."
+            },
+            "Density (g/mL)"
+        )
         CalculationResult.UnitConversion(
             volumeMl = volumeMl,
             densityGramsPerMl = densityGramsPerMl,
             massGrams = finiteOutput(volume.multiply(density)),
-            metadata = metadata(mapOf("volumeMl" to volume, "densityGramsPerMl" to density),
-                mapOf("volumeMl" to "mL", "densityGramsPerMl" to "g/mL"))
+            metadata = metadata(
+                mapOf("volumeMl" to volume, "densityGramsPerMl" to density),
+                mapOf("volumeMl" to "mL", "densityGramsPerMl" to "g/mL")
+            )
         )
     }
 
     fun validateBlendRatios(components: List<BlendComponent>): Result<Boolean> = runCatching {
         require(components.isNotEmpty()) { "Blend must contain at least one component." }
-        require(components.size <= 1000) { "Blend has too many components." }
+        require(components.size <= InputLimits.COLLECTION_ITEMS) { "Blend has too many components." }
         require(components.map { it.beanId }.distinct().size == components.size) { "Blend bean identifiers must be unique." }
         val total = components.fold(BigDecimal.ZERO) { sum, component ->
-            require(component.beanId.isNotBlank() && component.beanName.isNotBlank()) { "Blend component identifier and name are required." }
+            require(component.beanId.isNotBlank() && component.beanName.isNotBlank()) {
+                "Blend component identifier and name are required."
+            }
             val share = DomainValidation.percent(component.percentage, "Blend share (%)")
             require(share.signum() > 0) { "Blend shares must be greater than zero." }
             sum.add(share)
@@ -137,7 +157,9 @@ object CoffeeScienceEngine {
     private fun metadata(
         inputs: Map<String, BigDecimal>,
         units: Map<String, String>,
-        provenance: Map<String, String> = inputs.keys.associateWith { "Caller-provided input; source and uncertainty not independently verified." }
+        provenance: Map<String, String> = inputs.keys.associateWith {
+            "Caller-provided input; source and uncertainty not independently verified."
+        }
     ): CalculationMetadata = CalculationMetadata(
         exactInputs = inputs.mapValues { it.value.toPlainString() },
         inputUnits = units,

@@ -1,10 +1,10 @@
 package com.coffeecreator.app.core.ai
 
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
 class NativeRuntimeContractTest {
     @Test

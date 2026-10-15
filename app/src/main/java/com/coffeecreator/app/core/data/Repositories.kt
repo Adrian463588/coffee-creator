@@ -7,6 +7,7 @@ import com.coffeecreator.app.core.model.KnowledgeDocument
 import com.coffeecreator.app.core.model.ModelAsset
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.SensoryObservation
+import com.coffeecreator.app.core.model.StoredSensoryEstimate
 import kotlinx.coroutines.flow.StateFlow
 
 /** Domain-facing contracts contain no Android, Room, HTTP or UI types. */
@@ -33,6 +34,8 @@ interface SensoryRepository {
     val sensoryObservations: StateFlow<List<SensoryObservation>>
     suspend fun saveSensoryObservation(observation: SensoryObservation)
     fun getObservationsForRecipe(recipeId: String): List<SensoryObservation>
+    val sensoryEstimates: StateFlow<List<StoredSensoryEstimate>>
+    suspend fun saveSensoryEstimate(estimate: StoredSensoryEstimate)
 }
 
 interface KnowledgeRepository {

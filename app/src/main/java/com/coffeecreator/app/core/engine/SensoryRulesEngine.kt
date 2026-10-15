@@ -31,8 +31,9 @@ object SensoryRulesEngine {
             roast.isNotBlank() -> directions.add("Roast metadata alone does not establish exact sensory descriptors.")
             else -> directions.add("No directional roast basis is available; record an observation first.")
         }
-        val extractionBasis = extractionYieldPercent?.let { "Caller-provided approximate cup extraction: $it%; no flavor is inferred from this value." }
-            ?: "Measured extraction inputs not provided; no extraction value is inferred."
+        val extractionBasis =
+            extractionYieldPercent?.let { "Caller-provided approximate cup extraction: $it%; no flavor is inferred from this value." }
+                ?: "Measured extraction inputs not provided; no extraction value is inferred."
         return SensoryEstimate(
             aroma = 5,
             acidity = acidity,
@@ -45,8 +46,11 @@ object SensoryRulesEngine {
             suggestedDescriptors = directions,
             method = "roast-direction/1.0.0 (uncalibrated)",
             confidencePercent = null,
-            basis = "Roast: ${roast.ifBlank { "not provided" }}. Brew method: ${recipe.brewMethod}. $extractionBasis Origin is not a flavor predictor.",
-            uncertaintyDisclaimer = "Uncalibrated directional heuristic, not measured sensory intensity. The ordinal diagram positions and midpoints are qualitative suggestions, not laboratory predictions. Confidence is unknown; actual sensory observation is required."
+            basis = "Roast: ${roast.ifBlank {
+                "not provided"
+            }}. Brew method: ${recipe.brewMethod}. $extractionBasis Origin is not a flavor predictor.",
+            uncertaintyDisclaimer = "Uncalibrated directional heuristic, not measured intensity. Ordinal positions are qualitative. " +
+                "No laboratory prediction; confidence unknown. Actual observation is required."
         )
     }
 }

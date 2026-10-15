@@ -12,12 +12,12 @@ import com.coffeecreator.app.core.model.ModelAsset
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.RecipeLine
 import com.coffeecreator.app.core.model.SensoryObservation
+import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.UUID
 
 class DataRepositoryTest {
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -83,14 +83,20 @@ class DataRepositoryTest {
             repository.initialize()
             val text = "Test guidance discusses kettle temperature and filtration."
             val document = KnowledgeDocument(
-                "doc-1", "Test guidance", "content://test.documents/document/1", "TXT",
-                pageCount = 0, chunkCount = 1, contentHash = BackupCodec.sha256(text), importedAt = 1L,
+                "doc-1",
+                "Test guidance",
+                "content://test.documents/document/1",
+                "TXT",
+                pageCount = 0,
+                chunkCount = 1,
+                contentHash = BackupCodec.sha256(text),
+                importedAt = 1L
             )
             val chunk = DocumentChunk("chunk-1", document.id, document.title, 0, 1, text)
             repository.addDocumentWithChunks(document, listOf(chunk))
             val duplicate = repository.addDocumentWithChunks(
                 document.copy(id = "doc-duplicate"),
-                listOf(chunk.copy(id = "chunk-duplicate", documentId = "doc-duplicate")),
+                listOf(chunk.copy(id = "chunk-duplicate", documentId = "doc-duplicate"))
             )
             assertEquals(document.id, duplicate.id)
             assertEquals(listOf(chunk), repository.lexicalSearch("temperature OR \" kettle"))
@@ -120,8 +126,14 @@ class DataRepositoryTest {
         val recipe = Recipe("migration-recipe", "Preserved version-one recipe")
         val content = "Migration test retains this filtration reference."
         val document = KnowledgeDocument(
-            "migration-document", "Migration reference", "content://test.documents/document/migration", "TXT",
-            pageCount = 0, chunkCount = 1, contentHash = BackupCodec.sha256(content), importedAt = 1L,
+            "migration-document",
+            "Migration reference",
+            "content://test.documents/document/migration",
+            "TXT",
+            pageCount = 0,
+            chunkCount = 1,
+            contentHash = BackupCodec.sha256(content),
+            importedAt = 1L
         )
         val chunk = DocumentChunk("migration-chunk", document.id, document.title, 0, 1, content)
         try {
@@ -132,9 +144,11 @@ class DataRepositoryTest {
                     StoredRecord("recipe", recipe.id, RecordJson.gson.toJson(recipe)),
                     StoredRecord("persona", SeedData.personas.first().id, RecordJson.gson.toJson(SeedData.personas.first())),
                     StoredRecord("document", document.id, RecordJson.gson.toJson(document)),
-                    StoredRecord("chunk", chunk.id, RecordJson.gson.toJson(chunk)),
+                    StoredRecord("chunk", chunk.id, RecordJson.gson.toJson(chunk))
                 )
-                rows.forEach { row -> legacy.execSQL("INSERT INTO records(kind, id, json) VALUES (?, ?, ?)", arrayOf(row.kind, row.id, row.json)) }
+                rows.forEach { row ->
+                    legacy.execSQL("INSERT INTO records(kind, id, json) VALUES (?, ?, ?)", arrayOf(row.kind, row.id, row.json))
+                }
                 legacy.version = 1
             }
             val migrated = DataRepository(context, CoffeeDatabase.open(context, name))
@@ -187,7 +201,7 @@ class DataRepositoryTest {
             val observation = SensoryObservation(
                 "observation-1", recipe.id, aroma = 8, acidity = 7, sweetness = 8,
                 body = 6, finish = 7, balance = 8, assessor = "Test assessor",
-                tastingDescriptors = listOf("Fruit"), descriptorIntensities = mapOf("Fruit" to 6),
+                tastingDescriptors = listOf("Fruit"), descriptorIntensities = mapOf("Fruit" to 6)
             )
             source.saveSensoryObservation(observation)
             val messages = listOf(ChatMessage("message-1", "user", "User-owned conversation"))
@@ -198,8 +212,13 @@ class DataRepositoryTest {
             source.saveSetting("recipe.draft", "18,5")
             source.setSafDirectoryUri("content://test.documents/tree/source")
             val sourceOnlyModel = ModelAsset(
-                "catalog-only-model", "Test metadata", "test-revision", expectedSizeBytes = 1L,
-                sha256 = BackupCodec.sha256("a"), downloadUrl = "", license = "Test fixture; no bundled weights",
+                "catalog-only-model",
+                "Test metadata",
+                "test-revision",
+                expectedSizeBytes = 1L,
+                sha256 = BackupCodec.sha256("a"),
+                downloadUrl = "",
+                license = "Test fixture; no bundled weights"
             )
             source.upsertModel(sourceOnlyModel)
             val backup = source.exportBackupJson()

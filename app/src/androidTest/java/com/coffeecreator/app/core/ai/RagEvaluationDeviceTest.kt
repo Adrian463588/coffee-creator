@@ -168,13 +168,21 @@ class RagEvaluationDeviceTest {
                     val latency = elapsedMs(started)
                     latencies += latency
                     assertTrue("Retrieval must respect the five-chunk budget", result.matchedChunks.size <= 5)
-                    assertEquals("Returned chunk IDs must be unique", result.matchedChunks.size, result.matchedChunks.map { it.id }.toSet().size)
+                    assertEquals(
+                        "Returned chunk IDs must be unique",
+                        result.matchedChunks.size,
+                        result.matchedChunks.map { it.id }.toSet().size
+                    )
                     result.matchedChunks.forEach { actual ->
                         assertEquals("${item.getString("id")}: source integrity", sourceChunks[actual.id], actual)
                         assertEquals("TXT source has no page", 0, actual.pageNumber)
                         assertFalse("TXT citation must not invent a page", actual.citationText.contains(", page "))
                     }
-                    assertEquals("Citations must exactly match returned sources", result.matchedChunks.map { it.citationText }, result.citations)
+                    assertEquals(
+                        "Citations must exactly match returned sources",
+                        result.matchedChunks.map { it.citationText },
+                        result.citations
+                    )
                     assertEquals("Abstention and empty evidence must agree", result.matchedChunks.isEmpty(), result.didAbstain)
                     val retrieved = result.matchedChunks.map { it.id }.toSet()
                     val relevant = retrieved.intersect(required).size
@@ -230,8 +238,17 @@ class RagEvaluationDeviceTest {
                     .put("airplane_mode_and_no_active_network_checked", true)
                 Log.i(TAG, summary.toString())
                 instrumentation.sendStatus(0, Bundle().apply { putString("rag_evaluation_summary", summary.toString()) })
-                assertEquals("Direct-fact golden source hits; inspect measured receipts for misses", 40, scores.getValue("direct_fact").complete)
-                assertEquals("Every authored numeric case executes exact typed Kotlin math with metadata", 20, numericScores.count { it.correct })
+                assertEquals(
+                    "Direct-fact golden source hits; inspect measured receipts for misses",
+                    40,
+                    scores.getValue("direct_fact").complete
+                )
+                assertEquals(
+                    "Every authored numeric case executes exact typed Kotlin math with metadata",
+                    20,
+                    numericScores.count { it.correct }
+                )
+                assertEquals("All unrecorded personal facts must abstain", 10, scores.getValue("unanswerable").abstentions)
             }
         } finally {
             withContext(NonCancellable + Dispatchers.IO) {
@@ -264,7 +281,11 @@ class RagEvaluationDeviceTest {
     }
 
     private fun assertOffline() {
-        assertEquals("Enable airplane mode before running RAG QA", 1, Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0))
+        assertEquals(
+            "Enable airplane mode before running RAG QA",
+            1,
+            Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0)
+        )
         val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         assertTrue("Disable Wi-Fi/Ethernet and all active networks for RAG QA", connectivity.activeNetwork == null)
     }
@@ -334,7 +355,11 @@ class RagEvaluationDeviceTest {
             assertEquals("Gold chunk IDs must be unique", required.size, required.toSet().size)
             require(required.all { it in chunks }) { "Gold source is not present in actual TXT chunks." }
             if (question.getString("category") in setOf("cross_document", "conflicting_source")) {
-                assertEquals("Cross-document/conflict evidence uses two actual documents", 2, required.map { chunks.getValue(it).documentId }.toSet().size)
+                assertEquals(
+                    "Cross-document/conflict evidence uses two actual documents",
+                    2,
+                    required.map { chunks.getValue(it).documentId }.toSet().size
+                )
             }
             assertEquals("Only unanswerable questions have empty gold sets", question.getBoolean("expected_abstention"), required.isEmpty())
         }
@@ -349,9 +374,15 @@ class RagEvaluationDeviceTest {
             return NumericScore(null, false, false, JSONObject().put("error", result.output))
         }
         val actual = when (value) {
-            is CalculationResult.BrewRatio -> JSONObject().put("ratioDenominator", value.ratioDenominator).put("ratioString", value.ratioString)
+            is CalculationResult.BrewRatio -> JSONObject().put(
+                "ratioDenominator",
+                value.ratioDenominator
+            ).put("ratioString", value.ratioString)
             is CalculationResult.ExtractionYield -> JSONObject().put("extractionYieldPercent", value.extractionYieldPercent)
-            is CalculationResult.Dilution -> JSONObject().put("finalMassGrams", value.finalMassGrams).put("finalTdsPercent", value.finalTdsPercent)
+            is CalculationResult.Dilution -> JSONObject().put(
+                "finalMassGrams",
+                value.finalMassGrams
+            ).put("finalTdsPercent", value.finalTdsPercent)
             is CalculationResult.Concentration -> JSONObject().put("massFractionPercent", value.massFractionPercent).put("ppm", value.ppm)
             is CalculationResult.UnitConversion -> JSONObject().put("massGrams", value.massGrams)
         }
@@ -410,11 +441,17 @@ class RagEvaluationDeviceTest {
     private fun ByteArray.hex(): String = joinToString("") { String.format(Locale.ROOT, "%02x", it.toInt() and 255) }
     private fun JSONArray.strings(): List<String> = List(length()) { getString(it) }
     private fun elapsedMs(started: Long): Double = (SystemClock.elapsedRealtimeNanos() - started) / 1_000_000.0
-    private fun fraction(numerator: Int, denominator: Int): Any = if (denominator == 0) JSONObject.NULL else numerator.toDouble() / denominator
+    private fun fraction(numerator: Int, denominator: Int): Any =
+        if (denominator == 0) JSONObject.NULL else numerator.toDouble() / denominator
     private fun median(values: List<Double>): Double = values.sorted().let { (it[(it.size - 1) / 2] + it[it.size / 2]) / 2 }
     private fun percentile95(values: List<Double>): Double = values.sorted()[(ceil(values.size * 0.95).toInt() - 1).coerceAtLeast(0)]
 
-    private data class NumericScore(val arithmeticCorrect: Boolean?, val outputValid: Boolean, val metadataValid: Boolean, val actual: JSONObject) {
+    private data class NumericScore(
+        val arithmeticCorrect: Boolean?,
+        val outputValid: Boolean,
+        val metadataValid: Boolean,
+        val actual: JSONObject
+    ) {
         val correct: Boolean get() = arithmeticCorrect == true && outputValid && metadataValid
     }
 

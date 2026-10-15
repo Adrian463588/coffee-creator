@@ -1,4 +1,9 @@
 pluginManagement {
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "io.objectbox") useModule("io.objectbox:objectbox-gradle-plugin:${requested.version}")
+        }
+    }
     repositories {
         google {
             content {
@@ -8,6 +13,9 @@ pluginManagement {
             }
         }
         mavenCentral()
+        maven("https://jitpack.io") {
+            content { includeGroup("cz.adaptech.tesseract4android") }
+        }
         gradlePluginPortal()
     }
 }
@@ -16,8 +24,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://jitpack.io") {
+            content { includeGroup("cz.adaptech.tesseract4android") }
+        }
     }
 }
 
 rootProject.name = "CoffeeCreator"
 include(":app")
+include(":benchmark")
