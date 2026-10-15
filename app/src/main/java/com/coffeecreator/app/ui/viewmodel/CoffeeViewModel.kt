@@ -14,7 +14,23 @@ import com.coffeecreator.app.core.ai.NativeChatTurn
 import com.coffeecreator.app.core.ai.NativeGenerationOptions
 import com.coffeecreator.app.core.ai.NativeLlmStatus
 import com.coffeecreator.app.core.ai.RagSearchResult
+import com.coffeecreator.app.core.ble.BleScaleDevice
+import com.coffeecreator.app.core.ble.BleScaleDriver
+import com.coffeecreator.app.core.ble.ScaleConnectionState
+import com.coffeecreator.app.core.ble.ScaleProtocolType
+import com.coffeecreator.app.core.ble.ScaleWeightSample
+import com.coffeecreator.app.core.ble.SimulatedBleScaleDriver
+import com.coffeecreator.app.core.brew.AudioCueType
+import com.coffeecreator.app.core.brew.BrewExecutionStatus
+import com.coffeecreator.app.core.brew.BrewFilterEngine
+import com.coffeecreator.app.core.brew.BrewNotificationPayload
+import com.coffeecreator.app.core.brew.BrewSessionSnapshot
+import com.coffeecreator.app.core.brew.BrewSessionState
+import com.coffeecreator.app.core.brew.BrewStepProgress
+import com.coffeecreator.app.core.brew.HapticCueType
+import com.coffeecreator.app.core.brew.ProximityState
 import com.coffeecreator.app.core.data.BackupCodec
+import com.coffeecreator.app.core.data.CuratedCoffeeCatalog
 import com.coffeecreator.app.core.data.RecipeExportFormatter
 import com.coffeecreator.app.core.engine.CoffeeScienceEngine
 import com.coffeecreator.app.core.engine.DomainValidation
@@ -94,7 +110,12 @@ data class CoffeeUiState(
     val onboarded: Boolean = false,
     val timerSeconds: Int = 0,
     val timerRunning: Boolean = false,
-    val deletion: Pair<String, String>? = null
+    val deletion: Pair<String, String>? = null,
+    val brewSession: BrewSessionState? = null,
+    val isScaleScanning: Boolean = false,
+    val activeHapticCue: HapticCueType? = null,
+    val activeAudioCue: AudioCueType? = null,
+    val brewCurveRmse: Double? = null
 )
 
 @HiltViewModel
@@ -108,6 +129,10 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     private var timerOrigin = 0L
     private var undoDraft: RecipeDraft? = null
     private var draftAutosave: Job? = null
+    private var scaleDriver: BleScaleDriver? = null
+    private var scaleJob: Job? = null
+    private var lowFlowStartMonoMs = 0L
+    private var prevStepIndex = 0
 
     @Volatile private var replacingDraft = false
 
@@ -861,24 +886,431 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         _state.update { it.copy(pendingToolJson = null) }
     }
 
-    fun toggleTimer() {
-        if (_state.value.timerRunning) {
-            timer?.cancel()
-            _state.update { it.copy(timerRunning = false) }
+    fun initBrewSession(targetRecipe: Recipe? = null) {
+        val recipe = targetRecipe
+            ?: runCatching { buildRecipe() }.getOrNull()
+            ?: _state.value.recipes.firstOrNull()
+            ?: CuratedCoffeeCatalog.recipes.first()
+
+        val steps = recipe.brewSteps.ifEmpty {
+            listOf(
+                BrewStep(
+                    stepNumber = 1,
+                    description = "Continuous extraction",
+                    targetWaterGrams = recipe.waterGrams,
+                    durationSeconds = recipe.brewTimeSeconds,
+                    action = "Pour",
+                    startOffsetSeconds = 0,
+                    cumulativeMassGrams = recipe.waterGrams
+                )
+            )
+        }
+        val activeRecipe = recipe.copy(brewSteps = steps)
+        val firstStep = steps.first()
+        val nextStep = if (steps.size > 1) steps[1] else null
+        val progress = BrewStepProgress(
+            stepIndex = 0,
+            totalSteps = steps.size,
+            currentStep = firstStep,
+            nextStep = nextStep,
+            stepElapsedSeconds = 0,
+            stepRemainingSeconds = firstStep.durationSeconds,
+            stepTargetWaterGrams = firstStep.targetWaterGrams,
+            cumulativeTargetWaterGrams = firstStep.cumulativeMassGrams,
+            pouredInStepGrams = 0.0,
+            remainingToCumulativeTargetGrams = firstStep.cumulativeMassGrams,
+            proximityState = ProximityState.NORMAL
+        )
+        val session = BrewSessionState(
+            sessionId = UUID.randomUUID().toString(),
+            recipe = activeRecipe,
+            status = BrewExecutionStatus.READY_ARMED,
+            totalElapsedSeconds = 0,
+            currentWeightGrams = 0.0,
+            currentFlowRateGps = 0.0,
+            stepProgress = progress,
+            liveSamples = emptyList(),
+            autoStartArmed = true
+        )
+        prevStepIndex = 0
+        lowFlowStartMonoMs = 0L
+        _state.update {
+            it.copy(
+                brewSession = session,
+                timerSeconds = 0,
+                timerRunning = false,
+                brewCurveRmse = null
+            )
+        }
+    }
+
+    fun startBrewSession() {
+        if (_state.value.brewSession == null) {
+            initBrewSession()
+        }
+        val session = _state.value.brewSession ?: return
+        timerOrigin = SystemClock.elapsedRealtime() - _state.value.timerSeconds * MILLIS_PER_SECOND
+        _state.update {
+            it.copy(
+                timerRunning = true,
+                brewSession = session.copy(status = BrewExecutionStatus.RUNNING)
+            )
+        }
+        timer?.cancel()
+        timer = viewModelScope.launch {
+            while (true) {
+                delay(TIMER_REFRESH_MS)
+                val now = SystemClock.elapsedRealtime()
+                val elapsed = ((now - timerOrigin) / MILLIS_PER_SECOND).toInt()
+                updateSessionTick(elapsed)
+            }
+        }
+    }
+
+    fun pauseBrewSession() {
+        timer?.cancel()
+        _state.update {
+            it.copy(
+                timerRunning = false,
+                brewSession = it.brewSession?.copy(status = BrewExecutionStatus.PAUSED)
+            )
+        }
+    }
+
+    fun resumeBrewSession() {
+        startBrewSession()
+    }
+
+    fun skipBrewStep() {
+        val session = _state.value.brewSession ?: return
+        val steps = session.recipe.brewSteps
+        val currentIdx = session.stepProgress?.stepIndex ?: 0
+        if (currentIdx + 1 < steps.size) {
+            val nextIdx = currentIdx + 1
+            var accumulatedTime = 0
+            for (i in 0 until nextIdx) {
+                accumulatedTime += steps[i].durationSeconds
+            }
+            timerOrigin = SystemClock.elapsedRealtime() - accumulatedTime * MILLIS_PER_SECOND
+            updateSessionTick(accumulatedTime)
         } else {
-            timerOrigin = SystemClock.elapsedRealtime() - _state.value.timerSeconds * MILLIS_PER_SECOND
-            _state.update { it.copy(timerRunning = true) }
-            timer = viewModelScope.launch {
-                while (true) {
-                    _state.update { it.copy(timerSeconds = ((SystemClock.elapsedRealtime() - timerOrigin) / MILLIS_PER_SECOND).toInt()) }
-                    delay(TIMER_REFRESH_MS)
+            finishBrewSession()
+        }
+    }
+
+    fun restartBrewStep() {
+        val session = _state.value.brewSession ?: return
+        val steps = session.recipe.brewSteps
+        val currentIdx = session.stepProgress?.stepIndex ?: 0
+        var stepStartTime = 0
+        for (i in 0 until currentIdx) {
+            stepStartTime += steps[i].durationSeconds
+        }
+        timerOrigin = SystemClock.elapsedRealtime() - stepStartTime * MILLIS_PER_SECOND
+        updateSessionTick(stepStartTime)
+    }
+
+    fun resetBrewSession() {
+        timer?.cancel()
+        _state.update {
+            it.copy(
+                timerSeconds = 0,
+                timerRunning = false,
+                brewSession = it.brewSession?.copy(
+                    status = BrewExecutionStatus.READY_ARMED,
+                    totalElapsedSeconds = 0,
+                    currentWeightGrams = 0.0,
+                    currentFlowRateGps = 0.0,
+                    liveSamples = emptyList()
+                )
+            )
+        }
+    }
+
+    fun finishBrewSession() {
+        timer?.cancel()
+        val session = _state.value.brewSession ?: return
+        val elapsed = _state.value.timerSeconds
+        val actualWater = if (session.currentWeightGrams > 0.0) session.currentWeightGrams else session.recipe.waterGrams
+        val observation = SensoryObservation(
+            id = UUID.randomUUID().toString(),
+            recipeId = session.recipe.id,
+            aroma = 7, acidity = 7, sweetness = 7, bitterness = 3, body = 7, clarity = 8, finish = 7, balance = 7,
+            notes = "Auto-logged from active brew session: ${session.recipe.name} (${elapsed}s elapsed, ${actualWater}g water poured).",
+            assessor = "Barista",
+            timestamp = System.currentTimeMillis()
+        )
+        viewModelScope.launch {
+            graph.repository.saveSensoryObservation(observation)
+        }
+
+        val idealPoints = BrewFilterEngine.generateIdealCurvePoints(session.recipe.brewSteps)
+        val actualPoints = session.liveSamples.map {
+            Pair(((it.timestampMonoMs - session.liveSamples.first().timestampMonoMs) / 1000).toInt(), it.filteredWeightGrams)
+        }
+        val rmse = if (actualPoints.isNotEmpty()) BrewFilterEngine.calculateCurveRmse(actualPoints, idealPoints) else null
+
+        _state.update {
+            it.copy(
+                timerRunning = false,
+                brewCurveRmse = rmse,
+                brewSession = session.copy(status = BrewExecutionStatus.COMPLETED),
+                notice = "Brew session completed and auto-logged to Journal!"
+            )
+        }
+    }
+
+    private fun updateSessionTick(elapsedSeconds: Int) {
+        val currentSession = _state.value.brewSession ?: return
+        val steps = currentSession.recipe.brewSteps
+        val totalDuration = steps.sumOf { it.durationSeconds }
+
+        if (elapsedSeconds >= totalDuration && currentSession.status == BrewExecutionStatus.RUNNING) {
+            finishBrewSession()
+            return
+        }
+
+        var stepIdx = 0
+        var accTime = 0
+        for (i in steps.indices) {
+            val step = steps[i]
+            if (elapsedSeconds < accTime + step.durationSeconds || i == steps.lastIndex) {
+                stepIdx = i
+                break
+            }
+            accTime += step.durationSeconds
+        }
+
+        val step = steps[stepIdx]
+        val stepElapsed = (elapsedSeconds - accTime).coerceAtLeast(0)
+        val stepRemaining = (step.durationSeconds - stepElapsed).coerceAtLeast(0)
+        val nextStep = if (stepIdx + 1 < steps.size) steps[stepIdx + 1] else null
+
+        var haptic: HapticCueType? = null
+        var audio: AudioCueType? = null
+
+        if (stepIdx != prevStepIndex) {
+            prevStepIndex = stepIdx
+            haptic = HapticCueType.STEP_TRANSITION
+            audio = AudioCueType.CHIME
+        } else if (stepRemaining in 1..3) {
+            haptic = HapticCueType.COUNTDOWN_WARNING
+            audio = AudioCueType.TICK
+        }
+
+        val proximity = BrewFilterEngine.calculateProximity(currentSession.currentWeightGrams, step.cumulativeMassGrams)
+        if (proximity == ProximityState.TARGET_MATCHED && currentSession.stepProgress?.proximityState != ProximityState.TARGET_MATCHED) {
+            haptic = HapticCueType.TARGET_MATCHED
+        }
+
+        val progress = BrewStepProgress(
+            stepIndex = stepIdx,
+            totalSteps = steps.size,
+            currentStep = step,
+            nextStep = nextStep,
+            stepElapsedSeconds = stepElapsed,
+            stepRemainingSeconds = stepRemaining,
+            stepTargetWaterGrams = step.targetWaterGrams,
+            cumulativeTargetWaterGrams = step.cumulativeMassGrams,
+            pouredInStepGrams = currentSession.currentWeightGrams,
+            remainingToCumulativeTargetGrams = (step.cumulativeMassGrams - currentSession.currentWeightGrams).coerceAtLeast(0.0),
+            proximityState = proximity
+        )
+
+        _state.update {
+            it.copy(
+                timerSeconds = elapsedSeconds,
+                activeHapticCue = haptic ?: it.activeHapticCue,
+                activeAudioCue = audio ?: it.activeAudioCue,
+                brewSession = currentSession.copy(
+                    totalElapsedSeconds = elapsedSeconds,
+                    stepProgress = progress
+                )
+            )
+        }
+    }
+
+    fun connectMockScale() {
+        val simDriver = SimulatedBleScaleDriver()
+        scaleDriver = simDriver
+        _state.update { it.copy(isScaleScanning = true) }
+        viewModelScope.launch {
+            simDriver.connect()
+            _state.update {
+                it.copy(
+                    isScaleScanning = false,
+                    brewSession = (it.brewSession ?: createDefaultSession()).copy(
+                        scaleDevice = simDriver.device,
+                        scaleConnectionState = ScaleConnectionState.READY
+                    ),
+                    notice = "Connected to ${simDriver.device.name}"
+                )
+            }
+            scaleJob?.cancel()
+            scaleJob = launch {
+                simDriver.weightStream.collect { sample ->
+                    onScaleSampleReceived(sample)
                 }
             }
         }
     }
+
+    fun disconnectScale() {
+        viewModelScope.launch {
+            scaleJob?.cancel()
+            scaleDriver?.disconnect()
+            scaleDriver = null
+            _state.update {
+                it.copy(
+                    brewSession = it.brewSession?.copy(
+                        scaleDevice = null,
+                        scaleConnectionState = ScaleConnectionState.DISCONNECTED
+                    )
+                )
+            }
+        }
+    }
+
+    fun tareScale() {
+        viewModelScope.launch {
+            scaleDriver?.tare()
+            _state.update {
+                it.copy(
+                    brewSession = it.brewSession?.copy(
+                        currentWeightGrams = 0.0,
+                        currentFlowRateGps = 0.0
+                    )
+                )
+            }
+        }
+    }
+
+    fun feedSimulatedWeight(grams: Double) {
+        (scaleDriver as? SimulatedBleScaleDriver)?.feedWeight(grams)
+    }
+
+    private fun onScaleSampleReceived(sample: ScaleWeightSample) {
+        val currentSession = _state.value.brewSession ?: return
+
+        // Auto-start check
+        if (currentSession.status == BrewExecutionStatus.READY_ARMED && currentSession.autoStartArmed) {
+            if (sample.rawWeightGrams >= 0.5) {
+                startBrewSession()
+            }
+        }
+
+        val updatedSamples = (currentSession.liveSamples + sample).takeLast(2000)
+        val currentStep = currentSession.stepProgress?.currentStep
+        val targetWater = currentStep?.cumulativeMassGrams ?: currentSession.recipe.waterGrams
+        val proximity = BrewFilterEngine.calculateProximity(sample.filteredWeightGrams, targetWater)
+
+        // Espresso auto-stop check (< 0.20 g/s sustained for >= 1.5s after 5g yield)
+        var autoStopped = false
+        if (currentSession.status == BrewExecutionStatus.RUNNING &&
+            currentSession.recipe.brewMethod.contains("Espresso", ignoreCase = true) &&
+            sample.filteredWeightGrams >= 5.0 && sample.flowRateGramsPerSec < 0.20
+        ) {
+            if (lowFlowStartMonoMs == 0L) {
+                lowFlowStartMonoMs = sample.timestampMonoMs
+            } else if (sample.timestampMonoMs - lowFlowStartMonoMs >= 1500L) {
+                autoStopped = true
+                finishBrewSession()
+            }
+        } else {
+            lowFlowStartMonoMs = 0L
+        }
+
+        if (!autoStopped) {
+            _state.update {
+                it.copy(
+                    brewSession = currentSession.copy(
+                        currentWeightGrams = sample.filteredWeightGrams,
+                        currentFlowRateGps = sample.flowRateGramsPerSec,
+                        liveSamples = updatedSamples,
+                        stepProgress = currentSession.stepProgress?.copy(
+                            pouredInStepGrams = sample.filteredWeightGrams,
+                            remainingToCumulativeTargetGrams = (targetWater - sample.filteredWeightGrams).coerceAtLeast(0.0),
+                            proximityState = proximity
+                        )
+                    )
+                )
+            }
+        }
+    }
+
+    fun toggleKeepScreenOn() {
+        _state.update {
+            it.copy(brewSession = it.brewSession?.copy(keepScreenOn = !(it.brewSession?.keepScreenOn ?: true)))
+        }
+    }
+
+    fun toggleSound() {
+        _state.update {
+            it.copy(brewSession = it.brewSession?.copy(audioEnabled = !(it.brewSession?.audioEnabled ?: true)))
+        }
+    }
+
+    fun toggleHaptics() {
+        _state.update {
+            it.copy(brewSession = it.brewSession?.copy(hapticsEnabled = !(it.brewSession?.hapticsEnabled ?: true)))
+        }
+    }
+
+    fun clearActiveCues() {
+        _state.update { it.copy(activeHapticCue = null, activeAudioCue = null) }
+    }
+
+    fun exportBrewSessionSnapshot(): BrewSessionSnapshot? {
+        val session = _state.value.brewSession ?: return null
+        return BrewSessionSnapshot(
+            sessionId = session.sessionId,
+            recipeId = session.recipe.id,
+            status = session.status,
+            currentStepIndex = session.stepProgress?.stepIndex ?: 0,
+            accumulatedElapsedSeconds = _state.value.timerSeconds,
+            lastWeightGrams = session.currentWeightGrams,
+            sampleCount = session.liveSamples.size
+        )
+    }
+
+    fun restoreBrewSession(snapshot: BrewSessionSnapshot) {
+        val recipe = _state.value.recipes.find { it.id == snapshot.recipeId }
+            ?: runCatching { buildRecipe() }.getOrNull()
+            ?: CuratedCoffeeCatalog.recipes.first()
+        initBrewSession(recipe)
+        _state.update {
+            it.copy(
+                timerSeconds = snapshot.accumulatedElapsedSeconds,
+                brewSession = it.brewSession?.copy(
+                    sessionId = snapshot.sessionId,
+                    status = snapshot.status,
+                    currentWeightGrams = snapshot.lastWeightGrams
+                )
+            )
+        }
+    }
+
+    private fun createDefaultSession(): BrewSessionState {
+        val recipe = CuratedCoffeeCatalog.recipes.first()
+        return BrewSessionState(
+            sessionId = UUID.randomUUID().toString(),
+            recipe = recipe
+        )
+    }
+
+    fun toggleTimer() {
+        if (_state.value.brewSession == null) {
+            initBrewSession()
+        }
+        if (_state.value.timerRunning) {
+            pauseBrewSession()
+        } else {
+            startBrewSession()
+        }
+    }
+
     fun resetTimer() {
-        timer?.cancel()
-        _state.update { it.copy(timerSeconds = 0, timerRunning = false) }
+        resetBrewSession()
     }
     fun clearNotice() {
         _state.update { it.copy(notice = null, error = null) }
@@ -920,6 +1352,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     override fun onCleared() {
         graph.native.cancel()
         timer?.cancel()
+        scaleJob?.cancel()
         super.onCleared()
     }
 }

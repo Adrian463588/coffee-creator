@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
@@ -39,6 +40,7 @@ import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 internal enum class BrewSection(val label: String, val detail: String) {
     Recipe("Recipe", "Plan dose, water, ratio & scaling"),
     Steps("Steps", "Ordered pours, times, temps and valves"),
+    Timer("Timer", "Active timer, live flow and BLE scale"),
     Measurements("Measurements", "Add values you have measured & Brix lab"),
     Ingredients("Ingredients", "Check additions and supplier limits"),
     Tools("Tools", "Calculate with explicit quantities"),
@@ -101,6 +103,7 @@ internal fun BrewSectionTabs(selected: BrewSection, modifier: Modifier = Modifie
                                 when (section) {
                                     BrewSection.Recipe -> Icons.Default.Coffee
                                     BrewSection.Steps -> Icons.Default.MenuBook
+                                    BrewSection.Timer -> Icons.Default.PlayArrow
                                     BrewSection.Measurements -> Icons.Default.WaterDrop
                                     BrewSection.Ingredients -> Icons.Default.Restaurant
                                     BrewSection.Tools -> Icons.Default.Science

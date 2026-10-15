@@ -115,6 +115,9 @@ import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
+import com.coffeecreator.app.core.ble.ScaleConnectionState
+import com.coffeecreator.app.core.brew.BrewExecutionStatus
+import com.coffeecreator.app.core.brew.ProximityState
 import com.coffeecreator.app.ui.viewmodel.RecipeDraft
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
@@ -948,6 +951,271 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             ) {
                                                 Text("Remove step")
                                             }
+                                        }
+                                    }
+                                }
+                            }
+                            BrewSection.Timer -> {
+                                item {
+                                    val session = state.brewSession
+                                    BrewCard(
+                                        "Active brew chronometer & scale",
+                                        "Real-time countdown, step-by-step guidance, BLE scale streaming, and live flow rate."
+                                    ) {
+                                        val elapsedSec = state.timerSeconds
+                                        val elapsedFormatted = "%02d:%02d".format(elapsedSec / 60, elapsedSec % 60)
+                                        val currentProgress = session?.stepProgress
+
+                                        Surface(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 8.dp)
+                                                .testTag("timer:display"),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Text(
+                                                    text = elapsedFormatted,
+                                                    style = MaterialTheme.typography.displayMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.semantics {
+                                                        liveRegion = LiveRegionMode.Polite
+                                                    }
+                                                )
+                                                Text(
+                                                    text = if (state.timerRunning) "ACTIVE BREWING" else if (session?.status == BrewExecutionStatus.PAUSED) "PAUSED" else if (session?.status == BrewExecutionStatus.COMPLETED) "COMPLETED" else "READY / ARMED",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = if (state.timerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                                )
+                                            }
+                                        }
+
+                                        if (currentProgress != null) {
+                                            Surface(
+                                                modifier = Modifier.fillMaxWidth().testTag("timer:step_card"),
+                                                color = MaterialTheme.colorScheme.surface,
+                                                shape = RoundedCornerShape(8.dp),
+                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                            ) {
+                                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                        Text(
+                                                            text = "Step ${currentProgress.stepIndex + 1} of ${currentProgress.totalSteps}: ${currentProgress.currentStep.action}",
+                                                            style = MaterialTheme.typography.titleMedium,
+                                                            fontWeight = FontWeight.SemiBold
+                                                        )
+                                                        Text(
+                                                            text = "${currentProgress.stepRemainingSeconds}s remaining",
+                                                            style = MaterialTheme.typography.titleMedium,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                    if (currentProgress.currentStep.description.isNotBlank()) {
+                                                        Text(
+                                                            text = currentProgress.currentStep.description,
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                        Text("Step Target: +${currentProgress.stepTargetWaterGrams}g")
+                                                        Text("Cumulative: ${currentProgress.cumulativeTargetWaterGrams}g")
+                                                    }
+                                                    if (currentProgress.nextStep != null) {
+                                                        Text(
+                                                            text = "Next: ${currentProgress.nextStep.action} (+${currentProgress.nextStep.targetWaterGrams}g in ${currentProgress.nextStep.durationSeconds}s)",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.outline
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            val prox = currentProgress.proximityState
+                                            val (proxText, proxColor) = when (prox) {
+                                                ProximityState.NORMAL -> "Pouring: ${"%.1f".format(java.util.Locale.US, currentProgress.remainingToCumulativeTargetGrams)}g remaining" to MaterialTheme.colorScheme.onSurface
+                                                ProximityState.APPROACHING_10G -> "Within 10g (${"%.1f".format(java.util.Locale.US, currentProgress.remainingToCumulativeTargetGrams)}g left)" to MaterialTheme.colorScheme.tertiary
+                                                ProximityState.IMMINENT_2G -> "Within 2g! Prepare cutoff" to MaterialTheme.colorScheme.error
+                                                ProximityState.TARGET_MATCHED -> "Target Matched (${"%.1f".format(java.util.Locale.US, currentProgress.cumulativeTargetWaterGrams)}g)" to MaterialTheme.colorScheme.primary
+                                                ProximityState.OVERSHOOT -> "Target Overshoot (+${"%.1f".format(java.util.Locale.US, (session?.currentWeightGrams ?: 0.0) - currentProgress.cumulativeTargetWaterGrams)}g)" to MaterialTheme.colorScheme.error
+                                            }
+                                            Surface(
+                                                modifier = Modifier.fillMaxWidth().testTag("timer:proximity_badge"),
+                                                color = proxColor.copy(alpha = 0.12f),
+                                                shape = RoundedCornerShape(6.dp),
+                                                border = BorderStroke(1.dp, proxColor)
+                                            ) {
+                                                Text(
+                                                    text = proxText,
+                                                    modifier = Modifier.padding(8.dp),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = proxColor
+                                                )
+                                            }
+                                        }
+
+                                        Surface(
+                                            modifier = Modifier.fillMaxWidth().testTag("timer:scale_card"),
+                                            color = MaterialTheme.colorScheme.surface,
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                        ) {
+                                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                    Text(
+                                                        text = session?.scaleDevice?.name ?: "No scale connected",
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                    Text(
+                                                        text = session?.scaleConnectionState?.name ?: "DISCONNECTED",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        color = if (session?.scaleConnectionState == ScaleConnectionState.READY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                                    )
+                                                }
+                                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                    Column {
+                                                        Text("Current Mass", style = MaterialTheme.typography.labelSmall)
+                                                        Text(
+                                                            text = "${"%.1f".format(java.util.Locale.US, session?.currentWeightGrams ?: 0.0)} g",
+                                                            style = MaterialTheme.typography.headlineMedium,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    }
+                                                    Column(horizontalAlignment = Alignment.End) {
+                                                        Text("Flow Rate", style = MaterialTheme.typography.labelSmall)
+                                                        Text(
+                                                            text = "${"%.2f".format(java.util.Locale.US, session?.currentFlowRateGps ?: 0.0)} g/s",
+                                                            style = MaterialTheme.typography.headlineMedium,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.secondary
+                                                        )
+                                                    }
+                                                }
+                                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                    if (session?.scaleDevice == null) {
+                                                        FilledTonalButton(
+                                                            onClick = model::connectMockScale,
+                                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:connect_scale")
+                                                        ) {
+                                                            Text("Connect Smart Scale")
+                                                        }
+                                                    } else {
+                                                        OutlinedButton(
+                                                            onClick = model::disconnectScale,
+                                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:disconnect_scale")
+                                                        ) {
+                                                            Text("Disconnect Scale")
+                                                        }
+                                                    }
+                                                    Button(
+                                                        onClick = model::tareScale,
+                                                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:tare_scale")
+                                                    ) {
+                                                        Text("Tare Scale")
+                                                    }
+                                                }
+
+                                                if (session?.scaleDevice != null) {
+                                                    Text("Simulate Pouring Water:", style = MaterialTheme.typography.labelSmall)
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                        listOf(10.0, 25.0, 50.0, 100.0).forEach { delta ->
+                                                            OutlinedButton(
+                                                                onClick = { model.feedSimulatedWeight((session.currentWeightGrams + delta)) },
+                                                                modifier = Modifier.weight(1f).heightIn(min = 40.dp).testTag("timer:sim_pour_${delta.toInt()}")
+                                                            ) {
+                                                                Text("+${delta.toInt()}g")
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        FlowRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Button(
+                                                onClick = {
+                                                    if (state.timerRunning) model.pauseBrewSession() else model.startBrewSession()
+                                                },
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:toggle")
+                                            ) {
+                                                Text(if (state.timerRunning) "Pause Session" else if (session?.status == BrewExecutionStatus.PAUSED) "Resume Session" else "Start Session")
+                                            }
+                                            OutlinedButton(
+                                                onClick = model::skipBrewStep,
+                                                enabled = session != null && session.status != BrewExecutionStatus.COMPLETED,
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:skip_step")
+                                            ) {
+                                                Text("Skip Step")
+                                            }
+                                            OutlinedButton(
+                                                onClick = model::restartBrewStep,
+                                                enabled = session != null,
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:restart_step")
+                                            ) {
+                                                Text("Restart Step")
+                                            }
+                                            OutlinedButton(
+                                                onClick = model::resetBrewSession,
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:reset")
+                                            ) {
+                                                Text("Reset")
+                                            }
+                                            FilledTonalButton(
+                                                onClick = model::finishBrewSession,
+                                                enabled = session != null && (state.timerSeconds > 0 || session.currentWeightGrams > 0.0),
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:finish_and_log")
+                                            ) {
+                                                Text("Finish & Save Log")
+                                            }
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            FilterChip(
+                                                selected = session?.keepScreenOn ?: true,
+                                                onClick = model::toggleKeepScreenOn,
+                                                label = { Text("Screen Awake") },
+                                                modifier = Modifier.testTag("timer:toggle_awake")
+                                            )
+                                            FilterChip(
+                                                selected = session?.audioEnabled ?: true,
+                                                onClick = model::toggleSound,
+                                                label = { Text("Audio") },
+                                                modifier = Modifier.testTag("timer:toggle_sound")
+                                            )
+                                            FilterChip(
+                                                selected = session?.hapticsEnabled ?: true,
+                                                onClick = model::toggleHaptics,
+                                                label = { Text("Haptics") },
+                                                modifier = Modifier.testTag("timer:toggle_haptics")
+                                            )
+                                        }
+
+                                        if (state.brewCurveRmse != null) {
+                                            Text(
+                                                text = "Extraction Curve RMSE: ${"%.2f".format(java.util.Locale.US, state.brewCurveRmse)}g deviation from planned profile",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
                                         }
                                     }
                                 }
