@@ -1,0 +1,25 @@
+# Implementation Tasks: UI/UX Tactile Anti-Slop Refinement
+
+- [x] **Task 1: OpenSpec SDD Documentation**
+  - Formulate proposal, design, and BDD Gherkin specifications.
+- [ ] **Task 2: Implement Tactile Primitives in `CoffeeApp.kt`**
+  - Add `Modifier.tactilePress(pressedScale: Float)` with spring animation.
+  - Add `LivePulseIndicator(isActive: Boolean)` with infinite breathing transition.
+- [ ] **Task 3: Refactor Library Category Navigation**
+  - Replace staggered `FlowRow` with `Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()))`.
+  - Add leading icons (`Icons.Default.Coffee`, `Icons.Default.Settings`, `Icons.Default.WaterDrop`, etc.).
+  - Apply `Modifier.tactilePress()` and 48dp minimum touch target.
+- [ ] **Task 4: Refactor Active Brew Chronometer & Telemetry Console**
+  - Consolidate disjointed cards into unified laboratory instrument console.
+  - Integrate live pulse LED, tabular monospace digits, integrated weight & flow telemetry.
+  - Retain 100% of test tags (`timer:display`, `timer:step_card`, `timer:proximity_badge`, `timer:scale_card`, `timer:toggle`, `timer:finish_and_log`, etc.).
+  - Implement full-width 54dp primary CTA button with tactile feedback.
+- [ ] **Task 5: Verification & Quality Gates**
+  - Run `.\gradlew testDebugUnitTest` to ensure all 202 tests pass.
+  - Bump version to `v1.9.1` (`versionCode = 10`).
+  - Assemble debug APK: `.\gradlew assembleDebug`.
+  - Install and verify on physical device `Samsung SM-G988B` (`RRCN3008VYE`).
+  - Capture verification screenshots of Library and Brew Timer tabs.
+- [ ] **Task 6: Release & Distribution**
+  - Update `README.md`, `SHA256SUMS.txt`, `docs/releases/v1.9.1.md`.
+  - Commit, push to GitHub, and create GitHub release `v1.9.1`.

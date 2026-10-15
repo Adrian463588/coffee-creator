@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -27,8 +28,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -37,10 +43,17 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
@@ -57,12 +70,18 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OfflineBolt
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.WaterDrop
 import com.coffeecreator.app.core.journal.AdjustmentDirection
 import com.coffeecreator.app.core.journal.BrewFilterCriteria
 import com.coffeecreator.app.core.journal.BrewJournalEntry
@@ -109,6 +128,8 @@ import com.coffeecreator.app.core.ai.personalization.SensoryFeedbackDiagnosis
 import com.coffeecreator.app.core.ai.personalization.SweetnessPriority
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -147,6 +168,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -445,6 +467,122 @@ private fun InfoCard(title: String, detail: String, content: @Composable () -> U
             content()
         }
     }
+}
+
+@Composable
+private fun LivePulseIndicator(
+    isActive: Boolean,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary
+) {
+    if (isActive) {
+        val infiniteTransition = rememberInfiniteTransition(label = "pulseTransition")
+        val pulseScale by infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.6f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "pulseScale"
+        )
+        val pulseAlpha by infiniteTransition.animateFloat(
+            initialValue = 0.8f,
+            targetValue = 0.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "pulseAlpha"
+        )
+        Box(
+            modifier = modifier.size(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(
+                    color = color.copy(alpha = pulseAlpha),
+                    radius = (size.minDimension / 2f) * pulseScale
+                )
+                drawCircle(
+                    color = color,
+                    radius = size.minDimension / 3.2f
+                )
+            }
+        }
+    } else {
+        Box(
+            modifier = modifier.size(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(
+                    color = color.copy(alpha = 0.35f),
+                    radius = size.minDimension / 3.2f
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TactileFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    enabled: Boolean = true
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "chipTactileScale"
+    )
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = label,
+        leadingIcon = leadingIcon,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        modifier = modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+    )
+}
+
+@Composable
+private fun TactileButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
+    shape: androidx.compose.ui.graphics.Shape = ButtonDefaults.shape,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "buttonTactileScale"
+    )
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        colors = colors,
+        shape = shape,
+        interactionSource = interactionSource,
+        modifier = modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
+        content = content
+    )
 }
 
 @Composable
@@ -1044,51 +1182,113 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                             BrewSection.Timer -> {
                                 item {
                                     val session = state.brewSession
+                                    val elapsedSec = state.timerSeconds
+                                    val elapsedFormatted = "%02d:%02d".format(elapsedSec / 60, elapsedSec % 60)
+                                    val currentProgress = session?.stepProgress
+
                                     BrewCard(
                                         "Active brew chronometer & scale",
                                         "Real-time countdown, step-by-step guidance, BLE scale streaming, and live flow rate."
                                     ) {
-                                        val elapsedSec = state.timerSeconds
-                                        val elapsedFormatted = "%02d:%02d".format(elapsedSec / 60, elapsedSec % 60)
-                                        val currentProgress = session?.stepProgress
-
+                                        // Unified Precision Laboratory Console
                                         Surface(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 8.dp)
                                                 .testTag("timer:display"),
-                                            color = MaterialTheme.colorScheme.surfaceVariant,
-                                            shape = RoundedCornerShape(12.dp)
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            shape = RoundedCornerShape(16.dp),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                                         ) {
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(16.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                verticalArrangement = Arrangement.spacedBy(12.dp)
                                             ) {
-                                                Text(
-                                                    text = elapsedFormatted,
-                                                    style = MaterialTheme.typography.displayMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.semantics {
-                                                        liveRegion = LiveRegionMode.Polite
+                                                // Header Bar: Live Pulse + State + Scale Connection Status
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        LivePulseIndicator(isActive = state.timerRunning)
+                                                        Text(
+                                                            text = if (state.timerRunning) "ACTIVE BREWING"
+                                                            else if (session?.status == BrewExecutionStatus.PAUSED) "PAUSED"
+                                                            else if (session?.status == BrewExecutionStatus.COMPLETED) "COMPLETED"
+                                                            else "READY / ARMED",
+                                                            style = MaterialTheme.typography.labelMedium,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (state.timerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
                                                     }
-                                                )
-                                                Text(
-                                                    text = if (state.timerRunning) "ACTIVE BREWING" else if (session?.status == BrewExecutionStatus.PAUSED) "PAUSED" else if (session?.status == BrewExecutionStatus.COMPLETED) "COMPLETED" else "READY / ARMED",
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = if (state.timerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                                                )
+                                                    Surface(
+                                                        shape = RoundedCornerShape(6.dp),
+                                                        color = if (session?.scaleConnectionState == ScaleConnectionState.READY)
+                                                            MaterialTheme.colorScheme.primaryContainer
+                                                        else MaterialTheme.colorScheme.surfaceContainerHighest
+                                                    ) {
+                                                        Text(
+                                                            text = session?.scaleDevice?.name ?: (session?.scaleConnectionState?.name ?: "DISCONNECTED"),
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = if (session?.scaleConnectionState == ScaleConnectionState.READY)
+                                                                MaterialTheme.colorScheme.onPrimaryContainer
+                                                            else MaterialTheme.colorScheme.outline,
+                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                        )
+                                                    }
+                                                }
+
+                                                // Primary Telemetry Cluster: Elapsed Time & Live Mass/Flow
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = elapsedFormatted,
+                                                        style = MaterialTheme.typography.displayMedium.copy(
+                                                            fontFamily = FontFamily.Monospace,
+                                                            fontWeight = FontWeight.Bold
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        modifier = Modifier.semantics {
+                                                            liveRegion = LiveRegionMode.Polite
+                                                        }
+                                                    )
+                                                    Column(horizontalAlignment = Alignment.End) {
+                                                        Text("CURRENT MASS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                                        Text(
+                                                            text = "${"%.1f".format(java.util.Locale.US, session?.currentWeightGrams ?: 0.0)} g",
+                                                            style = MaterialTheme.typography.headlineMedium.copy(
+                                                                fontFamily = FontFamily.Monospace,
+                                                                fontWeight = FontWeight.Bold
+                                                            )
+                                                        )
+                                                        Text(
+                                                            text = "${"%.2f".format(java.util.Locale.US, session?.currentFlowRateGps ?: 0.0)} g/s",
+                                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                                fontFamily = FontFamily.Monospace,
+                                                                fontWeight = FontWeight.SemiBold
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.secondary
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
 
+                                        // Step Progression Card
                                         if (currentProgress != null) {
                                             Surface(
                                                 modifier = Modifier.fillMaxWidth().testTag("timer:step_card"),
                                                 color = MaterialTheme.colorScheme.surface,
-                                                shape = RoundedCornerShape(8.dp),
+                                                shape = RoundedCornerShape(10.dp),
                                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                                             ) {
                                                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1151,65 +1351,35 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             }
                                         }
 
+                                        // BLE Scale Card
                                         Surface(
                                             modifier = Modifier.fillMaxWidth().testTag("timer:scale_card"),
                                             color = MaterialTheme.colorScheme.surface,
-                                            shape = RoundedCornerShape(8.dp),
+                                            shape = RoundedCornerShape(10.dp),
                                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                                         ) {
-                                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                    Text(
-                                                        text = session?.scaleDevice?.name ?: "No scale connected",
-                                                        style = MaterialTheme.typography.labelLarge,
-                                                        fontWeight = FontWeight.Medium
-                                                    )
-                                                    Text(
-                                                        text = session?.scaleConnectionState?.name ?: "DISCONNECTED",
-                                                        style = MaterialTheme.typography.labelMedium,
-                                                        color = if (session?.scaleConnectionState == ScaleConnectionState.READY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                                                    )
-                                                }
-                                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                                    Column {
-                                                        Text("Current Mass", style = MaterialTheme.typography.labelSmall)
-                                                        Text(
-                                                            text = "${"%.1f".format(java.util.Locale.US, session?.currentWeightGrams ?: 0.0)} g",
-                                                            style = MaterialTheme.typography.headlineMedium,
-                                                            fontWeight = FontWeight.Bold
-                                                        )
-                                                    }
-                                                    Column(horizontalAlignment = Alignment.End) {
-                                                        Text("Flow Rate", style = MaterialTheme.typography.labelSmall)
-                                                        Text(
-                                                            text = "${"%.2f".format(java.util.Locale.US, session?.currentFlowRateGps ?: 0.0)} g/s",
-                                                            style = MaterialTheme.typography.headlineMedium,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.secondary
-                                                        )
-                                                    }
-                                                }
+                                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                     if (session?.scaleDevice == null) {
                                                         FilledTonalButton(
                                                             onClick = model::connectMockScale,
-                                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:connect_scale")
+                                                            modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("timer:connect_scale")
                                                         ) {
-                                                            Text("Connect Smart Scale")
+                                                            Text("Connect Scale")
                                                         }
                                                     } else {
                                                         OutlinedButton(
                                                             onClick = model::disconnectScale,
-                                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:disconnect_scale")
+                                                            modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("timer:disconnect_scale")
                                                         ) {
-                                                            Text("Disconnect Scale")
+                                                            Text("Disconnect")
                                                         }
                                                     }
                                                     Button(
                                                         onClick = model::tareScale,
-                                                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:tare_scale")
+                                                        modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("timer:tare_scale")
                                                     ) {
-                                                        Text("Tare Scale")
+                                                        Text("Tare (0.0g)")
                                                     }
                                                 }
 
@@ -1229,45 +1399,67 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             }
                                         }
 
-                                        FlowRow(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        // Ergonomic Primary CTA (Start / Pause / Resume)
+                                        TactileButton(
+                                            onClick = {
+                                                if (state.timerRunning) model.pauseBrewSession() else model.startBrewSession()
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(54.dp)
+                                                .testTag("timer:toggle"),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = if (state.timerRunning) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                                            ),
+                                            shape = RoundedCornerShape(14.dp)
                                         ) {
-                                            Button(
-                                                onClick = {
-                                                    if (state.timerRunning) model.pauseBrewSession() else model.startBrewSession()
-                                                },
-                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:toggle")
-                                            ) {
-                                                Text(if (state.timerRunning) "Pause Session" else if (session?.status == BrewExecutionStatus.PAUSED) "Resume Session" else "Start Session")
-                                            }
+                                            Icon(
+                                                imageVector = if (state.timerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                contentDescription = null,
+                                                modifier = Modifier.padding(end = 8.dp)
+                                            )
+                                            Text(
+                                                text = if (state.timerRunning) "Pause Session" else if (session?.status == BrewExecutionStatus.PAUSED) "Resume Session" else "Start Session",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        // Secondary Segmented Control Row
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
                                             OutlinedButton(
                                                 onClick = model::skipBrewStep,
                                                 enabled = session != null && session.status != BrewExecutionStatus.COMPLETED,
-                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:skip_step")
+                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                                modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("timer:skip_step")
                                             ) {
-                                                Text("Skip Step")
+                                                Text("Skip", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                             }
                                             OutlinedButton(
                                                 onClick = model::restartBrewStep,
                                                 enabled = session != null,
-                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:restart_step")
+                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                                modifier = Modifier.weight(1.1f).heightIn(min = 44.dp).testTag("timer:restart_step")
                                             ) {
-                                                Text("Restart Step")
+                                                Text("Restart", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                             }
                                             OutlinedButton(
                                                 onClick = model::resetBrewSession,
-                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:reset")
+                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                                modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("timer:reset")
                                             ) {
-                                                Text("Reset")
+                                                Text("Reset", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                             }
                                             FilledTonalButton(
                                                 onClick = model::finishBrewSession,
                                                 enabled = session != null && (state.timerSeconds > 0 || session.currentWeightGrams > 0.0),
-                                                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:finish_and_log")
+                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                                modifier = Modifier.weight(1.4f).heightIn(min = 44.dp).testTag("timer:finish_and_log")
                                             ) {
-                                                Text("Finish & Save Log")
+                                                Text("Finish & Log", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                             }
                                         }
 
@@ -1410,12 +1602,39 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
             Field("Search catalog (origin, roaster, gear, varietal)", query, { query = it }, "library:query")
         }
         item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 libraryTabs.forEach { label ->
-                    FilterChip(
-                        selected = tab == label || (tab == "Coffee" && label == "Beans & Bags"),
+                    val isSelected = tab == label || (tab == "Coffee" && label == "Beans & Bags")
+                    val icon = when (label) {
+                        "Beans & Bags" -> Icons.Default.Coffee
+                        "Grinders & Gear" -> Icons.Default.Settings
+                        "Water Chemistry" -> Icons.Default.WaterDrop
+                        "Ingredients" -> Icons.Default.Science
+                        "Green & Roast QC" -> Icons.Default.Spa
+                        "Import / Export" -> Icons.Default.ImportExport
+                        else -> Icons.Default.Coffee
+                    }
+                    TactileFilterChip(
+                        selected = isSelected,
                         onClick = { tab = label },
-                        label = { Text(label) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = label,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        },
                         modifier = Modifier.heightIn(min = 48.dp)
                     )
                 }

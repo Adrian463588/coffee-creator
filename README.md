@@ -10,9 +10,9 @@ network access; models need a first-time install before natural-language chat.
 
 ## Download
 
-[Download the latest debug preview APK (v1.9.0)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.0/coffee-creator-v1.9.0.apk)
-· [Release notes](docs/releases/v1.9.0.md)
-· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.0/SHA256SUMS.txt)
+[Download the latest debug preview APK (v1.9.1)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.1/coffee-creator-v1.9.1.apk)
+· [Release notes](docs/releases/v1.9.1.md)
+· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.1/SHA256SUMS.txt)
 
 The distribution APK is debug-signed, targets Android 8/API 26+ and arm64-v8a/x86_64.
 The physical test reference is Samsung SM-G988B, Android 13/API 33. Other device/RAM/
@@ -20,7 +20,7 @@ provider tiers are separate validation work; see [verification](docs/VERIFICATIO
 Install an APK from GitHub using Android's explicit install permission. For ADB:
 
 ```powershell
-adb install --user 0 -r coffee-creator-v1.9.0.apk
+adb install --user 0 -r coffee-creator-v1.9.1.apk
 ```
 
 Replacement installation preserves app records when the signing key matches.
@@ -28,7 +28,8 @@ Uninstall removes private records/grants; export a backup first if you want them
 
 | Version | Date | APK | History |
 |---|---|---|---|
-| v1.9.0 | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.0/coffee-creator-v1.9.0.apk) | [Notes](docs/releases/v1.9.0.md) · Epic S2-E01: Coffee bean agronomic CRUD, multi-state bag inventory & dose deduction, roast-rest calculator & freeze pause, grinder calibration & burr profiles, multi-category gear catalog, water mineral chemistry ($Ca^{2+}, Mg^{2+}, Na^+, HCO_3^- \to GH/KH/TDS$), food-grade safety verification, offline OCR bag scanner, conflict-resolved JSON/CSV import/export, green coffee physical QC defect grading, and roast batches with RoR & DTR % |
+| v1.9.1 | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.1/coffee-creator-v1.9.1.apk) | [Notes](docs/releases/v1.9.1.md) · Tactile Precision Lab & Anti-Slop UI/UX Refinement: single-row horizontally scrollable category bar with dedicated icons, unified precision laboratory timer & telemetry console (tabular monospace digits, live pulse LED, integrated mass & flow rate, 54dp tactile primary CTA, segmented secondary controls), scrollable brew section tabs, and zero regression |
+| v1.9.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.0/coffee-creator-v1.9.0.apk) | [Notes](docs/releases/v1.9.0.md) · Epic S2-E01: Coffee bean agronomic CRUD, multi-state bag inventory & dose deduction, roast-rest calculator & freeze pause, grinder calibration & burr profiles, multi-category gear catalog, water mineral chemistry ($Ca^{2+}, Mg^{2+}, Na^+, HCO_3^- \to GH/KH/TDS$), food-grade safety verification, offline OCR bag scanner, conflict-resolved JSON/CSV import/export, green coffee physical QC defect grading, and roast batches with RoR & DTR % |
 | v1.8.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.8.0/coffee-creator-v1.8.0.apk) | [Notes](docs/releases/v1.8.0.md) · Epic S2-E07: SAF persistent model manifest, resumable downloads (ETag/Range), cryptographic full backup/restore, bilingual EN/ID, localized physics units, adaptive Compose layouts, on-device scrubbed ring buffer diagnostics, and graceful degradation |
 | v1.7.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.7.0/coffee-creator-v1.7.0.apk) | [Notes](docs/releases/v1.7.0.md) · Epic S2-E06: Offline personal palate quiz, Bayesian taste adaptation, explainable inventory recommendations, single-variable OVAT feedback loop, OCR coffee bag scanner, grounded AI barista chat, schema-validated tools, persona presets, weather/altitude boiling point thermodynamics, and food-grade safety & allergen warnings |
 | v1.6.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.6.0/coffee-creator-v1.6.0.apk) | [Notes](docs/releases/v1.6.0.md) · Epic S2-E05: Hierarchical flavor wheel, accessible list alternative, safe food-grade calibration reference lab, blind cupping sessions with controlled reveal, multi-evaluator consensus & IRAI agreement, physical green/roasted QC, and roast-rest degassing curve |
@@ -37,9 +38,10 @@ Uninstall removes private records/grants; export a backup first if you want them
 | v1.3.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.3.0/coffee-creator-v1.3.0.apk) | [Notes](docs/releases/v1.3.0.md) · Epic S2-E02: Recipe composer, Hamilton-Hare pour scaling, optical Brix→TDS refractometer lab, expert dial-in, and offline Android Sharesheet |
 | v1.2.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.2.0/coffee-creator-v1.2.0.apk) | [Notes](docs/releases/v1.2.0.md) · Modern UI cards, FlowRow chip Brew navigation, custom bean/method inputs, curated library (10 recipes, 8 single-origins, 5 sensory logs) |
 | v1.1.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk) | [Notes](docs/releases/v1.1.0.md) · Real Room/FTS4 records, local llama.cpp GGUF/ONNX RAG, SAF storage |
-| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.9.0. |
+| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.9.1. |
 
-v1.9.0 APK verification: 121,404,454 bytes, SHA256: `4801d10dbc143dfa8e7d0f47b252ecf955e571c0e6219ecc4a9e3cb8ebe5ab35`.
+v1.9.1 APK verification: 122,053,217 bytes, SHA256: `917f9cdbab661c5d991a105047f6cff93aa64d37b8c0a06be826c380152bb921`.
+Historical 1.9.0 SHA256: `4801d10dbc143dfa8e7d0f47b252ecf955e571c0e6219ecc4a9e3cb8ebe5ab35`.
 Historical 1.8.0 SHA256: `1DC681387D6DE0E9EEF0B8F821B17B2E22269B2A8F4D3275E8C4594468037275`.
 Historical 1.7.0 SHA256: `1CB40B36E6DCB734B60656F1E3539AB8BE34722283C85B08B0EEB3FD54A1C9B7`.
 Historical 1.6.0 SHA256: `9b2060e67ff69d29aa90468dfd4b00d92f63f78778524f5e6961502764c4958b`.
