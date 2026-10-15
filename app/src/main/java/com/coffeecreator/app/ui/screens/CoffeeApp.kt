@@ -2,7 +2,9 @@
 
 package com.coffeecreator.app.ui.screens
 
+import android.content.Intent
 import android.net.Uri
+import java.time.LocalDate
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -182,6 +184,27 @@ import com.coffeecreator.app.core.ble.ScaleConnectionState
 import com.coffeecreator.app.core.brew.BrewExecutionStatus
 import com.coffeecreator.app.core.brew.ProximityState
 import com.coffeecreator.app.ui.viewmodel.RecipeDraft
+import com.coffeecreator.app.core.catalog.BagInventoryItem
+import com.coffeecreator.app.core.catalog.BagOcrParsedDraft
+import com.coffeecreator.app.core.catalog.BagStatus
+import com.coffeecreator.app.core.catalog.BlendComponentSpec
+import com.coffeecreator.app.core.catalog.BurrProfile
+import com.coffeecreator.app.core.catalog.CalibrationUnit
+import com.coffeecreator.app.core.catalog.ConflictResolutionStrategy
+import com.coffeecreator.app.core.catalog.DetailedBeanRecord
+import com.coffeecreator.app.core.catalog.EquipmentCategory
+import com.coffeecreator.app.core.catalog.EquipmentItem
+import com.coffeecreator.app.core.catalog.FoodGradeIngredientItem
+import com.coffeecreator.app.core.catalog.FreshnessAnalysis
+import com.coffeecreator.app.core.catalog.FreshnessState
+import com.coffeecreator.app.core.catalog.GreenCoffeeLot
+import com.coffeecreator.app.core.catalog.GrinderRecord
+import com.coffeecreator.app.core.catalog.ProcessMethod
+import com.coffeecreator.app.core.catalog.RoastBatchRecord
+import com.coffeecreator.app.core.catalog.RoastLevel
+import com.coffeecreator.app.core.catalog.RoastRestCalculator
+import com.coffeecreator.app.core.catalog.WaterChemistryCalculator
+import com.coffeecreator.app.core.catalog.WaterMineralProfile
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
 private const val DECIMAL_GIGABYTE_BYTES = 1_000_000_000.0
@@ -1360,70 +1383,168 @@ private fun BrewCard(title: String, detail: String, content: @Composable android
 
 @Composable
 private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
+    val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
-    var tab by rememberSaveable { mutableStateOf("Coffee") }
+    var tab by rememberSaveable { mutableStateOf("Beans & Bags") }
     var formKind by rememberSaveable { mutableStateOf<String?>(null) }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     var form by rememberSaveable { mutableStateOf(emptyMap<String, String>()) }
-    var process by rememberSaveable { mutableStateOf("All") }
+    var processFilter by rememberSaveable { mutableStateOf("All") }
+    var favoritesOnly by rememberSaveable { mutableStateOf(false) }
+    var gearFilter by rememberSaveable { mutableStateOf("All") }
+    var ocrDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var ocrSampleText by rememberSaveable { mutableStateOf("") }
+    var importJsonText by rememberSaveable { mutableStateOf("") }
+    var selectedStrategy by rememberSaveable { mutableStateOf(ConflictResolutionStrategy.KEEP_BOTH_RENAME) }
+
+    val libraryTabs = listOf("Beans & Bags", "Grinders & Gear", "Water Chemistry", "Ingredients", "Green & Roast QC", "Import / Export")
+
     Page("Library") {
         item {
             Heading(
-                "Coffee & ingredients",
-                "Reference varieties describe coffee genetics. Add your supplier lots separately; " +
-                    "origin, processing, roast and measurements stay Unknown until supplied."
+                "Beans, Gear & Formulation Catalog",
+                "Verified agricultural origins, bag inventory with rest aging heuristics, precision grinder geometry, water mineral chemistry and conflict-resolving import/export."
             )
         }
-        item { Field("Search origin, name or process", query, { query = it }, "library:query") }
+        item {
+            Field("Search catalog (origin, roaster, gear, varietal)", query, { query = it }, "library:query")
+        }
         item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Coffee", "Ingredients").forEach { label ->
+                libraryTabs.forEach { label ->
                     FilterChip(
-                        tab == label,
-                        { tab = label },
+                        selected = tab == label || (tab == "Coffee" && label == "Beans & Bags"),
+                        onClick = { tab = label },
                         label = { Text(label) },
                         modifier = Modifier.heightIn(min = 48.dp)
                     )
                 }
             }
         }
-        item {
-            Button(onClick = {
-                formKind = tab
-                editingId = null
-                form = emptyMap()
-            }, modifier = Modifier.testTag("library:add")) { Text("Add ${if (tab == "Coffee") "coffee" else "ingredient"}") }
-        }
-        if (tab == "Coffee") {
+
+        // ====================================================================
+        // TAB 1: Beans & Bags Inventory (S2-001, S2-002, S2-003, S2-008, S2-010)
+        // ====================================================================
+        if (tab == "Beans & Bags" || tab == "Coffee") {
             item {
-                Select("Process filter", process, (listOf("All") + state.beans.map { it.process }.distinct()).map { it to it }, {
-                    process =
-                        it
-                }, "library:process")
-            }
-            val hasCuratedBeans = state.beans.any { b -> CuratedCoffeeCatalog.beans.any { it.id == b.id } }
-            if (!hasCuratedBeans) {
-                item {
-                    InfoCard(
-                        "Specialty Single-Origin Beans",
-                        "Load 8 authentic specialty beans with verified agricultural data (Yirgacheffe, Huila Pink Bourbon, Panama Geisha, etc.)."
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            formKind = "Coffee"
+                            editingId = null
+                            form = emptyMap()
+                        },
+                        modifier = Modifier.testTag("library:add")
                     ) {
-                        Button(
-                            onClick = model::importCuratedCatalog,
-                            enabled = !state.busy,
-                            modifier = Modifier.testTag("library:import_catalog")
-                        ) {
-                            Text("Load Curated Specialty Beans")
+                        Text("+ Add Bean Record")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            ocrSampleText = "SEY COFFEE\nWORKA SAKARO\nETHIOPIA - GEDEB\nVARIETY: KURUME, DEGA\nWASHED PROCESS\nALTITUDE: 2100 MASL\nROASTED ON 2026-10-01\nNET WEIGHT: 250G"
+                            ocrDialogVisible = true
+                        }
+                    ) {
+                        Text("📷 Scan Bag (Offline OCR)")
+                    }
+                    FilterChip(
+                        selected = favoritesOnly,
+                        onClick = { favoritesOnly = !favoritesOnly },
+                        label = { Text(if (favoritesOnly) "★ Favorites Only" else "☆ All Beans") }
+                    )
+                }
+            }
+            item {
+                val processes = listOf("All", "WASHED", "NATURAL", "HONEY", "ANAEROBIC_NATURAL", "WET_HULLED")
+                Select("Process filter", processFilter, processes.map { it to it }, { processFilter = it }, "library:process")
+            }
+
+            // Detailed Beans
+            val filteredDetailed = state.detailedBeans.filter { bean ->
+                (processFilter == "All" || bean.process.name.equals(processFilter, ignoreCase = true)) &&
+                    (!favoritesOnly || bean.isFavorite) &&
+                    listOf(bean.name, bean.roaster, bean.originCountry, bean.varietal, bean.process.name).any { it.contains(query, true) }
+            }
+
+            items(filteredDetailed, key = { "detailed-${it.id}" }) { bean ->
+                val analysis = RoastRestCalculator.calculateFreshness(
+                    roastDate = bean.roastDate,
+                    roastLevel = bean.roastLevel,
+                    process = bean.process,
+                    freezeHistory = bean.bags.flatMap { it.freezeHistory }
+                )
+
+                InfoCard(
+                    "${bean.roaster} — ${bean.name}",
+                    listOf(
+                        "Origin: ${bean.originCountry} · ${bean.region} (Farm: ${bean.farm}, Producer: ${bean.producer})",
+                        "Variety: ${bean.varietal} · Process: ${bean.process.name} · Altitude: ${bean.altitudeMeters ?: "Unknown"}m",
+                        "Roast: ${bean.roastLevel.name} on ${bean.roastDate} (${analysis.effectiveRestDays} effective rest days)",
+                        "Freshness: ${analysis.state.name} (Peak: Days ${analysis.peakStartDay}–${analysis.peakEndDay})",
+                        "Degas Rationale: ${analysis.heuristicRationale}",
+                        if (bean.tastingNotes.isNotEmpty()) "Tasting Notes: ${bean.tastingNotes.joinToString(", ")}" else ""
+                    ).filter { it.isNotBlank() }.joinToString("\n")
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { model.toggleBeanFavorite(bean.id) }) {
+                                Text(if (bean.isFavorite) "★ Favorited" else "☆ Add Favorite")
+                            }
+                            TextButton(onClick = {
+                                model.addBagToBean(bean.id, BigDecimal("250.00"), BigDecimal("22.00"))
+                            }) {
+                                Text("+ Add 250g Bag")
+                            }
+                            TextButton(onClick = { model.deleteDetailedBean(bean.id) }) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+
+                        // Bags Inventory List
+                        if (bean.bags.isNotEmpty()) {
+                            Text("Bags in Inventory (${bean.bags.size}):", style = MaterialTheme.typography.labelMedium)
+                            bean.bags.forEach { bag ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            "${bag.remainingMassGrams}g / ${bag.packageMassGrams}g [${bag.status.name}]",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        if (bag.freezeHistory.any { it.isOngoing }) {
+                                            Text("❄ Sub-zero frozen: Aging paused", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
+                                        }
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        OutlinedButton(
+                                            onClick = { model.toggleFreezeBag(bag.id) },
+                                            enabled = bag.status != BagStatus.FINISHED
+                                        ) {
+                                            Text(if (bag.status == BagStatus.FROZEN) "Thaw" else "Freeze")
+                                        }
+                                        Button(
+                                            onClick = { model.deductDoseFromBag(bag.id, BigDecimal("18.00")) },
+                                            enabled = bag.status != BagStatus.FROZEN && bag.status != BagStatus.FINISHED && bag.remainingMassGrams > BigDecimal.ZERO
+                                        ) {
+                                            Text("Brew -18g")
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
+
+            // Legacy / Curated Seed Beans
             items(
                 state.beans.filter { bean ->
-                    (process == "All" || bean.process == process) &&
-                        listOf(bean.name, bean.variety, bean.country, bean.region, bean.process).any { it.contains(query, true) }
+                    (processFilter == "All" || bean.process.equals(processFilter, ignoreCase = true)) &&
+                        listOf(bean.name, bean.variety, bean.country, bean.region).any { it.contains(query, true) }
                 },
-                key = { it.id }
+                key = { "legacy-${it.id}" }
             ) { bean ->
                 InfoCard(
                     bean.name,
@@ -1450,16 +1571,126 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     }
                 }
             }
-        } else {
-            if (state.ingredients.isEmpty()) {
+        }
+
+        // ====================================================================
+        // TAB 2: Grinders & Gear Catalog (S2-004, S2-005)
+        // ====================================================================
+        if (tab == "Grinders & Gear") {
+            item {
+                val gearCategories = listOf("All", "GRINDER", "DRIPPER", "KETTLE", "SCALE", "ESPRESSO_MACHINE", "PORTAFILTER_BASKET", "PUCK_PREP_TOOL")
+                Select("Category filter", gearFilter, gearCategories.map { it to it }, { gearFilter = it }, "library:gear_filter")
+            }
+
+            if (gearFilter == "All" || gearFilter == "GRINDER") {
                 item {
+                    Text("Precision Grinders & Burr Geometry (S2-004)", style = MaterialTheme.typography.titleMedium)
+                }
+                items(state.grinders.filter { listOf(it.brand, it.model).any { s -> s.contains(query, true) } }, key = { "grinder-${it.id}" }) { grinder ->
                     InfoCard(
-                        "No ingredient records",
-                        "Add food-grade status, allergens, density and supplier dosage limits from a real supplier."
-                    )
+                        "${grinder.brand} — ${grinder.model}",
+                        listOf(
+                            "Calibration Unit: ${grinder.calibrationUnit.name}",
+                            "Burrs: ${grinder.burrProfile.diameterMm}mm ${grinder.burrProfile.burrType.name} (${grinder.burrProfile.material.name})",
+                            "Burr Model: ${grinder.burrProfile.burrModelName}",
+                            "Zero Point Offset: ${grinder.zeroPointOffset} ${grinder.calibrationUnit.name.lowercase()}",
+                            if (grinder.clicksPerRotation != null) "Clicks/Rotation: ${grinder.clicksPerRotation}" else "",
+                            if (grinder.typicalRpm != null) "Motor: ${grinder.typicalRpm} RPM" else "",
+                            if (grinder.notes.isNotBlank()) "Notes: ${grinder.notes}" else ""
+                        ).filter { it.isNotBlank() }.joinToString("\n")
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { model.toggleGrinderFavorite(grinder.id) }) {
+                                Text(if (grinder.isFavorite) "★ Favorited" else "☆ Add Favorite")
+                            }
+                            TextButton(onClick = { model.deleteGrinder(grinder.id) }) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
                 }
             }
-            items(state.ingredients.filter { it.name.contains(query, true) }, key = { it.id }) { ingredient ->
+
+            if (gearFilter != "GRINDER") {
+                item {
+                    Text("Brewing Gear & Equipment Catalog (S2-005)", style = MaterialTheme.typography.titleMedium)
+                }
+                val filteredEquip = state.equipmentCatalog.filter { eq ->
+                    (gearFilter == "All" || eq.category.name == gearFilter) &&
+                        listOf(eq.brand, eq.model, eq.category.name).any { it.contains(query, true) }
+                }
+                items(filteredEquip, key = { "equip-${it.id}" }) { item ->
+                    InfoCard(
+                        "[${item.category.name}] ${item.brand} ${item.model}",
+                        item.parameters.entries.joinToString("\n") { "${it.key}: ${it.value}" }.ifBlank { "No special parameters" }
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { model.toggleEquipmentFavorite(item.id) }) {
+                                Text(if (item.isFavorite) "★ Favorited" else "☆ Add Favorite")
+                            }
+                            TextButton(onClick = { model.deleteEquipmentItem(item.id) }) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // TAB 3: Water Mineral Profile & Chemistry (S2-006)
+        // ====================================================================
+        if (tab == "Water Chemistry") {
+            item {
+                Text("Water Chemistry & Mineral Presets (S2-006)", style = MaterialTheme.typography.titleMedium)
+            }
+            items(state.waterProfiles, key = { "water-${it.id}" }) { water ->
+                InfoCard(
+                    water.name,
+                    listOf(
+                        "Calcium (Ca2+): ${water.calciumPpm} ppm · Magnesium (Mg2+): ${water.magnesiumPpm} ppm",
+                        "Sodium (Na+): ${water.sodiumPpm} ppm · Bicarbonate (HCO3-): ${water.bicarbonatePpm} ppm",
+                        "Total Hardness (GH): ${water.totalHardnessPpmCaCO3} ppm CaCO3",
+                        "Total Alkalinity (KH): ${water.totalAlkalinityPpmCaCO3} ppm CaCO3",
+                        "Calculated TDS: ${water.calculatedTdsPpm} ppm · pH: ${water.ph ?: "7.0"}",
+                        "Preset Type: ${water.preset.name}"
+                    ).joinToString("\n")
+                ) {
+                    TextButton(onClick = {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, water.name)
+                            putExtra(Intent.EXTRA_TEXT, "Water Profile: ${water.name}\nHardness: ${water.totalHardnessPpmCaCO3} ppm CaCO3\nAlkalinity: ${water.totalAlkalinityPpmCaCO3} ppm CaCO3\nTDS: ${water.calculatedTdsPpm} ppm")
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share Water Profile"))
+                    }) {
+                        Text("Share Profile")
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // TAB 4: Ingredients & Food-Grade Catalog (S2-007)
+        // ====================================================================
+        if (tab == "Ingredients") {
+            item {
+                Text("Food-Grade Verified Solutions & Additives (S2-007)", style = MaterialTheme.typography.titleMedium)
+            }
+            items(state.foodGradeIngredients, key = { "food-ing-${it.id}" }) { ing ->
+                InfoCard(
+                    ing.name,
+                    listOf(
+                        "Density: ${ing.densityGramsPerMl} g/mL (Required for volume-mass conversion)",
+                        "Food Grade Verified: ${if (ing.isFoodGradeVerified) "Yes (Food-Safe)" else "NO - FORBIDDEN"}",
+                        "Supplier Max Limit: ${ing.supplierMaxPercent ?: "None"}% w/w",
+                        "Allergens: ${ing.allergens.joinToString().ifBlank { "None declared" }}",
+                        if (ing.casNumber != null) "CAS Registry: ${ing.casNumber}" else "",
+                        "Provenance: ${ing.provenance}"
+                    ).filter { it.isNotBlank() }.joinToString("\n")
+                )
+            }
+            items(state.ingredients, key = { "legacy-ing-${it.id}" }) { ingredient ->
                 InfoCard(
                     ingredient.name,
                     listOf(
@@ -1469,20 +1700,224 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         "Allergens: ${ingredient.allergens.joinToString().ifBlank { "not declared; verify supplier" }}",
                         "Source: ${ingredient.provenance}"
                     ).joinToString("\n")
-                ) {
-                    TextButton(onClick = {
-                        formKind = "Ingredients"
-                        editingId = ingredient.id
-                        form = ingredientForm(ingredient)
-                    }) { Text("Edit ingredient") }
+                )
+            }
+        }
+
+        // ====================================================================
+        // TAB 5: Green Coffee QC & Roast Batches (S2-011, S2-012)
+        // ====================================================================
+        if (tab == "Green & Roast QC") {
+            item {
+                Text("Green Coffee Physical QC (S2-011)", style = MaterialTheme.typography.titleMedium)
+            }
+            items(state.greenCoffeeLots, key = { "green-${it.id}" }) { lot ->
+                InfoCard(
+                    "Lot: ${lot.lotNumber} (${lot.originCountry} - ${lot.producer})",
+                    listOf(
+                        "Moisture: ${lot.moisturePercent}% (Target: 10.0-12.0%) · Water Activity: ${lot.waterActivityAw} aw",
+                        "Bulk Density: ${lot.bulkDensityGramsPerLiter} g/L",
+                        "Defects: Cat 1 = ${lot.category1DefectCount}, Cat 2 = ${lot.category2DefectCount} (Total Points = ${lot.totalDefectPoints})",
+                        "Grade Status: ${if (lot.isSpecialtyGradeEligible) "★ Specialty Grade 1 Eligible" else "Commercial / Off-Grade"}",
+                        "Status: ${lot.sampleStatus.name} (Harvest: ${lot.harvestYear})"
+                    ).joinToString("\n")
+                )
+            }
+
+            item {
+                Spacer(Modifier.height(8.dp))
+                Text("Roast Batches, Curves & Blends (S2-012)", style = MaterialTheme.typography.titleMedium)
+            }
+            items(state.roastBatches, key = { "roast-${it.id}" }) { batch ->
+                InfoCard(
+                    "Batch #${batch.batchNumber}",
+                    listOf(
+                        "Charge Temp: ${batch.chargeTemperatureCelsius}°C · Drop Temp: ${batch.dropTemperatureCelsius}°C",
+                        "Duration: ${batch.totalRoastDurationSeconds}s · First Crack: ${batch.firstCrackTimeSeconds}s",
+                        "Development Time Ratio (DTR): ${batch.developmentTimeRatioPercent}%",
+                        "Curve Data Points: ${batch.curvePoints.size} samples (Rate of Rise RoR available)",
+                        "Blend Formulations: ${batch.blendComponents.joinToString { "${it.beanId}: ${it.componentPercentage}%" }}"
+                    ).joinToString("\n")
+                )
+            }
+        }
+
+        // ====================================================================
+        // TAB 6: Bulk Import/Export & Conflicts (S2-009)
+        // ====================================================================
+        if (tab == "Import / Export") {
+            item {
+                Heading(
+                    "Catalog Data Portability & Conflict Resolution (S2-009)",
+                    "Export canonical JSON/CSV or import backup data with deterministic duplicate resolution strategies."
+                )
+            }
+            item {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        val json = model.exportCatalogJson()
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "application/json"
+                            putExtra(Intent.EXTRA_SUBJECT, "coffee_creator_catalog.json")
+                            putExtra(Intent.EXTRA_TEXT, json)
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Export Catalog JSON"))
+                    }) {
+                        Text("Export Catalog (JSON)")
+                    }
+                    OutlinedButton(onClick = {
+                        val csv = model.exportBeansCsv()
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/csv"
+                            putExtra(Intent.EXTRA_SUBJECT, "beans_export.csv")
+                            putExtra(Intent.EXTRA_TEXT, csv)
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Export Beans (CSV)"))
+                    }) {
+                        Text("Export Beans (CSV)")
+                    }
+                }
+            }
+            item {
+                Spacer(Modifier.height(12.dp))
+                Text("Import Catalog JSON Payload:", style = MaterialTheme.typography.titleMedium)
+            }
+            item {
+                OutlinedTextField(
+                    value = importJsonText,
+                    onValueChange = {
+                        importJsonText = it
+                        if (it.isNotBlank()) model.previewCatalogImport(it)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(140.dp),
+                    label = { Text("Paste Catalog JSON here") }
+                )
+            }
+
+            state.catalogImportPreview?.let { preview ->
+                item {
+                    InfoCard(
+                        "Import Dry-Run Preview",
+                        "Total records: ${preview.totalRecords}\n" +
+                            "New records: ${preview.newRecordsCount}\n" +
+                            "Conflicting records: ${preview.conflictingRecordsCount}\n" +
+                            preview.conflicts.joinToString("\n")
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Conflict Resolution Strategy:", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ConflictResolutionStrategy.values().forEach { strategy ->
+                                    FilterChip(
+                                        selected = selectedStrategy == strategy,
+                                        onClick = { selectedStrategy = strategy },
+                                        label = { Text(strategy.name) }
+                                    )
+                                }
+                            }
+                            Button(
+                                onClick = {
+                                    model.executeCatalogImport(importJsonText, selectedStrategy)
+                                    importJsonText = ""
+                                },
+                                enabled = preview.totalRecords > 0
+                            ) {
+                                Text("Execute Import (${selectedStrategy.name})")
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+
+    // OCR Modal Dialog
+    if (ocrDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { ocrDialogVisible = false },
+            title = { Text("Offline Bag OCR Scanner (S2-008)") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Simulate camera text capture from coffee bag label:", style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        value = ocrSampleText,
+                        onValueChange = { ocrSampleText = it },
+                        modifier = Modifier.fillMaxWidth().height(120.dp)
+                    )
+                    Button(
+                        onClick = {
+                            model.parseBagOcr("content://camera/bag_sample.jpg", ocrSampleText)
+                            ocrDialogVisible = false
+                        }
+                    ) {
+                        Text("Extract Structured Draft")
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { ocrDialogVisible = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    // OCR Draft Confirmation Gate (User MUST confirm before saving)
+    state.pendingOcrDraft?.let { draft ->
+        var editRoaster by rememberSaveable { mutableStateOf(draft.roaster.value ?: "") }
+        var editName by rememberSaveable { mutableStateOf(draft.beanName.value ?: "") }
+        var editOrigin by rememberSaveable { mutableStateOf(draft.origin.value ?: "") }
+        var editAltitude by rememberSaveable { mutableStateOf(draft.altitudeMeters.value?.toString() ?: "2000") }
+        var editRoastDate by rememberSaveable { mutableStateOf(draft.roastDate.value?.toString() ?: "2026-10-01") }
+
+        AlertDialog(
+            onDismissRequest = { model.dismissOcrDraft() },
+            title = { Text("Confirm OCR Extracted Bean (Gate)") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Verify extracted fields. AI drafts require explicit human review before saving.", style = MaterialTheme.typography.bodySmall)
+                    Field("Roaster", editRoaster, { editRoaster = it }, "ocr:roaster")
+                    Field("Bean Name", editName, { editName = it }, "ocr:name")
+                    Field("Origin Country", editOrigin, { editOrigin = it }, "ocr:origin")
+                    Field("Altitude (m)", editAltitude, { editAltitude = it }, "ocr:altitude")
+                    Field("Roast Date (YYYY-MM-DD)", editRoastDate, { editRoastDate = it }, "ocr:roastDate")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val confirmed = DetailedBeanRecord(
+                            id = UUID.randomUUID().toString(),
+                            roaster = editRoaster.ifBlank { "Unknown Roaster" },
+                            name = editName.ifBlank { "Unknown Coffee" },
+                            originCountry = editOrigin.ifBlank { "Unknown" },
+                            altitudeMeters = editAltitude.toIntOrNull() ?: 1800,
+                            roastDate = runCatching { LocalDate.parse(editRoastDate) }.getOrDefault(LocalDate.now()),
+                            roastLevel = RoastLevel.LIGHT,
+                            process = draft.process.value ?: ProcessMethod.WASHED,
+                            bags = listOf(
+                                BagInventoryItem(
+                                    id = UUID.randomUUID().toString(),
+                                    beanId = "new",
+                                    packageMassGrams = draft.packageMassGrams.value ?: BigDecimal("250.00"),
+                                    remainingMassGrams = draft.packageMassGrams.value ?: BigDecimal("250.00"),
+                                    status = BagStatus.ACTIVE
+                                )
+                            )
+                        )
+                        model.confirmOcrDraft(confirmed)
+                    }
+                ) {
+                    Text("Confirm & Save Bean")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { model.dismissOcrDraft() }) { Text("Discard Draft") }
+            }
+        )
+    }
+
+    // Existing Bean / Ingredient CRUD Form Dialog
     formKind?.let { kind ->
-        val keys = if (kind ==
-            "Coffee"
-        ) {
+        val keys = if (kind == "Coffee") {
             listOf(
                 "name" to "Name", "country" to "Country", "region" to "Region", "producer" to "Producer",
                 "variety" to "Variety", "process" to "Process", "roast" to "Roast", "altitude" to "Altitude (m)",
@@ -1498,36 +1933,64 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 "provenance" to "Supplier / provenance"
             )
         }
-        AlertDialog(onDismissRequest = {
-            formKind = null
-        }, title = { Text("${if (editingId == null) "Add" else "Edit"} ${if (kind == "Coffee") "coffee" else "ingredient"}") }, text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                keys.forEach { (key, label) -> Field(label, form[key].orEmpty(), { form = form + (key to it) }, "catalog:$key") }
-                if (kind !=
-                    "Coffee"
-                ) {
-                    Select(
-                        "Food-grade evidence",
-                        form["foodGrade"].orEmpty(),
-                        listOf("Unknown", "Confirmed food grade", "Not food grade").map {
-                            it to
-                                it
-                        },
-                        { form = form + ("foodGrade" to it) },
-                        "catalog:foodGrade"
-                    )
+        AlertDialog(
+            onDismissRequest = { formKind = null },
+            title = { Text("${if (editingId == null) "Add" else "Edit"} ${if (kind == "Coffee") "coffee" else "ingredient"}") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    keys.forEach { (key, label) -> Field(label, form[key].orEmpty(), { form = form + (key to it) }, "catalog:$key") }
+                    if (kind != "Coffee") {
+                        Select(
+                            "Food-grade evidence",
+                            form["foodGrade"].orEmpty(),
+                            listOf("Unknown", "Confirmed food grade", "Not food grade").map { it to it },
+                            { form = form + ("foodGrade" to it) },
+                            "catalog:foodGrade"
+                        )
+                    }
+                    Text("Leave unknown facts blank. Unknown food-grade ingredients cannot be used in a drink.")
                 }
-                Text("Leave unknown facts blank. Unknown food-grade ingredients cannot be used in a drink.")
-            }
-        }, confirmButton = {
-            TextButton(onClick = {
-                val values = form + ("name" to form["name"].orEmpty())
-                if (kind == "Coffee") model.saveBean(editingId, values) else model.saveIngredient(editingId, values)
-                formKind = null
-            }, enabled = form["name"].orEmpty().isNotBlank() && !state.busy, modifier = Modifier.testTag("catalog:save")) {
-                Text("Save entry")
-            }
-        }, dismissButton = { TextButton(onClick = { formKind = null }) { Text("Cancel") } })
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val values = form + ("name" to form["name"].orEmpty())
+                        if (kind == "Coffee") {
+                            model.saveBean(editingId, values)
+                            val detailed = DetailedBeanRecord(
+                                id = editingId ?: UUID.randomUUID().toString(),
+                                roaster = form["producer"].orEmpty().ifBlank { "Artisan Roaster" },
+                                name = form["name"].orEmpty(),
+                                originCountry = form["country"].orEmpty().ifBlank { "Unknown" },
+                                region = form["region"].orEmpty(),
+                                varietal = form["variety"].orEmpty(),
+                                process = runCatching { ProcessMethod.valueOf(form["process"].orEmpty().uppercase()) }.getOrDefault(ProcessMethod.WASHED),
+                                altitudeMeters = form["altitude"]?.toIntOrNull(),
+                                roastDate = runCatching { LocalDate.parse(form["roastDate"].orEmpty()) }.getOrDefault(LocalDate.now()),
+                                bags = listOf(
+                                    BagInventoryItem(
+                                        id = UUID.randomUUID().toString(),
+                                        beanId = "bag-01",
+                                        packageMassGrams = BigDecimal("250.00"),
+                                        remainingMassGrams = BigDecimal("250.00"),
+                                        status = BagStatus.ACTIVE
+                                    )
+                                )
+                            )
+                            model.addDetailedBean(detailed)
+                        } else {
+                            model.saveIngredient(editingId, values)
+                        }
+                        formKind = null
+                    },
+                    enabled = form["name"].orEmpty().isNotBlank() && !state.busy,
+                    modifier = Modifier.testTag("catalog:save")
+                ) {
+                    Text("Save entry")
+                }
+            },
+            dismissButton = { TextButton(onClick = { formKind = null }) { Text("Cancel") } }
+        )
     }
 }
 

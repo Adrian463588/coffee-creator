@@ -134,6 +134,40 @@ import com.coffeecreator.app.core.reliability.TemperatureUnit
 import com.coffeecreator.app.core.reliability.UnitConverter
 import com.coffeecreator.app.core.reliability.UserUnitPreferences
 import com.coffeecreator.app.core.reliability.VolumeUnit
+import com.coffeecreator.app.core.catalog.BagInventoryItem
+import com.coffeecreator.app.core.catalog.BagOcrParsedDraft
+import com.coffeecreator.app.core.catalog.BagStatus
+import com.coffeecreator.app.core.catalog.BlendComponentSpec
+import com.coffeecreator.app.core.catalog.BurrMaterial
+import com.coffeecreator.app.core.catalog.BurrProfile
+import com.coffeecreator.app.core.catalog.BurrType
+import com.coffeecreator.app.core.catalog.CalibrationUnit
+import com.coffeecreator.app.core.catalog.CatalogExportPayload
+import com.coffeecreator.app.core.catalog.CatalogImportExportEngine
+import com.coffeecreator.app.core.catalog.ConflictResolutionStrategy
+import com.coffeecreator.app.core.catalog.DetailedBeanRecord
+import com.coffeecreator.app.core.catalog.EquipmentCategory
+import com.coffeecreator.app.core.catalog.EquipmentItem
+import com.coffeecreator.app.core.catalog.FoodGradeIngredientItem
+import com.coffeecreator.app.core.catalog.FreezeEvent
+import com.coffeecreator.app.core.catalog.FreshnessAnalysis
+import com.coffeecreator.app.core.catalog.FreshnessState
+import com.coffeecreator.app.core.catalog.GreenCoffeeLot
+import com.coffeecreator.app.core.catalog.GrinderRecord
+import com.coffeecreator.app.core.catalog.ImportDryRunSummary
+import com.coffeecreator.app.core.catalog.ImportExecutionReceipt
+import com.coffeecreator.app.core.catalog.InventoryDeductionEngine
+import com.coffeecreator.app.core.catalog.InventoryDeductionResult
+import com.coffeecreator.app.core.catalog.OfflineBagOcrParser
+import com.coffeecreator.app.core.catalog.ProcessMethod
+import com.coffeecreator.app.core.catalog.RoastBatchRecord
+import com.coffeecreator.app.core.catalog.RoastDataPoint
+import com.coffeecreator.app.core.catalog.RoastLevel
+import com.coffeecreator.app.core.catalog.RoastRestCalculator
+import com.coffeecreator.app.core.catalog.SampleLotStatus
+import com.coffeecreator.app.core.catalog.WaterChemistryCalculator
+import com.coffeecreator.app.core.catalog.WaterMineralProfile
+import com.coffeecreator.app.core.catalog.WaterRecipePreset
 import java.math.BigDecimal
 import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -226,7 +260,17 @@ data class CoffeeUiState(
     val unitPreferences: UserUnitPreferences = UserUnitPreferences(),
     val degradationState: SystemDegradationState = SystemDegradationState(),
     val selectedHelpTopicId: String? = null,
-    val diagnosticLogSnapshot: List<DiagnosticLogEntry> = emptyList()
+    val diagnosticLogSnapshot: List<DiagnosticLogEntry> = emptyList(),
+    val detailedBeans: List<DetailedBeanRecord> = emptyList(),
+    val grinders: List<GrinderRecord> = emptyList(),
+    val equipmentCatalog: List<EquipmentItem> = emptyList(),
+    val waterProfiles: List<WaterMineralProfile> = emptyList(),
+    val foodGradeIngredients: List<FoodGradeIngredientItem> = emptyList(),
+    val greenCoffeeLots: List<GreenCoffeeLot> = emptyList(),
+    val roastBatches: List<RoastBatchRecord> = emptyList(),
+    val selectedBagId: String? = null,
+    val pendingOcrDraft: BagOcrParsedDraft? = null,
+    val catalogImportPreview: ImportDryRunSummary? = null
 )
 
 @HiltViewModel
@@ -285,6 +329,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
             _state.update { it.copy(ready = true, canUndoDraft = undoDraft != null) }
             calculate()
             seedInitialSensoryData()
+            seedInitialCatalogData()
         }
         viewModelScope.launch {
             graph.preferences.data.catch { failure ->
@@ -2389,6 +2434,480 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
             )
             it.copy(degradationState = newState)
         }
+    }
+
+    // ========================================================================
+    // Epic S2-E01: Coffee Bean, Ingredient & Equipment Foundation
+    // ========================================================================
+
+    private fun seedInitialCatalogData() {
+        if (_state.value.detailedBeans.isNotEmpty()) return
+
+        val roast1 = LocalDate.now().minusDays(14)
+        val roast2 = LocalDate.now().minusDays(10)
+        val roast3 = LocalDate.now().minusDays(21)
+        val roast4 = LocalDate.now().minusDays(18)
+
+        val bean1 = DetailedBeanRecord(
+            id = "detailed-bean-sey-worka",
+            roaster = "Sey Coffee",
+            name = "Worka Sakaro",
+            originCountry = "Ethiopia",
+            region = "Gedeb, Yirgacheffe",
+            farm = "Halo Hartume",
+            producer = "Mijane Woresa",
+            varietal = "Kurume, Dega",
+            process = ProcessMethod.WASHED,
+            altitudeMeters = 2100,
+            harvestDate = "2026-02-15",
+            roastDate = roast1,
+            roastLevel = RoastLevel.LIGHT,
+            tastingNotes = listOf("Peach", "Jasmine", "Bergamot", "Meyer Lemon"),
+            tags = listOf("Floral", "High-Altitude", "African", "Ethiopian"),
+            isFavorite = true,
+            bags = listOf(
+                BagInventoryItem(
+                    id = "bag-sey-01",
+                    beanId = "detailed-bean-sey-worka",
+                    packageMassGrams = BigDecimal("250.00"),
+                    remainingMassGrams = BigDecimal("214.00"),
+                    status = BagStatus.ACTIVE,
+                    openedAtEpochMs = System.currentTimeMillis() - 86400000L * 7,
+                    pricePaid = BigDecimal("24.00")
+                )
+            )
+        )
+
+        val bean2 = DetailedBeanRecord(
+            id = "detailed-bean-tw-caballero",
+            roaster = "Tim Wendelboe",
+            name = "Caballero Geisha",
+            originCountry = "Honduras",
+            region = "Marcala",
+            farm = "Finca El Puente",
+            producer = "Marysabel Caballero",
+            varietal = "Geisha",
+            process = ProcessMethod.WASHED,
+            altitudeMeters = 1600,
+            harvestDate = "2026-03-01",
+            roastDate = roast2,
+            roastLevel = RoastLevel.LIGHT,
+            tastingNotes = listOf("Floral", "White Tea", "Papaya", "Jasmine"),
+            tags = listOf("Geisha", "Central American", "Light Roast"),
+            isFavorite = true,
+            bags = listOf(
+                BagInventoryItem(
+                    id = "bag-tw-01",
+                    beanId = "detailed-bean-tw-caballero",
+                    packageMassGrams = BigDecimal("250.00"),
+                    remainingMassGrams = BigDecimal("185.00"),
+                    status = BagStatus.ACTIVE,
+                    openedAtEpochMs = System.currentTimeMillis() - 86400000L * 4,
+                    pricePaid = BigDecimal("32.00")
+                )
+            )
+        )
+
+        val bean3 = DetailedBeanRecord(
+            id = "detailed-bean-kawa-elparaiso",
+            roaster = "Kawa Coffee",
+            name = "El Paraiso Lychee",
+            originCountry = "Colombia",
+            region = "Piendamo, Cauca",
+            farm = "El Paraiso",
+            producer = "Diego Samuel Bermudez",
+            varietal = "Castillo",
+            process = ProcessMethod.ANAEROBIC_NATURAL,
+            altitudeMeters = 1950,
+            harvestDate = "2026-01-20",
+            roastDate = roast4,
+            roastLevel = RoastLevel.LIGHT,
+            tastingNotes = listOf("Lychee", "Rose Water", "Raspberry Jam"),
+            tags = listOf("Anaerobic", "Experimental", "Fruit Bomb"),
+            isFavorite = false,
+            bags = listOf(
+                BagInventoryItem(
+                    id = "bag-kawa-01",
+                    beanId = "detailed-bean-kawa-elparaiso",
+                    packageMassGrams = BigDecimal("200.00"),
+                    remainingMassGrams = BigDecimal("200.00"),
+                    status = BagStatus.FROZEN,
+                    freezeHistory = listOf(
+                        FreezeEvent(
+                            frozenAtEpochMs = System.currentTimeMillis() - 86400000L * 12,
+                            thawedAtEpochMs = null
+                        )
+                    ),
+                    pricePaid = BigDecimal("28.00")
+                )
+            )
+        )
+
+        val grinder1 = GrinderRecord(
+            id = "grinder-comandante-c40",
+            brand = "Comandante",
+            model = "C40 MK4 Nitro Blade",
+            calibrationUnit = CalibrationUnit.CLICKS,
+            burrProfile = BurrProfile(
+                burrType = BurrType.CONICAL,
+                diameterMm = BigDecimal("39.00"),
+                material = BurrMaterial.STAINLESS_STEEL,
+                burrModelName = "High-Nitrogen Nitro Blade"
+            ),
+            zeroPointOffset = BigDecimal.ZERO,
+            clicksPerRotation = 12,
+            typicalRpm = null,
+            notes = "World benchmark manual hand grinder. Standard 1 click ~ 30 microns.",
+            isFavorite = true
+        )
+
+        val grinder2 = GrinderRecord(
+            id = "grinder-mahlkonig-ek43",
+            brand = "Mahlkönig",
+            model = "EK43S",
+            calibrationUnit = CalibrationUnit.MICRONS,
+            burrProfile = BurrProfile(
+                burrType = BurrType.FLAT,
+                diameterMm = BigDecimal("98.00"),
+                material = BurrMaterial.TITANIUM_COATED,
+                burrModelName = "Titus Pre-Breaker"
+            ),
+            zeroPointOffset = BigDecimal("20.00"),
+            clicksPerRotation = null,
+            typicalRpm = 1450,
+            notes = "Laboratory commercial grinder aligned with dial indicator within 5 microns.",
+            isFavorite = true
+        )
+
+        val grinder3 = GrinderRecord(
+            id = "grinder-fellow-ode",
+            brand = "Fellow",
+            model = "Ode Gen 2",
+            calibrationUnit = CalibrationUnit.STEPLESS_DEGREES,
+            burrProfile = BurrProfile(
+                burrType = BurrType.FLAT,
+                diameterMm = BigDecimal("64.00"),
+                material = BurrMaterial.STAINLESS_STEEL,
+                burrModelName = "Gen 2 Brew Burrs"
+            ),
+            zeroPointOffset = BigDecimal.ZERO,
+            clicksPerRotation = 31,
+            typicalRpm = 1400,
+            notes = "Domestic filter-focused single doser with anti-static ionizer.",
+            isFavorite = false
+        )
+
+        val eq1 = EquipmentItem(
+            id = "eq-hario-v60",
+            category = EquipmentCategory.DRIPPER,
+            brand = "Hario",
+            model = "V60 Ceramic 02",
+            parameters = mapOf("Material" to "Arita Porcelain", "Angle" to "60deg", "Ribs" to "Spiral"),
+            isFavorite = true,
+            tags = listOf("Conical", "Pour-Over")
+        )
+
+        val eq2 = EquipmentItem(
+            id = "eq-kalita-185",
+            category = EquipmentCategory.DRIPPER,
+            brand = "Kalita",
+            model = "Wave 185 Stainless Steel",
+            parameters = mapOf("Material" to "Stainless Steel", "Bed" to "Flat bottom 3-hole"),
+            isFavorite = false,
+            tags = listOf("Flat-Bed", "Immersion-Drip")
+        )
+
+        val eq3 = EquipmentItem(
+            id = "eq-fellow-stagg",
+            category = EquipmentCategory.KETTLE,
+            brand = "Fellow",
+            model = "Stagg EKG Gooseneck",
+            parameters = mapOf("Capacity" to "900mL", "Spout" to "Precision Gooseneck", "TempControl" to "PID 1°F"),
+            isFavorite = true,
+            tags = listOf("Gooseneck", "PID")
+        )
+
+        val eq4 = EquipmentItem(
+            id = "eq-acaia-pearl",
+            category = EquipmentCategory.SCALE,
+            brand = "Acaia",
+            model = "Pearl 2021",
+            parameters = mapOf("Resolution" to "0.1g", "FlowIndicator" to "Visual LED Flow Rate", "Bluetooth" to "BLE 4.0"),
+            isFavorite = true,
+            tags = listOf("Smart Scale", "BLE")
+        )
+
+        val eq5 = EquipmentItem(
+            id = "eq-vst-basket",
+            category = EquipmentCategory.PORTAFILTER_BASKET,
+            brand = "VST",
+            model = "18g Precision Ridgeless Basket",
+            parameters = mapOf("Diameter" to "58.5mm", "Holes" to "660 laser-measured", "Variance" to "< 2%"),
+            isFavorite = true,
+            tags = listOf("Espresso", "Precision")
+        )
+
+        val ing1 = FoodGradeIngredientItem(
+            id = "food-ing-citric",
+            name = "Citric Acid (Food Grade 10% w/w)",
+            densityGramsPerMl = BigDecimal("1.04"),
+            allergens = emptyList(),
+            supplierMaxPercent = BigDecimal("2.50"),
+            isFoodGradeVerified = true,
+            casNumber = "77-92-9",
+            provenance = "USP Food Chemicals Codex Standard Solution"
+        )
+
+        val ing2 = FoodGradeIngredientItem(
+            id = "food-ing-malic",
+            name = "Malic Acid (Food Grade 5% w/w)",
+            densityGramsPerMl = BigDecimal("1.02"),
+            allergens = emptyList(),
+            supplierMaxPercent = BigDecimal("2.00"),
+            isFoodGradeVerified = true,
+            casNumber = "6915-15-7",
+            provenance = "Food grade organic acid standard"
+        )
+
+        val greenLot1 = GreenCoffeeLot(
+            id = "green-eth-004",
+            lotNumber = "LOT-2026-ETH-004",
+            originCountry = "Ethiopia",
+            producer = "Mijane Woresa",
+            harvestYear = "2026",
+            moisturePercent = BigDecimal("10.80"),
+            bulkDensityGramsPerLiter = BigDecimal("695.00"),
+            waterActivityAw = BigDecimal("0.54"),
+            category1DefectCount = 0,
+            category2DefectCount = 2,
+            screenDistributionPercent = mapOf(17 to BigDecimal("70.00"), 18 to BigDecimal("30.00")),
+            sampleStatus = SampleLotStatus.PRODUCTION_LOT,
+            notes = "High-density micro-lot. Screen 17/18 uniform."
+        )
+
+        val roastBatch1 = RoastBatchRecord(
+            id = "roast-b101",
+            batchNumber = "B-2026-101",
+            greenLotId = "green-eth-004",
+            chargeTemperatureCelsius = BigDecimal("200.00"),
+            dropTemperatureCelsius = BigDecimal("211.50"),
+            totalRoastDurationSeconds = 590,
+            firstCrackTimeSeconds = 475,
+            developmentTimeRatioPercent = RoastBatchRecord.calculateDtr(590, 475),
+            curvePoints = listOf(
+                RoastDataPoint(0, BigDecimal("200.00"), null),
+                RoastDataPoint(60, BigDecimal("115.00"), null),
+                RoastDataPoint(180, BigDecimal("145.00"), BigDecimal("15.00")),
+                RoastDataPoint(300, BigDecimal("170.00"), BigDecimal("12.50")),
+                RoastDataPoint(475, BigDecimal("202.00"), BigDecimal("11.00")),
+                RoastDataPoint(590, BigDecimal("211.50"), BigDecimal("5.00"))
+            ),
+            blendComponents = listOf(
+                BlendComponentSpec("detailed-bean-sey-worka", BigDecimal("100.00"))
+            )
+        )
+
+        _state.update {
+            it.copy(
+                detailedBeans = listOf(bean1, bean2, bean3),
+                grinders = listOf(grinder1, grinder2, grinder3),
+                equipmentCatalog = listOf(eq1, eq2, eq3, eq4, eq5),
+                waterProfiles = WaterChemistryCalculator.ALL_PRESETS,
+                foodGradeIngredients = listOf(ing1, ing2),
+                greenCoffeeLots = listOf(greenLot1),
+                roastBatches = listOf(roastBatch1)
+            )
+        }
+    }
+
+    fun addDetailedBean(bean: DetailedBeanRecord) {
+        _state.update { it.copy(detailedBeans = it.detailedBeans + bean) }
+        diagnosticBuffer.log(LogLevel.INFO, "BEAN", "Added bean '${bean.roaster} - ${bean.name}'")
+    }
+
+    fun updateDetailedBean(bean: DetailedBeanRecord) {
+        _state.update {
+            it.copy(detailedBeans = it.detailedBeans.map { b -> if (b.id == bean.id) bean else b })
+        }
+    }
+
+    fun deleteDetailedBean(id: String) {
+        _state.update {
+            it.copy(detailedBeans = it.detailedBeans.filterNot { b -> b.id == id })
+        }
+    }
+
+    fun toggleBeanFavorite(id: String) {
+        _state.update {
+            it.copy(detailedBeans = it.detailedBeans.map { b -> if (b.id == id) b.copy(isFavorite = !b.isFavorite) else b })
+        }
+    }
+
+    fun addBagToBean(beanId: String, packageMassGrams: BigDecimal, price: BigDecimal? = null) {
+        val newBag = BagInventoryItem(
+            id = UUID.randomUUID().toString(),
+            beanId = beanId,
+            packageMassGrams = packageMassGrams,
+            remainingMassGrams = packageMassGrams,
+            status = BagStatus.PURCHASED,
+            pricePaid = price
+        )
+        _state.update {
+            it.copy(detailedBeans = it.detailedBeans.map { b ->
+                if (b.id == beanId) b.copy(bags = b.bags + newBag) else b
+            })
+        }
+    }
+
+    fun deductDoseFromBag(bagId: String, doseGrams: BigDecimal): Boolean {
+        var success = false
+        _state.update {
+            it.copy(detailedBeans = it.detailedBeans.map { b ->
+                val bag = b.bags.find { bag -> bag.id == bagId }
+                if (bag != null) {
+                    val result = InventoryDeductionEngine.deductDose(bag, doseGrams)
+                    if (result is InventoryDeductionResult.Success) {
+                        success = true
+                        diagnosticBuffer.log(LogLevel.INFO, "INVENTORY", "Deducted ${doseGrams}g from bag $bagId on bean '${b.name}'")
+                        b.copy(bags = b.bags.map { bg -> if (bg.id == bagId) result.updatedBag else bg })
+                    } else b
+                } else b
+            })
+        }
+        return success
+    }
+
+    fun toggleFreezeBag(bagId: String) {
+        _state.update {
+            it.copy(detailedBeans = it.detailedBeans.map { b ->
+                val bag = b.bags.find { bag -> bag.id == bagId }
+                if (bag != null) {
+                    val updated = if (bag.status == BagStatus.FROZEN) {
+                        InventoryDeductionEngine.thawBag(bag)
+                    } else {
+                        InventoryDeductionEngine.freezeBag(bag)
+                    }
+                    b.copy(bags = b.bags.map { bg -> if (bg.id == bagId) updated else bg })
+                } else b
+            })
+        }
+    }
+
+    fun addGrinder(grinder: GrinderRecord) {
+        _state.update { it.copy(grinders = it.grinders + grinder) }
+    }
+
+    fun toggleGrinderFavorite(id: String) {
+        _state.update {
+            it.copy(grinders = it.grinders.map { g -> if (g.id == id) g.copy(isFavorite = !g.isFavorite) else g })
+        }
+    }
+
+    fun deleteGrinder(id: String) {
+        _state.update { it.copy(grinders = it.grinders.filterNot { g -> g.id == id }) }
+    }
+
+    fun addEquipmentItem(item: EquipmentItem) {
+        _state.update { it.copy(equipmentCatalog = it.equipmentCatalog + item) }
+    }
+
+    fun toggleEquipmentFavorite(id: String) {
+        _state.update {
+            it.copy(equipmentCatalog = it.equipmentCatalog.map { e -> if (e.id == id) e.copy(isFavorite = !e.isFavorite) else e })
+        }
+    }
+
+    fun deleteEquipmentItem(id: String) {
+        _state.update { it.copy(equipmentCatalog = it.equipmentCatalog.filterNot { e -> e.id == id }) }
+    }
+
+    fun addWaterProfile(profile: WaterMineralProfile) {
+        _state.update { it.copy(waterProfiles = it.waterProfiles + profile) }
+    }
+
+    fun deleteWaterProfile(id: String) {
+        _state.update { it.copy(waterProfiles = it.waterProfiles.filterNot { w -> w.id == id }) }
+    }
+
+    fun addFoodGradeIngredient(item: FoodGradeIngredientItem) {
+        _state.update { it.copy(foodGradeIngredients = it.foodGradeIngredients + item) }
+    }
+
+    fun deleteFoodGradeIngredient(id: String) {
+        _state.update { it.copy(foodGradeIngredients = it.foodGradeIngredients.filterNot { i -> i.id == id }) }
+    }
+
+    fun addGreenLot(lot: GreenCoffeeLot) {
+        _state.update { it.copy(greenCoffeeLots = it.greenCoffeeLots + lot) }
+    }
+
+    fun deleteGreenLot(id: String) {
+        _state.update { it.copy(greenCoffeeLots = it.greenCoffeeLots.filterNot { l -> l.id == id }) }
+    }
+
+    fun addRoastBatch(batch: RoastBatchRecord) {
+        _state.update { it.copy(roastBatches = it.roastBatches + batch) }
+    }
+
+    fun deleteRoastBatch(id: String) {
+        _state.update { it.copy(roastBatches = it.roastBatches.filterNot { r -> r.id == id }) }
+    }
+
+    fun parseBagOcr(photoUri: String, text: String) {
+        val draft = OfflineBagOcrParser.parseBagText(photoUri, text)
+        _state.update { it.copy(pendingOcrDraft = draft) }
+    }
+
+    fun confirmOcrDraft(confirmedBean: DetailedBeanRecord) {
+        addDetailedBean(confirmedBean)
+        _state.update { it.copy(pendingOcrDraft = null) }
+    }
+
+    fun dismissOcrDraft() {
+        _state.update { it.copy(pendingOcrDraft = null) }
+    }
+
+    fun previewCatalogImport(jsonContent: String): ImportDryRunSummary {
+        val preview = CatalogImportExportEngine.previewImport(
+            jsonContent,
+            _state.value.detailedBeans,
+            _state.value.equipmentCatalog
+        )
+        _state.update { it.copy(catalogImportPreview = preview) }
+        return preview
+    }
+
+    fun executeCatalogImport(jsonContent: String, strategy: ConflictResolutionStrategy): ImportExecutionReceipt {
+        val (receipt, updatedCollections) = CatalogImportExportEngine.executeImport(
+            jsonContent,
+            strategy,
+            _state.value.detailedBeans,
+            _state.value.equipmentCatalog
+        )
+        _state.update {
+            it.copy(
+                detailedBeans = updatedCollections.first,
+                equipmentCatalog = updatedCollections.second,
+                catalogImportPreview = null
+            )
+        }
+        diagnosticBuffer.log(LogLevel.INFO, "IMPORT", "Catalog import completed: created=${receipt.createdCount}, updated=${receipt.updatedCount}, renamed=${receipt.renamedCount}, skipped=${receipt.skippedCount}")
+        return receipt
+    }
+
+    fun exportCatalogJson(): String {
+        val payload = CatalogExportPayload(
+            beans = _state.value.detailedBeans,
+            grinders = _state.value.grinders,
+            equipment = _state.value.equipmentCatalog,
+            waters = _state.value.waterProfiles,
+            ingredients = _state.value.foodGradeIngredients
+        )
+        return CatalogImportExportEngine.exportToJson(payload)
+    }
+
+    fun exportBeansCsv(): String {
+        return CatalogImportExportEngine.exportBeansToCsv(_state.value.detailedBeans)
     }
 
     private fun progress(message: String) {
