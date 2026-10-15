@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -67,6 +68,33 @@ import com.coffeecreator.app.core.journal.CafeCupEntry
 import com.coffeecreator.app.core.journal.ImportRecordStatus
 import com.coffeecreator.app.core.journal.OvatRecommendation
 import com.coffeecreator.app.core.journal.OvatTargetVariable
+import android.graphics.Color as AndroidColor
+import androidx.compose.ui.graphics.Color
+import com.coffeecreator.app.core.sensory.AttributeConsensus
+import com.coffeecreator.app.core.sensory.CalibrationReferenceExercise
+import com.coffeecreator.app.core.sensory.ConsensusAnalytics
+import com.coffeecreator.app.core.sensory.CuppingAnalyticsEngine
+import com.coffeecreator.app.core.sensory.CuppingSample
+import com.coffeecreator.app.core.sensory.CuppingSession
+import com.coffeecreator.app.core.sensory.CuppingTemplateType
+import com.coffeecreator.app.core.sensory.DegassingPhase
+import com.coffeecreator.app.core.sensory.EpistemologicalOrigin
+import com.coffeecreator.app.core.sensory.Evaluator
+import com.coffeecreator.app.core.sensory.EvaluatorRole
+import com.coffeecreator.app.core.sensory.FlavorCategory
+import com.coffeecreator.app.core.sensory.FlavorDescriptor
+import com.coffeecreator.app.core.sensory.GreenCoffeeDefectEntry
+import com.coffeecreator.app.core.sensory.GreenDefectType
+import com.coffeecreator.app.core.sensory.MaskingMode
+import com.coffeecreator.app.core.sensory.PhysicalQcRecord
+import com.coffeecreator.app.core.sensory.QcReportReceipt
+import com.coffeecreator.app.core.sensory.RestCurvePrediction
+import com.coffeecreator.app.core.sensory.RoastRestObservation
+import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
+import com.coffeecreator.app.core.sensory.SessionStatus
+import com.coffeecreator.app.core.sensory.StandardCuppingTemplates
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.UUID
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -2112,107 +2140,1165 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
     }
 }
 
+private enum class SensoryTab {
+    WHEEL,
+    ACCESSIBLE_LIST,
+    SESSIONS,
+    CONSENSUS,
+    PHYSICAL_QC,
+    CALIBRATION
+}
+
 @Composable
 private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
-    var scores by rememberSaveable { mutableStateOf(listOf(5, 5, 5, 5, 5, 5, 5, 5)) }
-    var descriptors by rememberSaveable { mutableStateOf("") }
-    var assessor by rememberSaveable { mutableStateOf("") }
-    var panel by rememberSaveable { mutableStateOf("") }
-    var notes by rememberSaveable { mutableStateOf("") }
+    var activeTab by rememberSaveable { mutableStateOf(SensoryTab.WHEEL) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var selectedCategoryFilter by rememberSaveable { mutableStateOf("All") }
+
+    // Cupping session dialogs
+    var showCreateSessionDialog by rememberSaveable { mutableStateOf(false) }
+    var newSessionTitle by rememberSaveable { mutableStateOf("") }
+    var newSessionLocation by rememberSaveable { mutableStateOf("Main QC Lab") }
+    var newSessionTemplate by rememberSaveable { mutableStateOf(CuppingTemplateType.SPECIALTY_SCA_EQUIVALENT) }
+    var newSessionMasking by rememberSaveable { mutableStateOf(MaskingMode.SINGLE_BLIND_EVALUATOR) }
+    var newSessionEvaluators by rememberSaveable { mutableStateOf("Marcus Vance (Lead), Sarah Chen (Q-Grader)") }
+    var newSessionSamples by rememberSaveable { mutableStateOf("Panama Geisha Washed, Ethiopia Yirgacheffe Natural") }
+
+    // Scoring dialog
+    var scoringSample by rememberSaveable { mutableStateOf<String?>(null) }
+    var evaluatorIdInput by rememberSaveable { mutableStateOf("") }
+    var scoreFragrance by rememberSaveable { mutableStateOf(8.5f) }
+    var scoreFlavor by rememberSaveable { mutableStateOf(8.5f) }
+    var scoreAftertaste by rememberSaveable { mutableStateOf(8.25f) }
+    var scoreAcidity by rememberSaveable { mutableStateOf(8.5f) }
+    var scoreBody by rememberSaveable { mutableStateOf(8.25f) }
+    var scoreBalance by rememberSaveable { mutableStateOf(8.5f) }
+    var scoreOverall by rememberSaveable { mutableStateOf(8.5f) }
+    var scoreDescriptors by rememberSaveable { mutableStateOf("") }
+    var scoreTaints by rememberSaveable { mutableStateOf(0) }
+    var scoreFaults by rememberSaveable { mutableStateOf(0) }
+    var scoreNotes by rememberSaveable { mutableStateOf("") }
+
+    // Reopen dialog
+    var showReopenDialog by rememberSaveable { mutableStateOf(false) }
+    var reopenReasonInput by rememberSaveable { mutableStateOf("") }
+
+    // Physical QC State
+    var greenMoistureInput by rememberSaveable { mutableStateOf("11.2") }
+    var greenAwInput by rememberSaveable { mutableStateOf("0.58") }
+    var greenDensityInput by rememberSaveable { mutableStateOf("715.0") }
+    var greenFullBlackInput by rememberSaveable { mutableStateOf("0") }
+    var greenPartialBlackInput by rememberSaveable { mutableStateOf("3") }
+    var greenBrokenInput by rememberSaveable { mutableStateOf("5") }
+    var agtronWholeInput by rememberSaveable { mutableStateOf("68.0") }
+    var agtronGroundInput by rememberSaveable { mutableStateOf("76.5") }
+
+    // Calibration State
+    var calibrationBatchVolumeInput by rememberSaveable { mutableStateOf("1000") }
+
+    // Roast Rest Dialog
+    var showLogObsDialog by rememberSaveable { mutableStateOf(false) }
+    var obsBagIdInput by rememberSaveable { mutableStateOf("bag_geisha_lot1") }
+    var obsDaysInput by rememberSaveable { mutableStateOf("14") }
+    var obsScoreInput by rememberSaveable { mutableStateOf("92.5") }
+    var obsAromaInput by rememberSaveable { mutableStateOf("9.0") }
+    var obsAcidityInput by rememberSaveable { mutableStateOf("9.2") }
+    var obsSweetnessInput by rememberSaveable { mutableStateOf("9.0") }
+    var obsPerceivedCarbonic by rememberSaveable { mutableStateOf(false) }
+    var obsNotesInput by rememberSaveable { mutableStateOf("Peak aromatics, open jasmine, complex sweet fruit.") }
+
+    val activeSession = state.cuppingSessions.find { it.id == state.activeCuppingSessionId }
+        ?: state.cuppingSessions.firstOrNull()
+
     Page("Sensory") {
         item {
             Heading(
-                "Record what you taste",
-                "Human observations and uncalibrated estimates have separate labels. Scores below are " +
-                    "editable inputs, saved only when you record."
+                "Sensory wheel & professional cupping",
+                "Deterministic flavor taxonomy, blind cupping sessions, multi-evaluator consensus, physical QC, and roast-rest tracking."
             )
         }
+
         item {
-            Select("Recipe revision", state.selectedRecipeId.orEmpty(), state.recipes.map { it.id to "${it.name} v${it.version}" }, { id ->
-                state.recipes.find {
-                    it.id ==
-                        id
-                }?.let(model::selectSensoryRecipe)
-            }, "sensory:recipe")
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = activeTab == SensoryTab.WHEEL,
+                    onClick = { activeTab = SensoryTab.WHEEL },
+                    label = { Text("Flavor Wheel") },
+                    leadingIcon = { Icon(Icons.Default.Psychology, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_wheel")
+                )
+                FilterChip(
+                    selected = activeTab == SensoryTab.ACCESSIBLE_LIST,
+                    onClick = { activeTab = SensoryTab.ACCESSIBLE_LIST },
+                    label = { Text("Accessible List") },
+                    leadingIcon = { Icon(Icons.Default.MenuBook, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_accessible")
+                )
+                FilterChip(
+                    selected = activeTab == SensoryTab.SESSIONS,
+                    onClick = { activeTab = SensoryTab.SESSIONS },
+                    label = { Text("Cupping Sessions (${state.cuppingSessions.size})") },
+                    leadingIcon = { Icon(Icons.Default.Coffee, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_sessions")
+                )
+                FilterChip(
+                    selected = activeTab == SensoryTab.CONSENSUS,
+                    onClick = { activeTab = SensoryTab.CONSENSUS },
+                    label = { Text("Consensus & Radar") },
+                    leadingIcon = { Icon(Icons.Default.BarChart, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_consensus")
+                )
+                FilterChip(
+                    selected = activeTab == SensoryTab.PHYSICAL_QC,
+                    onClick = { activeTab = SensoryTab.PHYSICAL_QC },
+                    label = { Text("Physical QC & Rest") },
+                    leadingIcon = { Icon(Icons.Default.Tune, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_physical")
+                )
+                FilterChip(
+                    selected = activeTab == SensoryTab.CALIBRATION,
+                    onClick = { activeTab = SensoryTab.CALIBRATION },
+                    label = { Text("Calibration Lab") },
+                    leadingIcon = { Icon(Icons.Default.Star, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_calibration")
+                )
+            }
         }
-        if (state.recipes.isEmpty()) item { InfoCard("Save a brew first", "Observations are linked to a specific saved recipe revision.") }
-        listOf("Aroma", "Acidity", "Sweetness", "Bitterness", "Body", "Clarity", "Finish", "Balance").forEachIndexed { index, label ->
-            item {
-                Column {
-                    Text("Observed $label: ${scores[index]} / 10")
-                    Slider(
-                        scores[index].toFloat(),
-                        { value -> scores = scores.toMutableList().also { it[index] = value.toInt() } },
-                        valueRange = 1f..10f,
-                        steps = 8,
-                        modifier = Modifier.semantics {
-                            stateDescription =
-                                "$label intensity ${scores[index]} of 10"
-                        }
+
+        when (activeTab) {
+            SensoryTab.WHEEL -> {
+                item {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = { Text("Search flavor wheel & descriptors") },
+                        placeholder = { Text("e.g. Grapefruit, Jasmine, Blackberry, Citrus...") },
+                        modifier = Modifier.fillMaxWidth().testTag("sensory:wheel_search")
                     )
                 }
+
+                item {
+                    val categories = listOf("All") + SensoryTaxonomyRegistry.DEFAULT_CATEGORIES.map { it.name }
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        categories.forEach { cat ->
+                            FilterChip(
+                                selected = selectedCategoryFilter == cat,
+                                onClick = { selectedCategoryFilter = cat },
+                                label = { Text(cat) }
+                            )
+                        }
+                    }
+                }
+
+                val allResults = SensoryTaxonomyRegistry.searchDescriptors(searchQuery)
+                val filtered = if (selectedCategoryFilter == "All") allResults else {
+                    allResults.filter { desc ->
+                        val cat = SensoryTaxonomyRegistry.DEFAULT_CATEGORIES.find { it.id == desc.categoryId }
+                        cat?.name.equals(selectedCategoryFilter, ignoreCase = true)
+                    }
+                }
+
+                item {
+                    Text(
+                        "Showing ${filtered.size} flavor descriptors:",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
+
+                items(filtered, key = { it.id }) { desc ->
+                    val color: Color = try {
+                        Color(AndroidColor.parseColor(desc.colorHex))
+                    } catch (_: Exception) {
+                        MaterialTheme.colorScheme.primary
+                    }
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = 12.dp)
+                                    .height(28.dp)
+                                    .padding(horizontal = 4.dp)
+                                    .animateContentSize(),
+                                contentAlignment = androidx.compose.ui.Alignment.Center
+                            ) {
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = color),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        " ${desc.name} ",
+                                        color = if (desc.colorHex == "#FFF9C4" || desc.colorHex == "#FDD835" || desc.colorHex == "#FFF59D") Color.Black else Color.White,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "${desc.categoryId.removePrefix("cat_").replaceFirstChar { it.uppercase() }} · ${desc.subcategoryId.removePrefix("sub_").replace('_', ' ').replaceFirstChar { it.uppercase() }}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(desc.sensoryNotes, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
             }
-        }
-        item { Field("Descriptors, optional intensity: citrus:7, floral:5", descriptors, { descriptors = it }, "sensory:descriptors") }
-        item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("citrus", "floral", "berry", "chocolate", "nutty", "roasted").forEach { descriptor ->
-                    OutlinedButton(onClick = {
-                        val current = descriptors.split(',').map(String::trim).filter(String::isNotBlank)
-                        descriptors = (current + descriptor).distinct().joinToString(", ")
-                    }) { Text(descriptor) }
+
+            SensoryTab.ACCESSIBLE_LIST -> {
+                item {
+                    InfoCard(
+                        "Accessible Flavor Table Alternative (S2-051)",
+                        "Meets TalkBack screen reader standards with clear semantic roles, high-contrast color names, and touch targets >= 48dp. No interactive features rely solely on visual color hue."
+                    )
+                }
+
+                SensoryTaxonomyRegistry.DEFAULT_CATEGORIES.forEach { category ->
+                    item {
+                        Text(
+                            "${category.name.uppercase()} CATEGORY (${category.colorHex})",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                        )
+                    }
+                    val descriptors = category.subcategories.flatMap { it.descriptors }
+                    items(descriptors, key = { it.id }) { desc ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 52.dp)
+                                .padding(vertical = 4.dp)
+                                .semantics {
+                                    stateDescription = desc.accessibilityDescription
+                                },
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(desc.name, style = MaterialTheme.typography.titleSmall)
+                                    Text(desc.colorHex, style = MaterialTheme.typography.labelSmall)
+                                }
+                                Text(desc.accessibilityDescription, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+
+            SensoryTab.SESSIONS -> {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Text("Cupping Sessions", style = MaterialTheme.typography.titleMedium)
+                        Button(
+                            onClick = { showCreateSessionDialog = true },
+                            modifier = Modifier.testTag("sensory:btn_new_session")
+                        ) {
+                            Text("New Session")
+                        }
+                    }
+                }
+
+                if (state.cuppingSessions.isEmpty()) {
+                    item {
+                        InfoCard("No Cupping Sessions", "Click 'New Session' to initialize an evaluation panel.")
+                    }
+                } else {
+                    items(state.cuppingSessions, key = { it.id }) { session ->
+                        val isSelected = session.id == activeSession?.id
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(session.title, style = MaterialTheme.typography.titleSmall)
+                                        Text("${session.location} · ${session.template.title}", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = when (session.status) {
+                                                SessionStatus.OPEN -> MaterialTheme.colorScheme.primaryContainer
+                                                SessionStatus.CLOSED -> MaterialTheme.colorScheme.surfaceVariant
+                                                SessionStatus.REOPENED -> MaterialTheme.colorScheme.errorContainer
+                                                SessionStatus.DRAFT -> MaterialTheme.colorScheme.secondaryContainer
+                                            }
+                                        )
+                                    ) {
+                                        Text(
+                                            " ${session.status.name} ",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(4.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    "Evaluators: ${session.evaluators.joinToString { it.name }} | Masking: ${session.maskingMode.name}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    FilledTonalButton(onClick = { model.selectCuppingSession(session.id) }) {
+                                        Text(if (isSelected) "Active Session" else "Select Session")
+                                    }
+                                    if (session.status == SessionStatus.OPEN) {
+                                        OutlinedButton(onClick = { model.closeCuppingSession(session.id) }) {
+                                            Text("Close & Lock")
+                                        }
+                                    } else if (session.status == SessionStatus.CLOSED) {
+                                        OutlinedButton(onClick = { showReopenDialog = true }) {
+                                            Text("Reopen...")
+                                        }
+                                    }
+                                    Button(onClick = { model.exportSessionQcReport(session.id) }) {
+                                        Text("Export QC")
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (activeSession != null) {
+                        item {
+                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                            Text(
+                                "Samples for '${activeSession.title}'",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        items(activeSession.samples, key = { it.sampleId }) { sample ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            sample.blindCode,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        if (sample.isRevealed) {
+                                            Text("Revealed Identity", style = MaterialTheme.typography.labelSmall)
+                                        } else {
+                                            OutlinedButton(onClick = { model.revealCuppingSample(activeSession.id, sample.sampleId) }) {
+                                                Text("Reveal Identity")
+                                            }
+                                        }
+                                    }
+
+                                    if (sample.isRevealed) {
+                                        Text(
+                                            "${sample.beanName} · ${sample.origin} (${sample.process}) · Roaster: ${sample.roaster}",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    } else {
+                                        Text(
+                                            "Identity Masked (Blind Protocol Enforced). Evaluators score purely by cup presentation.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    val sheets = activeSession.sheets.filter { it.sampleId == sample.sampleId }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        "Submitted Evaluator Sheets: ${sheets.size} / ${activeSession.evaluators.size}",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+
+                                    Spacer(Modifier.height(8.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Button(
+                                            onClick = {
+                                                scoringSample = sample.sampleId
+                                                evaluatorIdInput = activeSession.evaluators.firstOrNull()?.id ?: ""
+                                            },
+                                            enabled = activeSession.status == SessionStatus.OPEN || activeSession.status == SessionStatus.REOPENED
+                                        ) {
+                                            Text("Score Sample")
+                                        }
+                                        FilledTonalButton(onClick = {
+                                            model.selectCuppingSession(activeSession.id)
+                                            model.selectCuppingSample(sample.sampleId)
+                                            activeTab = SensoryTab.CONSENSUS
+                                        }) {
+                                            Text("View Consensus")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            SensoryTab.CONSENSUS -> {
+                if (activeSession == null || activeSession.samples.isEmpty()) {
+                    item {
+                        InfoCard("No Active Session", "Select or create a cupping session first to view consensus calculus.")
+                    }
+                } else {
+                    val sampleId = state.selectedCuppingSampleId ?: activeSession.samples.first().sampleId
+                    val consensus = CuppingAnalyticsEngine.computeConsensus(activeSession, sampleId)
+                    val sample = activeSession.samples.first { it.sampleId == sampleId }
+
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text(
+                                    "Sample: ${consensus.blindCode}",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text("Consensus Score", style = MaterialTheme.typography.labelSmall)
+                                        Text("${consensus.finalConsensusScore} / 100", style = MaterialTheme.typography.headlineMedium)
+                                    }
+                                    Column {
+                                        Text("Panel Agreement (IRAI)", style = MaterialTheme.typography.labelSmall)
+                                        Text("${consensus.overallPanelAgreementIndex} / 1.00", style = MaterialTheme.typography.headlineMedium)
+                                    }
+                                }
+                                Spacer(Modifier.height(6.dp))
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Text(
+                                        " [HUMAN OBSERVATION] Empirical Cupper Panel. No uncalibrated AI predictions in official consensus score. ",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(6.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Text("Attribute Consensus Breakdown", style = MaterialTheme.typography.titleSmall)
+                    }
+
+                    items(consensus.attributeConsensus.entries.toList(), key = { it.key }) { (key, c) ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(key.replace('_', ' ').replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleSmall)
+                                    Text("Mean: ${c.mean} · Median: ${c.median} · StdDev: ${c.stdDev}", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
+                                    Text("IRAI: ${c.agreementIndex}", style = MaterialTheme.typography.labelMedium)
+                                    if (c.outlierEvaluatorIds.isNotEmpty()) {
+                                        Text("Outlier: ${c.outlierEvaluatorIds.joinToString()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Text("Consensus Descriptor Cloud", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 10.dp))
+                    }
+
+                    item {
+                        if (consensus.descriptorCloud.isEmpty()) {
+                            Text("No descriptors logged for this sample.", style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                consensus.descriptorCloud.forEach { desc ->
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (desc.isConsensus) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                    ) {
+                                        Text(
+                                            " ${desc.descriptor} (${(desc.selectionFrequency * BigDecimal(100)).toInt()}%) ",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(6.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Text("Pairwise Evaluator Jaccard Overlap Matrix", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 10.dp))
+                    }
+
+                    items(consensus.overlapMatrix) { pair ->
+                        Text(
+                            "${pair.evaluatorAId} ↔ ${pair.evaluatorBId}: Jaccard Similarity ${(pair.jaccardSimilarity * BigDecimal(100)).toInt()}%	",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    item {
+                        Spacer(Modifier.height(12.dp))
+                        SensoryRadar(
+                            state.observations.lastOrNull { it.recipeId == state.selectedRecipeId },
+                            state.estimates.firstOrNull { it.recipeId == state.selectedRecipeId }?.profile
+                        )
+                    }
+                }
+            }
+
+            SensoryTab.PHYSICAL_QC -> {
+                item {
+                    InfoCard(
+                        "Physical Green & Roasted QC (S2-061)",
+                        "Grading based on 350g green sample moisture, water activity aw, bulk density, defect penalties, and roast Agtron color delta."
+                    )
+                }
+
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = greenMoistureInput,
+                            onValueChange = { greenMoistureInput = it },
+                            label = { Text("Moisture %") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = greenAwInput,
+                            onValueChange = { greenAwInput = it },
+                            label = { Text("Water Activity (aw)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = greenDensityInput,
+                            onValueChange = { greenDensityInput = it },
+                            label = { Text("Density (g/L)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item {
+                    Text("Defect Counts (raw full count):", style = MaterialTheme.typography.titleSmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = greenFullBlackInput,
+                            onValueChange = { greenFullBlackInput = it },
+                            label = { Text("Full Black") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = greenPartialBlackInput,
+                            onValueChange = { greenPartialBlackInput = it },
+                            label = { Text("Partial Black") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = greenBrokenInput,
+                            onValueChange = { greenBrokenInput = it },
+                            label = { Text("Broken/Chipped") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item {
+                    val defects = listOf(
+                        GreenCoffeeDefectEntry(GreenDefectType.FULL_BLACK, greenFullBlackInput.toIntOrNull() ?: 0),
+                        GreenCoffeeDefectEntry(GreenDefectType.PARTIAL_BLACK, greenPartialBlackInput.toIntOrNull() ?: 0),
+                        GreenCoffeeDefectEntry(GreenDefectType.BROKEN_CHIPPED, greenBrokenInput.toIntOrNull() ?: 0)
+                    )
+                    val (grade, defectCounts) = CuppingAnalyticsEngine.gradeGreenPhysicalLot(
+                        BigDecimal(greenMoistureInput.toDoubleOrNull() ?: 11.0),
+                        BigDecimal(greenAwInput.toDoubleOrNull() ?: 0.58),
+                        defects
+                    )
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("Calculated Grade: $grade", style = MaterialTheme.typography.titleMedium)
+                            Text("Primary Defects: ${defectCounts.first} | Secondary Equivalent: ${defectCounts.second}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+
+                item {
+                    Text("Roasted Color QC (Agtron Gourmet Scale)", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = agtronWholeInput,
+                            onValueChange = { agtronWholeInput = it },
+                            label = { Text("Whole Bean Agtron") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = agtronGroundInput,
+                            onValueChange = { agtronGroundInput = it },
+                            label = { Text("Ground Agtron") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    val whole = agtronWholeInput.toDoubleOrNull() ?: 68.0
+                    val ground = agtronGroundInput.toDoubleOrNull() ?: 76.5
+                    val delta = ground - whole
+                    Text(
+                        "Roast Delta (Ground - Whole): ${String.format("%.1f", delta)} Agtron points",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                item {
+                    HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Text("Roast-Rest Degassing Curve (S2-062)", style = MaterialTheme.typography.titleMedium)
+                        Button(onClick = { showLogObsDialog = true }) {
+                            Text("Log Observation")
+                        }
+                    }
+                }
+
+                item {
+                    val prediction = CuppingAnalyticsEngine.predictRoastRestCurve("bag_geisha_lot1", "LIGHT", "WASHED")
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("Light Washed Kinetic Curve Prediction", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "Peak Flavor Window: Day ${prediction.estimatedPeakWindowStartDay} to Day ${prediction.estimatedPeakWindowEndDay} post-roast",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                "Expected Oxidation / Staling Threshold: Day ${prediction.expectedStalingDay}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "[AI HEURISTIC] ${prediction.provenanceBadge.methodDisclaimer}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                items(state.roastRestObservations, key = { it.id }) { obs ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Day ${obs.daysPostRoast} Post-Roast · Score ${obs.cuppingScore}", style = MaterialTheme.typography.titleSmall)
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = when (obs.observedPhase) {
+                                            DegassingPhase.PEAK_FLAVOR_WINDOW -> MaterialTheme.colorScheme.primaryContainer
+                                            DegassingPhase.TOO_FRESH_CO2_INTERFERENCE -> MaterialTheme.colorScheme.errorContainer
+                                            DegassingPhase.STABLE_POST_PEAK -> MaterialTheme.colorScheme.secondaryContainer
+                                            DegassingPhase.STALE_OXIDIZED -> MaterialTheme.colorScheme.surfaceVariant
+                                        }
+                                    )
+                                ) {
+                                    Text(
+                                        " ${obs.observedPhase.label} ",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(4.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                "Aroma: ${obs.observedAroma} · Acidity: ${obs.observedAcidity} · Sweetness: ${obs.observedSweetness} | Carbonic Sharpness: ${if (obs.perceivedCarbonicAcid) "Yes" else "No"}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(obs.qualitativeNotes, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+
+            SensoryTab.CALIBRATION -> {
+                item {
+                    InfoCard(
+                        "Safe Food-Grade Calibration Reference Lab (S2-052)",
+                        "Standard sensory training exercises for palate calibration with rigorous food-grade purity standards and chemical safety boundaries."
+                    )
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Text("Solution Batch Volume: ", style = MaterialTheme.typography.titleSmall)
+                        OutlinedTextField(
+                            value = calibrationBatchVolumeInput,
+                            onValueChange = { calibrationBatchVolumeInput = it },
+                            label = { Text("Batch mL") },
+                            modifier = Modifier.width(120.dp)
+                        )
+                    }
+                }
+
+                val volMl = BigDecimal(calibrationBatchVolumeInput.toDoubleOrNull() ?: 1000.0)
+
+                items(SensoryTaxonomyRegistry.STANDARD_CALIBRATION_EXERCISES, key = { it.id }) { ex ->
+                    val massG = SensoryTaxonomyRegistry.calculateCalibrationBatch(ex, volMl)
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(ex.compoundName, style = MaterialTheme.typography.titleSmall)
+                                    Text("${ex.chemicalFormula} · Grade: ${ex.requiredGrade.name}", style = MaterialTheme.typography.labelSmall)
+                                }
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                                ) {
+                                    Text(
+                                        " $massG g / ${volMl.toInt()} mL ",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        modifier = Modifier.padding(6.dp)
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Text(ex.preparationInstructions, style = MaterialTheme.typography.bodySmall)
+                            Spacer(Modifier.height(4.dp))
+                            Text("Sensory Cue: ${ex.sensoryCueDescription}", style = MaterialTheme.typography.bodySmall)
+                            Spacer(Modifier.height(6.dp))
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f))
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text("⚠️ SAFETY BOUNDARY: ${ex.safetyWarning}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                                    Text("Max Daily Tasting Limit: ${ex.maxDailyConsumptionLimitMl} mL | Allergen: ${ex.allergenNotice}", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-        item { Field("Assessor", assessor, { assessor = it }, "sensory:assessor") }
-        item { Field("Panel / session, optional", panel, { panel = it }, "sensory:panel") }
-        item { Field("Observation notes", notes, { notes = it }, "sensory:notes") }
-        item {
-            Button(
-                onClick = { model.recordSensory(scores, descriptors, notes, assessor, panel) },
-                enabled =
-                state.selectedRecipeId != null && !state.busy,
-                modifier = Modifier.fillMaxWidth().testTag("sensory:save")
-            ) {
-                Text("Record observed profile")
+    }
+
+    // Dialog: Create Cupping Session
+    if (showCreateSessionDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreateSessionDialog = false },
+            title = { Text("New Cupping Session") },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = newSessionTitle,
+                        onValueChange = { newSessionTitle = it },
+                        label = { Text("Session Title") },
+                        placeholder = { Text("e.g. Origin Evaluation Batch #4") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newSessionLocation,
+                        onValueChange = { newSessionLocation = it },
+                        label = { Text("Location / Lab") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("Template Protocol:", style = MaterialTheme.typography.labelMedium)
+                    CuppingTemplateType.values().forEach { type ->
+                        Row(
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            FilterChip(
+                                selected = newSessionTemplate == type,
+                                onClick = { newSessionTemplate = type },
+                                label = { Text(type.name.replace('_', ' ')) }
+                            )
+                        }
+                    }
+                    Text("Masking Mode:", style = MaterialTheme.typography.labelMedium)
+                    MaskingMode.values().forEach { mode ->
+                        FilterChip(
+                            selected = newSessionMasking == mode,
+                            onClick = { newSessionMasking = mode },
+                            label = { Text(mode.name.replace('_', ' ')) }
+                        )
+                    }
+                    OutlinedTextField(
+                        value = newSessionEvaluators,
+                        onValueChange = { newSessionEvaluators = it },
+                        label = { Text("Evaluators (comma separated)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newSessionSamples,
+                        onValueChange = { newSessionSamples = it },
+                        label = { Text("Sample Bean Names (comma separated)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val evals = newSessionEvaluators.split(',').map { it.trim() }.filter { it.isNotBlank() }
+                    val samples = newSessionSamples.split(',').map { it.trim() }.filter { it.isNotBlank() }
+                    model.createCuppingSession(
+                        title = newSessionTitle,
+                        location = newSessionLocation,
+                        templateType = newSessionTemplate,
+                        maskingMode = newSessionMasking,
+                        evaluatorNames = evals,
+                        sampleBeanNames = samples
+                    )
+                    showCreateSessionDialog = false
+                }) {
+                    Text("Create Session")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateSessionDialog = false }) {
+                    Text("Cancel")
+                }
             }
-        }
-        if (state.selectedRecipeId != null) {
-            item {
-                SensoryRadar(
-                    state.observations.lastOrNull { it.recipeId == state.selectedRecipeId },
-                    state.estimates.firstOrNull { it.recipeId == state.selectedRecipeId }?.profile
-                )
+        )
+    }
+
+    // Dialog: Score Sample
+    if (scoringSample != null && activeSession != null) {
+        val sample = activeSession.samples.find { it.sampleId == scoringSample }
+        AlertDialog(
+            onDismissRequest = { scoringSample = null },
+            title = { Text("Score Sample: ${sample?.blindCode}") },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Evaluator:", style = MaterialTheme.typography.labelMedium)
+                    activeSession.evaluators.forEach { eval ->
+                        FilterChip(
+                            selected = evaluatorIdInput == eval.id,
+                            onClick = { evaluatorIdInput = eval.id },
+                            label = { Text("${eval.name} (${eval.role.name})") }
+                        )
+                    }
+
+                    Text("Fragrance / Aroma: ${String.format("%.2f", scoreFragrance)}")
+                    Slider(scoreFragrance, { scoreFragrance = it }, valueRange = 6f..10f, steps = 15)
+
+                    Text("Flavor: ${String.format("%.2f", scoreFlavor)}")
+                    Slider(scoreFlavor, { scoreFlavor = it }, valueRange = 6f..10f, steps = 15)
+
+                    Text("Aftertaste: ${String.format("%.2f", scoreAftertaste)}")
+                    Slider(scoreAftertaste, { scoreAftertaste = it }, valueRange = 6f..10f, steps = 15)
+
+                    Text("Acidity: ${String.format("%.2f", scoreAcidity)}")
+                    Slider(scoreAcidity, { scoreAcidity = it }, valueRange = 6f..10f, steps = 15)
+
+                    Text("Body: ${String.format("%.2f", scoreBody)}")
+                    Slider(scoreBody, { scoreBody = it }, valueRange = 6f..10f, steps = 15)
+
+                    Text("Balance: ${String.format("%.2f", scoreBalance)}")
+                    Slider(scoreBalance, { scoreBalance = it }, valueRange = 6f..10f, steps = 15)
+
+                    Text("Overall: ${String.format("%.2f", scoreOverall)}")
+                    Slider(scoreOverall, { scoreOverall = it }, valueRange = 6f..10f, steps = 15)
+
+                    OutlinedTextField(
+                        value = scoreDescriptors,
+                        onValueChange = { scoreDescriptors = it },
+                        label = { Text("Descriptors (comma separated)") },
+                        placeholder = { Text("e.g. Jasmine, Bergamot, Peach") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = scoreTaints.toString(),
+                            onValueChange = { scoreTaints = it.toIntOrNull() ?: 0 },
+                            label = { Text("Taints (-2 pts/cup)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = scoreFaults.toString(),
+                            onValueChange = { scoreFaults = it.toIntOrNull() ?: 0 },
+                            label = { Text("Faults (-4 pts/cup)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = scoreNotes,
+                        onValueChange = { scoreNotes = it },
+                        label = { Text("Evaluator Notes") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val scores = mapOf(
+                        "fragrance_aroma" to BigDecimal(scoreFragrance.toDouble()).setScale(2, RoundingMode.HALF_UP),
+                        "flavor" to BigDecimal(scoreFlavor.toDouble()).setScale(2, RoundingMode.HALF_UP),
+                        "aftertaste" to BigDecimal(scoreAftertaste.toDouble()).setScale(2, RoundingMode.HALF_UP),
+                        "acidity" to BigDecimal(scoreAcidity.toDouble()).setScale(2, RoundingMode.HALF_UP),
+                        "body" to BigDecimal(scoreBody.toDouble()).setScale(2, RoundingMode.HALF_UP),
+                        "balance" to BigDecimal(scoreBalance.toDouble()).setScale(2, RoundingMode.HALF_UP),
+                        "uniformity" to BigDecimal("10.00"),
+                        "clean_cup" to BigDecimal("10.00"),
+                        "sweetness" to BigDecimal("10.00"),
+                        "overall" to BigDecimal(scoreOverall.toDouble()).setScale(2, RoundingMode.HALF_UP)
+                    )
+                    val descList = scoreDescriptors.split(',').map { it.trim() }.filter { it.isNotBlank() }
+                    model.submitCuppingSheet(
+                        sessionId = activeSession.id,
+                        sampleId = scoringSample!!,
+                        evaluatorId = evaluatorIdInput.ifBlank { activeSession.evaluators.first().id },
+                        attributeScores = scores,
+                        descriptors = descList,
+                        taintCups = scoreTaints,
+                        faultCups = scoreFaults,
+                        notes = scoreNotes
+                    )
+                    scoringSample = null
+                }) {
+                    Text("Submit Score")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { scoringSample = null }) {
+                    Text("Cancel")
+                }
             }
-        }
-        state.estimates.firstOrNull { it.recipeId == state.selectedRecipeId }?.profile?.let { estimate ->
-            item {
-                InfoCard(
-                    "ESTIMATED direction · ${estimate.method}",
-                    listOf(
-                        estimate.basis,
-                        estimate.suggestedDescriptors.joinToString(),
-                        "Confidence: uncalibrated / unknown",
-                        estimate.uncertaintyDisclaimer
-                    ).joinToString("\n")
-                )
+        )
+    }
+
+    // Dialog: Reopen Session
+    if (showReopenDialog && activeSession != null) {
+        AlertDialog(
+            onDismissRequest = { showReopenDialog = false },
+            title = { Text("Reopen Cupping Session") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("An immutable entry will be recorded in the audit trail log.")
+                    OutlinedTextField(
+                        value = reopenReasonInput,
+                        onValueChange = { reopenReasonInput = it },
+                        label = { Text("Reason for reopening") },
+                        placeholder = { Text("e.g. Correcting typo on Sample #B2 score") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    model.reopenCuppingSession(
+                        activeSession.id,
+                        activeSession.evaluators.firstOrNull()?.id ?: "lead",
+                        reopenReasonInput
+                    )
+                    showReopenDialog = false
+                }) {
+                    Text("Reopen Session")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReopenDialog = false }) {
+                    Text("Cancel")
+                }
             }
-        }
-        items(state.observations.filter { it.recipeId == state.selectedRecipeId }, key = { it.id }) { observation ->
-            InfoCard(
-                "OBSERVED · ${observation.assessor.ifBlank {
-                    "Unspecified assessor"
-                }}",
-                listOf(
-                    observation.tastingDescriptors.joinToString(),
-                    observation.notes,
-                    "Aroma ${observation.aroma}, acidity ${observation.acidity}, sweetness ${observation.sweetness}; " +
-                        "body ${observation.body}"
-                ).joinToString("\n")
-            )
-        }
+        )
+    }
+
+    // Dialog: QC Report Receipt
+    state.generatedQcReceipt?.let { receipt ->
+        AlertDialog(
+            onDismissRequest = { model.clearQcReceipt() },
+            title = { Text("Offline QC Report Receipt") },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Cryptographic Fingerprint (SHA-256):", style = MaterialTheme.typography.labelSmall)
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                        Text(
+                            receipt.sha256Fingerprint,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                    Text("Report Preview:", style = MaterialTheme.typography.labelSmall)
+                    Text(receipt.markdownReport, style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                Button(onClick = { model.clearQcReceipt() }) {
+                    Text("Dismiss")
+                }
+            }
+        )
+    }
+
+    // Dialog: Log Roast Rest Observation
+    if (showLogObsDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogObsDialog = false },
+            title = { Text("Log Roast-Rest Observation") },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = obsBagIdInput,
+                        onValueChange = { obsBagIdInput = it },
+                        label = { Text("Bag / Lot ID") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = obsDaysInput,
+                        onValueChange = { obsDaysInput = it },
+                        label = { Text("Days Post-Roast") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = obsScoreInput,
+                        onValueChange = { obsScoreInput = it },
+                        label = { Text("Cupping Score") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = obsAromaInput,
+                            onValueChange = { obsAromaInput = it },
+                            label = { Text("Aroma") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = obsAcidityInput,
+                            onValueChange = { obsAcidityInput = it },
+                            label = { Text("Acidity") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = obsSweetnessInput,
+                            onValueChange = { obsSweetnessInput = it },
+                            label = { Text("Sweetness") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Text("Carbonic Acid / Sharpness:", modifier = Modifier.weight(1f))
+                        FilterChip(
+                            selected = obsPerceivedCarbonic,
+                            onClick = { obsPerceivedCarbonic = !obsPerceivedCarbonic },
+                            label = { Text(if (obsPerceivedCarbonic) "Detected" else "None") }
+                        )
+                    }
+                    OutlinedTextField(
+                        value = obsNotesInput,
+                        onValueChange = { obsNotesInput = it },
+                        label = { Text("Observation Notes") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val days = obsDaysInput.toIntOrNull() ?: 14
+                    val pred = CuppingAnalyticsEngine.predictRoastRestCurve(obsBagIdInput, "LIGHT", "WASHED")
+                    val phase = CuppingAnalyticsEngine.classifyObservationPhase(days, pred)
+                    val obs = RoastRestObservation(
+                        id = UUID.randomUUID().toString(),
+                        bagId = obsBagIdInput,
+                        roastDateEpoch = System.currentTimeMillis() - 86400000L * days,
+                        observationDateEpoch = System.currentTimeMillis(),
+                        daysPostRoast = days,
+                        cuppingScore = BigDecimal(obsScoreInput.toDoubleOrNull() ?: 90.0).setScale(2, RoundingMode.HALF_UP),
+                        observedAroma = BigDecimal(obsAromaInput.toDoubleOrNull() ?: 8.5).setScale(1, RoundingMode.HALF_UP),
+                        observedAcidity = BigDecimal(obsAcidityInput.toDoubleOrNull() ?: 8.5).setScale(1, RoundingMode.HALF_UP),
+                        observedSweetness = BigDecimal(obsSweetnessInput.toDoubleOrNull() ?: 8.5).setScale(1, RoundingMode.HALF_UP),
+                        perceivedCarbonicAcid = obsPerceivedCarbonic,
+                        qualitativeNotes = obsNotesInput,
+                        observedPhase = phase
+                    )
+                    model.recordRoastRestObservation(obs)
+                    showLogObsDialog = false
+                }) {
+                    Text("Save Observation")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogObsDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
+
 
 @Composable
 private fun Knowledge(state: CoffeeUiState, model: CoffeeViewModel) {

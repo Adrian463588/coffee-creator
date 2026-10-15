@@ -69,6 +69,33 @@ import com.coffeecreator.app.core.journal.ImportRecordStatus
 import com.coffeecreator.app.core.journal.MonthlyBrewStatistics
 import com.coffeecreator.app.core.journal.OvatRecommendation
 import com.coffeecreator.app.core.journal.OvatTargetVariable
+import com.coffeecreator.app.core.sensory.AttributeConsensus
+import com.coffeecreator.app.core.sensory.AuditEntry
+import com.coffeecreator.app.core.sensory.CalibrationReferenceExercise
+import com.coffeecreator.app.core.sensory.ConsensusAnalytics
+import com.coffeecreator.app.core.sensory.CuppingAnalyticsEngine
+import com.coffeecreator.app.core.sensory.CuppingSample
+import com.coffeecreator.app.core.sensory.CuppingSession
+import com.coffeecreator.app.core.sensory.CuppingTemplate
+import com.coffeecreator.app.core.sensory.CuppingTemplateType
+import com.coffeecreator.app.core.sensory.DefectRecord
+import com.coffeecreator.app.core.sensory.DegassingPhase
+import com.coffeecreator.app.core.sensory.EpistemologicalOrigin
+import com.coffeecreator.app.core.sensory.EvaluationSheet
+import com.coffeecreator.app.core.sensory.Evaluator
+import com.coffeecreator.app.core.sensory.EvaluatorRole
+import com.coffeecreator.app.core.sensory.FlavorDescriptor
+import com.coffeecreator.app.core.sensory.GreenCoffeeDefectEntry
+import com.coffeecreator.app.core.sensory.GreenDefectType
+import com.coffeecreator.app.core.sensory.MaskingMode
+import com.coffeecreator.app.core.sensory.PhysicalQcRecord
+import com.coffeecreator.app.core.sensory.QcReportReceipt
+import com.coffeecreator.app.core.sensory.RestCurvePrediction
+import com.coffeecreator.app.core.sensory.RoastRestObservation
+import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
+import com.coffeecreator.app.core.sensory.SessionStatus
+import com.coffeecreator.app.core.sensory.StandardCuppingTemplates
+import java.math.BigDecimal
 import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
@@ -144,7 +171,13 @@ data class CoffeeUiState(
     val activeCaffeineEstimate: CaffeineEstimate? = null,
     val brewStreak: BrewStreakResult? = null,
     val monthlyStats: MonthlyBrewStatistics? = null,
-    val importConflictPreview: ImportConflictPreview? = null
+    val importConflictPreview: ImportConflictPreview? = null,
+    val cuppingSessions: List<CuppingSession> = emptyList(),
+    val activeCuppingSessionId: String? = null,
+    val selectedCuppingSampleId: String? = null,
+    val physicalQcRecords: Map<String, PhysicalQcRecord> = emptyMap(),
+    val roastRestObservations: List<RoastRestObservation> = emptyList(),
+    val generatedQcReceipt: QcReportReceipt? = null
 )
 
 @HiltViewModel
@@ -201,6 +234,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
             }
             _state.update { it.copy(ready = true, canUndoDraft = undoDraft != null) }
             calculate()
+            seedInitialSensoryData()
         }
         viewModelScope.launch {
             graph.preferences.data.catch { failure ->
@@ -1561,6 +1595,394 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         val now = LocalDate.now()
         val stats = BrewAnalyticsEngine.calculateMonthlyStats(entries, now.year, now.monthValue)
         _state.update { it.copy(brewStreak = streak, monthlyStats = stats) }
+    }
+
+    // ========================================================================
+    // Sensory & Cupping Sessions (Epic S2-E05)
+    // ========================================================================
+
+    fun selectCuppingSession(sessionId: String?) {
+        _state.update {
+            it.copy(
+                activeCuppingSessionId = sessionId,
+                selectedCuppingSampleId = it.cuppingSessions.find { s -> s.id == sessionId }?.samples?.firstOrNull()?.sampleId
+            )
+        }
+    }
+
+    fun selectCuppingSample(sampleId: String?) {
+        _state.update { it.copy(selectedCuppingSampleId = sampleId) }
+    }
+
+    fun createCuppingSession(
+        title: String,
+        location: String,
+        templateType: CuppingTemplateType,
+        maskingMode: MaskingMode,
+        evaluatorNames: List<String>,
+        sampleBeanNames: List<String>
+    ) {
+        val sessionId = UUID.randomUUID().toString()
+        val template = StandardCuppingTemplates.getTemplate(templateType)
+        val evaluators = evaluatorNames.mapIndexed { idx, name ->
+            Evaluator(
+                id = "eval_${idx + 1}_${UUID.randomUUID().toString().take(4)}",
+                name = name.ifBlank { "Evaluator ${idx + 1}" },
+                role = if (idx == 0) EvaluatorRole.LEAD_CUPPER else EvaluatorRole.Q_GRADER
+            )
+        }.ifEmpty {
+            listOf(Evaluator("eval_lead", "Lead Evaluator", EvaluatorRole.LEAD_CUPPER))
+        }
+
+        val samples = sampleBeanNames.mapIndexed { idx, beanName ->
+            val codeLetter = ('A' + idx).toString()
+            CuppingSample(
+                sampleId = "sample_${idx + 1}_${UUID.randomUUID().toString().take(4)}",
+                blindCode = "Sample #$codeLetter${idx + 1}",
+                actualBeanId = "bean_$idx",
+                beanName = beanName.ifBlank { "Sample $codeLetter" },
+                roaster = "Local Artisan Roaster",
+                origin = "Specialty Origin",
+                process = "Washed",
+                roastDateEpoch = System.currentTimeMillis() - 86400000L * 10,
+                tablePosition = idx + 1,
+                isRevealed = maskingMode == MaskingMode.OPEN_LABEL
+            )
+        }.ifEmpty {
+            listOf(
+                CuppingSample(
+                    sampleId = "sample_default",
+                    blindCode = "Sample #A1",
+                    actualBeanId = "bean_def",
+                    beanName = "House Single Origin",
+                    roaster = "Roastery",
+                    origin = "Origin",
+                    process = "Washed",
+                    roastDateEpoch = System.currentTimeMillis() - 86400000L * 7,
+                    tablePosition = 1,
+                    isRevealed = maskingMode == MaskingMode.OPEN_LABEL
+                )
+            )
+        }
+
+        val session = CuppingSession(
+            id = sessionId,
+            title = title.ifBlank { "New Cupping Session" },
+            location = location.ifBlank { "Cupping Lab" },
+            template = template,
+            maskingMode = maskingMode,
+            status = SessionStatus.OPEN,
+            evaluators = evaluators,
+            samples = samples,
+            sheets = emptyList(),
+            auditTrail = listOf(
+                AuditEntry(
+                    timestamp = System.currentTimeMillis(),
+                    editorId = evaluators.first().id,
+                    action = "CREATE_SESSION",
+                    previousStateSummary = "NONE",
+                    newStateSummary = "OPEN",
+                    reason = "Session initialized by ${evaluators.first().name}"
+                )
+            ),
+            createdAt = System.currentTimeMillis()
+        )
+
+        _state.update {
+            it.copy(
+                cuppingSessions = listOf(session) + it.cuppingSessions,
+                activeCuppingSessionId = sessionId,
+                selectedCuppingSampleId = samples.first().sampleId,
+                notice = "Created cupping session '${session.title}'."
+            )
+        }
+    }
+
+    fun revealCuppingSample(sessionId: String, sampleId: String) {
+        _state.update { current ->
+            val updated = current.cuppingSessions.map { s ->
+                if (s.id == sessionId) {
+                    val updatedSamples = s.samples.map { smp ->
+                        if (smp.sampleId == sampleId) smp.copy(isRevealed = true) else smp
+                    }
+                    val audit = s.auditTrail + AuditEntry(
+                        timestamp = System.currentTimeMillis(),
+                        editorId = s.evaluators.firstOrNull()?.id ?: "lead",
+                        action = "REVEAL_SAMPLE",
+                        previousStateSummary = "Masked",
+                        newStateSummary = "Revealed",
+                        reason = "Controlled blind reveal for sample $sampleId"
+                    )
+                    s.copy(samples = updatedSamples, auditTrail = audit)
+                } else s
+            }
+            current.copy(cuppingSessions = updated, notice = "Revealed true identity for sample.")
+        }
+    }
+
+    fun submitCuppingSheet(
+        sessionId: String,
+        sampleId: String,
+        evaluatorId: String,
+        attributeScores: Map<String, BigDecimal>,
+        descriptors: List<String>,
+        taintCups: Int = 0,
+        faultCups: Int = 0,
+        defectDesc: String = "",
+        notes: String = ""
+    ) {
+        val session = _state.value.cuppingSessions.find { it.id == sessionId } ?: return
+        require(session.status == SessionStatus.OPEN || session.status == SessionStatus.REOPENED) {
+            "Cannot submit evaluation to a ${session.status.name} session."
+        }
+        val defects = DefectRecord(taintCups, faultCups, defectDesc)
+        val totalScore = CuppingAnalyticsEngine.calculateTotalCuppingScore(
+            session.template.type,
+            attributeScores,
+            defects
+        )
+        val sheet = EvaluationSheet(
+            id = UUID.randomUUID().toString(),
+            sessionId = sessionId,
+            sampleId = sampleId,
+            evaluatorId = evaluatorId,
+            origin = EpistemologicalOrigin.HUMAN_OBSERVATION,
+            attributeScores = attributeScores,
+            descriptors = descriptors,
+            defects = defects,
+            totalScore = totalScore,
+            notes = notes,
+            submittedAt = System.currentTimeMillis()
+        )
+
+        _state.update { current ->
+            val updated = current.cuppingSessions.map { s ->
+                if (s.id == sessionId) {
+                    val newSheets = s.sheets.filter { it.sampleId != sampleId || it.evaluatorId != evaluatorId } + sheet
+                    s.copy(sheets = newSheets)
+                } else s
+            }
+            current.copy(cuppingSessions = updated, notice = "Submitted score: $totalScore.")
+        }
+    }
+
+    fun closeCuppingSession(sessionId: String) {
+        _state.update { current ->
+            val updated = current.cuppingSessions.map { s ->
+                if (s.id == sessionId) {
+                    val audit = s.auditTrail + AuditEntry(
+                        timestamp = System.currentTimeMillis(),
+                        editorId = s.evaluators.firstOrNull()?.id ?: "lead",
+                        action = "CLOSE_SESSION",
+                        previousStateSummary = s.status.name,
+                        newStateSummary = SessionStatus.CLOSED.name,
+                        reason = "Formal evaluation closed; scores locked for consensus"
+                    )
+                    s.copy(status = SessionStatus.CLOSED, closedAt = System.currentTimeMillis(), auditTrail = audit)
+                } else s
+            }
+            current.copy(cuppingSessions = updated, notice = "Cupping session closed and locked.")
+        }
+    }
+
+    fun reopenCuppingSession(sessionId: String, editorId: String, reason: String) {
+        _state.update { current ->
+            val updated = current.cuppingSessions.map { s ->
+                if (s.id == sessionId) {
+                    val audit = s.auditTrail + AuditEntry(
+                        timestamp = System.currentTimeMillis(),
+                        editorId = editorId,
+                        action = "REOPEN_SESSION",
+                        previousStateSummary = s.status.name,
+                        newStateSummary = SessionStatus.REOPENED.name,
+                        reason = reason.ifBlank { "Administrative score correction requested" }
+                    )
+                    s.copy(status = SessionStatus.REOPENED, auditTrail = audit)
+                } else s
+            }
+            current.copy(cuppingSessions = updated, notice = "Cupping session reopened with immutable audit trail.")
+        }
+    }
+
+    fun savePhysicalQc(record: PhysicalQcRecord) {
+        _state.update {
+            val map = it.physicalQcRecords + (record.sampleId to record)
+            it.copy(physicalQcRecords = map, notice = "Saved Physical QC record: ${record.calculatedGrade}.")
+        }
+    }
+
+    fun recordRoastRestObservation(observation: RoastRestObservation) {
+        _state.update {
+            val list = listOf(observation) + it.roastRestObservations.filter { o -> o.id != observation.id }
+            it.copy(roastRestObservations = list, notice = "Logged roast-rest observation: ${observation.observedPhase.label}.")
+        }
+    }
+
+    fun exportSessionQcReport(sessionId: String) {
+        val session = _state.value.cuppingSessions.find { it.id == sessionId } ?: return
+        val receipt = CuppingAnalyticsEngine.generateOfflineReport(session, _state.value.physicalQcRecords)
+        _state.update { it.copy(generatedQcReceipt = receipt, notice = "Generated QC Report (SHA-256: ${receipt.sha256Fingerprint.take(12)}...)") }
+    }
+
+    fun clearQcReceipt() {
+        _state.update { it.copy(generatedQcReceipt = null) }
+    }
+
+    private fun seedInitialSensoryData() {
+        if (_state.value.cuppingSessions.isNotEmpty()) return
+
+        val lead = Evaluator("eval_marcus", "Marcus Vance (Lead Q-Grader)", EvaluatorRole.LEAD_CUPPER)
+        val guest = Evaluator("eval_sarah", "Sarah Chen (Roast Master)", EvaluatorRole.Q_GRADER)
+        val barista = Evaluator("eval_diego", "Diego Silva (Head Barista)", EvaluatorRole.BARISTA)
+
+        val sample1 = CuppingSample(
+            sampleId = "sample_geisha_01",
+            blindCode = "Sample #A1",
+            actualBeanId = "bean_panama_geisha",
+            beanName = "Panama Boquete Geisha Washed",
+            roaster = "Hacienda La Esmeralda",
+            origin = "Panama (1,650m)",
+            process = "Washed",
+            roastDateEpoch = System.currentTimeMillis() - 86400000L * 14,
+            tablePosition = 1,
+            isRevealed = true
+        )
+        val sample2 = CuppingSample(
+            sampleId = "sample_ethiopia_02",
+            blindCode = "Sample #B2",
+            actualBeanId = "bean_ethiopia_natural",
+            beanName = "Ethiopia Yirgacheffe Banko Gotiti",
+            roaster = "Onyx Coffee Lab",
+            origin = "Ethiopia (2,050m)",
+            process = "Natural Anaerobic",
+            roastDateEpoch = System.currentTimeMillis() - 86400000L * 8,
+            tablePosition = 2,
+            isRevealed = false
+        )
+
+        val sheet1 = EvaluationSheet(
+            id = "sheet_01",
+            sessionId = "session_s2_seed",
+            sampleId = "sample_geisha_01",
+            evaluatorId = "eval_marcus",
+            attributeScores = mapOf(
+                "fragrance_aroma" to BigDecimal("9.25"),
+                "flavor" to BigDecimal("9.25"),
+                "aftertaste" to BigDecimal("9.00"),
+                "acidity" to BigDecimal("9.25"),
+                "body" to BigDecimal("8.75"),
+                "balance" to BigDecimal("9.00"),
+                "uniformity" to BigDecimal("10.00"),
+                "clean_cup" to BigDecimal("10.00"),
+                "sweetness" to BigDecimal("10.00"),
+                "overall" to BigDecimal("9.25")
+            ),
+            descriptors = listOf("Jasmine", "Bergamot", "Peach"),
+            totalScore = BigDecimal("93.75"),
+            notes = "Ethereal floral aroma, sparkling bergamot citric acidity, long sweet peach finish.",
+            submittedAt = System.currentTimeMillis() - 3600000L
+        )
+
+        val sheet2 = EvaluationSheet(
+            id = "sheet_02",
+            sessionId = "session_s2_seed",
+            sampleId = "sample_geisha_01",
+            evaluatorId = "eval_sarah",
+            attributeScores = mapOf(
+                "fragrance_aroma" to BigDecimal("9.00"),
+                "flavor" to BigDecimal("9.00"),
+                "aftertaste" to BigDecimal("8.75"),
+                "acidity" to BigDecimal("9.25"),
+                "body" to BigDecimal("8.75"),
+                "balance" to BigDecimal("8.75"),
+                "uniformity" to BigDecimal("10.00"),
+                "clean_cup" to BigDecimal("10.00"),
+                "sweetness" to BigDecimal("10.00"),
+                "overall" to BigDecimal("9.00")
+            ),
+            descriptors = listOf("Jasmine", "Peach", "Honey"),
+            totalScore = BigDecimal("92.50"),
+            notes = "Super clean cup with delicate white flowers and sweet nectar.",
+            submittedAt = System.currentTimeMillis() - 3000000L
+        )
+
+        val seedSession = CuppingSession(
+            id = "session_s2_seed",
+            title = "Specialty Origin Calibration & Blind QC",
+            location = "Main Roastery Lab",
+            template = StandardCuppingTemplates.SPECIALTY_STANDARD,
+            maskingMode = MaskingMode.SINGLE_BLIND_EVALUATOR,
+            status = SessionStatus.OPEN,
+            evaluators = listOf(lead, guest, barista),
+            samples = listOf(sample1, sample2),
+            sheets = listOf(sheet1, sheet2),
+            auditTrail = listOf(
+                AuditEntry(
+                    timestamp = System.currentTimeMillis() - 7200000L,
+                    editorId = lead.id,
+                    action = "CREATE_SESSION",
+                    previousStateSummary = "NONE",
+                    newStateSummary = "OPEN",
+                    reason = "Specialty calibration session initialized"
+                )
+            ),
+            createdAt = System.currentTimeMillis() - 7200000L
+        )
+
+        val physicalQc = PhysicalQcRecord(
+            id = "phys_geisha_01",
+            sampleId = "sample_geisha_01",
+            sampleMassGrams = BigDecimal("350.0"),
+            moisturePercentage = BigDecimal("10.8"),
+            waterActivityAw = BigDecimal("0.58"),
+            bulkDensityGPerL = BigDecimal("715.0"),
+            totalPrimaryDefects = 0,
+            totalSecondaryDefects = 2,
+            calculatedGrade = "Specialty Grade 1 (Strict)",
+            roastedAgtronWholeBean = BigDecimal("68.0"),
+            roastedAgtronGround = BigDecimal("76.5"),
+            roastDeltaAgtron = BigDecimal("8.5")
+        )
+
+        val obs1 = RoastRestObservation(
+            id = "obs_01",
+            bagId = "bag_geisha_lot1",
+            roastDateEpoch = System.currentTimeMillis() - 86400000L * 14,
+            observationDateEpoch = System.currentTimeMillis() - 86400000L * 11,
+            daysPostRoast = 3,
+            cuppingScore = BigDecimal("86.5"),
+            observedAroma = BigDecimal("8.0"),
+            observedAcidity = BigDecimal("8.5"),
+            observedSweetness = BigDecimal("7.5"),
+            perceivedCarbonicAcid = true,
+            qualitativeNotes = "Carbonic sharpness masking subtle florals, rapid bubbling on crust.",
+            observedPhase = DegassingPhase.TOO_FRESH_CO2_INTERFERENCE
+        )
+
+        val obs2 = RoastRestObservation(
+            id = "obs_02",
+            bagId = "bag_geisha_lot1",
+            roastDateEpoch = System.currentTimeMillis() - 86400000L * 14,
+            observationDateEpoch = System.currentTimeMillis(),
+            daysPostRoast = 14,
+            cuppingScore = BigDecimal("93.5"),
+            observedAroma = BigDecimal("9.5"),
+            observedAcidity = BigDecimal("9.2"),
+            observedSweetness = BigDecimal("9.0"),
+            perceivedCarbonicAcid = false,
+            qualitativeNotes = "Peak sensory expression. Jasmine and bergamot fully open, silky lingering sweetness.",
+            observedPhase = DegassingPhase.PEAK_FLAVOR_WINDOW
+        )
+
+        _state.update {
+            it.copy(
+                cuppingSessions = listOf(seedSession),
+                activeCuppingSessionId = seedSession.id,
+                selectedCuppingSampleId = sample1.sampleId,
+                physicalQcRecords = mapOf(sample1.sampleId to physicalQc),
+                roastRestObservations = listOf(obs2, obs1)
+            )
+        }
     }
 
     fun clearNotice() {
