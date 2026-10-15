@@ -112,6 +112,18 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
+import com.coffeecreator.app.core.reliability.AppLanguage
+import com.coffeecreator.app.core.reliability.DiagnosticLogEntry
+import com.coffeecreator.app.core.ai.personalization.ElevationUnit
+import com.coffeecreator.app.core.reliability.LogLevel
+import com.coffeecreator.app.core.reliability.MassUnit
+import com.coffeecreator.app.core.reliability.ModuleStatus
+import com.coffeecreator.app.core.reliability.OfflineHelpCatalog
+import com.coffeecreator.app.core.reliability.OfflineHelpTopic
+import com.coffeecreator.app.core.reliability.TemperatureUnit
+import com.coffeecreator.app.core.reliability.UnitConverter
+import com.coffeecreator.app.core.reliability.UserUnitPreferences
+import com.coffeecreator.app.core.reliability.VolumeUnit
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -4119,7 +4131,9 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
 @Composable
 private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
     val context = LocalContext.current
+    val isIndonesian = state.unitPreferences.language == AppLanguage.INDONESIAN
     var restoring by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var activeHelpDialog by rememberSaveable { mutableStateOf<String?>(null) }
     var personaText by rememberSaveable(state.selectedPersona?.id) { mutableStateOf(state.selectedPersona?.systemPrompt.orEmpty()) }
     var tokens by rememberSaveable(state.maxTokens) { mutableStateOf(state.maxTokens.toString()) }
     var temperature by rememberSaveable(state.temperature) { mutableStateOf(state.temperature.toString()) }
@@ -4128,109 +4142,444 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
             uri?.let { model.exportBackup(it, context.contentResolver) }
         }
     val restorer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> restoring = uri }
+
     Page("Settings") {
         item {
             Heading(
-                "Privacy & recovery",
-                "Your records stay local. SAF exports contain personal data; keep them private. No trackers or cloud inference."
+                if (isIndonesian) "Keandalan & Pengaturan" else "Reliability & Settings",
+                if (isIndonesian)
+                    "Data Anda tersimpan lokal di perangkat. Bebas SDK telemetri atau inferensi cloud."
+                else
+                    "Your records stay 100% on-device. Zero telemetry SDKs, cloud tracking, or remote inference."
             )
         }
+
+        // ====================================================================
+        // S2-078: On-Device Language Toggle (EN / ID)
+        // ====================================================================
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("settings:language_card"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (isIndonesian) "Bahasa Aplikasi (On-Device Language)" else "App Language (On-Device Language)",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        if (isIndonesian)
+                            "Peralihan bahasa instan tanpa koneksi internet atau restart aplikasi."
+                        else
+                            "Instant on-device language toggle without network connection or app restart.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = state.unitPreferences.language == AppLanguage.ENGLISH,
+                            onClick = { model.setLanguage(AppLanguage.ENGLISH) },
+                            label = { Text("English (EN)") },
+                            modifier = Modifier.testTag("settings:lang_en")
+                        )
+                        FilterChip(
+                            selected = state.unitPreferences.language == AppLanguage.INDONESIAN,
+                            onClick = { model.setLanguage(AppLanguage.INDONESIAN) },
+                            label = { Text("Bahasa Indonesia (ID)") },
+                            modifier = Modifier.testTag("settings:lang_id")
+                        )
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // S2-078: Localized Unit Preferences (Metric / Imperial)
+        // ====================================================================
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("settings:units_card"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        if (isIndonesian) "Preferensi Satuan Fisika Seduh" else "Brewing Physics Unit Preferences",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        if (isIndonesian)
+                            "Konversi matematis presisi tinggi (BigDecimal) tanpa akumulasi drift pembulatan."
+                        else
+                            "Exact high-precision BigDecimal conversions with zero cumulative rounding drift.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Temperature unit
+                    Text(if (isIndonesian) "Suhu Air:" else "Water Temperature:", style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = state.unitPreferences.temperatureUnit == TemperatureUnit.CELSIUS,
+                            onClick = { model.setUnitPreferences(state.unitPreferences.copy(temperatureUnit = TemperatureUnit.CELSIUS)) },
+                            label = { Text("Celsius (°C)") }
+                        )
+                        FilterChip(
+                            selected = state.unitPreferences.temperatureUnit == TemperatureUnit.FAHRENHEIT,
+                            onClick = { model.setUnitPreferences(state.unitPreferences.copy(temperatureUnit = TemperatureUnit.FAHRENHEIT)) },
+                            label = { Text("Fahrenheit (°F)") }
+                        )
+                    }
+
+                    // Mass unit
+                    Text(if (isIndonesian) "Massa Biji & Air:" else "Coffee & Water Mass:", style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = state.unitPreferences.massUnit == MassUnit.GRAMS,
+                            onClick = { model.setUnitPreferences(state.unitPreferences.copy(massUnit = MassUnit.GRAMS)) },
+                            label = { Text("Grams (g)") }
+                        )
+                        FilterChip(
+                            selected = state.unitPreferences.massUnit == MassUnit.OUNCES,
+                            onClick = { model.setUnitPreferences(state.unitPreferences.copy(massUnit = MassUnit.OUNCES)) },
+                            label = { Text("Ounces (oz)") }
+                        )
+                    }
+
+                    // Volume & Elevation
+                    Text(if (isIndonesian) "Volume & Ketinggian:" else "Volume & Elevation:", style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = state.unitPreferences.volumeUnit == VolumeUnit.MILLILITERS,
+                            onClick = { model.setUnitPreferences(state.unitPreferences.copy(volumeUnit = VolumeUnit.MILLILITERS)) },
+                            label = { Text("mL") }
+                        )
+                        FilterChip(
+                            selected = state.unitPreferences.volumeUnit == VolumeUnit.FLUID_OUNCES,
+                            onClick = { model.setUnitPreferences(state.unitPreferences.copy(volumeUnit = VolumeUnit.FLUID_OUNCES)) },
+                            label = { Text("fl oz") }
+                        )
+                        FilterChip(
+                            selected = state.unitPreferences.elevationUnit == ElevationUnit.METERS,
+                            onClick = { model.setUnitPreferences(state.unitPreferences.copy(elevationUnit = ElevationUnit.METERS)) },
+                            label = { Text("masl") }
+                        )
+                        FilterChip(
+                            selected = state.unitPreferences.elevationUnit == ElevationUnit.FEET,
+                            onClick = { model.setUnitPreferences(state.unitPreferences.copy(elevationUnit = ElevationUnit.FEET)) },
+                            label = { Text("ft") }
+                        )
+                    }
+
+                    // Live sample conversion preview
+                    val isFahr = state.unitPreferences.temperatureUnit == TemperatureUnit.FAHRENHEIT
+                    val isOz = state.unitPreferences.massUnit == MassUnit.OUNCES
+                    val sampleTemp = if (isFahr) "199.4 °F" else "93.0 °C"
+                    val sampleDose = if (isOz) "0.635 oz" else "18.0 g"
+                    val sampleWater = if (isOz) "8.818 oz" else "250.0 g"
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Live Preview: Dose $sampleDose • Water $sampleWater • Temp $sampleTemp",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(8.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // S2-081: Graceful Degradation Status & Subsystem Health
+        // ====================================================================
+        item {
+            val badge = state.degradationState.activeBadge
+            val badgeText = if (isIndonesian) badge.labelId else badge.labelEn
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("settings:degradation_card"),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (badge.isDegraded)
+                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            if (isIndonesian) "Status Subsistem & Degradasi" else "Subsystem Degradation Status",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (badge.isDegraded) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                        ) {
+                            Text(
+                                text = badgeText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        if (isIndonesian)
+                            "Aplikasi dirancang agar tetap 100% fungsional pada mode manual saat model AI, OCR, atau timbangan BLE tidak tersedia."
+                        else
+                            "Core coffee tools remain 100% operational in manual mode even when local LLM, OCR vision, or BLE scale are offline.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            "LLM: ${if (state.loadedModel != null) "✓ Active" else "— Manual"}",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Text(
+                            "OCR: ${if (state.degradationState.ocrStatus == ModuleStatus.AVAILABLE) "✓ Active" else "— Manual"}",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Text(
+                            "BLE: ${if (state.brewSession?.scaleDevice != null) "✓ Connected" else "— Offline"}",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // S2-080: On-Device Activity Diagnostics & Scrubbed Ring Buffer
+        // ====================================================================
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("settings:diagnostics_card"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (isIndonesian) "Diagnostik Aktivitas On-Device" else "On-Device Activity Diagnostics",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        if (isIndonesian)
+                            "Buffer melingkar 500 entri dengan pembersihan otomatis PII (IP, token, path). Nol SDK telemetri eksternal."
+                        else
+                            "500-entry ring buffer with automatic PII scrubbing (IPs, paths, tokens). Zero external telemetry SDKs.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { model.refreshDiagnostics() }, modifier = Modifier.testTag("settings:refresh_diag")) {
+                            Text(if (isIndonesian) "Segarkan Log (${state.diagnosticLogSnapshot.size})" else "Refresh Logs (${state.diagnosticLogSnapshot.size})")
+                        }
+                        Button(onClick = { model.exportDiagnosticLogs(context) }, modifier = Modifier.testTag("settings:export_diag")) {
+                            Text(if (isIndonesian) "Ekspor Log (Sharesheet)" else "Export Logs (Sharesheet)")
+                        }
+                        TextButton(onClick = { model.clearDiagnostics() }) {
+                            Text(if (isIndonesian) "Hapus Log" else "Clear Logs")
+                        }
+                    }
+
+                    if (state.diagnosticLogSnapshot.isNotEmpty()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 160.dp)
+                        ) {
+                            Column(Modifier.padding(8.dp).verticalScroll(rememberScrollState())) {
+                                state.diagnosticLogSnapshot.takeLast(6).reversed().forEach { log ->
+                                    Text(
+                                        text = "[#${log.sequenceId}] [${log.level}] [${log.tag}] ${log.message}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (log.level == LogLevel.ERROR)
+                                            MaterialTheme.colorScheme.error
+                                        else
+                                            MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // S2-078: Offline Help & Error Recovery Guides
+        // ====================================================================
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("settings:help_card"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (isIndonesian) "Panduan Bantuan & Pemulihan Offline" else "Offline Help & Error Recovery",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        if (isIndonesian)
+                            "Panduan pemecahan masalah teknis mandiri saat di kedai kopi tanpa akses internet."
+                        else
+                            "Self-contained troubleshooting guides when brewing in airplane mode.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OfflineHelpCatalog.topics.forEach { topic ->
+                            OutlinedButton(
+                                onClick = { activeHelpDialog = topic.id },
+                                modifier = Modifier.testTag("help:${topic.id}")
+                            ) {
+                                Text(if (isIndonesian) topic.titleId else topic.titleEn)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // S2-077: Cryptographic Full Backup & Restore
+        // ====================================================================
+        item {
+            InfoCard(
+                if (isIndonesian) "Cadangan & Pemulihan Penuh (SAF)" else "Complete Cryptographic Backup (SAF)",
+                if (isIndonesian)
+                    "Ekspor resep, biji kopi, jurnal, cupping, profil rasa, dan preferensi dengan verifikasi SHA-256. " +
+                        "File model GGUF dan izin SAF tersimpan terpisah."
+                else
+                    "Export recipes, beans, journal logs, cuppings, taste profiles, and preferences with SHA-256 integrity. " +
+                        "Model weights and directory grants remain user-owned in SAF."
+            ) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        exporter.launch("coffee-creator-backup.json")
+                    }, enabled = !state.busy, modifier = Modifier.testTag("settings:export")) {
+                        Text(if (isIndonesian) "Ekspor cadangan" else "Export backup")
+                    }
+                    OutlinedButton(onClick = {
+                        restorer.launch(arrayOf("application/json", "text/plain"))
+                    }, enabled = !state.busy, modifier = Modifier.testTag("settings:restore")) {
+                        Text(if (isIndonesian) "Pulihkan cadangan" else "Restore backup")
+                    }
+                }
+            }
+        }
+
         item {
             Select(
-                "Theme",
+                if (isIndonesian) "Tema Tampilan" else "Theme",
                 state.theme,
                 listOf("system" to "System", "light" to "Light", "dark" to "Dark"),
                 model::setTheme,
                 "settings:theme"
             )
         }
-        item {
-            InfoCard(
-                "Complete backup",
-                "Export recipes, catalog, observations, chat and source metadata with schema and SHA-256 " +
-                    "integrity. Model weights and grants are separate; uninstall revokes permissions."
-            ) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        exporter.launch("coffee-creator-backup.json")
-                    }, enabled = !state.busy, modifier = Modifier.testTag("settings:export")) { Text("Export backup") }
-                    OutlinedButton(onClick = {
-                        restorer.launch(arrayOf("application/json", "text/plain"))
-                    }, enabled = !state.busy, modifier = Modifier.testTag("settings:restore")) { Text("Restore backup") }
-                }
-            }
-        }
+
         item { Field("Maximum output tokens (16–256)", tokens, { tokens = it }, "settings:tokens", true) }
         item { Field("Sampling temperature (0.1–1.2)", temperature, { temperature = it }, "settings:temperature", true) }
         item {
             Button(onClick = {
                 model.setGeneration(tokens.toIntOrNull() ?: 0, temperature.replace(',', '.').toFloatOrNull() ?: Float.NaN)
-            }, enabled = !state.busy) { Text("Save generation settings") }
+            }, enabled = !state.busy) { Text(if (isIndonesian) "Simpan pengaturan inferensi" else "Save generation settings") }
         }
-        item {
-            Select("Editable persona", state.selectedPersona?.id.orEmpty(), state.personas.map { it.id to it.title }, { id ->
-                state.personas.find {
-                    it.id ==
-                        id
-                }?.let(model::selectPersona)
-            }, "settings:persona")
-        }
-        item {
-            OutlinedTextField(personaText, {
-                personaText = it
-            }, label = { Text("Persona preference") }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 8)
-        }
-        item {
-            Button(onClick = {
-                state.selectedPersona?.let { model.updatePersona(it, personaText) }
-            }, enabled = !state.busy) { Text("Save persona") }
-        }
+
         item {
             InfoCard(
-                "Local diagnostics",
+                if (isIndonesian) "Statistik Database Lokal" else "Local Database Diagnostics",
                 listOf(
-                    "App 1.1.0 · local records ${if (state.ready) "ready" else "unavailable"}",
-                    "${state.recipes.size} recipes · ${state.observations.size} observations · ${state.documents.size} sources",
+                    "App 1.8.0 · local records ${if (state.ready) "ready" else "unavailable"}",
+                    "${state.recipes.size} recipes · ${state.journalEntries.size} journals · ${state.cuppingSessions.size} cuppings",
                     state.loadedModel ?: "No GGUF loaded",
-                    "Delete specific records with confirmation in their library/journal.",
+                    "Delete specific records with confirmation in their respective workspace.",
                     "Exports remain in your directory until you delete them there."
                 ).joinToString("\n")
             )
         }
+
         item {
             OutlinedButton(
                 onClick = { model.requestDeletion("all application records", "all") },
-                enabled =
-                !state.busy && !state.generating
-            ) { Text("Delete application records…") }
+                enabled = !state.busy && !state.generating
+            ) { Text(if (isIndonesian) "Hapus semua data aplikasi…" else "Delete application records…") }
         }
     }
+
+    // ========================================================================
+    // Offline Help Topic Dialog
+    // ========================================================================
+    activeHelpDialog?.let { topicId ->
+        val topic = OfflineHelpCatalog.topics.find { it.id == topicId }
+        if (topic != null) {
+            AlertDialog(
+                onDismissRequest = { activeHelpDialog = null },
+                title = { Text(if (isIndonesian) topic.titleId else topic.titleEn) },
+                text = {
+                    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = if (isIndonesian) topic.summaryId else topic.summaryEn,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        HorizontalDivider()
+                        val steps = if (isIndonesian) topic.recoveryStepsId else topic.recoveryStepsEn
+                        steps.forEachIndexed { idx, step ->
+                            Text("${idx + 1}. $step", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { activeHelpDialog = null }) {
+                        Text(if (isIndonesian) "Tutup" else "Close")
+                    }
+                }
+            )
+        }
+    }
+
+    // ========================================================================
+    // Restore Confirmation Dialog
+    // ========================================================================
     restoring?.let { uri ->
         AlertDialog(
-            onDismissRequest = {
-                restoring = null
-            },
+            onDismissRequest = { restoring = null },
             title = {
-                Text("Restore validated backup?")
+                Text(if (isIndonesian) "Pulihkan cadangan terverifikasi?" else "Restore validated backup?")
             },
             text = {
                 Text(
-                    "Supported, integrity-checked records will replace the backed-up local record groups. " +
-                        "Corrupt or unsupported files are rejected before mutation. Export current records first if " +
-                        "needed."
+                    if (isIndonesian)
+                        "Seluruh data resep, jurnal, cupping, dan preferensi akan dipulihkan secara atomik. " +
+                            "File rusak atau tidak kompatibel akan ditolak tanpa mengubah database yang ada."
+                    else
+                        "Supported, integrity-checked records will replace the backed-up local record groups. " +
+                            "Corrupt or unsupported files are rejected before mutation."
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     model.restoreBackup(uri, context.contentResolver)
                     restoring = null
-                }) { Text("Validate and restore") }
+                }) { Text(if (isIndonesian) "Validasi & Pulihkan" else "Validate and restore") }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    restoring =
-                        null
-                }) { Text("Cancel") }
+                TextButton(onClick = { restoring = null }) {
+                    Text(if (isIndonesian) "Batal" else "Cancel")
+                }
             }
         )
     }

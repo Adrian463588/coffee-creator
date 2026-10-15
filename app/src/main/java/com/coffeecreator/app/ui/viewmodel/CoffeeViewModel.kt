@@ -121,6 +121,19 @@ import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
 import com.coffeecreator.app.core.sensory.SessionStatus
 import com.coffeecreator.app.core.sensory.StandardCuppingTemplates
+import com.coffeecreator.app.core.reliability.AppLanguage
+import com.coffeecreator.app.core.reliability.DiagnosticLogBuffer
+import com.coffeecreator.app.core.reliability.DiagnosticLogEntry
+import com.coffeecreator.app.core.reliability.LogLevel
+import com.coffeecreator.app.core.reliability.MassUnit
+import com.coffeecreator.app.core.reliability.ModuleStatus
+import com.coffeecreator.app.core.reliability.OfflineHelpCatalog
+import com.coffeecreator.app.core.reliability.OfflineHelpTopic
+import com.coffeecreator.app.core.reliability.SystemDegradationState
+import com.coffeecreator.app.core.reliability.TemperatureUnit
+import com.coffeecreator.app.core.reliability.UnitConverter
+import com.coffeecreator.app.core.reliability.UserUnitPreferences
+import com.coffeecreator.app.core.reliability.VolumeUnit
 import java.math.BigDecimal
 import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -209,12 +222,17 @@ data class CoffeeUiState(
     val weatherParams: WeatherParameters = WeatherParameters(),
     val ovatAdjustmentProposal: OvatAdjustmentProposal? = null,
     val inventoryRecommendations: List<RecommendationItem> = emptyList(),
-    val safetyAuditResult: SafetyAuditResult? = null
+    val safetyAuditResult: SafetyAuditResult? = null,
+    val unitPreferences: UserUnitPreferences = UserUnitPreferences(),
+    val degradationState: SystemDegradationState = SystemDegradationState(),
+    val selectedHelpTopicId: String? = null,
+    val diagnosticLogSnapshot: List<DiagnosticLogEntry> = emptyList()
 )
 
 @HiltViewModel
 class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved: SavedStateHandle) : ViewModel() {
     private val gson = Gson()
+    val diagnosticBuffer = DiagnosticLogBuffer(500)
     private val _state = MutableStateFlow(CoffeeUiState())
     val state: StateFlow<CoffeeUiState> = _state.asStateFlow()
     private val draftWrites = MutableStateFlow<RecipeDraft?>(null)
@@ -592,6 +610,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         val recipe = graph.repository.saveRecipe(buildRecipe())
         updateDraft(_state.value.draft.copy(id = recipe.id, group = recipe.revisionGroupId))
         graph.repository.saveSetting("draft", gson.toJson(_state.value.draft))
+        diagnosticBuffer.log(LogLevel.INFO, "Recipe", "Saved recipe ${recipe.name}, revision ${recipe.version}")
         _state.update { it.copy(notice = "Saved ${recipe.name}, revision ${recipe.version}. Earlier revisions are retained.") }
     }
     fun copyRecipe(recipe: Recipe) = task("Copying recipe") {
@@ -801,9 +820,15 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     fun exportBackup(uri: Uri, resolver: android.content.ContentResolver) = task("Exporting complete local records") {
         val json = withDraftWritesPaused {
             graph.repository.saveSetting("draft", gson.toJson(_state.value.draft))
+            graph.repository.saveSetting("cuppings", gson.toJson(_state.value.cuppingSessions))
+            graph.repository.saveSetting("journal_entries", gson.toJson(_state.value.journalEntries))
+            graph.repository.saveSetting("palate_profile", gson.toJson(_state.value.palateProfile))
+            graph.repository.saveSetting("weather_parameters", gson.toJson(_state.value.weatherParams))
+            graph.repository.saveSetting("user_units", gson.toJson(_state.value.unitPreferences))
             graph.repository.exportBackupJson()
         }
         resolver.openOutputStream(uri, "wt")?.use { it.write(json.toByteArray(Charsets.UTF_8)) } ?: error("Cannot write export.")
+        diagnosticBuffer.log(LogLevel.INFO, "Backup", "Full backup exported to SAF URI: $uri")
         _state.update {
             it.copy(notice = "Complete integrity-checked backup exported. This file contains personal records; keep it private.")
         }
@@ -816,15 +841,32 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         _state.update { it.copy(notice = "Validated backup restored atomically. Reselect source/model directories to restore grants.") }
     }
     internal suspend fun restoreRecords(json: String) {
-        // Validate UI-owned draft fields before the repository replaces any records.
+        // Validate UI-owned draft fields and extended settings before replacing records.
+        val decoded = withContext(Dispatchers.IO) { BackupCodec.decode(json) }
+        val settings = decoded.payload.settings
         val restored = withContext(Dispatchers.IO) {
-            val draftJson = BackupCodec.decode(json).payload.settings["draft"]
+            val draftJson = settings["draft"]
             if (draftJson.isNullOrBlank()) {
                 RecipeDraft()
             } else {
                 JsonInputPolicy.validateDepth(draftJson)
                 gson.fromJson(draftJson, RecipeDraft::class.java).also { it.validate() }
             }
+        }
+        val restoredCuppings = settings["cuppings"]?.let {
+            runCatching { gson.fromJson(it, Array<CuppingSession>::class.java).toList() }.getOrNull()
+        }
+        val restoredJournals = settings["journal_entries"]?.let {
+            runCatching { gson.fromJson(it, Array<BrewJournalEntry>::class.java).toList() }.getOrNull()
+        }
+        val restoredPalate = settings["palate_profile"]?.let {
+            runCatching { gson.fromJson(it, PalateProfile::class.java) }.getOrNull()
+        }
+        val restoredWeather = settings["weather_parameters"]?.let {
+            runCatching { gson.fromJson(it, WeatherParameters::class.java) }.getOrNull()
+        }
+        val restoredUnits = settings["user_units"]?.let {
+            runCatching { gson.fromJson(it, UserUnitPreferences::class.java) }.getOrNull()
         }
         cancelGeneration()
         generation?.join()
@@ -843,9 +885,15 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                             searchResult = null,
                             inspectedChunk = null,
                             pendingRecipe = null,
-                            pendingToolJson = null
+                            pendingToolJson = null,
+                            cuppingSessions = restoredCuppings ?: it.cuppingSessions,
+                            journalEntries = restoredJournals ?: it.journalEntries,
+                            palateProfile = restoredPalate ?: it.palateProfile,
+                            weatherParams = restoredWeather ?: it.weatherParams,
+                            unitPreferences = restoredUnits ?: it.unitPreferences
                         )
                     }
+                    diagnosticBuffer.log(LogLevel.INFO, "Backup", "Full backup restored atomically: ${decoded.manifest.recordCounts}")
                 }
             }
         }
@@ -1304,6 +1352,8 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                     onScaleSampleReceived(sample)
                 }
             }
+            updateDegradationState(ble = ModuleStatus.AVAILABLE)
+            diagnosticBuffer.log(LogLevel.INFO, "BLE", "Connected to ${simDriver.device.name}")
         }
     }
 
@@ -1312,6 +1362,8 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
             scaleJob?.cancel()
             scaleDriver?.disconnect()
             scaleDriver = null
+            updateDegradationState(ble = ModuleStatus.UNAVAILABLE_MISSING)
+            diagnosticBuffer.log(LogLevel.INFO, "BLE", "Scale disconnected")
             _state.update {
                 it.copy(
                     brewSession = it.brewSession?.copy(
@@ -1481,6 +1533,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                 )
                 PalateBayesianEngine.updateProfile(current.palateProfile, evidence)
             } else current.palateProfile
+            diagnosticBuffer.log(LogLevel.INFO, "Journal", "Saved journal entry for ${entry.beanName} (rating: ${entry.rating})")
             current.copy(journalEntries = list, palateProfile = updatedPalate, notice = "Saved journal entry for ${entry.beanName}.")
         }
         refreshStreakAndStats()
@@ -2281,6 +2334,63 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     fun flushDraft() {
         if (_state.value.ready && !replacingDraft) graph.persistDraft(gson.toJson(_state.value.draft))
     }
+    fun setLanguage(lang: AppLanguage) = task("Updating language") {
+        graph.repository.saveSetting("user_language", lang.code)
+        _state.update {
+            val updated = it.unitPreferences.copy(language = lang)
+            it.copy(unitPreferences = updated, notice = "Language updated to ${lang.displayName}.")
+        }
+        diagnosticBuffer.log(LogLevel.INFO, "Settings", "Language changed to ${lang.displayName}")
+    }
+
+    fun setUnitPreferences(prefs: UserUnitPreferences) = task("Saving unit preferences") {
+        graph.repository.saveSetting("user_units", gson.toJson(prefs))
+        _state.update { it.copy(unitPreferences = prefs, notice = "Unit preferences updated.") }
+        diagnosticBuffer.log(LogLevel.INFO, "Settings", "Unit preferences updated: ${prefs.temperatureUnit.symbol}, ${prefs.massUnit.symbol}")
+    }
+
+    fun selectHelpTopic(topicId: String?) {
+        _state.update { it.copy(selectedHelpTopicId = topicId) }
+    }
+
+    fun refreshDiagnostics() {
+        _state.update { it.copy(diagnosticLogSnapshot = diagnosticBuffer.snapshot()) }
+    }
+
+    fun clearDiagnostics() {
+        diagnosticBuffer.clear()
+        _state.update { it.copy(diagnosticLogSnapshot = emptyList(), notice = "Diagnostic logs cleared.") }
+    }
+
+    fun exportDiagnosticLogs(context: Context) {
+        val formatted = diagnosticBuffer.exportFormattedString()
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, formatted)
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, "Export Diagnostic Logs")
+        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(shareIntent)
+        diagnosticBuffer.log(LogLevel.INFO, "Diagnostics", "User exported diagnostic logs via Sharesheet")
+    }
+
+    fun updateDegradationState(
+        llm: ModuleStatus? = null,
+        ocr: ModuleStatus? = null,
+        ble: ModuleStatus? = null
+    ) {
+        _state.update {
+            val current = it.degradationState
+            val newState = current.copy(
+                llmStatus = llm ?: current.llmStatus,
+                ocrStatus = ocr ?: current.ocrStatus,
+                bleStatus = ble ?: current.bleStatus
+            )
+            it.copy(degradationState = newState)
+        }
+    }
+
     private fun progress(message: String) {
         _state.update { it.copy(progress = message) }
     }

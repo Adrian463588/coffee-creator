@@ -1,0 +1,29 @@
+# Tasks: Epic S2-E07 Implementation Checklist
+
+- [ ] **Task 1: Pure Domain Reliability Module** (`com.coffeecreator.app.core.reliability`)
+  - [ ] Implement `UnitConverter` (temperature, mass, volume, elevation, density checks).
+  - [ ] Implement `DiagnosticLogBuffer` (capacity 500, ring indexing, PII scrubbing regexes, snapshot, clear).
+  - [ ] Implement `SystemDegradationState` and `ActiveStatusBadge`.
+  - [ ] Implement `FullBackupPayload` and `FullBackupManifest` with SHA-256 payload integrity validation.
+  - [ ] Implement `OfflineHelpTopic` catalog with troubleshooting articles.
+- [ ] **Task 2: ViewModel & Data Layer Integration**
+  - [ ] Add `unitPreferences`, `userLanguage`, `degradationState`, and `diagnosticBuffer` to `CoffeeUiState`.
+  - [ ] Update `exportBackup` and `restoreBackup` to serialize/restore cuppings, journal entries, and palate profile.
+  - [ ] Expose `setLanguage`, `setUnitPreferences`, `exportDiagnosticLogs`, and `clearDiagnosticLogs`.
+- [ ] **Task 3: Modern Settings & Reliability UI** (`CoffeeApp.kt`)
+  - [ ] Add Language toggle chip (EN/ID).
+  - [ ] Add Unit selection card with live sample preview.
+  - [ ] Add Subsystem Degradation Status card with active badge.
+  - [ ] Add Diagnostics log card with live entry count, scrollable scrubbed logs, and local export.
+  - [ ] Add Offline Help & Error Recovery drawer/dialog.
+  - [ ] Ensure adaptive layout support and $\ge 48\text{dp}$ touch targets.
+- [ ] **Task 4: Unit Test Suite & Verification**
+  - [ ] Create `ActiveReliabilityPortabilityTest.kt` verifying all 8 stories (S2-075 through S2-082).
+  - [ ] Verify test suite passes 100% green via `./gradlew.bat testDebugUnitTest`.
+- [ ] **Task 5: Release & Artifacts**
+  - [ ] Bump `versionCode = 8`, `versionName = "1.8.0"` in `app/build.gradle.kts`.
+  - [ ] Assemble debug APK via `./gradlew.bat assembleDebug`.
+  - [ ] Calculate SHA-256 checksum and file size.
+  - [ ] Generate `docs/releases/v1.8.0.md` and update `README.md`.
+  - [ ] Git commit and push to `origin main`.
+  - [ ] Publish GitHub Release `v1.8.0` with APK asset attached.
