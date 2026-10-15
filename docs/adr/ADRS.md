@@ -96,6 +96,10 @@ Detekt remains active with zero allowed findings; explicit facade/Composable bud
 avoid speculative module splitting. Boundary exception handlers rethrow cancellation
 and expose recovery. No blanket suppression or disabled lint/format gates. Authoring
 methods OpenSpec/BMAD/RTK/Ponytail/Caveman are not Android runtime dependencies.
+CI uses the validated Ubuntu24.04 host explicitly; floating ubuntu-latest warned
+of an upcoming major OS migration. SDK setup explicitly requests platform-tools
+and pinned build packages, avoiding the removed legacy tools package. Action
+runtime deprecation advisories remain visible; application quality gates stay active.
 
 ## ADR-010: local Android verification without ADB
 
