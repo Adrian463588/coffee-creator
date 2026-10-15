@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -27,9 +29,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OfflineBolt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -51,6 +55,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -60,10 +65,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -71,6 +78,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.Ingredient
 import com.coffeecreator.app.core.model.ModelStatus
@@ -90,7 +102,17 @@ private val destinations = listOf(
 
 @Composable
 fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
-    var route by rememberSaveable { mutableStateOf("Home") }
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val route = backStackEntry?.destination?.route ?: "Home"
+    var brewResetKey by rememberSaveable { mutableStateOf(0) }
+    val navigate: (String) -> Unit = { target ->
+        navController.navigate(target) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
     var menu by rememberSaveable { mutableStateOf(false) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val expanded = maxWidth >= 600.dp
@@ -99,7 +121,11 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                 TopAppBar(title = {
                     Column {
                         Text("Coffee Creator")
-                        Text(route, style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            destinations.find { it.route == route }?.label ?: route,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }, actions = {
                     IconButton(onClick = { menu = true }, modifier = Modifier.testTag("nav:more")) {
@@ -108,7 +134,7 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         listOf("Knowledge", "Models", "Sensory", "Settings").forEach { target ->
                             DropdownMenuItem(text = { Text(target) }, onClick = {
-                                route = target
+                                navigate(target)
                                 menu = false
                             }, modifier = Modifier.testTag("nav:$target"))
                         }
@@ -121,7 +147,7 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                         destinations.forEach { destination ->
                             NavigationBarItem(
                                 selected = route == destination.route,
-                                onClick = { route = destination.route },
+                                onClick = { navigate(destination.route) },
                                 icon = { Icon(destination.icon, contentDescription = null) },
                                 label = { Text(destination.label) },
                                 modifier = Modifier.testTag("nav:${destination.route}")
@@ -137,7 +163,7 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                         destinations.forEach { destination ->
                             NavigationRailItem(
                                 selected = route == destination.route,
-                                onClick = { route = destination.route },
+                                onClick = { navigate(destination.route) },
                                 icon = { Icon(destination.icon, null) },
                                 label = { Text(destination.label) },
                                 modifier = Modifier.testTag("nav:${destination.route}")
@@ -175,19 +201,27 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                             }
                         }
                     }
-                    when (route) {
-                        "Home" -> Home(state, model, { route = it })
-                        "Formulate" -> Formulate(state, model)
-                        "Library" -> Library(state, model)
-                        "Journal" -> Journal(state, model) { recipe ->
-                            model.editRecipe(recipe)
-                            route = "Formulate"
+                    NavHost(navController, startDestination = "Home", modifier = Modifier.weight(1f)) {
+                        composable("Home") {
+                            Home(state, model) { target ->
+                                if (target == "Formulate") brewResetKey++
+                                navigate(target)
+                            }
                         }
-                        "Sensory" -> Sensory(state, model)
-                        "Knowledge" -> Knowledge(state, model)
-                        "Models" -> Models(state, model)
-                        "AI Chat" -> Chat(state, model)
-                        "Settings" -> Settings(state, model)
+                        composable("Formulate") { Formulate(state, model, brewResetKey) }
+                        composable("Library") { Library(state, model) }
+                        composable("Journal") {
+                            Journal(state, model) { recipe ->
+                                model.editRecipe(recipe)
+                                brewResetKey++
+                                navigate("Formulate")
+                            }
+                        }
+                        composable("Sensory") { Sensory(state, model) }
+                        composable("Knowledge") { Knowledge(state, model) }
+                        composable("Models") { Models(state, model) }
+                        composable("AI Chat") { Chat(state, model) }
+                        composable("Settings") { Settings(state, model) }
                     }
                 }
             }
@@ -229,8 +263,11 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
 }
 
 @Composable
-private fun Page(tag: String, content: LazyListScope.() -> Unit) {
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("page:$tag"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+private fun Page(tag: String, modifier: Modifier = Modifier, content: LazyListScope.() -> Unit) {
+    LazyColumn(
+        modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("page:$tag"),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         item { Spacer(Modifier.height(4.dp)) }
         content()
         item { Spacer(Modifier.height(24.dp)) }
@@ -240,17 +277,26 @@ private fun Page(tag: String, content: LazyListScope.() -> Unit) {
 @Composable
 private fun Heading(title: String, detail: String) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(
+            title,
+            modifier = Modifier.semantics { heading() },
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
         Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun InfoCard(title: String, detail: String, content: @Composable () -> Unit = {}) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(detail, style = MaterialTheme.typography.bodyMedium)
+            Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             content()
         }
     }
@@ -288,7 +334,31 @@ private fun Select(label: String, selected: String, choices: List<Pair<String, S
 
 @Composable
 private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String) -> Unit) = Page("Home") {
-    item { Heading("Your coffee workbench", "Manual brewing, observations and local evidence. No account required.") }
+    item {
+        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+            Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Coffee, contentDescription = null)
+                    Text("YOUR COFFEE WORKBENCH", style = MaterialTheme.typography.labelLarge)
+                }
+                Text(
+                    "Make every brew repeatable",
+                    Modifier.semantics { heading() },
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text("Plan a recipe, measure your brew, then keep what you learned.", style = MaterialTheme.typography.bodyLarge)
+                Button(
+                    onClick = {
+                        model.newRecipe()
+                        navigate("Formulate")
+                    },
+                    enabled = state.ready && !state.busy,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("home:new")
+                ) { Text("New recipe") }
+            }
+        }
+    }
     if (!state.onboarded) {
         item {
             InfoCard(
@@ -301,24 +371,28 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
         }
     }
     item {
-        Button(
-            onClick = {
-                model.newRecipe()
-                navigate("Formulate")
-            },
-            enabled = state.ready && !state.busy,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("home:new")
-        ) { Text("New recipe") }
-    }
-    item {
         InfoCard(
-            "Device readiness",
-            listOf(
-                if (state.ready) "Local records ready" else "Opening local records",
-                state.loadedModel?.let { "GGUF loaded: $it" } ?: "AI model not loaded; manual mode available",
-                "${state.documents.size} imported sources · ${state.recipes.size} saved revisions"
-            ).joinToString("\n")
-        )
+            "Ready for your next brew",
+            "${state.recipes.size} saved revisions · ${state.documents.size} imported sources"
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text(if (state.ready) "Local records ready" else "Opening local records", style = MaterialTheme.typography.bodyMedium)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.OfflineBolt, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        state.loadedModel?.let { "Local AI loaded: $it" } ?: if (state.ready) {
+                            "Manual mode ready · AI model optional"
+                        } else {
+                            "AI model optional · opening local records"
+                        },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
     }
     item {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -346,184 +420,234 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
 }
 
 @Composable
-private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel) {
+private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: Int) {
     val fields = state.draft.fields
+    var selectedSection by rememberSaveable(resetKey) { mutableStateOf(BrewSection.Recipe.name) }
+    val section = BrewSection.valueOf(selectedSection)
     var ingredientId by rememberSaveable { mutableStateOf("") }
     var quantity by rememberSaveable { mutableStateOf("") }
     var unit by rememberSaveable { mutableStateOf("g") }
     var density by rememberSaveable { mutableStateOf("") }
     var science by rememberSaveable { mutableStateOf("Dilution") }
     var scienceInputs by rememberSaveable { mutableStateOf(emptyMap<String, String>()) }
-    Page("Formulate") {
-        item { Heading("Formulate a brew", "Planned inputs and measured values remain separate. Each save creates a revision.") }
-        item { Field("Recipe name", fields.getValue("name"), { model.updateField("name", it) }, "form:name") }
-        item {
-            Select(
-                "Coffee bean",
-                fields.getValue("bean"),
-                listOf("" to "Unspecified") + state.beans.map {
-                    it.id to it.name
-                },
-                { model.updateField("bean", it) },
-                "form:bean"
-            )
-        }
-        item {
-            Select(
-                "Brew method",
-                fields.getValue("method"),
-                listOf("V60", "AeroPress", "Espresso", "French Press", "Chemex", "Immersion").map {
-                    it to
-                        it
-                },
-                { model.updateField("method", it) },
-                "form:method"
-            )
-        }
-        item { Field("Dose (g)", fields.getValue("dose"), { model.updateField("dose", it) }, "form:dose", true) }
-        item { Field("Brew water (g)", fields.getValue("water"), { model.updateField("water", it) }, "form:water", true) }
-        item { InfoCard("Calculated science", state.calculation) }
-        item {
-            Field("Measured beverage mass (g), optional", fields.getValue("beverage"), {
-                model.updateField("beverage", it)
-            }, "form:beverage", true)
-        }
-        item { Field("Measured TDS (% w/w), optional", fields.getValue("tds"), { model.updateField("tds", it) }, "form:tds", true) }
-        item {
-            Field("Brew temperature (°C)", fields.getValue("temperature"), {
-                model.updateField("temperature", it)
-            }, "form:temperature", true)
-        }
-        item {
-            Field("Pressure (bar), optional", fields.getValue("pressure"), { model.updateField("pressure", it) }, "form:pressure", true)
-        }
-        item { Field("Brew time (seconds)", fields.getValue("seconds"), { model.updateField("seconds", it) }, "form:seconds", true) }
-        item { Field("Equipment", fields.getValue("equipment"), { model.updateField("equipment", it) }, "form:equipment") }
-        item { Field("Grind description", fields.getValue("grind"), { model.updateField("grind", it) }, "form:grind") }
-        item { Field("Bypass water (g)", fields.getValue("bypass"), { model.updateField("bypass", it) }, "form:bypass", true) }
-        item { Field("Agitation / pour routine", fields.getValue("agitation"), { model.updateField("agitation", it) }, "form:agitation") }
-        item {
-            InfoCard("Brew timer", "%02d:%02d".format(state.timerSeconds / 60, state.timerSeconds % 60)) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = model::toggleTimer) { Text(if (state.timerRunning) "Pause timer" else "Start timer") }
-                    OutlinedButton(onClick = model::resetTimer) { Text("Reset timer") }
-                }
-            }
-        }
-        item { Text("Ingredient additions", style = MaterialTheme.typography.titleLarge) }
-        item { Select("Ingredient", ingredientId, state.ingredients.map { it.id to it.name }, { ingredientId = it }, "form:ingredient") }
-        item { Field("Ingredient quantity", quantity, { quantity = it }, "form:quantity", true) }
-        item { Select("Unit", unit, listOf("g", "mg", "mL").map { it to it }, { unit = it }, "form:unit") }
-        item { Field("Density (g/mL), optional override", density, { density = it }, "form:density", true) }
-        item {
-            OutlinedButton(
-                onClick = { model.addLine(ingredientId, quantity, unit, density) },
-                enabled =
-                ingredientId.isNotBlank() && !state.busy
-            ) { Text("Add ingredient") }
-        }
-        items(state.draft.lines.withIndex().toList(), key = { it.index }) { indexed ->
-            val line = indexed.value
-            InfoCard(
-                state.ingredients.find {
-                    it.id == line.ingredientId
-                }?.name ?: "Unknown ingredient",
-                "${line.quantity} ${line.unit}; food-grade and supplier limits checked on save"
-            ) {
-                TextButton(onClick = { model.removeLine(indexed.index) }) { Text("Remove line") }
-            }
-        }
-        if (state.draft.lines.isNotEmpty()) {
-            item {
-                FilterChip(
-                    selected = fields["allergens"] == "yes",
-                    onClick = {
-                        model.updateField(
-                            "allergens",
-                            if (fields["allergens"] ==
-                                "yes"
-                            ) {
-                                ""
-                            } else {
-                                "yes"
+    Column(Modifier.fillMaxSize()) {
+        BrewSectionTabs(section) { selectedSection = it.name }
+        Box(Modifier.weight(1f).testTag("brew:content:${section.name}")) {
+            androidx.compose.runtime.key(section) {
+                Page("Formulate") {
+                    when (section) {
+                        BrewSection.Recipe -> {
+                            item {
+                                BrewCard("Build your recipe", "Planned inputs. Each save keeps an immutable revision.") {
+                                    Field("Recipe name", fields.getValue("name"), { model.updateField("name", it) }, "form:name")
+                                    Select(
+                                        "Coffee bean",
+                                        fields.getValue("bean"),
+                                        listOf("" to "Unspecified") + state.beans.map { it.id to it.name },
+                                        { model.updateField("bean", it) },
+                                        "form:bean"
+                                    )
+                                    Select(
+                                        "Brew method",
+                                        fields.getValue("method"),
+                                        listOf("V60", "AeroPress", "Espresso", "French Press", "Chemex", "Immersion").map { it to it },
+                                        { model.updateField("method", it) },
+                                        "form:method"
+                                    )
+                                    Field("Dose (g)", fields.getValue("dose"), { model.updateField("dose", it) }, "form:dose", true)
+                                    Field("Brew water (g)", fields.getValue("water"), {
+                                        model.updateField("water", it)
+                                    }, "form:water", true)
+                                }
                             }
-                        )
-                    },
-                    label = {
-                        Text(
-                            "Acknowledge listed ingredient allergens: ${state.draft.lines.flatMap { line ->
-                                state.ingredients.find { it.id == line.ingredientId }?.allergens.orEmpty()
-                            }.distinct().joinToString().ifBlank { "none declared; verify supplier" }}"
-                        )
-                    },
-                    modifier = Modifier.heightIn(min = 48.dp)
-                )
-            }
-        }
-        item { Field("Recipe notes", fields.getValue("notes"), { model.updateField("notes", it) }, "form:notes") }
-        item {
-            Button(
-                onClick = model::saveRecipe,
-                enabled = state.ready && !state.busy,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("form:save")
-            ) {
-                Text(
-                    if (state.draft.id ==
-                        null
-                    ) {
-                        "Save recipe"
-                    } else {
-                        "Save new revision"
+                            item {
+                                BrewCard("Brew timer", "%02d:%02d".format(state.timerSeconds / 60, state.timerSeconds % 60)) {
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Button(onClick = model::toggleTimer, modifier = Modifier.heightIn(min = 48.dp)) {
+                                            Text(if (state.timerRunning) "Pause timer" else "Start timer")
+                                        }
+                                        OutlinedButton(onClick = model::resetTimer, modifier = Modifier.heightIn(min = 48.dp)) {
+                                            Text("Reset timer")
+                                        }
+                                    }
+                                }
+                            }
+                            item {
+                                BrewCard("Equipment & notes", "Record the setup so another brew can repeat it.") {
+                                    Field("Equipment", fields.getValue("equipment"), {
+                                        model.updateField("equipment", it)
+                                    }, "form:equipment")
+                                    Field("Grind description", fields.getValue("grind"), { model.updateField("grind", it) }, "form:grind")
+                                    Field("Recipe notes", fields.getValue("notes"), { model.updateField("notes", it) }, "form:notes")
+                                }
+                            }
+                            item {
+                                TextButton(onClick = model::newRecipe, modifier = Modifier.heightIn(min = 48.dp)) {
+                                    Text("Start a separate recipe")
+                                }
+                            }
+                        }
+                        BrewSection.Measurements -> {
+                            item {
+                                BrewCard("Measured beverage", "Optional. Leave blank until an instrument or scale supplies the value.") {
+                                    Field("Measured beverage mass (g)", fields.getValue("beverage"), {
+                                        model.updateField("beverage", it)
+                                    }, "form:beverage", true)
+                                    Field("Measured TDS (% w/w)", fields.getValue("tds"), {
+                                        model.updateField("tds", it)
+                                    }, "form:tds", true)
+                                }
+                            }
+                            item { InfoCard("Calculated science · not a measurement", state.calculation) }
+                            item {
+                                BrewCard("Process inputs", "Describe the brew. Estimated extraction retains method-specific assumptions.") {
+                                    Field("Brew temperature (°C)", fields.getValue("temperature"), {
+                                        model.updateField("temperature", it)
+                                    }, "form:temperature", true)
+                                    Field("Pressure (bar), optional", fields.getValue("pressure"), {
+                                        model.updateField("pressure", it)
+                                    }, "form:pressure", true)
+                                    Field("Brew time (seconds)", fields.getValue("seconds"), {
+                                        model.updateField("seconds", it)
+                                    }, "form:seconds", true)
+                                    Field("Bypass water (g)", fields.getValue("bypass"), {
+                                        model.updateField("bypass", it)
+                                    }, "form:bypass", true)
+                                    Field("Agitation / pour routine", fields.getValue("agitation"), {
+                                        model.updateField("agitation", it)
+                                    }, "form:agitation")
+                                }
+                            }
+                        }
+                        BrewSection.Ingredients -> {
+                            item {
+                                BrewCard(
+                                    "Ingredient additions",
+                                    "Only confirmed food-grade ingredients. Known density is required for mL."
+                                ) {
+                                    Select("Ingredient", ingredientId, state.ingredients.map { it.id to it.name }, {
+                                        ingredientId = it
+                                    }, "form:ingredient")
+                                    Field("Ingredient quantity", quantity, { quantity = it }, "form:quantity", true)
+                                    Select("Unit", unit, listOf("g", "mg", "mL").map { it to it }, { unit = it }, "form:unit")
+                                    Field("Density (g/mL), optional override", density, { density = it }, "form:density", true)
+                                    OutlinedButton(
+                                        onClick = { model.addLine(ingredientId, quantity, unit, density) },
+                                        enabled = ingredientId.isNotBlank() && !state.busy,
+                                        modifier = Modifier.heightIn(min = 48.dp)
+                                    ) { Text("Add ingredient") }
+                                }
+                            }
+                            if (state.draft.lines.isEmpty()) {
+                                item {
+                                    InfoCard(
+                                        "No additions",
+                                        "Coffee and brew water are recorded in Recipe. Ingredient additions are optional."
+                                    )
+                                }
+                            }
+                            items(state.draft.lines.withIndex().toList(), key = { it.index }) { indexed ->
+                                val line = indexed.value
+                                InfoCard(
+                                    state.ingredients.find { it.id == line.ingredientId }?.name ?: "Unknown ingredient",
+                                    "${line.quantity} ${line.unit}; food-grade and supplier limits checked on save"
+                                ) {
+                                    TextButton(onClick = { model.removeLine(indexed.index) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                                        Text("Remove line")
+                                    }
+                                }
+                            }
+                            if (state.draft.lines.isNotEmpty()) {
+                                item {
+                                    val allergens = state.draft.lines.flatMap { line ->
+                                        state.ingredients.find { it.id == line.ingredientId }?.allergens.orEmpty()
+                                    }.distinct().joinToString().ifBlank { "none declared; verify supplier" }
+                                    FilterChip(
+                                        selected = fields["allergens"] == "yes",
+                                        onClick = { model.updateField("allergens", if (fields["allergens"] == "yes") "" else "yes") },
+                                        label = { Text("Acknowledge listed ingredient allergens: $allergens") },
+                                        modifier = Modifier.heightIn(min = 48.dp)
+                                    )
+                                }
+                            }
+                        }
+                        BrewSection.Tools -> {
+                            item {
+                                BrewCard(
+                                    "Coffee science tools",
+                                    "Calculated estimates from explicit inputs. No measured values are filled in."
+                                ) {
+                                    Select("Calculation", science, listOf("Dilution", "Concentration", "Volume to mass").map { it to it }, {
+                                        science = it
+                                        scienceInputs = emptyMap()
+                                    }, "science:kind")
+                                    val scienceFields = when (science) {
+                                        "Dilution" -> listOf(
+                                            "initialMassGrams" to "Initial beverage mass (g)",
+                                            "initialTdsPercent" to "Measured initial TDS (% w/w)",
+                                            "addedWaterGrams" to "Added water (g)"
+                                        )
+                                        "Concentration" -> listOf(
+                                            "soluteMassGrams" to "Solute mass (g)",
+                                            "solutionMassGrams" to "Total solution mass, including solute (g)"
+                                        )
+                                        else -> listOf("volumeMl" to "Volume (mL)", "densityGramsPerMl" to "Known density (g/mL)")
+                                    }
+                                    scienceFields.forEach { (key, label) ->
+                                        Field(label, scienceInputs[key].orEmpty(), {
+                                            scienceInputs = scienceInputs + (key to it)
+                                        }, "science:$key", true)
+                                    }
+                                    Button(onClick = {
+                                        val tool = when (science) {
+                                            "Dilution" -> "calculate_dilution"
+                                            "Concentration" -> "calculate_concentration_ppm"
+                                            else -> "convert_units"
+                                        }
+                                        model.runManualCalculation(
+                                            tool,
+                                            scienceFields.associate { it.first to scienceInputs[it.first].orEmpty() }
+                                        )
+                                    }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp)) {
+                                        Text("Calculate ${science.lowercase()}")
+                                    }
+                                }
+                            }
+                            state.manualToolResult?.let { result -> item { InfoCard("Exact calculation", result) } }
+                        }
                     }
-                )
-            }
-        }
-        item { TextButton(onClick = model::newRecipe) { Text("Start a separate recipe") } }
-        item {
-            Heading(
-                "More science tools",
-                "Dilution, concentration and conversions use explicit quantities. They are calculated estimates, not new measurements."
-            )
-        }
-        item {
-            Select("Calculation", science, listOf("Dilution", "Concentration", "Volume to mass").map { it to it }, {
-                science = it
-                scienceInputs =
-                    emptyMap()
-            }, "science:kind")
-        }
-        val scienceFields = when (science) {
-            "Dilution" -> listOf(
-                "initialMassGrams" to "Initial beverage mass (g)",
-                "initialTdsPercent" to "Measured initial TDS (% w/w)",
-                "addedWaterGrams" to "Added water (g)"
-            )
-            "Concentration" -> listOf(
-                "soluteMassGrams" to "Solute mass (g)",
-                "solutionMassGrams" to "Total solution mass, including solute (g)"
-            )
-            else -> listOf("volumeMl" to "Volume (mL)", "densityGramsPerMl" to "Known density (g/mL)")
-        }
-        scienceFields.forEach { (key, label) ->
-            item {
-                Field(label, scienceInputs[key].orEmpty(), {
-                    scienceInputs =
-                        scienceInputs + (key to it)
-                }, "science:$key", true)
-            }
-        }
-        item {
-            Button(onClick = {
-                val tool = when (science) {
-                    "Dilution" -> "calculate_dilution"
-                    "Concentration" -> "calculate_concentration_ppm"
-                    else -> "convert_units"
                 }
-                model.runManualCalculation(tool, scienceFields.associate { it.first to scienceInputs[it.first].orEmpty() })
-            }, enabled = !state.busy) { Text("Calculate ${science.lowercase()}") }
+            }
         }
-        state.manualToolResult?.let { result -> item { InfoCard("Exact calculation", result) } }
+        Surface(tonalElevation = 3.dp, shadowElevation = 2.dp) {
+            FlowRow(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                TextButton(
+                    onClick = { selectedSection = BrewSection.Measurements.name },
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("form:ratio")
+                ) {
+                    Text(state.calculation.lineSequence().firstOrNull().orEmpty().ifBlank { "View calculation" })
+                }
+                Button(
+                    onClick = model::saveRecipe,
+                    enabled = state.ready && !state.busy,
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("form:save")
+                ) { Text(if (state.draft.id == null) "Save recipe" else "Save new revision") }
+            }
+        }
     }
+}
+
+@Composable
+private fun BrewCard(
+    title: String,
+    detail: String,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
+) {
+    InfoCard(title, detail) { Column(verticalArrangement = Arrangement.spacedBy(12.dp), content = content) }
 }
 
 @Composable
@@ -535,7 +659,13 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
     var form by rememberSaveable { mutableStateOf(emptyMap<String, String>()) }
     var process by rememberSaveable { mutableStateOf("All") }
     Page("Library") {
-        item { Heading("Coffee & ingredients", "Versioned taxonomy references plus your supplier records. Missing facts are Unknown.") }
+        item {
+            Heading(
+                "Coffee & ingredients",
+                "Reference varieties describe coffee genetics. Add your supplier lots separately; " +
+                    "origin, processing, roast and measurements stay Unknown until supplied."
+            )
+        }
         item { Field("Search origin, name or process", query, { query = it }, "library:query") }
         item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -566,18 +696,24 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
             items(
                 state.beans.filter { bean ->
                     (process == "All" || bean.process == process) &&
-                        listOf(bean.name, bean.country, bean.region, bean.process).any { it.contains(query, true) }
+                        listOf(bean.name, bean.variety, bean.country, bean.region, bean.process).any { it.contains(query, true) }
                 },
                 key = { it.id }
             ) { bean ->
                 InfoCard(
                     bean.name,
-                    listOf(
-                        "${bean.country} · ${bean.region}",
-                        "Variety ${bean.variety} · ${bean.process} · roast ${bean.roastLevel}",
-                        "Producer ${bean.producer} · altitude ${bean.altitudeMeters ?: "Unknown"} m",
-                        "Source: ${bean.provenance}"
-                    ).joinToString("\n")
+                    if (bean.isCuratedSeed) {
+                        "Reference variety · ${bean.variety}\n" +
+                            "Supplier lot, origin, process, roast and sensory measurements are not supplied.\n" +
+                            "Source: ${bean.provenance}"
+                    } else {
+                        listOf(
+                            "${bean.country} · ${bean.region}",
+                            "Variety ${bean.variety} · ${bean.process} · roast ${bean.roastLevel}",
+                            "Producer ${bean.producer} · altitude ${bean.altitudeMeters ?: "Unknown"} m",
+                            "Source: ${bean.provenance}"
+                        ).joinToString("\n")
+                    }
                 ) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = {
@@ -1268,13 +1404,13 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
 @Preview(name = "Manual empty state", showBackground = true)
 @Composable
 private fun EmptyStatePreview() {
-    CoffeeCreatorTheme { InfoCard("No brews recorded", "Create a recipe; measured TDS stays empty until supplied.") }
+    CoffeeCreatorTheme(dynamicColor = false) { InfoCard("No brews recorded", "Create a recipe; measured TDS stays empty until supplied.") }
 }
 
 @Preview(name = "Dark unavailable model", showBackground = true)
 @Composable
 private fun ModelUnavailablePreview() {
-    CoffeeCreatorTheme(darkTheme = true) {
+    CoffeeCreatorTheme(darkTheme = true, dynamicColor = false) {
         InfoCard("AI model unavailable", "Manual mode remains available. Import a verified GGUF in Models.")
     }
 }

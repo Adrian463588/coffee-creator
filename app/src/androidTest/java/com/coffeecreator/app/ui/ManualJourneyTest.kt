@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import com.coffeecreator.app.CoffeeApplication
@@ -36,7 +37,6 @@ class ManualJourneyTest {
             field("water", "300")
             field("beverage", "270")
             field("tds", "1.30")
-            rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("form:save"))
             rule.onNodeWithTag("form:save").performClick()
             rule.waitUntil(10_000) { repository.recipes.value.any { it.name == name } }
             val first = repository.recipes.value.first { it.name == name }
@@ -46,7 +46,6 @@ class ManualJourneyTest {
             rule.onNodeWithTag("page:Journal").performScrollToNode(hasTestTag("journal:edit:${first.id}"))
             rule.onNodeWithTag("journal:edit:${first.id}").performClick()
             field("water", "275")
-            rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("form:save"))
             rule.onNodeWithTag("form:save").performClick()
             rule.waitUntil(10_000) { repository.recipes.value.count { it.revisionGroupId == first.revisionGroupId } == 2 }
             val revisions = repository.recipes.value.filter { it.revisionGroupId == first.revisionGroupId }.sortedBy { it.version }
@@ -73,11 +72,11 @@ class ManualJourneyTest {
             rule.activityRule.scenario.recreate()
             rule.waitUntil(10_000) { repository.ready.value }
             rule.onNodeWithTag("nav:Formulate").performClick()
+            rule.onNodeWithTag("brew:section:Recipe").performClick()
             rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("form:name"))
             rule.onNodeWithText(title).assertIsDisplayed()
             field("beverage", "")
             field("tds", "")
-            rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("form:save"))
             rule.onNodeWithTag("form:save").performClick()
             rule.waitUntil(10_000) { repository.recipes.value.any { it.name == title } }
             val recipe = repository.recipes.value.first { it.name == title }
@@ -100,7 +99,6 @@ class ManualJourneyTest {
             rule.onNodeWithTag("home:new").performClick()
             field("name", title)
             field("dose", "NaN")
-            rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("form:save"))
             rule.onNodeWithTag("form:save").performClick()
             rule.onNodeWithText("Enter a decimal number without grouping separators.").assertIsDisplayed()
             assertTrue(repository.recipes.value.none { it.name == title })
@@ -135,7 +133,13 @@ class ManualJourneyTest {
     }
 
     private fun field(key: String, value: String) {
+        val section = if (key in setOf("beverage", "tds", "temperature", "pressure", "seconds", "bypass", "agitation")) {
+            "Measurements"
+        } else {
+            "Recipe"
+        }
+        rule.onNodeWithTag("brew:section:$section").performClick()
         rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("form:$key"))
-        rule.onNodeWithTag("form:$key").performTextReplacement(value)
+        rule.onNodeWithTag("form:$key").performScrollTo().performTextReplacement(value)
     }
 }
