@@ -29,4 +29,5 @@ artifacts-*.log
 *.keystore
 !/app/src/main/assets/ocr/eng.traineddata
 **/build/
+app/objectbox-jni-*.dll
 .kotlin/
