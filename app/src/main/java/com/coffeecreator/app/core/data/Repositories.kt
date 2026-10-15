@@ -26,6 +26,7 @@ interface RecipeRepository {
     val recipes: StateFlow<List<Recipe>>
     suspend fun saveRecipe(recipe: Recipe): Recipe
     suspend fun duplicateRecipe(recipe: Recipe): Recipe
+    suspend fun archiveRecipe(id: String, isArchived: Boolean): Recipe
     suspend fun deleteRecipe(id: String)
     fun findRecipeById(id: String?): Recipe?
 }

@@ -1,0 +1,38 @@
+# Tasks: Epic S2-E02 Implementation
+
+- [ ] 1. Update Domain Models (`core/model/Models.kt`)
+  - [ ] Enhance `BrewStep` with `action`, `startOffsetSeconds`, `cumulativeMassGrams`, `temperatureCelsius`, `valveStatus`.
+  - [ ] Add `isArchived`, `stages`, and expert dial-in fields (`firstDropSeconds`, `grinderModel`, `grinderSetting`, `waterHardnessPpm`, `waterAlkalinityPpm`, `basketPuckPrep`) to `Recipe`.
+  - [ ] Add `RefractometerProfile`, `AromaDosageResult`, `CalculationResult.BrixConversion`, and `CalculationResult.ConcentrateDosing`.
+- [ ] 2. Extend Domain Science Engine (`core/engine/CoffeeScienceEngine.kt` & `DomainValidation.kt`)
+  - [ ] Implement `calculateBrixToTds(brix, profile)` with Standard, Atago, and VST profiles.
+  - [ ] Implement `scaleRecipeSteps(steps, initialWater, targetWater)` using exact-sum Hamilton-Hare apportionment.
+  - [ ] Implement `calculateConcentrateDosing(concentrateTds, targetTds, targetMass)`.
+  - [ ] Implement `calculateAromaDosage(beverageMass, stockMass, activeStockPercent, supplierMaxPercent)`.
+  - [ ] Implement temperature conversions `celsiusToFahrenheit` and `fahrenheitToCelsius`.
+  - [ ] Enforce parameter boundary validations (temperature, dose, water, pressure, sensory targets).
+- [ ] 3. Update Repository & Data Layer (`core/data/DataRepository.kt`, `Repositories.kt`)
+  - [ ] Add `archiveRecipe(id, isArchived)` support.
+  - [ ] Implement recipe export formatters (`exportRecipeJson`, `exportRecipeText`).
+- [ ] 4. Update ViewModel & UI State (`ui/viewmodel/CoffeeViewModel.kt`, `RecipeDraft.kt`)
+  - [ ] Add scaling methods (`scaleDraft(newWater, newDose)`).
+  - [ ] Add step editor management (add step, remove step, edit step action/water/temp/valve).
+  - [ ] Add Brix converter calculation trigger.
+  - [ ] Add Sharesheet trigger (`shareRecipe(context, recipe, format)`).
+  - [ ] Add Archive / Unarchive recipe toggle.
+- [ ] 5. Enhance Compose UI (`ui/screens/BrewSection.kt`, `CoffeeApp.kt`)
+  - [ ] Add method presets (Espresso, V60, AeroPress, Chemex, French press, Cold brew, Immersion, Batch brew, Moka pot, Siphon, Cupping, Custom).
+  - [ ] Add custom method and stage inputs when "Custom" is selected.
+  - [ ] Add editable ordered steps card with action, time, target water, temp, and valve controls.
+  - [ ] Add quick scaling buttons (1x, 1.5x, 2x, or custom water).
+  - [ ] Add Brix $\to$ TDS converter in Measurements section.
+  - [ ] Add Expert Mode toggle showing first drop, grinder/burr, water mineral PPM, and puck prep.
+  - [ ] Add Share recipe button (JSON / Text Card via Android Sharesheet).
+  - [ ] Add Archive button / filter toggle in Library and Recipe cards.
+- [ ] 6. Verification & Quality Gates
+  - [ ] Write unit test suite `RecipeComposerScienceTest.kt` verifying all mathematical invariants and BDD scenarios.
+  - [ ] Run `./gradlew testDebugUnitTest` and ensure 100% pass.
+  - [ ] Run `./gradlew assembleDebug` and verify build success.
+- [ ] 7. Git & GitHub Release
+  - [ ] Update README.md with download links and changelog.
+  - [ ] Commit and push to GitHub repository.

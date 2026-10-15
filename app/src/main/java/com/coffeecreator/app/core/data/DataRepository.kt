@@ -190,6 +190,13 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
         return saveRecipe(recipe.copy(id = id, revisionGroupId = id, name = "${recipe.name} (Copy)", version = 1))
     }
 
+    override suspend fun archiveRecipe(id: String, isArchived: Boolean): Recipe = mutate {
+        val existing = requireNotNull(findRecipeById(id)) { "Recipe not found." }
+        val updated = existing.copy(isArchived = isArchived, updatedAt = System.currentTimeMillis())
+        dao.putRecords(listOf(record("recipe", updated.id, updated)))
+        updated
+    }
+
     override suspend fun deleteRecipe(id: String) = mutate {
         _sensoryObservations.value.filter { it.recipeId == id }.forEach { dao.deleteRecord("observation", it.id) }
         _sensoryEstimates.value.filter { it.recipeId == id }.forEach { dao.deleteRecord("estimate", it.id) }

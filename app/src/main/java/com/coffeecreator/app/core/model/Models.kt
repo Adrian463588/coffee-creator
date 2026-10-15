@@ -96,7 +96,40 @@ data class CoffeeBean(
 /**
  * Multi-step brew guide for timer.
  */
-data class BrewStep(val stepNumber: Int, val description: String, val targetWaterGrams: Double, val durationSeconds: Int)
+data class BrewStep(
+    val stepNumber: Int,
+    val description: String = "",
+    val targetWaterGrams: Double,
+    val durationSeconds: Int,
+    val action: String = "Pour",
+    val startOffsetSeconds: Int = 0,
+    val cumulativeMassGrams: Double = targetWaterGrams,
+    val temperatureCelsius: Double? = null,
+    val valveStatus: String? = null
+)
+
+/**
+ * Optical refractometer calibration profile for Brix-to-TDS conversion.
+ */
+data class RefractometerProfile(
+    val id: String,
+    val name: String,
+    val slope: Double,
+    val intercept: Double = 0.0,
+    val citation: String
+) {
+    companion object {
+        val STANDARD = RefractometerProfile("standard", "Standard Coffee (0.85)", 0.8500, 0.0, "Universal Coffee Refractometry Standard")
+        val ATAGO = RefractometerProfile("atago", "Atago PAL-COFFEE (0.84)", 0.8400, 0.0, "Atago Official Coffee Scale Specification")
+        val VST = RefractometerProfile("vst", "VST LAB Coffee III (0.857)", 0.8570, 0.0, "VST Universal Coffee Solids Refractive Equation")
+        val GENERIC_SUCROSE = RefractometerProfile("sucrose", "Generic Sucrose Equivalent (0.85)", 0.8500, 0.0, "ICUMSA standard sucrose equivalent conversion")
+
+        val ALL_PROFILES = listOf(STANDARD, ATAGO, VST, GENERIC_SUCROSE)
+
+        fun find(nameOrId: String): RefractometerProfile =
+            ALL_PROFILES.find { it.id.equals(nameOrId, ignoreCase = true) || it.name.contains(nameOrId, ignoreCase = true) } ?: STANDARD
+    }
+}
 
 /**
  * Full recipe formulation.
@@ -125,7 +158,15 @@ data class Recipe(
     val updatedAt: Long = System.currentTimeMillis(),
     val lines: List<RecipeLine> = emptyList(),
     val revisionGroupId: String = id,
-    val acknowledgedAllergens: List<String> = emptyList()
+    val acknowledgedAllergens: List<String> = emptyList(),
+    val isArchived: Boolean = false,
+    val stages: List<String> = emptyList(),
+    val firstDropSeconds: Int? = null,
+    val grinderModel: String? = null,
+    val grinderSetting: String? = null,
+    val waterHardnessPpm: Double? = null,
+    val waterAlkalinityPpm: Double? = null,
+    val basketPuckPrep: String? = null
 )
 
 data class CalculationMetadata(
@@ -200,6 +241,45 @@ sealed class CalculationResult {
         val methodLabel: String = "Density-Based Volume to Mass",
         val assumptions: String = "Density must describe this material at the relevant temperature; no density is assumed.",
         val provenance: String = "Calculated from caller-provided volume and density.",
+        override val metadata: CalculationMetadata = CalculationMetadata()
+    ) : CalculationResult()
+
+    data class BrixConversion(
+        val brixPercent: Double,
+        val tdsPercent: Double,
+        val instrumentProfile: String,
+        val calibrationSlope: Double,
+        val calibrationIntercept: Double = 0.0,
+        val methodLabel: String = "Optical Brix-to-TDS Conversion",
+        val assumptions: String = "TDS% = Brix% * Slope + Intercept for specified instrument profile.",
+        val provenance: String = "Computed from optical refractometer reading and documented calibration profile.",
+        override val metadata: CalculationMetadata = CalculationMetadata()
+    ) : CalculationResult()
+
+    data class ConcentrateDosing(
+        val concentrateTdsPercent: Double,
+        val targetTdsPercent: Double,
+        val targetBeverageMassGrams: Double,
+        val concentrateMassGrams: Double,
+        val dilutionWaterMassGrams: Double,
+        val methodLabel: String = "Concentrate Mass-Balance Dosing",
+        val assumptions: String = "Solutes are conserved; dilution water adds zero TDS.",
+        val provenance: String = "Computed from caller target and concentrate concentrations.",
+        override val metadata: CalculationMetadata = CalculationMetadata()
+    ) : CalculationResult()
+
+    data class AromaDosage(
+        val beverageMassGrams: Double,
+        val stockAdditionGrams: Double,
+        val stockDosagePercent: Double,
+        val activeStockPercent: Double,
+        val activeCompoundPercent: Double,
+        val activeCompoundPpm: Double,
+        val isWithinSupplierLimit: Boolean,
+        val supplierMaxPercent: Double?,
+        val methodLabel: String = "Food-Grade Aroma Solution Dosage",
+        val assumptions: String = "Dosage rate is stock solution mass fraction; active ppm is mass fraction of active aromatic compound.",
+        val provenance: String = "Calculated from caller formulation and safety datasheet inputs.",
         override val metadata: CalculationMetadata = CalculationMetadata()
     ) : CalculationResult()
 }

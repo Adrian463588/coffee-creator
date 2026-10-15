@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -35,10 +37,12 @@ import androidx.compose.ui.unit.dp
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 
 internal enum class BrewSection(val label: String, val detail: String) {
-    Recipe("Recipe", "Plan dose, water and timing"),
-    Measurements("Measurements", "Add values you have measured"),
+    Recipe("Recipe", "Plan dose, water, ratio & scaling"),
+    Steps("Steps", "Ordered pours, times, temps and valves"),
+    Measurements("Measurements", "Add values you have measured & Brix lab"),
     Ingredients("Ingredients", "Check additions and supplier limits"),
-    Tools("Tools", "Calculate with explicit quantities")
+    Tools("Tools", "Calculate with explicit quantities"),
+    Expert("Expert", "Grinder setup, first drop and water mineral ppm")
 }
 
 @Preview(name = "Brew sections · compact", widthDp = 320, showBackground = true)
@@ -96,9 +100,11 @@ internal fun BrewSectionTabs(selected: BrewSection, modifier: Modifier = Modifie
                             } else {
                                 when (section) {
                                     BrewSection.Recipe -> Icons.Default.Coffee
+                                    BrewSection.Steps -> Icons.Default.MenuBook
                                     BrewSection.Measurements -> Icons.Default.WaterDrop
                                     BrewSection.Ingredients -> Icons.Default.Restaurant
                                     BrewSection.Tools -> Icons.Default.Science
+                                    BrewSection.Expert -> Icons.Default.Settings
                                 }
                             }
                             Icon(icon, contentDescription = null)

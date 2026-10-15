@@ -54,13 +54,18 @@ object DomainValidation {
         requireText(recipe.revisionGroupId, "Revision group identifier", 128)
         requireText(recipe.brewMethod, "Brew method", 256)
         val dose = positive(recipe.doseGrams, "Dose (g)")
+        require(recipe.doseGrams in 0.5..1000.0) { "Dose must be between 0.5 and 1000.0 g." }
         val water = positive(recipe.waterGrams, "Water (g)")
+        require(recipe.waterGrams in 5.0..20000.0) { "Water must be between 5.0 and 20000.0 g." }
         val bypass = nonNegative(recipe.bypassGrams, "Bypass water (g)")
         val beverage = recipe.beverageMassGrams?.let { positive(it, "Measured beverage mass (g)") }
         val tds = recipe.measuredTdsPercent?.let { percent(it, "Measured TDS (% w/w)") }
         val temperature = decimal(recipe.temperatureCelsius, "Temperature (°C)")
         require(temperature >= BigDecimal.ZERO && temperature <= BigDecimal("100")) { "Brew temperature must be between 0 and 100 °C." }
-        recipe.pressureBars?.let { nonNegative(it, "Pressure (bar)") }
+        recipe.pressureBars?.let {
+            val p = nonNegative(it, "Pressure (bar)")
+            require(p <= BigDecimal("15.0")) { "Pressure cannot exceed 15.0 bar." }
+        }
         require(recipe.brewTimeSeconds > 0) { "Brew time must be positive (seconds)." }
         require(recipe.version > 0) { "Recipe version must be positive." }
         require(recipe.createdAt >= 0L && recipe.updatedAt >= 0L) { "Recipe timestamps cannot be negative." }
@@ -116,6 +121,13 @@ object DomainValidation {
             require(step.stepNumber > 0 && step.durationSeconds > 0) { "Brew steps require positive step numbers and durations." }
             requireText(step.description, "Brew-step description", InputLimits.METADATA_CHARS)
             nonNegative(step.targetWaterGrams, "Brew-step water (g)")
+        }
+        if (recipe.brewSteps.size > 1) {
+            for (i in 1 until recipe.brewSteps.size) {
+                require(recipe.brewSteps[i].cumulativeMassGrams >= recipe.brewSteps[i - 1].cumulativeMassGrams) {
+                    "Cumulative pour targets must be monotonically non-decreasing."
+                }
+            }
         }
     }
 

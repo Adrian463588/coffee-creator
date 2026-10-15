@@ -60,7 +60,7 @@ object BackupCodec {
     private val payloadKeys =
         setOf("beans", "ingredients", "recipes", "observations", "documents", "chunks", "chatMessages", "personas", "settings", "estimates")
     private val nullableTextFields =
-        setOf("beanId", "roastDate", "supplierLimitsNotes", "toolCallName", "toolArgumentsJson", "toolResultJson")
+        setOf("beanId", "roastDate", "supplierLimitsNotes", "toolCallName", "toolArgumentsJson", "toolResultJson", "grinderModel", "grinderSetting", "basketPuckPrep", "valveStatus")
 
     fun encode(payload: BackupPayload, exportedAt: Long = System.currentTimeMillis()): String {
         validatePayload(payload)

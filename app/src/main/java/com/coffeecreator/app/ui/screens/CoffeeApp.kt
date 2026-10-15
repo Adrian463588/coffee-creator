@@ -115,6 +115,7 @@ import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
+import com.coffeecreator.app.ui.viewmodel.RecipeDraft
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
 private const val DECIMAL_GIGABYTE_BYTES = 1_000_000_000.0
@@ -542,6 +543,7 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
 
 @Composable
 private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: Int) {
+    val context = LocalContext.current
     val fields = state.draft.fields
     var selectedSection by rememberSaveable(resetKey) { mutableStateOf(BrewSection.Recipe.name) }
     val section = BrewSection.valueOf(selectedSection)
@@ -613,20 +615,48 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                         Select(
                                             "Brew method preset",
                                             fields.getValue("method"),
-                                            listOf("V60", "AeroPress", "Espresso", "French Press", "Chemex", "Immersion", "Kalita Wave", "Moka Pot", "Cold Brew", "Syphon", "Clever Dripper").map { it to it },
+                                            RecipeDraft.standardMethods().map { it to it },
                                             { model.updateField("method", it) },
                                             "form:method"
                                         )
-                                        Field(
-                                            "Brew method (or custom apparatus)",
-                                            fields.getValue("method"),
-                                            { model.updateField("method", it) },
-                                            "form:custom_method"
-                                        )
+                                        if (fields.getValue("method") == "Custom") {
+                                            Field(
+                                                "Custom brew apparatus name",
+                                                fields.getValue("customMethod"),
+                                                { model.updateField("customMethod", it) },
+                                                "form:custom_method"
+                                            )
+                                        } else {
+                                            Field(
+                                                "Brew method (or custom apparatus)",
+                                                fields.getValue("method"),
+                                                { model.updateField("method", it) },
+                                                "form:custom_method"
+                                            )
+                                        }
                                         Field("Dose (g)", fields.getValue("dose"), { model.updateField("dose", it) }, "form:dose", true)
                                         Field("Brew water (g)", fields.getValue("water"), {
                                             model.updateField("water", it)
                                         }, "form:water", true)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("Scale:", style = MaterialTheme.typography.labelMedium)
+                                            OutlinedButton(
+                                                onClick = { model.scaleDraft(0.5) },
+                                                modifier = Modifier.heightIn(min = 36.dp).testTag("form:scale:0.5")
+                                            ) { Text("0.5x") }
+                                            OutlinedButton(
+                                                onClick = { model.scaleDraft(1.5) },
+                                                modifier = Modifier.heightIn(min = 36.dp).testTag("form:scale:1.5")
+                                            ) { Text("1.5x") }
+                                            OutlinedButton(
+                                                onClick = { model.scaleDraft(2.0) },
+                                                modifier = Modifier.heightIn(min = 36.dp).testTag("form:scale:2.0")
+                                            ) { Text("2.0x") }
+                                        }
                                     }
                                 }
                                 item {
@@ -650,6 +680,25 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             model.updateField("grind", it)
                                         }, "form:grind")
                                         Field("Recipe notes", fields.getValue("notes"), { model.updateField("notes", it) }, "form:notes")
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            OutlinedButton(
+                                                onClick = {
+                                                    val r = runCatching { state.draft.build(state.ingredients) }.getOrNull()
+                                                    if (r != null) model.shareRecipe(context, r, formatJson = false)
+                                                },
+                                                modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("form:share_card")
+                                            ) { Text("Share Card") }
+                                            OutlinedButton(
+                                                onClick = {
+                                                    val r = runCatching { state.draft.build(state.ingredients) }.getOrNull()
+                                                    if (r != null) model.shareRecipe(context, r, formatJson = true)
+                                                },
+                                                modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("form:share_json")
+                                            ) { Text("Share JSON") }
+                                        }
                                     }
                                 }
                                 item {
@@ -670,6 +719,33 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                         Field("Measured TDS (% w/w)", fields.getValue("tds"), {
                                             model.updateField("tds", it)
                                         }, "form:tds", true)
+                                    }
+                                }
+                                item {
+                                    BrewCard(
+                                        "Optical refractometer lab (Brix → TDS)",
+                                        "Convert optical refractive index (°Bx) using documented instrument calibration profiles."
+                                    ) {
+                                        Field("Measured Brix (%)", fields.getValue("brix"), { model.updateField("brix", it) }, "form:brix", true)
+                                        Select(
+                                            "Calibration profile",
+                                            fields.getValue("brixProfile"),
+                                            listOf(
+                                                "Standard Coffee (0.85)",
+                                                "Atago PAL-COFFEE (0.84)",
+                                                "VST LAB Coffee III (0.857)",
+                                                "Generic Sucrose Equivalent (0.85)"
+                                            ).map { it to it },
+                                            { model.updateField("brixProfile", it) },
+                                            "form:brix_profile"
+                                        )
+                                        Button(
+                                            onClick = model::convertDraftBrix,
+                                            enabled = fields.getValue("brix").isNotBlank() && !state.busy,
+                                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("form:convert_brix")
+                                        ) {
+                                            Text("Convert Brix → TDS & Apply")
+                                        }
                                     }
                                 }
                                 item { InfoCard("Calculated science · not a measurement", state.calculation) }
@@ -800,6 +876,96 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                     }
                                 }
                                 state.manualToolResult?.let { result -> item { InfoCard("Exact calculation", result) } }
+                            }
+                            BrewSection.Steps -> {
+                                item {
+                                    BrewCard("Ordered pour steps", "Action, timing, pour water, temperature and valve state.") {
+                                        Button(
+                                            onClick = model::addDraftStep,
+                                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("steps:add")
+                                        ) {
+                                            Text("+ Add pour step")
+                                        }
+                                    }
+                                }
+                                if (state.draft.steps.isEmpty()) {
+                                    item {
+                                        InfoCard(
+                                            "No custom steps defined",
+                                            "Tap '+ Add pour step' to build a structured multi-pour routine or load a curated recipe."
+                                        )
+                                    }
+                                }
+                                items(state.draft.steps.withIndex().toList(), key = { it.value.stepNumber }) { (index, step) ->
+                                    InfoCard(
+                                        "Step ${step.stepNumber}: ${step.action} (+${step.targetWaterGrams} g)",
+                                        "Cumulative: ${step.cumulativeMassGrams} g · ${step.durationSeconds} s" +
+                                            (if (step.temperatureCelsius != null) " · ${step.temperatureCelsius} °C" else "") +
+                                            (if (!step.valveStatus.isNullOrBlank()) " · Valve: ${step.valveStatus}" else "")
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Select(
+                                                "Action",
+                                                step.action,
+                                                listOf("Bloom", "Pour", "Wait", "Stir", "Press", "Drawdown", "Valve").map { it to it },
+                                                { model.updateDraftStep(index, step.copy(action = it)) },
+                                                "step:action:$index"
+                                            )
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                OutlinedTextField(
+                                                    value = step.targetWaterGrams.toString(),
+                                                    onValueChange = { val w = it.toDoubleOrNull(); if (w != null && w >= 0) model.updateDraftStep(index, step.copy(targetWaterGrams = w)) },
+                                                    label = { Text("Water (g)") },
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                                    modifier = Modifier.weight(1f).testTag("step:water:$index")
+                                                )
+                                                OutlinedTextField(
+                                                    value = step.durationSeconds.toString(),
+                                                    onValueChange = { val s = it.toIntOrNull(); if (s != null && s > 0) model.updateDraftStep(index, step.copy(durationSeconds = s)) },
+                                                    label = { Text("Sec") },
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    modifier = Modifier.weight(1f).testTag("step:duration:$index")
+                                                )
+                                            }
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Select(
+                                                    "Valve",
+                                                    step.valveStatus.orEmpty(),
+                                                    listOf("" to "N/A", "Open" to "Open", "Closed" to "Closed", "Half" to "Half"),
+                                                    { model.updateDraftStep(index, step.copy(valveStatus = it.ifBlank { null })) },
+                                                    "step:valve:$index"
+                                                )
+                                            }
+                                            OutlinedTextField(
+                                                value = step.description,
+                                                onValueChange = { model.updateDraftStep(index, step.copy(description = it)) },
+                                                label = { Text("Description") },
+                                                modifier = Modifier.fillMaxWidth().testTag("step:desc:$index")
+                                            )
+                                            TextButton(
+                                                onClick = { model.removeDraftStep(index) },
+                                                modifier = Modifier.testTag("step:remove:$index")
+                                            ) {
+                                                Text("Remove step")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            BrewSection.Expert -> {
+                                item {
+                                    BrewCard(
+                                        "Dial-in parameters & grinder setup",
+                                        "Capture grinder model, click/RPM settings, first drop time and water mineral composition."
+                                    ) {
+                                        Field("Grinder model", fields.getValue("grinderModel"), { model.updateField("grinderModel", it) }, "form:grinder_model")
+                                        Field("Grinder setting / clicks", fields.getValue("grinderSetting"), { model.updateField("grinderSetting", it) }, "form:grinder_setting")
+                                        Field("First drop time (seconds)", fields.getValue("firstDrop"), { model.updateField("firstDrop", it) }, "form:first_drop", true)
+                                        Field("Water general hardness (ppm GH)", fields.getValue("waterHardness"), { model.updateField("waterHardness", it) }, "form:water_hardness", true)
+                                        Field("Water total alkalinity (ppm KH)", fields.getValue("waterAlkalinity"), { model.updateField("waterAlkalinity", it) }, "form:water_alkalinity", true)
+                                        Field("Basket & puck prep notes", fields.getValue("puckPrep"), { model.updateField("puckPrep", it) }, "form:puck_prep")
+                                    }
+                                }
                             }
                         }
                     }
@@ -1056,11 +1222,29 @@ private fun ingredientForm(ingredient: Ingredient) = mapOf(
 
 @Composable
 private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe) -> Unit) {
+    val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
+    var showArchived by rememberSaveable { mutableStateOf(false) }
     var comparing by rememberSaveable { mutableStateOf<String?>(null) }
     Page("Journal") {
         item { Heading("Brew journal", "Saved revisions are immutable. Repeat a brew, make a copy, or compare observations.") }
-        item { Field("Search recipes", query, { query = it }, "journal:query") }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.weight(1f)) {
+                    Field("Search recipes", query, { query = it }, "journal:query")
+                }
+                FilterChip(
+                    selected = showArchived,
+                    onClick = { showArchived = !showArchived },
+                    label = { Text("Archived") },
+                    modifier = Modifier.testTag("journal:show_archived")
+                )
+            }
+        }
         val hasCuratedRecipes = state.recipes.any { r -> CuratedCoffeeCatalog.recipes.any { it.id == r.id } }
         if (!hasCuratedRecipes) {
             item {
@@ -1078,10 +1262,13 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                 }
             }
         }
-        if (state.recipes.isEmpty()) item { InfoCard("No saved brews", "Create and save your first manual recipe in Brew.") }
-        items(state.recipes.filter { it.name.contains(query, true) }, key = { it.id }) { recipe ->
+        val visibleRecipes = state.recipes.filter {
+            (showArchived || !it.isArchived) && it.name.contains(query, true)
+        }
+        if (visibleRecipes.isEmpty()) item { InfoCard("No saved brews", "Create and save your first manual recipe in Brew.") }
+        items(visibleRecipes, key = { it.id }) { recipe ->
             InfoCard(
-                "${recipe.name} · v${recipe.version}",
+                "${recipe.name} · v${recipe.version}${if (recipe.isArchived) " [ARCHIVED]" else ""}",
                 listOf(
                     "${recipe.brewMethod} · ${recipe.doseGrams} g coffee / ${recipe.waterGrams} g water",
                     "Measured TDS: ${recipe.measuredTdsPercent?.let { "$it%" } ?: "not measured"}",
@@ -1094,6 +1281,11 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                         edit(recipe)
                     }, modifier = Modifier.testTag("journal:edit:${recipe.id}")) { Text("Repeat / edit") }
                     TextButton(onClick = { model.copyRecipe(recipe) }) { Text("Copy") }
+                    TextButton(onClick = { model.shareRecipe(context, recipe, formatJson = false) }) { Text("Share") }
+                    TextButton(onClick = { model.shareRecipe(context, recipe, formatJson = true) }) { Text("JSON") }
+                    TextButton(onClick = { model.toggleArchiveRecipe(recipe) }) {
+                        Text(if (recipe.isArchived) "Unarchive" else "Archive")
+                    }
                     TextButton(onClick = { comparing = recipe.revisionGroupId }) { Text("Compare history") }
                     TextButton(onClick = { model.requestDeletion("recipe", recipe.id) }) { Text("Delete") }
                 }

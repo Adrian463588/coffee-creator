@@ -2,6 +2,7 @@
 
 package com.coffeecreator.app.ui.viewmodel
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
@@ -14,6 +15,7 @@ import com.coffeecreator.app.core.ai.NativeGenerationOptions
 import com.coffeecreator.app.core.ai.NativeLlmStatus
 import com.coffeecreator.app.core.ai.RagSearchResult
 import com.coffeecreator.app.core.data.BackupCodec
+import com.coffeecreator.app.core.data.RecipeExportFormatter
 import com.coffeecreator.app.core.engine.CoffeeScienceEngine
 import com.coffeecreator.app.core.engine.DomainValidation
 import com.coffeecreator.app.core.engine.JsonInputPolicy
@@ -21,10 +23,12 @@ import com.coffeecreator.app.core.engine.SensoryRulesEngine
 import com.coffeecreator.app.core.filesystem.BuiltInAssets
 import com.coffeecreator.app.core.filesystem.DocumentImporter.Companion.readBytesBounded
 import com.coffeecreator.app.core.model.AssistantPersona
+import com.coffeecreator.app.core.model.BrewStep
 import com.coffeecreator.app.core.model.CalculationResult
 import com.coffeecreator.app.core.model.ChatMessage
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.DocumentChunk
+import com.coffeecreator.app.core.model.RefractometerProfile
 import com.coffeecreator.app.core.model.Ingredient
 import com.coffeecreator.app.core.model.InputLimits
 import com.coffeecreator.app.core.model.KnowledgeDocument
@@ -280,6 +284,95 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
             ),
             recordUndo = true
         )
+    }
+
+    fun scaleDraft(factor: Double) {
+        val currentDose = _state.value.draft.fields["dose"]?.toDoubleOrNull() ?: 18.0
+        val currentWater = _state.value.draft.fields["water"]?.toDoubleOrNull() ?: 300.0
+        val targetDose = "%.1f".format(java.util.Locale.US, currentDose * factor)
+        val targetWater = "%.1f".format(java.util.Locale.US, currentWater * factor)
+        val scaledSteps = if (_state.value.draft.steps.isNotEmpty()) {
+            CoffeeScienceEngine.scaleRecipeSteps(_state.value.draft.steps, currentWater, targetWater.toDouble()).getOrDefault(_state.value.draft.steps)
+        } else {
+            emptyList()
+        }
+        val updatedFields = _state.value.draft.fields + mapOf(
+            "dose" to targetDose,
+            "water" to targetWater
+        )
+        updateDraft(_state.value.draft.copy(fields = updatedFields, steps = scaledSteps), recordUndo = true)
+        calculate()
+    }
+
+    fun addDraftStep() {
+        val currentSteps = _state.value.draft.steps
+        val nextNumber = currentSteps.size + 1
+        val lastCum = currentSteps.lastOrNull()?.cumulativeMassGrams ?: 0.0
+        val defaultWater = 50.0
+        val newStep = BrewStep(
+            stepNumber = nextNumber,
+            description = "Pour to ${"%.1f".format(java.util.Locale.US, lastCum + defaultWater)}g",
+            targetWaterGrams = defaultWater,
+            durationSeconds = 30,
+            action = if (nextNumber == 1) "Bloom" else "Pour",
+            startOffsetSeconds = currentSteps.sumOf { it.durationSeconds },
+            cumulativeMassGrams = "%.1f".format(java.util.Locale.US, lastCum + defaultWater).toDouble()
+        )
+        updateDraft(_state.value.draft.copy(steps = currentSteps + newStep), recordUndo = true)
+    }
+
+    fun updateDraftStep(index: Int, updated: BrewStep) {
+        val steps = _state.value.draft.steps.toMutableList()
+        if (index !in steps.indices) return
+        steps[index] = updated
+        var cum = 0.0
+        val recomputed = steps.mapIndexed { idx, s ->
+            cum += s.targetWaterGrams
+            s.copy(stepNumber = idx + 1, cumulativeMassGrams = "%.1f".format(java.util.Locale.US, cum).toDouble())
+        }
+        updateDraft(_state.value.draft.copy(steps = recomputed), recordUndo = false)
+    }
+
+    fun removeDraftStep(index: Int) {
+        val steps = _state.value.draft.steps.toMutableList()
+        if (index !in steps.indices) return
+        steps.removeAt(index)
+        var cum = 0.0
+        val recomputed = steps.mapIndexed { idx, s ->
+            cum += s.targetWaterGrams
+            s.copy(stepNumber = idx + 1, cumulativeMassGrams = "%.1f".format(java.util.Locale.US, cum).toDouble())
+        }
+        updateDraft(_state.value.draft.copy(steps = recomputed), recordUndo = true)
+    }
+
+    fun convertDraftBrix() = task("Converting Brix to TDS") {
+        val brixStr = _state.value.draft.fields["brix"].orEmpty()
+        require(brixStr.isNotBlank()) { "Enter a Brix reading." }
+        val brix = DomainValidation.parseDecimal(brixStr).toDouble()
+        val profileName = _state.value.draft.fields["brixProfile"].orEmpty()
+        val profile = RefractometerProfile.find(profileName)
+        val conversion = CoffeeScienceEngine.calculateBrixToTds(brix, profile).getOrThrow()
+        val tdsFormatted = "%.2f".format(java.util.Locale.US, conversion.tdsPercent)
+        val updatedFields = _state.value.draft.fields + ("tds" to tdsFormatted)
+        updateDraft(_state.value.draft.copy(fields = updatedFields))
+        calculate()
+        _state.update {
+            it.copy(
+                notice = "Converted ${conversion.brixPercent}% Brix → $tdsFormatted% TDS (${conversion.instrumentProfile})."
+            )
+        }
+    }
+
+    fun toggleArchiveRecipe(recipe: Recipe) = task("Toggling archive status") {
+        val updated = graph.repository.archiveRecipe(recipe.id, !recipe.isArchived)
+        _state.update {
+            it.copy(notice = "Recipe '${updated.name}' ${if (updated.isArchived) "archived" else "restored to active"}.")
+        }
+    }
+
+    fun shareRecipe(context: Context, recipe: Recipe, formatJson: Boolean = false) {
+        val bean = _state.value.beans.find { it.id == recipe.beanId }
+        RecipeExportFormatter.shareRecipe(context, recipe, bean, formatJson)
     }
 
     fun calculate() {
