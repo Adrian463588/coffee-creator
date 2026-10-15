@@ -9,11 +9,12 @@ import com.coffeecreator.app.core.model.Recipe
 
 /** Versioned reference taxonomy. These are origin references, never measured or certified lots. */
 object SeedData {
-    const val VERSION = 2
+    const val VERSION = 3
+    private const val VARIETY_REFERENCES_INTRODUCED_IN = 3
 
     // Source inspected 2026-10-14: https://varieties.worldcoffeeresearch.org/arabica
     // WCR describes Arabica's Ethiopian origin and its early cultivation in Yemen.
-    val curatedBeans = listOf(
+    private val legacyBeans = listOf(
         CoffeeBean(
             id = "reference-arabica-ethiopia",
             name = "Ethiopia — Arabica origin reference",
@@ -35,6 +36,12 @@ object SeedData {
             isCuratedSeed = true
         )
     )
+
+    val curatedBeans = legacyBeans + ReferenceCatalog.entries.map { it.toBean() }
+
+    /** Introduction revisions are append-only: an upgrade must not recreate a deleted older seed. */
+    fun beansIntroducedAfter(version: Int): List<CoffeeBean> =
+        if (version < VARIETY_REFERENCES_INTRODUCED_IN) ReferenceCatalog.entries.map { it.toBean() } else emptyList()
 
     // An empty journal/corpus/asset registry truthfully represents a new installation.
     val sampleRecipes: List<Recipe> = emptyList()

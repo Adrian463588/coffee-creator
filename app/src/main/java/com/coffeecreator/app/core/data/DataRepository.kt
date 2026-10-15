@@ -87,7 +87,19 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
                                 "Existing records require explicit recovery; defaults will not overwrite them."
                             }
                         }
-                        dao.putRecords(seed + record("meta", "initialized", SeedData.VERSION))
+                        dao.putRecords(
+                            seed + record("meta", "initialized", SeedData.VERSION) +
+                                record("meta", "reference-catalog-version", SeedData.VERSION)
+                        )
+                    } else {
+                        val previousVersion = dao.record("meta", "reference-catalog-version")?.let { decode<Int>(it.json) } ?: 2
+                        require(previousVersion in 1..SeedData.VERSION) { "Unsupported reference catalog version; records retained." }
+                        if (previousVersion < SeedData.VERSION) {
+                            val additions = SeedData.beansIntroducedAfter(previousVersion)
+                                .filter { dao.record("bean", it.id) == null }
+                                .map { record("bean", it.id, it) }
+                            dao.putRecords(additions + record("meta", "reference-catalog-version", SeedData.VERSION))
+                        }
                     }
                     readSnapshot()
                 }
