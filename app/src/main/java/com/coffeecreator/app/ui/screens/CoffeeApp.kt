@@ -21,17 +21,32 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MenuBook
@@ -71,6 +86,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -187,32 +203,48 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
                         Text(state.progress, Modifier.padding(horizontal = 16.dp).semantics { liveRegion = LiveRegionMode.Polite })
                     }
-                    if (state.error != null || state.notice != null) {
+                    AnimatedVisibility(
+                        visible = state.error != null || state.notice != null,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
                         Card(
-                            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (state.error !=
-                                    null
-                                ) {
+                                containerColor = if (state.error != null) {
                                     MaterialTheme.colorScheme.errorContainer
                                 } else {
                                     MaterialTheme.colorScheme.secondaryContainer
                                 }
                             )
                         ) {
-                            Row(Modifier.padding(12.dp)) {
+                            Row(
+                                Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    if (state.error != null) Icons.Default.Info else Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = if (state.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
+                                )
                                 Text(
                                     state.error ?: state.notice.orEmpty(),
                                     Modifier.weight(1f).semantics {
-                                        liveRegion =
-                                            LiveRegionMode.Polite
-                                    }
+                                        liveRegion = LiveRegionMode.Polite
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium
                                 )
                                 TextButton(onClick = model::clearNotice) { Text("Dismiss") }
                             }
                         }
                     }
-                    if (route == "Formulate" && state.canUndoDraft) {
+                    AnimatedVisibility(
+                        visible = route == "Formulate" && state.canUndoDraft,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
                         TextButton(
                             onClick = model::undoDraftChange,
                             enabled = !state.busy,
@@ -308,13 +340,18 @@ private fun Heading(title: String, detail: String) {
 @Composable
 private fun InfoCard(title: String, detail: String, content: @Composable () -> Unit = {}) {
     Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        Modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (detail.isNotBlank()) {
+                Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             content()
         }
     }
@@ -326,6 +363,7 @@ private fun Field(label: String, value: String, onChange: (String) -> Unit, tag:
         value = value,
         onValueChange = onChange,
         label = { Text(label) },
+        shape = RoundedCornerShape(10.dp),
         modifier = Modifier.fillMaxWidth().testTag(tag),
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text)
@@ -335,16 +373,43 @@ private fun Field(label: String, value: String, onChange: (String) -> Unit, tag:
 @Composable
 private fun Select(label: String, selected: String, choices: List<Pair<String, String>>, onSelect: (String) -> Unit, tag: String) {
     var open by rememberSaveable { mutableStateOf(false) }
+    val arrowRotation by animateFloatAsState(targetValue = if (open) 180f else 0f, label = "dropdownArrow")
     Column {
-        OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(tag)) {
-            Text("$label: ${choices.find { it.first == selected }?.second ?: selected.ifBlank { "Choose" }}")
+        OutlinedButton(
+            onClick = { open = true },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(tag),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "$label: ${choices.find { it.first == selected }?.second ?: selected.ifBlank { "Choose" }}",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    modifier = Modifier.rotate(arrowRotation)
+                )
+            }
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             choices.forEach { (id, text) ->
-                DropdownMenuItem(text = { Text(text) }, onClick = {
-                    onSelect(id)
-                    open = false
-                })
+                DropdownMenuItem(
+                    text = { Text(text, fontWeight = if (id == selected) FontWeight.SemiBold else FontWeight.Normal) },
+                    leadingIcon = if (id == selected) {
+                        { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                    } else null,
+                    onClick = {
+                        onSelect(id)
+                        open = false
+                    }
+                )
             }
         }
     }
@@ -740,7 +805,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                     }
                 }
             }
-            Surface(tonalElevation = 3.dp, shadowElevation = 2.dp) {
+            Surface(
+                tonalElevation = 4.dp,
+                shadowElevation = 3.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+            ) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -756,14 +825,30 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                         onClick = { selectedSection = BrewSection.Measurements.name },
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:ratio")
                     ) {
-                        Text(ratioLabel, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        AnimatedContent(
+                            targetState = ratioLabel,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(150)) togetherWith fadeOut(animationSpec = tween(100))
+                            },
+                            label = "ratioAnimation"
+                        ) { targetText ->
+                            Text(targetText, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                     Button(
                         onClick = model::saveRecipe,
                         enabled = state.ready && !state.busy,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:save")
                     ) {
-                        Text(if (state.draft.id == null) "Save recipe" else "Save new revision", maxLines = 2)
+                        AnimatedContent(
+                            targetState = (state.draft.id == null),
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(150)) togetherWith fadeOut(animationSpec = tween(100))
+                            },
+                            label = "saveLabelAnimation"
+                        ) { isNew ->
+                            Text(if (isNew) "Save recipe" else "Save new revision", maxLines = 2)
+                        }
                     }
                 }
             }
