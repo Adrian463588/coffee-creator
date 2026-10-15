@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Coffee
@@ -47,8 +46,8 @@ private fun LargeTextBrewSectionsPreview() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun BrewSectionTabs(selected: BrewSection, onSelect: (BrewSection) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+internal fun BrewSectionTabs(selected: BrewSection, modifier: Modifier = Modifier, onSelect: (BrewSection) -> Unit) {
+    Column(modifier.fillMaxWidth().testTag("brew:sections"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BrewSection.entries.forEach { section ->
                 FilterChip(

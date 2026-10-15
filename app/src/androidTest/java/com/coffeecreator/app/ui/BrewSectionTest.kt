@@ -4,9 +4,16 @@ import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import com.coffeecreator.app.CoffeeApplication
 import com.coffeecreator.app.MainActivity
@@ -20,7 +27,8 @@ class BrewSectionTest {
     fun givenBrew_whenSelectingChips_thenOnlySelectedGroupAndSaveRemainReachable() {
         openBrew()
         listOf("Recipe", "Measurements", "Ingredients", "Tools").forEach { selected ->
-            rule.onNodeWithTag("brew:section:$selected").performClick().assertIsSelected()
+            rule.selectBrewSection(selected)
+            rule.onNodeWithTag("brew:section:$selected").assertIsSelected()
             rule.onNodeWithTag("brew:content:$selected").assertIsDisplayed()
             listOf("Recipe", "Measurements", "Ingredients", "Tools").filter { it != selected }.forEach { hidden ->
                 rule.onNodeWithTag("brew:content:$hidden").assertDoesNotExist()
@@ -33,14 +41,18 @@ class BrewSectionTest {
     @Test
     fun givenToolInput_whenSwitchingSectionsAndRecreating_thenValueAndSelectionSurvive() {
         openBrew()
-        rule.onNodeWithTag("brew:section:Tools").performClick()
-        rule.onNodeWithTag("science:initialMassGrams").performTextReplacement("246")
-        rule.onNodeWithTag("brew:section:Recipe").performClick()
+        rule.selectBrewSection("Tools")
+        rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("science:initialMassGrams"))
+        rule.onNodeWithTag("science:initialMassGrams").performScrollTo().performTextReplacement("246")
+        rule.selectBrewSection("Recipe")
         rule.onNodeWithTag("science:initialMassGrams").assertDoesNotExist()
-        rule.onNodeWithTag("brew:section:Tools").performClick()
+        rule.selectBrewSection("Tools")
+        rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("science:initialMassGrams"))
         rule.onNodeWithTag("science:initialMassGrams").assertTextContains("246")
         rule.activityRule.scenario.recreate()
+        rule.onNodeWithTag("page:Formulate").performScrollToIndex(0)
         rule.onNodeWithTag("brew:section:Tools").assertIsSelected()
+        rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("science:initialMassGrams"))
         rule.onNodeWithTag("science:initialMassGrams").assertTextContains("246")
     }
 
@@ -56,4 +68,13 @@ class BrewSectionTest {
         rule.onNodeWithTag("nav:Home").performClick()
         rule.onNodeWithTag("nav:Formulate").performClick()
     }
+}
+
+internal fun ComposeContentTestRule.selectBrewSection(section: String) {
+    onNodeWithTag("page:Formulate").performScrollToIndex(0)
+    val chip = hasTestTag("brew:section:$section")
+    if (onAllNodes(chip and hasAnyAncestor(hasScrollAction())).fetchSemanticsNodes().isNotEmpty()) {
+        onNode(chip).performScrollTo()
+    }
+    onNode(chip).performClick()
 }

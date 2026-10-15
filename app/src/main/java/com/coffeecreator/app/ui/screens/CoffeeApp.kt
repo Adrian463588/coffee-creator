@@ -68,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -76,6 +77,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -430,212 +432,247 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
     var density by rememberSaveable { mutableStateOf("") }
     var science by rememberSaveable { mutableStateOf("Dilution") }
     var scienceInputs by rememberSaveable { mutableStateOf(emptyMap<String, String>()) }
-    Column(Modifier.fillMaxSize()) {
-        BrewSectionTabs(section) { selectedSection = it.name }
-        Box(Modifier.weight(1f).testTag("brew:content:${section.name}")) {
-            androidx.compose.runtime.key(section) {
-                Page("Formulate") {
-                    when (section) {
-                        BrewSection.Recipe -> {
-                            item {
-                                BrewCard("Build your recipe", "Planned inputs. Each save keeps an immutable revision.") {
-                                    Field("Recipe name", fields.getValue("name"), { model.updateField("name", it) }, "form:name")
-                                    Select(
-                                        "Coffee bean",
-                                        fields.getValue("bean"),
-                                        listOf("" to "Unspecified") + state.beans.map { it.id to it.name },
-                                        { model.updateField("bean", it) },
-                                        "form:bean"
-                                    )
-                                    Select(
-                                        "Brew method",
-                                        fields.getValue("method"),
-                                        listOf("V60", "AeroPress", "Espresso", "French Press", "Chemex", "Immersion").map { it to it },
-                                        { model.updateField("method", it) },
-                                        "form:method"
-                                    )
-                                    Field("Dose (g)", fields.getValue("dose"), { model.updateField("dose", it) }, "form:dose", true)
-                                    Field("Brew water (g)", fields.getValue("water"), {
-                                        model.updateField("water", it)
-                                    }, "form:water", true)
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val compactHeight = 480.dp
+        val largeFontScale = 1.5f
+        val scrollSections = maxHeight < compactHeight || LocalDensity.current.fontScale >= largeFontScale
+        Column(Modifier.fillMaxSize()) {
+            if (!scrollSections) {
+                BrewSectionTabs(section, Modifier.padding(horizontal = 16.dp)) { selectedSection = it.name }
+            }
+            Box(Modifier.weight(1f).testTag("brew:content:${section.name}")) {
+                androidx.compose.runtime.key(section) {
+                    Page("Formulate") {
+                        if (scrollSections) {
+                            item(key = "brew:sections") { BrewSectionTabs(section) { selectedSection = it.name } }
+                        }
+                        when (section) {
+                            BrewSection.Recipe -> {
+                                item {
+                                    BrewCard("Build your recipe", "Planned inputs. Each save keeps an immutable revision.") {
+                                        Field("Recipe name", fields.getValue("name"), { model.updateField("name", it) }, "form:name")
+                                        Select(
+                                            "Coffee bean",
+                                            fields.getValue("bean"),
+                                            listOf("" to "Unspecified") + state.beans.map { it.id to it.name },
+                                            { model.updateField("bean", it) },
+                                            "form:bean"
+                                        )
+                                        Select(
+                                            "Brew method",
+                                            fields.getValue("method"),
+                                            listOf("V60", "AeroPress", "Espresso", "French Press", "Chemex", "Immersion").map { it to it },
+                                            { model.updateField("method", it) },
+                                            "form:method"
+                                        )
+                                        Field("Dose (g)", fields.getValue("dose"), { model.updateField("dose", it) }, "form:dose", true)
+                                        Field("Brew water (g)", fields.getValue("water"), {
+                                            model.updateField("water", it)
+                                        }, "form:water", true)
+                                    }
                                 }
-                            }
-                            item {
-                                BrewCard("Brew timer", "%02d:%02d".format(state.timerSeconds / 60, state.timerSeconds % 60)) {
-                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Button(onClick = model::toggleTimer, modifier = Modifier.heightIn(min = 48.dp)) {
-                                            Text(if (state.timerRunning) "Pause timer" else "Start timer")
-                                        }
-                                        OutlinedButton(onClick = model::resetTimer, modifier = Modifier.heightIn(min = 48.dp)) {
-                                            Text("Reset timer")
+                                item {
+                                    BrewCard("Brew timer", "%02d:%02d".format(state.timerSeconds / 60, state.timerSeconds % 60)) {
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Button(onClick = model::toggleTimer, modifier = Modifier.heightIn(min = 48.dp)) {
+                                                Text(if (state.timerRunning) "Pause timer" else "Start timer")
+                                            }
+                                            OutlinedButton(onClick = model::resetTimer, modifier = Modifier.heightIn(min = 48.dp)) {
+                                                Text("Reset timer")
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            item {
-                                BrewCard("Equipment & notes", "Record the setup so another brew can repeat it.") {
-                                    Field("Equipment", fields.getValue("equipment"), {
-                                        model.updateField("equipment", it)
-                                    }, "form:equipment")
-                                    Field("Grind description", fields.getValue("grind"), { model.updateField("grind", it) }, "form:grind")
-                                    Field("Recipe notes", fields.getValue("notes"), { model.updateField("notes", it) }, "form:notes")
-                                }
-                            }
-                            item {
-                                TextButton(onClick = model::newRecipe, modifier = Modifier.heightIn(min = 48.dp)) {
-                                    Text("Start a separate recipe")
-                                }
-                            }
-                        }
-                        BrewSection.Measurements -> {
-                            item {
-                                BrewCard("Measured beverage", "Optional. Leave blank until an instrument or scale supplies the value.") {
-                                    Field("Measured beverage mass (g)", fields.getValue("beverage"), {
-                                        model.updateField("beverage", it)
-                                    }, "form:beverage", true)
-                                    Field("Measured TDS (% w/w)", fields.getValue("tds"), {
-                                        model.updateField("tds", it)
-                                    }, "form:tds", true)
-                                }
-                            }
-                            item { InfoCard("Calculated science · not a measurement", state.calculation) }
-                            item {
-                                BrewCard("Process inputs", "Describe the brew. Estimated extraction retains method-specific assumptions.") {
-                                    Field("Brew temperature (°C)", fields.getValue("temperature"), {
-                                        model.updateField("temperature", it)
-                                    }, "form:temperature", true)
-                                    Field("Pressure (bar), optional", fields.getValue("pressure"), {
-                                        model.updateField("pressure", it)
-                                    }, "form:pressure", true)
-                                    Field("Brew time (seconds)", fields.getValue("seconds"), {
-                                        model.updateField("seconds", it)
-                                    }, "form:seconds", true)
-                                    Field("Bypass water (g)", fields.getValue("bypass"), {
-                                        model.updateField("bypass", it)
-                                    }, "form:bypass", true)
-                                    Field("Agitation / pour routine", fields.getValue("agitation"), {
-                                        model.updateField("agitation", it)
-                                    }, "form:agitation")
-                                }
-                            }
-                        }
-                        BrewSection.Ingredients -> {
-                            item {
-                                BrewCard(
-                                    "Ingredient additions",
-                                    "Only confirmed food-grade ingredients. Known density is required for mL."
-                                ) {
-                                    Select("Ingredient", ingredientId, state.ingredients.map { it.id to it.name }, {
-                                        ingredientId = it
-                                    }, "form:ingredient")
-                                    Field("Ingredient quantity", quantity, { quantity = it }, "form:quantity", true)
-                                    Select("Unit", unit, listOf("g", "mg", "mL").map { it to it }, { unit = it }, "form:unit")
-                                    Field("Density (g/mL), optional override", density, { density = it }, "form:density", true)
-                                    OutlinedButton(
-                                        onClick = { model.addLine(ingredientId, quantity, unit, density) },
-                                        enabled = ingredientId.isNotBlank() && !state.busy,
-                                        modifier = Modifier.heightIn(min = 48.dp)
-                                    ) { Text("Add ingredient") }
-                                }
-                            }
-                            if (state.draft.lines.isEmpty()) {
                                 item {
+                                    BrewCard("Equipment & notes", "Record the setup so another brew can repeat it.") {
+                                        Field("Equipment", fields.getValue("equipment"), {
+                                            model.updateField("equipment", it)
+                                        }, "form:equipment")
+                                        Field("Grind description", fields.getValue("grind"), {
+                                            model.updateField("grind", it)
+                                        }, "form:grind")
+                                        Field("Recipe notes", fields.getValue("notes"), { model.updateField("notes", it) }, "form:notes")
+                                    }
+                                }
+                                item {
+                                    TextButton(onClick = model::newRecipe, modifier = Modifier.heightIn(min = 48.dp)) {
+                                        Text("Start a separate recipe")
+                                    }
+                                }
+                            }
+                            BrewSection.Measurements -> {
+                                item {
+                                    BrewCard(
+                                        "Measured beverage",
+                                        "Optional. Leave blank until an instrument or scale supplies the value."
+                                    ) {
+                                        Field("Measured beverage mass (g)", fields.getValue("beverage"), {
+                                            model.updateField("beverage", it)
+                                        }, "form:beverage", true)
+                                        Field("Measured TDS (% w/w)", fields.getValue("tds"), {
+                                            model.updateField("tds", it)
+                                        }, "form:tds", true)
+                                    }
+                                }
+                                item { InfoCard("Calculated science · not a measurement", state.calculation) }
+                                item {
+                                    BrewCard(
+                                        "Process inputs",
+                                        "Describe the brew. Estimated extraction retains method-specific assumptions."
+                                    ) {
+                                        Field("Brew temperature (°C)", fields.getValue("temperature"), {
+                                            model.updateField("temperature", it)
+                                        }, "form:temperature", true)
+                                        Field("Pressure (bar), optional", fields.getValue("pressure"), {
+                                            model.updateField("pressure", it)
+                                        }, "form:pressure", true)
+                                        Field("Brew time (seconds)", fields.getValue("seconds"), {
+                                            model.updateField("seconds", it)
+                                        }, "form:seconds", true)
+                                        Field("Bypass water (g)", fields.getValue("bypass"), {
+                                            model.updateField("bypass", it)
+                                        }, "form:bypass", true)
+                                        Field("Agitation / pour routine", fields.getValue("agitation"), {
+                                            model.updateField("agitation", it)
+                                        }, "form:agitation")
+                                    }
+                                }
+                            }
+                            BrewSection.Ingredients -> {
+                                item {
+                                    BrewCard(
+                                        "Ingredient additions",
+                                        "Only confirmed food-grade ingredients. Known density is required for mL."
+                                    ) {
+                                        Select("Ingredient", ingredientId, state.ingredients.map { it.id to it.name }, {
+                                            ingredientId = it
+                                        }, "form:ingredient")
+                                        Field("Ingredient quantity", quantity, { quantity = it }, "form:quantity", true)
+                                        Select("Unit", unit, listOf("g", "mg", "mL").map { it to it }, { unit = it }, "form:unit")
+                                        Field("Density (g/mL), optional override", density, { density = it }, "form:density", true)
+                                        OutlinedButton(
+                                            onClick = { model.addLine(ingredientId, quantity, unit, density) },
+                                            enabled = ingredientId.isNotBlank() && !state.busy,
+                                            modifier = Modifier.heightIn(min = 48.dp)
+                                        ) { Text("Add ingredient") }
+                                    }
+                                }
+                                if (state.draft.lines.isEmpty()) {
+                                    item {
+                                        InfoCard(
+                                            "No additions",
+                                            "Coffee and brew water are recorded in Recipe. Ingredient additions are optional."
+                                        )
+                                    }
+                                }
+                                items(state.draft.lines.withIndex().toList(), key = { it.index }) { indexed ->
+                                    val line = indexed.value
                                     InfoCard(
-                                        "No additions",
-                                        "Coffee and brew water are recorded in Recipe. Ingredient additions are optional."
-                                    )
-                                }
-                            }
-                            items(state.draft.lines.withIndex().toList(), key = { it.index }) { indexed ->
-                                val line = indexed.value
-                                InfoCard(
-                                    state.ingredients.find { it.id == line.ingredientId }?.name ?: "Unknown ingredient",
-                                    "${line.quantity} ${line.unit}; food-grade and supplier limits checked on save"
-                                ) {
-                                    TextButton(onClick = { model.removeLine(indexed.index) }, modifier = Modifier.heightIn(min = 48.dp)) {
-                                        Text("Remove line")
-                                    }
-                                }
-                            }
-                            if (state.draft.lines.isNotEmpty()) {
-                                item {
-                                    val allergens = state.draft.lines.flatMap { line ->
-                                        state.ingredients.find { it.id == line.ingredientId }?.allergens.orEmpty()
-                                    }.distinct().joinToString().ifBlank { "none declared; verify supplier" }
-                                    FilterChip(
-                                        selected = fields["allergens"] == "yes",
-                                        onClick = { model.updateField("allergens", if (fields["allergens"] == "yes") "" else "yes") },
-                                        label = { Text("Acknowledge listed ingredient allergens: $allergens") },
-                                        modifier = Modifier.heightIn(min = 48.dp)
-                                    )
-                                }
-                            }
-                        }
-                        BrewSection.Tools -> {
-                            item {
-                                BrewCard(
-                                    "Coffee science tools",
-                                    "Calculated estimates from explicit inputs. No measured values are filled in."
-                                ) {
-                                    Select("Calculation", science, listOf("Dilution", "Concentration", "Volume to mass").map { it to it }, {
-                                        science = it
-                                        scienceInputs = emptyMap()
-                                    }, "science:kind")
-                                    val scienceFields = when (science) {
-                                        "Dilution" -> listOf(
-                                            "initialMassGrams" to "Initial beverage mass (g)",
-                                            "initialTdsPercent" to "Measured initial TDS (% w/w)",
-                                            "addedWaterGrams" to "Added water (g)"
-                                        )
-                                        "Concentration" -> listOf(
-                                            "soluteMassGrams" to "Solute mass (g)",
-                                            "solutionMassGrams" to "Total solution mass, including solute (g)"
-                                        )
-                                        else -> listOf("volumeMl" to "Volume (mL)", "densityGramsPerMl" to "Known density (g/mL)")
-                                    }
-                                    scienceFields.forEach { (key, label) ->
-                                        Field(label, scienceInputs[key].orEmpty(), {
-                                            scienceInputs = scienceInputs + (key to it)
-                                        }, "science:$key", true)
-                                    }
-                                    Button(onClick = {
-                                        val tool = when (science) {
-                                            "Dilution" -> "calculate_dilution"
-                                            "Concentration" -> "calculate_concentration_ppm"
-                                            else -> "convert_units"
+                                        state.ingredients.find { it.id == line.ingredientId }?.name ?: "Unknown ingredient",
+                                        "${line.quantity} ${line.unit}; food-grade and supplier limits checked on save"
+                                    ) {
+                                        TextButton(
+                                            onClick = { model.removeLine(indexed.index) },
+                                            modifier = Modifier.heightIn(min = 48.dp)
+                                        ) {
+                                            Text("Remove line")
                                         }
-                                        model.runManualCalculation(
-                                            tool,
-                                            scienceFields.associate { it.first to scienceInputs[it.first].orEmpty() }
+                                    }
+                                }
+                                if (state.draft.lines.isNotEmpty()) {
+                                    item {
+                                        val allergens = state.draft.lines.flatMap { line ->
+                                            state.ingredients.find { it.id == line.ingredientId }?.allergens.orEmpty()
+                                        }.distinct().joinToString().ifBlank { "none declared; verify supplier" }
+                                        FilterChip(
+                                            selected = fields["allergens"] == "yes",
+                                            onClick = { model.updateField("allergens", if (fields["allergens"] == "yes") "" else "yes") },
+                                            label = { Text("Acknowledge listed ingredient allergens: $allergens") },
+                                            modifier = Modifier.heightIn(min = 48.dp)
                                         )
-                                    }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp)) {
-                                        Text("Calculate ${science.lowercase()}")
                                     }
                                 }
                             }
-                            state.manualToolResult?.let { result -> item { InfoCard("Exact calculation", result) } }
+                            BrewSection.Tools -> {
+                                item {
+                                    BrewCard(
+                                        "Coffee science tools",
+                                        "Calculated estimates from explicit inputs. No measured values are filled in."
+                                    ) {
+                                        Select(
+                                            "Calculation",
+                                            science,
+                                            listOf("Dilution", "Concentration", "Volume to mass").map { it to it },
+                                            {
+                                                science = it
+                                                scienceInputs = emptyMap()
+                                            },
+                                            "science:kind"
+                                        )
+                                        val scienceFields = when (science) {
+                                            "Dilution" -> listOf(
+                                                "initialMassGrams" to "Initial beverage mass (g)",
+                                                "initialTdsPercent" to "Measured initial TDS (% w/w)",
+                                                "addedWaterGrams" to "Added water (g)"
+                                            )
+                                            "Concentration" -> listOf(
+                                                "soluteMassGrams" to "Solute mass (g)",
+                                                "solutionMassGrams" to "Total solution mass, including solute (g)"
+                                            )
+                                            else -> listOf("volumeMl" to "Volume (mL)", "densityGramsPerMl" to "Known density (g/mL)")
+                                        }
+                                        scienceFields.forEach { (key, label) ->
+                                            Field(label, scienceInputs[key].orEmpty(), {
+                                                scienceInputs = scienceInputs + (key to it)
+                                            }, "science:$key", true)
+                                        }
+                                        Button(onClick = {
+                                            val tool = when (science) {
+                                                "Dilution" -> "calculate_dilution"
+                                                "Concentration" -> "calculate_concentration_ppm"
+                                                else -> "convert_units"
+                                            }
+                                            model.runManualCalculation(
+                                                tool,
+                                                scienceFields.associate { it.first to scienceInputs[it.first].orEmpty() }
+                                            )
+                                        }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp)) {
+                                            Text("Calculate ${science.lowercase()}")
+                                        }
+                                    }
+                                }
+                                state.manualToolResult?.let { result -> item { InfoCard("Exact calculation", result) } }
+                            }
                         }
                     }
                 }
             }
-        }
-        Surface(tonalElevation = 3.dp, shadowElevation = 2.dp) {
-            FlowRow(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                TextButton(
-                    onClick = { selectedSection = BrewSection.Measurements.name },
-                    modifier = Modifier.heightIn(min = 48.dp).testTag("form:ratio")
+            Surface(tonalElevation = 3.dp, shadowElevation = 2.dp) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(state.calculation.lineSequence().firstOrNull().orEmpty().ifBlank { "View calculation" })
+                    val calculationSummary = state.calculation.lineSequence().firstOrNull().orEmpty()
+                    val ratioLabel = if (calculationSummary.startsWith("Calculated ratio ")) {
+                        "Ratio ${calculationSummary.removePrefix("Calculated ratio ")}"
+                    } else {
+                        "Review calculation"
+                    }
+                    TextButton(
+                        onClick = { selectedSection = BrewSection.Measurements.name },
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:ratio")
+                    ) {
+                        Text(ratioLabel, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                    Button(
+                        onClick = model::saveRecipe,
+                        enabled = state.ready && !state.busy,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:save")
+                    ) {
+                        Text(if (state.draft.id == null) "Save recipe" else "Save new revision", maxLines = 2)
+                    }
                 }
-                Button(
-                    onClick = model::saveRecipe,
-                    enabled = state.ready && !state.busy,
-                    modifier = Modifier.heightIn(min = 48.dp).testTag("form:save")
-                ) { Text(if (state.draft.id == null) "Save recipe" else "Save new revision") }
             }
         }
     }

@@ -72,7 +72,7 @@ class ManualJourneyTest {
             rule.activityRule.scenario.recreate()
             rule.waitUntil(10_000) { repository.ready.value }
             rule.onNodeWithTag("nav:Formulate").performClick()
-            rule.onNodeWithTag("brew:section:Recipe").performClick()
+            rule.selectBrewSection("Recipe")
             rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("form:name"))
             rule.onNodeWithText(title).assertIsDisplayed()
             field("beverage", "")
@@ -138,7 +138,7 @@ class ManualJourneyTest {
         } else {
             "Recipe"
         }
-        rule.onNodeWithTag("brew:section:$section").performClick()
+        rule.selectBrewSection(section)
         rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("form:$key"))
         rule.onNodeWithTag("form:$key").performScrollTo().performTextReplacement(value)
     }
