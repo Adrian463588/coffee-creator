@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -32,8 +33,12 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OfflineBolt
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -89,6 +94,7 @@ import com.coffeecreator.app.core.filesystem.BuiltInAssets
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.Ingredient
 import com.coffeecreator.app.core.model.ModelStatus
+import com.coffeecreator.app.core.data.CuratedCoffeeCatalog
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
@@ -407,9 +413,47 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
         }
     }
     item {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("AI Chat", "Knowledge", "Models", "Sensory", "Settings").forEach { target ->
-                FilledTonalButton(onClick = { navigate(target) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(target) }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "WORKBENCH MODULES",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
+            )
+            val navItems = listOf(
+                Triple("AI Chat", "Offline coffee intelligence", Icons.AutoMirrored.Filled.Chat),
+                Triple("Knowledge", "Imported guides & RAG", Icons.AutoMirrored.Filled.LibraryBooks),
+                Triple("Models", "Local GGUF / ONNX assets", Icons.Default.Memory),
+                Triple("Sensory", "Tasting radar & observations", Icons.Default.Psychology),
+                Triple("Settings", "Storage, export & reset", Icons.Default.Settings)
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                navItems.forEach { (target, subtitle, icon) ->
+                    Surface(
+                        onClick = { navigate(target) },
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .testTag("home:nav:$target")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Column {
+                                Text(target, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -468,12 +512,51 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             { model.updateField("bean", it) },
                                             "form:bean"
                                         )
+                                        var customBeanText by rememberSaveable { mutableStateOf("") }
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            OutlinedTextField(
+                                                value = customBeanText,
+                                                onValueChange = { customBeanText = it },
+                                                label = { Text("Custom coffee bean") },
+                                                singleLine = true,
+                                                modifier = Modifier.weight(1f).testTag("form:custom_bean")
+                                            )
+                                            Button(
+                                                onClick = {
+                                                    val name = customBeanText.trim()
+                                                    if (name.isNotBlank()) {
+                                                        val existing = state.beans.find { it.name.equals(name, ignoreCase = true) }
+                                                        if (existing != null) {
+                                                            model.updateField("bean", existing.id)
+                                                        } else {
+                                                            val id = java.util.UUID.randomUUID().toString()
+                                                            model.saveBean(id, mapOf("name" to name, "variety" to "Custom", "provenance" to "Custom user lot"))
+                                                            model.updateField("bean", id)
+                                                        }
+                                                    }
+                                                },
+                                                enabled = customBeanText.isNotBlank() && !state.busy,
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("form:add_custom_bean")
+                                            ) {
+                                                Text("Apply bean")
+                                            }
+                                        }
                                         Select(
-                                            "Brew method",
+                                            "Brew method preset",
                                             fields.getValue("method"),
-                                            listOf("V60", "AeroPress", "Espresso", "French Press", "Chemex", "Immersion").map { it to it },
+                                            listOf("V60", "AeroPress", "Espresso", "French Press", "Chemex", "Immersion", "Kalita Wave", "Moka Pot", "Cold Brew", "Syphon", "Clever Dripper").map { it to it },
                                             { model.updateField("method", it) },
                                             "form:method"
+                                        )
+                                        Field(
+                                            "Brew method (or custom apparatus)",
+                                            fields.getValue("method"),
+                                            { model.updateField("method", it) },
+                                            "form:custom_method"
                                         )
                                         Field("Dose (g)", fields.getValue("dose"), { model.updateField("dose", it) }, "form:dose", true)
                                         Field("Brew water (g)", fields.getValue("water"), {
@@ -736,6 +819,23 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         it
                 }, "library:process")
             }
+            val hasCuratedBeans = state.beans.any { b -> CuratedCoffeeCatalog.beans.any { it.id == b.id } }
+            if (!hasCuratedBeans) {
+                item {
+                    InfoCard(
+                        "Specialty Single-Origin Beans",
+                        "Load 8 authentic specialty beans with verified agricultural data (Yirgacheffe, Huila Pink Bourbon, Panama Geisha, etc.)."
+                    ) {
+                        Button(
+                            onClick = model::importCuratedCatalog,
+                            enabled = !state.busy,
+                            modifier = Modifier.testTag("library:import_catalog")
+                        ) {
+                            Text("Load Curated Specialty Beans")
+                        }
+                    }
+                }
+            }
             items(
                 state.beans.filter { bean ->
                     (process == "All" || bean.process == process) &&
@@ -876,6 +976,23 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
     Page("Journal") {
         item { Heading("Brew journal", "Saved revisions are immutable. Repeat a brew, make a copy, or compare observations.") }
         item { Field("Search recipes", query, { query = it }, "journal:query") }
+        val hasCuratedRecipes = state.recipes.any { r -> CuratedCoffeeCatalog.recipes.any { it.id == r.id } }
+        if (!hasCuratedRecipes) {
+            item {
+                InfoCard(
+                    "Specialty Preset Library",
+                    "Load 10 world-standard recipes (Hoffmann V60, Kasuya 4:6, AeroPress Champion, Chemex, etc.) and real sensory logs."
+                ) {
+                    Button(
+                        onClick = model::importCuratedCatalog,
+                        enabled = !state.busy,
+                        modifier = Modifier.testTag("journal:import_catalog")
+                    ) {
+                        Text("Load 10 Curated Recipes & Journal")
+                    }
+                }
+            }
+        }
         if (state.recipes.isEmpty()) item { InfoCard("No saved brews", "Create and save your first manual recipe in Brew.") }
         items(state.recipes.filter { it.name.contains(query, true) }, key = { it.id }) { recipe ->
             InfoCard(

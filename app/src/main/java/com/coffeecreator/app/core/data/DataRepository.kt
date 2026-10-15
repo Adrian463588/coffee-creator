@@ -119,6 +119,13 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
         dao.putRecords(listOf(record("bean", bean.id, bean)))
     }
 
+    suspend fun importCuratedCatalog() = mutate {
+        val newBeans = CuratedCoffeeCatalog.beans.filter { dao.record("bean", it.id) == null }.map { record("bean", it.id, it) }
+        val newRecipes = CuratedCoffeeCatalog.recipes.filter { dao.record("recipe", it.id) == null }.map { record("recipe", it.id, it) }
+        val newObs = CuratedCoffeeCatalog.observations.filter { dao.record("observation", it.id) == null }.map { record("observation", it.id, it) }
+        dao.putRecords(newBeans + newRecipes + newObs)
+    }
+
     override suspend fun updateBean(bean: CoffeeBean) = mutate {
         BackupCodec.validateId(bean.id)
         DomainValidation.validateBean(bean)

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import com.coffeecreator.app.CoffeeApplication
 import com.coffeecreator.app.MainActivity
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -58,7 +59,12 @@ class BrewSectionTest {
     @Test
     fun givenBrew_whenUsingSystemBack_thenNavigationReturnsHome() {
         openBrew()
-        rule.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
+        rule.onNodeWithTag("page:Formulate").assertIsDisplayed()
+        rule.runOnIdle {
+            val dispatcher = rule.activity.onBackPressedDispatcher
+            assertTrue("Visible Brew must register its navigation Back callback before dispatch.", dispatcher.hasEnabledCallbacks())
+            dispatcher.onBackPressed()
+        }
         rule.onNodeWithTag("page:Home").assertIsDisplayed()
     }
 

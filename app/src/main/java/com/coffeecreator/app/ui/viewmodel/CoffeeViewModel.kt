@@ -376,6 +376,10 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         val copy = graph.repository.duplicateRecipe(recipe)
         _state.update { it.copy(notice = "Copied ${copy.name}; new independent history.") }
     }
+    fun importCuratedCatalog() = task("Loading curated specialty coffee catalog") {
+        graph.repository.importCuratedCatalog()
+        _state.update { it.copy(notice = "Imported 10 curated recipes, 8 single-origin beans, and sensory observation logs.") }
+    }
     fun requestDeletion(kind: String, id: String) {
         _state.update { it.copy(deletion = kind to id) }
     }

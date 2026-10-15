@@ -25,6 +25,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.font.FontWeight
+
 internal enum class BrewSection(val label: String, val detail: String) {
     Recipe("Recipe", "Plan dose, water and timing"),
     Measurements("Measurements", "Add values you have measured"),
@@ -47,13 +52,25 @@ private fun LargeTextBrewSectionsPreview() {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun BrewSectionTabs(selected: BrewSection, modifier: Modifier = Modifier, onSelect: (BrewSection) -> Unit) {
-    Column(modifier.fillMaxWidth().testTag("brew:sections"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = modifier.fillMaxWidth().testTag("brew:sections"),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             BrewSection.entries.forEach { section ->
                 FilterChip(
                     selected = section == selected,
                     onClick = { onSelect(section) },
-                    label = { Text(section.label) },
+                    label = {
+                        Text(
+                            section.label,
+                            fontWeight = if (section == selected) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    },
                     leadingIcon = {
                         val icon = if (section == selected) {
                             Icons.Default.Check
@@ -67,12 +84,19 @@ internal fun BrewSectionTabs(selected: BrewSection, modifier: Modifier = Modifie
                         }
                         Icon(icon, contentDescription = null)
                     },
-                    modifier = Modifier.heightIn(min = 48.dp).testTag("brew:section:${section.name}").semantics {
-                        stateDescription = if (section == selected) "Selected brew section" else "Open brew section"
-                    }
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .testTag("brew:section:${section.name}")
+                        .semantics {
+                            stateDescription = if (section == selected) "Selected brew section" else "Open brew section"
+                        }
                 )
             }
         }
-        Text(selected.detail, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            selected.detail,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

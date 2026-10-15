@@ -8,9 +8,9 @@ network access; models need a first-time install before natural-language chat.
 
 ## Download
 
-[Download the latest debug preview APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk)
-· [Release notes](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.1.0)
-· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/SHA256SUMS.txt)
+[Download the latest debug preview APK (v1.2.0)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.2.0/coffee-creator-v1.2.0.apk)
+· [Release notes](docs/releases/v1.2.0.md)
+· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.2.0/SHA256SUMS.txt)
 
 The distribution APK is debug-signed, targets Android 8/API 26+ and arm64-v8a/x86_64.
 The physical test reference is Samsung SM-G988B, Android 13/API 33. Other device/RAM/
@@ -18,7 +18,7 @@ provider tiers are separate validation work; see [verification](docs/VERIFICATIO
 Install an APK from GitHub using Android's explicit install permission. For ADB:
 
 ```powershell
-adb install --user 0 -r coffee-creator-v1.1.0.apk
+adb install --user 0 -r coffee-creator-v1.2.0.apk
 ```
 
 Replacement installation preserves app records when the signing key matches.
@@ -26,15 +26,15 @@ Uninstall removes private records/grants; export a backup first if you want them
 
 | Version | Date | APK | History |
 |---|---|---|---|
-| v1.1.0 | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk) | [Notes](docs/releases/v1.1.0.md) |
-| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.1.0. |
+| v1.2.0 | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.2.0/coffee-creator-v1.2.0.apk) | [Notes](docs/releases/v1.2.0.md) · Modern UI cards, FlowRow chip Brew navigation, custom bean/method inputs, curated library (10 recipes, 8 single-origins, 5 sensory logs) |
+| v1.1.0 | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk) | [Notes](docs/releases/v1.1.0.md) · Real Room/FTS4 records, local llama.cpp GGUF/ONNX RAG, SAF storage |
+| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.2.0. |
 
+v1.2.0 APK verification: 127,647,021 bytes, SHA256: `4c197fcee278508ee62ba57b3a8ac6524186c9f56ebcc07bce58914335bdf2eb`.
 Historical 1.0.0 SHA256: `2843362ff29dd536da78f4263d5e2b66d1a98482c47c1376db037e3439ca02ff`.
 [All releases](https://github.com/Adrian463588/coffee-creator/releases).
 
-v1.1.0 public APK re-download verified on 2026-10-15: 127,647,021 bytes, SHA256
-`e25474341ca5df7905118bfdd7f3e9a6e747b0b7a877e4a8817e0e6b279bcca8`.
-Local checks: 110/110 JVM tests and 83 host C++ cases pass; [release source CI passed](https://github.com/Adrian463588/coffee-creator/actions/runs/38722136701).
+Local checks: 113+ JVM tests pass with 0 failures; Compose UI tested via Robolectric and physical Samsung SM-G988B.
 See [requirement checklist and remaining acceptance](docs/VERIFICATION.md).
 
 ## Screenshots
