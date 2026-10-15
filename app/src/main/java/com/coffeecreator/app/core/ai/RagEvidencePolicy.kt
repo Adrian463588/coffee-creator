@@ -2,7 +2,7 @@ package com.coffeecreator.app.core.ai
 
 /** Method guidance cannot prove an unrecorded personal measurement, certificate or future tasting. */
 object RagEvidencePolicy {
-    private val personal = Regex("\\b(my|today|today's|currently|latest|last|actual|served)\\b", RegexOption.IGNORE_CASE)
+    private val personal = Regex("\\b(my|mine|our|today|today's|currently|latest|last|served)\\b", RegexOption.IGNORE_CASE)
     private val futureSensory = Regex("\\b(will|guarantee)\\b.*\\b(score|taste|flavor|flavour|panel)\\b", RegexOption.IGNORE_CASE)
     private val recordDate = Regex("\\b(?:19|20)\\d{2}[-/]\\d{1,2}[-/]\\d{1,2}\\b")
     private val recordIdentity =

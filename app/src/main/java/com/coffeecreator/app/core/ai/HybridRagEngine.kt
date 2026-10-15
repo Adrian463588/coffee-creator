@@ -118,11 +118,20 @@ object RagRanking {
         )
     fun tokens(text: String): Set<String> = text.lowercase().split(Regex("[^\\p{L}\\p{N}]+"))
         .filter { it.length > 2 && it !in stopWords }.map(::normalize).toSet()
-    private fun normalize(word: String): String = when {
-        word.length > 5 && word.endsWith("ies") -> word.dropLast(3) + "y"
-        word.length > 5 && word.endsWith("sses") -> word.dropLast(2)
-        word.length > 4 && word.endsWith('s') && !word.endsWith("ss") -> word.dropLast(1)
-        else -> word
+    /** Light English inflection handling for retrieval only; stored excerpts and citations stay exact. */
+    private fun normalize(word: String): String {
+        val singular = when {
+            word.length > 5 && word.endsWith("ies") -> word.dropLast(3) + "y"
+            word.length > 5 && word.endsWith("sses") -> word.dropLast(2)
+            word.length > 4 && word.endsWith('s') && !word.endsWith("ss") -> word.dropLast(1)
+            else -> word
+        }
+        val stem = when {
+            singular.length > 6 && singular.endsWith("ing") -> singular.dropLast(3)
+            singular.length > 5 && singular.endsWith("ed") -> singular.dropLast(2)
+            else -> singular
+        }
+        return if (stem.length > 4 && stem.endsWith('e')) stem.dropLast(1) else stem
     }
 
     /** IDF-weighted length-normalized lexical rank prevents insertion order becoming relevance. */

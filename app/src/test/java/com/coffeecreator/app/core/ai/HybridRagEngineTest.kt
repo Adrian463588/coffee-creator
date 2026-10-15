@@ -28,5 +28,18 @@ class HybridRagEngineTest {
         assertEquals(emptySet<String>(), RagRanking.tokens("What are the and for?"))
         assertFalse("temp" in RagRanking.tokens("temperature"))
     }
+
+    @Test fun givenEnglishInflections_whenQueryAndSourceTokenized_thenUseSharedRetrievalStem() {
+        assertEquals(RagRanking.tokens("requires measures observes"), RagRanking.tokens("required measured observed"))
+        assertEquals(RagRanking.tokens("requires measures observes"), RagRanking.tokens("requiring measuring observing"))
+        assertEquals(setOf("mass", "dose", "tds", "ppm"), RagRanking.tokens("mass dose TDS ppm"))
+    }
+
+    @Test fun givenInflectedInstructions_whenRanked_thenRequiredProcedureOutranksGenericGuidance() {
+        val generic = DocumentChunk("generic", "manual", "Care", 0, 0, "Calibration temperature guidance and general sensor maintenance")
+        val procedure = DocumentChunk("procedure", "manual", "Calibration", 0, 1, "Sensor calibration requires a stable temperature")
+        val query = RagRanking.tokens("Which temperature is required for calibration?")
+        assertEquals(procedure, RagRanking.lexical(query, listOf(generic, procedure), listOf(generic, procedure)).first())
+    }
     private fun chunk(id: String) = DocumentChunk(id, "source", "User document", 0, 1, "Coffee extraction")
 }

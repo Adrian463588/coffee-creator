@@ -36,6 +36,24 @@ class RagEvidencePolicyTest {
         assertFalse(RagEvidencePolicy.supportsPersonalFact("What score will my panel assign?", listOf("Observed sweetness7 in2026-10-15.")))
     }
 
+    @Test fun givenGenericConceptQuestion_whenActualIsAnAdjective_thenDoNotInventPersonalContext() {
+        assertTrue(
+            RagEvidencePolicy.supportsPersonalFact(
+                "How do actual observations differ from estimates?",
+                listOf("Observed sensory profiles and model-estimated sensory profiles have different persisted types and visible labels.")
+            )
+        )
+    }
+
+    @Test fun givenGenericConceptExcerpt_whenActualQuestionHasAnOwner_thenStillRequireRecordedEvidence() {
+        assertFalse(
+            RagEvidencePolicy.supportsPersonalFact(
+                "What actual observations were made in my latest tasting?",
+                listOf("Observed sensory profiles and model-estimated sensory profiles have different persisted types and visible labels.")
+            )
+        )
+    }
+
     @Test fun givenCommonEarlyRowsAndRareLateRecords_whenRanked_thenRelevantRecordWins() {
         val common = DocumentChunk("a", "a", "Ratio guidance", 0, 0, "Coffee brew dose and water ratio")
         val specific = DocumentChunk("z", "z", "Experiment record", 0, 0, "The two recorded temperature plans disagree:93 and96C")
