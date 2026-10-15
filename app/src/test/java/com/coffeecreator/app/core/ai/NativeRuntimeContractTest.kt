@@ -54,6 +54,23 @@ class NativeRuntimeContractTest {
     }
 
     @Test
+    fun givenGemmaSizedHeader_whenPreflighting_thenAdmitWithinCanonicalFileBudget() {
+        NativeModelPolicy.requireHeader(header(tensors = 601, metadata = 56), 3_106_738_272L)
+        NativeModelPolicy.requireHeader(header(), 4L * GIB)
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeModelPolicy.requireHeader(header(), 4L * GIB + 1)
+        }
+    }
+
+    @Test
+    fun givenLargerSupportedFile_whenMemoryInsufficient_thenStillRejectBeforeNativeLoad() {
+        assertThrows(IllegalArgumentException::class.java) {
+            NativeModelPolicy.requireMemory(3_106_738_272L, 4L * GIB, 8L * GIB, 128L * MIB, false)
+        }
+        assertEquals(4_822_946_936L, NativeModelPolicy.requireMemory(3_106_738_272L, 6L * GIB, 8L * GIB, 128L * MIB, false))
+    }
+
+    @Test
     fun givenUnsafeGenerationOptions_whenValidating_thenReject() {
         assertThrows(IllegalArgumentException::class.java) { NativeGenerationOptions(maxTokens = 257) }
         assertThrows(IllegalArgumentException::class.java) { NativeGenerationOptions(temperature = Float.NaN) }

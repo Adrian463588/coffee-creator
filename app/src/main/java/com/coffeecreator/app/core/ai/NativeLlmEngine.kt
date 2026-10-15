@@ -274,10 +274,9 @@ class NativeLlmEngine(context: Context) {
 internal object NativeModelPolicy {
     private val GGUF_MAGIC = "GGUF".toByteArray(Charsets.US_ASCII)
     private const val MIB = 1024L * 1024
-    private const val MAX_MODEL_BYTES = 2L * 1024 * MIB
 
     fun requireHeader(header: ByteArray, fileLength: Long) {
-        require(header.size == 24 && fileLength in 24..MAX_MODEL_BYTES) { "Model is truncated or exceeds 2 GiB." }
+        require(header.size == 24 && fileLength in 24..InputLimits.MODEL_BYTES_MAX) { "Model is truncated or exceeds 4 GiB." }
         require(header.copyOfRange(0, 4).contentEquals(GGUF_MAGIC)) { "File is not GGUF." }
         val fields = ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN)
         fields.position(4)
@@ -286,7 +285,7 @@ internal object NativeModelPolicy {
     }
 
     fun requireMemory(modelBytes: Long, availableBytes: Long, totalBytes: Long, thresholdBytes: Long, lowMemory: Boolean): Long {
-        require(modelBytes in 24..MAX_MODEL_BYTES) { "Choose a compatible model smaller than 2 GiB." }
+        require(modelBytes in 24..InputLimits.MODEL_BYTES_MAX) { "Choose a compatible model no larger than 4 GiB." }
         require(!lowMemory) { "Device memory is low. Close other apps or choose a smaller model." }
         require(totalBytes > 0 && availableBytes in 1..totalBytes && thresholdBytes in 0..totalBytes) {
             "Device memory information is invalid."

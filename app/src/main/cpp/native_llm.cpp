@@ -17,6 +17,7 @@ struct Runtime {
     int context_size = 1024;
     int threads = 1;
     int remaining = 0;
+    std::string architecture;
     std::vector<std::string> reserved_pieces;
 
     void end() {
@@ -88,32 +89,42 @@ void check_decode(Runtime & state, llama_batch batch) {
 
 std::vector<llama_token> tokenize_messages(JNIEnv * env, Runtime & state, jobjectArray roles, jobjectArray content) {
     if (!roles || !content || !state.model) throw std::runtime_error("Model/prompt unavailable.");
-        const jsize count = env->GetArrayLength(roles);
-        if (count < 2 || count > 14 || env->GetArrayLength(content) != count) {
-            throw std::runtime_error("Prompt role/content count is invalid.");
+    const jsize count = env->GetArrayLength(roles);
+    if (count < 2 || count > 14 || env->GetArrayLength(content) != count) {
+        throw std::runtime_error("Prompt role/content count is invalid.");
+    }
+    std::vector<std::string> role_strings;
+    std::vector<std::string> content_strings;
+    role_strings.reserve(static_cast<size_t>(count));
+    content_strings.reserve(static_cast<size_t>(count));
+    for (jsize i = 0; i < count; ++i) {
+        const auto role = static_cast<jstring>(env->GetObjectArrayElement(roles, i));
+        if (!role) throw std::runtime_error("Prompt role is missing.");
+        const auto chars = env->GetStringUTFChars(role, nullptr);
+        if (!chars) throw std::runtime_error("Prompt role could not be read.");
+        role_strings.emplace_back(chars);
+        env->ReleaseStringUTFChars(role, chars);
+        env->DeleteLocalRef(role);
+        const auto & current_role = role_strings.back();
+        if ((i == 0 && current_role != "system") || (i == count - 1 && current_role != "user") ||
+            (i > 0 && i < count - 1 && current_role != "user" && current_role != "assistant")) {
+            throw std::runtime_error("Prompt roles violate the system/history boundary.");
         }
-        std::vector<std::string> role_strings;
-        std::vector<std::string> content_strings;
-        role_strings.reserve(static_cast<size_t>(count));
-        content_strings.reserve(static_cast<size_t>(count));
+        const auto body = static_cast<jbyteArray>(env->GetObjectArrayElement(content, i));
+        content_strings.push_back(bytes(env, body, 131072));
+        env->DeleteLocalRef(body);
+    }
+    const bool gemma4 = state.architecture == "gemma4";
+    std::string prompt;
+    if (gemma4) {
+        std::vector<std::pair<std::string, std::string>> turns;
+        for (jsize i = 0; i < count; ++i) turns.emplace_back(role_strings[i], content_strings[i]);
+        prompt = coffee::format_gemma4_text(state.architecture, turns, state.reserved_pieces);
+    } else {
         size_t total_bytes = 0;
-        for (jsize i = 0; i < count; ++i) {
-            const auto role = static_cast<jstring>(env->GetObjectArrayElement(roles, i));
-            if (!role) throw std::runtime_error("Prompt role is missing.");
-            const auto chars = env->GetStringUTFChars(role, nullptr);
-            if (!chars) throw std::runtime_error("Prompt role could not be read.");
-            role_strings.emplace_back(chars);
-            env->ReleaseStringUTFChars(role, chars);
-            env->DeleteLocalRef(role);
-            const auto & current_role = role_strings.back();
-            if ((i == 0 && current_role != "system") || (i == count - 1 && current_role != "user") ||
-                (i > 0 && i < count - 1 && current_role != "user" && current_role != "assistant")) {
-                throw std::runtime_error("Prompt roles violate the system/history boundary.");
-            }
-            const auto body = static_cast<jbyteArray>(env->GetObjectArrayElement(content, i));
-            content_strings.push_back(coffee::escape_reserved(bytes(env, body, 131072), state.reserved_pieces));
-            env->DeleteLocalRef(body);
-            total_bytes += content_strings.back().size();
+        for (auto & text : content_strings) {
+            text = coffee::escape_reserved(text, state.reserved_pieces);
+            total_bytes += text.size();
             if (total_bytes > 131072) throw std::runtime_error("Prompt exceeds the native byte limit.");
         }
         std::vector<llama_chat_message> messages;
@@ -121,20 +132,25 @@ std::vector<llama_token> tokenize_messages(JNIEnv * env, Runtime & state, jobjec
         const auto chat_template = llama_model_chat_template(state.model, nullptr);
         const int prompt_bytes = llama_chat_apply_template(chat_template, messages.data(), messages.size(), true, nullptr, 0);
         if (prompt_bytes <= 0 || prompt_bytes > 262144) throw std::runtime_error("Unsupported or oversized model chat template.");
-        std::vector<char> prompt(static_cast<size_t>(prompt_bytes) + 1);
-        if (llama_chat_apply_template(chat_template, messages.data(), messages.size(), true, prompt.data(),
-                                      static_cast<int>(prompt.size())) != prompt_bytes) {
+        std::vector<char> formatted(static_cast<size_t>(prompt_bytes) + 1);
+        if (llama_chat_apply_template(chat_template, messages.data(), messages.size(), true, formatted.data(),
+                                     static_cast<int>(formatted.size())) != prompt_bytes) {
             throw std::runtime_error("Chat template formatting failed.");
         }
-        const auto vocab = llama_model_get_vocab(state.model);
-        const int required = -llama_tokenize(vocab, prompt.data(), prompt_bytes, nullptr, 0, true, true);
-        if (required <= 0 || required > 32768) {
-            throw std::runtime_error("Prompt exceeds model context. Shorten the question/history or reduce output tokens.");
-        }
-        std::vector<llama_token> tokens(static_cast<size_t>(required));
-        if (llama_tokenize(vocab, prompt.data(), prompt_bytes, tokens.data(), required, true, true) != required) {
-            throw std::runtime_error("Model tokenizer failed.");
-        }
+        prompt.assign(formatted.data(), static_cast<size_t>(prompt_bytes));
+    }
+    const auto vocab = llama_model_get_vocab(state.model);
+    // Gemma4 renderer includes the canonical BOS; add_special=false avoids inserting it twice.
+    const bool add_special = !gemma4;
+    const int prompt_bytes = static_cast<int>(prompt.size());
+    const int required = -llama_tokenize(vocab, prompt.data(), prompt_bytes, nullptr, 0, add_special, true);
+    if (required <= 0 || required > 32768) {
+        throw std::runtime_error("Prompt exceeds model context. Shorten the question/history or reduce output tokens.");
+    }
+    std::vector<llama_token> tokens(static_cast<size_t>(required));
+    if (llama_tokenize(vocab, prompt.data(), prompt_bytes, tokens.data(), required, add_special, true) != required) {
+        throw std::runtime_error("Model tokenizer failed.");
+    }
     return tokens;
 }
 
@@ -171,6 +187,7 @@ Java_com_coffeecreator_app_core_ai_NativeLlmEngine_nativeLoad(
         if (state->model) throw std::runtime_error("Unload the current model before loading another.");
         const auto local_path = bytes(env, path, 4096);
         const auto bounds = coffee::validate_gguf(local_path, state->cancelled);
+        state->architecture = bounds.architecture;
         if (bounds.required_working_bytes(static_cast<uint64_t>(context_size)) > static_cast<uint64_t>(memory_budget)) {
             throw std::runtime_error("Model KV cache exceeds available RAM. Choose a smaller model/context.");
         }
@@ -220,10 +237,23 @@ Java_com_coffeecreator_app_core_ai_NativeLlmEngine_nativeLoad(
             return a.size() != b.size() ? a.size() > b.size() : a < b;
         });
         state->reserved_pieces.erase(std::unique(state->reserved_pieces.begin(), state->reserved_pieces.end()), state->reserved_pieces.end());
-        const auto chat_template = llama_model_chat_template(state->model, nullptr);
-        const llama_chat_message probe[] = {{"system", "Coffee assistant."}, {"user", "Hello."}};
-        if (!chat_template || llama_chat_apply_template(chat_template, probe, 2, true, nullptr, 0) <= 0) {
-            throw std::runtime_error("Model chat template is unsupported. Choose a supported instruction-tuned GGUF.");
+        if (state->architecture == "gemma4") {
+            for (const std::string marker : {"<bos>", "<|turn>", "<turn|>"}) {
+                llama_token token = LLAMA_TOKEN_NULL;
+                if (llama_tokenize(vocab, marker.data(), static_cast<int32_t>(marker.size()), &token, 1, false, true) != 1 ||
+                    !(llama_vocab_get_attr(vocab, token) & (LLAMA_TOKEN_ATTR_CONTROL | LLAMA_TOKEN_ATTR_USER_DEFINED)) ||
+                    (marker == "<bos>" && token != llama_vocab_bos(vocab)) ||
+                    (marker == "<turn|>" && !llama_vocab_is_eog(vocab, token))) {
+                    throw std::runtime_error("Gemma4 tokenizer lacks the required canonical text turn markers.");
+                }
+            }
+            coffee::format_gemma4_text(state->architecture, {{"system", "Coffee assistant."}, {"user", "Hello."}}, state->reserved_pieces);
+        } else {
+            const auto chat_template = llama_model_chat_template(state->model, nullptr);
+            const llama_chat_message probe[] = {{"system", "Coffee assistant."}, {"user", "Hello."}};
+            if (!chat_template || llama_chat_apply_template(chat_template, probe, 2, true, nullptr, 0) <= 0) {
+                throw std::runtime_error("Model chat template is unsupported. Choose a supported instruction-tuned GGUF.");
+            }
         }
         state->context_size = context_size;
         state->threads = threads;

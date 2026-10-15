@@ -1,5 +1,7 @@
 #pragma once
 
+#include "prompt_guard.h"
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -17,9 +19,10 @@
 namespace coffee {
 
 constexpr uint64_t mib = 1024ULL * 1024;
-constexpr uint64_t max_model_bytes = 2ULL * 1024 * mib;
+constexpr uint64_t max_model_bytes = 4ULL * 1024 * mib;
 
 struct ModelBounds {
+    std::string architecture;
     uint64_t file_bytes = 0;
     uint64_t embedding = 0;
     uint64_t layers = 0;
@@ -45,7 +48,7 @@ public:
         input_.seekg(0, std::ios::end);
         const auto length = input_.tellg();
         if (length < 24 || static_cast<uint64_t>(length) > max_model_bytes) {
-            throw std::runtime_error("Model is truncated or exceeds the 2 GiB safety limit.");
+            throw std::runtime_error("Model is truncated or exceeds the 4 GiB safety limit.");
         }
         size_ = static_cast<uint64_t>(length);
         input_.seekg(0);
@@ -213,12 +216,29 @@ inline ModelBounds validate_gguf(const std::string & path, const std::atomic_boo
     bounds.file_bytes = reader.size();
     uint64_t alignment = 32;
     std::string architecture;
+    std::string feed_forward_array_key;
+    std::vector<uint64_t> feed_forward_widths;
     bool has_template = false;
     std::set<std::string> keys;
     for (uint64_t i = 0; i < metadata; ++i) {
         const std::string key = reader.string(256);
         if (key.empty() || !keys.insert(key).second) throw std::runtime_error("GGUF metadata keys are empty or duplicated.");
-        const auto value = read_value(reader, static_cast<uint32_t>(reader.integer(4)));
+        const auto type = static_cast<uint32_t>(reader.integer(4));
+        if (ends_with(key, ".feed_forward_length") && type == 9) {
+            if (!feed_forward_array_key.empty()) throw std::runtime_error("Duplicate per-layer feed-forward dimensions.");
+            feed_forward_array_key = key;
+            const auto subtype = static_cast<uint32_t>(reader.integer(4));
+            const uint64_t count = reader.integer(8);
+            const bool integer_type = subtype <= 5 || subtype == 10 || subtype == 11;
+            if (!integer_type || count < 1 || count > 64) {
+                throw std::runtime_error("Per-layer feed-forward dimensions must be a bounded integer array.");
+            }
+            for (uint64_t layer = 0; layer < count; ++layer) {
+                feed_forward_widths.push_back(positive_bound(read_value(reader, subtype, false), 32768));
+            }
+            continue;
+        }
+        const auto value = read_value(reader, type);
         if (key == "general.architecture") architecture = value.text;
         if (key == "tokenizer.chat_template") has_template = !value.text.empty();
         if (key == "general.alignment") {
@@ -239,8 +259,14 @@ inline ModelBounds validate_gguf(const std::string & path, const std::atomic_boo
             throw std::runtime_error("Mixture-of-experts models are outside this runtime's RAM contract.");
         }
     }
-    const std::set<std::string> supported = {"llama", "qwen2", "gemma", "gemma2", "phi3"};
+    const std::set<std::string> supported = {"llama", "qwen2", "gemma", "gemma2", "gemma4", "phi3"};
     if (!supported.count(architecture)) throw std::runtime_error("Unsupported architecture. Choose a small dense Llama, Qwen2, Gemma or Phi3 chat model.");
+    if (!feed_forward_array_key.empty() &&
+        (architecture != "gemma4" || feed_forward_array_key != "gemma4.feed_forward_length" ||
+         feed_forward_widths.size() != bounds.layers)) {
+        throw std::runtime_error("Per-layer feed-forward dimensions must match Gemma4 architecture and layer count.");
+    }
+    bounds.architecture = architecture;
     if (!has_template) throw std::runtime_error("Model has no chat template. Choose an instruction-tuned chat GGUF.");
     if (!bounds.kv_heads) bounds.kv_heads = bounds.heads;
     if (!bounds.embedding || !bounds.layers || !bounds.heads || bounds.embedding % bounds.heads ||
@@ -285,6 +311,58 @@ inline ModelBounds validate_gguf(const std::string & path, const std::atomic_boo
         previous_end = range.second;
     }
     return bounds;
+}
+
+// Text-only specialization of Google's pinned Gemma4 template, with tools/thinking disabled.
+// Source: google/gemma-4-E2B-it@3e22461f65e89153144f8adb70e3b8c2cc9845a7/chat_template.jinja (Apache2.0).
+// Keep role delimiters trusted; all content, including assistant history and system preferences, is escaped first.
+inline std::string format_gemma4_text(const std::string & architecture,
+                                     const std::vector<std::pair<std::string, std::string>> & messages,
+                                     const std::vector<std::string> & reserved_pieces) {
+    if (architecture != "gemma4" || messages.size() < 2 || messages.size() > 14 || reserved_pieces.size() > 1024) {
+        throw std::runtime_error("Invalid Gemma4 text conversation or tokenizer bounds.");
+    }
+    size_t reserved_bytes = 0;
+    for (const auto & piece : reserved_pieces) {
+        if (piece.size() > 16384) throw std::runtime_error("Unsupported reserved tokenizer token.");
+        reserved_bytes += piece.size();
+        if (reserved_bytes > 1048576) throw std::runtime_error("Reserved tokenizer spellings exceed resource limits.");
+    }
+    std::vector<std::string> controls = reserved_pieces;
+    const std::vector<std::string> fixed_controls = {
+        "<bos>", "<eos>", "<|turn>", "<turn|>", "<|channel>", "<channel|>", "<|think|>",
+        "<|tool>", "<tool|>", "<|tool_call>", "<tool_call|>", "<|tool_response>", "<tool_response|>"
+    };
+    controls.insert(controls.end(), fixed_controls.begin(), fixed_controls.end());
+    std::sort(controls.begin(), controls.end(), [](const auto & left, const auto & right) {
+        return left.size() != right.size() ? left.size() > right.size() : left < right;
+    });
+    controls.erase(std::unique(controls.begin(), controls.end()), controls.end());
+    size_t content_bytes = 0;
+    std::string prompt = "<bos>";
+    for (size_t index = 0; index < messages.size(); ++index) {
+        const auto & role = messages[index].first;
+        if ((index == 0 && role != "system") || (index + 1 == messages.size() && role != "user") ||
+            (index > 0 && index + 1 < messages.size() && role != "user" && role != "assistant")) {
+            throw std::runtime_error("Gemma4 roles violate the system/history boundary.");
+        }
+        const auto & raw = messages[index].second;
+        if (raw.size() > 131072 || raw.find('\0') != std::string::npos) throw std::runtime_error("Invalid Gemma4 message size/text.");
+        const auto escaped = escape_reserved(raw, controls);
+        content_bytes += escaped.size();
+        if (content_bytes > 131072) throw std::runtime_error("Prompt exceeds the native byte limit.");
+        const auto first = escaped.find_first_not_of(" \t\n\r\f\v");
+        if (first == std::string::npos) throw std::runtime_error("Gemma4 messages must contain text.");
+        const auto last = escaped.find_last_not_of(" \t\n\r\f\v");
+        const bool continuation = role == "assistant" && index > 0 && messages[index - 1].first == "assistant";
+        if (!continuation) prompt += "<|turn>" + (role == "assistant" ? std::string("model") : role) + "\n";
+        prompt += escaped.substr(first, last - first + 1);
+        const bool continues_next = role == "assistant" && index + 1 < messages.size() && messages[index + 1].first == "assistant";
+        if (!continues_next) prompt += "<turn|>\n";
+        if (prompt.size() > 262144) throw std::runtime_error("Gemma4 prompt exceeds the formatted byte limit.");
+    }
+    prompt += "<|turn>model\n";
+    return prompt;
 }
 
 } // namespace coffee

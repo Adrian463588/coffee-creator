@@ -49,6 +49,37 @@ std::vector<char> fixture(uint32_t embedding = 64, uint32_t tensor_type = 0) {
     return bytes;
 }
 
+// Dimension metadata matches the verified Gemma4 E2B prefix; this is not inference data.
+std::vector<char> gemma_fixture(const std::vector<int64_t> & widths, uint32_t subtype = 4,
+                              const std::string & architecture = "gemma4") {
+    std::vector<char> bytes;
+    integer(bytes, 0x46554747, 4);
+    integer(bytes, 3, 4);
+    integer(bytes, 1, 8);
+    integer(bytes, 9, 8);
+    string_field(bytes, "general.architecture", architecture);
+    string_field(bytes, "tokenizer.chat_template", "<|turn>");
+    number_field(bytes, architecture + ".embedding_length", 1536);
+    number_field(bytes, architecture + ".block_count", 35);
+    number_field(bytes, architecture + ".attention.head_count", 8);
+    number_field(bytes, architecture + ".attention.head_count_kv", 1);
+    number_field(bytes, architecture + ".attention.key_length", 512);
+    number_field(bytes, architecture + ".attention.value_length", 512);
+    text(bytes, architecture + ".feed_forward_length");
+    integer(bytes, 9, 4);
+    integer(bytes, subtype, 4);
+    integer(bytes, widths.size(), 8);
+    for (const auto width : widths) integer(bytes, static_cast<uint64_t>(width), 4);
+    text(bytes, "test.weight");
+    integer(bytes, 1, 4);
+    integer(bytes, 1, 8);
+    integer(bytes, 0, 4);
+    integer(bytes, 0, 8);
+    while (bytes.size() % 32) bytes.push_back(0);
+    integer(bytes, 0, 4);
+    return bytes;
+}
+
 void write(const std::string & path, const std::vector<char> & bytes) {
     std::ofstream output(path, std::ios::binary | std::ios::trunc);
     output.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
@@ -101,6 +132,24 @@ int main(int argc, char ** argv) {
     try { coffee::validate_gguf(path, stop); }
     catch (const std::runtime_error &) { stopped = true; }
     assert(stopped);
+
+    std::vector<int64_t> widths(35, 6144);
+    std::fill(widths.begin() + 15, widths.end(), 12288);
+    write(path, gemma_fixture(widths));
+    const auto gemma = coffee::validate_gguf(path, cancelled);
+    assert(gemma.architecture == "gemma4" && gemma.layers == 35 && gemma.embedding == 1536);
+    assert(gemma.required_working_bytes(1024) > gemma.file_bytes + 384 * coffee::mib);
+    rejects(path, gemma_fixture({}));
+    rejects(path, gemma_fixture(std::vector<int64_t>(34, 6144)));
+    rejects(path, gemma_fixture(std::vector<int64_t>(65, 6144)));
+    rejects(path, gemma_fixture(std::vector<int64_t>(35, 0)));
+    rejects(path, gemma_fixture(std::vector<int64_t>(35, 32769)));
+    rejects(path, gemma_fixture(std::vector<int64_t>(35, -1), 5));
+    rejects(path, gemma_fixture(widths, 6));
+    rejects(path, gemma_fixture(widths, 9));
+    rejects(path, gemma_fixture(widths, 4, "qwen2"));
+    rejects(path, gemma_fixture(widths, 4, "unknown"));
+    static_assert(coffee::max_model_bytes == 4ULL * 1024 * coffee::mib, "Native file budget must match Kotlin's 4 GiB cap.");
     assert(std::remove(path.c_str()) == 0);
-    std::cout << "GGUF guard: 9 structural/adversarial checks passed.\n";
+    std::cout << "GGUF guard: 20 structural/adversarial checks passed.\n";
 }
