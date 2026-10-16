@@ -30,7 +30,7 @@ jobs:
       - name: Verify bundled assets
         run: python scripts/prepare_assets.py
       - name: Static, unit and APK gates
-        run: bash gradlew :app:lintDebug :app:detekt :app:ktlintCheck :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --console=plain
+        run: bash gradlew :app:lintDebug :app:detekt :app:ktlintCheck :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --console=plain --stacktrace
       - name: Verify native APK structure
         run: python scripts/verify_apk.py app/build/outputs/apk/debug/app-debug.apk
       - name: Native boundary contracts
