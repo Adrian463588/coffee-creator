@@ -8,9 +8,9 @@ network access; models need a first-time install before natural-language chat.
 
 ## Download
 
-[Download the latest debug preview APK (v1.9.5)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.5/coffee-creator-v1.9.5.apk)
-· [Release notes](docs/releases/v1.9.5.md)
-· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.5/SHA256SUMS.txt)
+[Download the latest debug preview APK (v1.9.6)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.6/coffee-creator-v1.9.6.apk)
+· [Release notes](docs/releases/v1.9.6.md)
+· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.6/SHA256SUMS.txt)
 
 The distribution APK is debug-signed, targets Android 8/API 26+ and arm64-v8a/x86_64.
 The physical test reference is Samsung SM-G988B, Android 13/API 33. Other device/RAM/
@@ -18,7 +18,7 @@ provider tiers are separate validation work; see [verification](docs/VERIFICATIO
 Install an APK from GitHub using Android's explicit install permission. For ADB:
 
 ```powershell
-adb install --user 0 -r coffee-creator-v1.9.5.apk
+adb install --user 0 -r coffee-creator-v1.9.6.apk
 ```
 
 Replacement installation preserves app records when the signing key matches.
@@ -26,7 +26,8 @@ Uninstall removes private records/grants; export a backup first if you want them
 
 | Version | Date | APK | History |
 |---|---|---|---|
-| v1.9.5 | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.5/coffee-creator-v1.9.5.apk) | [Notes](docs/releases/v1.9.5.md) · Epic S2-E05 Deepening: Complete interactive multi-ring Compose Canvas Sensory Wheel (`SensoryWheelVisualizer`), touch-arc polar hit detection & category zoom, expanded 90+ SCA/WCR & Roda Rasa taxonomy across 9 categories and 26 subcategories with dedicated commercial defect/taint catalog, multi-select `FlavorWheelPickerDialog` integrated into cupping and journal notes, dynamic cupping attribute scoring across all 4 templates, and 100% JVM & physical device verification |
+| v1.9.6 | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.6/coffee-creator-v1.9.6.apk) | [Notes](docs/releases/v1.9.6.md) · Tactile Industrial & Precision Coffee Lab UI/UX Refinement: standardized 0.97f spring micro-depression physics & subtle haptic feedback across buttons/chips/dropdowns, jitter-free tabular monospace figures (tnum) on timers and telemetry, 1px solid hairline borders (0.40f alpha), concentric nested corner geometry, and 100% JVM/device verification |
+| v1.9.5 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.5/coffee-creator-v1.9.5.apk) | [Notes](docs/releases/v1.9.5.md) · Epic S2-E05 Deepening: Complete interactive multi-ring Compose Canvas Sensory Wheel (`SensoryWheelVisualizer`), touch-arc polar hit detection & category zoom, expanded 90+ SCA/WCR & Roda Rasa taxonomy across 9 categories and 26 subcategories with dedicated commercial defect/taint catalog, multi-select `FlavorWheelPickerDialog` integrated into cupping and journal notes, dynamic cupping attribute scoring across all 4 templates, and 100% JVM & physical device verification |
 | v1.9.4 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.4/coffee-creator-v1.9.4.apk) | [Notes](docs/releases/v1.9.4.md) · Verified E2E ADB Device Release: BackHandler sub-screen navigation, restored journal recipe revision list, FlowRow cupping action buttons with single-line constraint, auto-logged sensory observation persistence & exception safety, 100% connected & unit test pass on Samsung SM-G988B |
 | v1.9.3 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.3/coffee-creator-v1.9.3.apk) | [Notes](docs/releases/v1.9.3.md) · Anti-Slop Ergonomics & Microinteraction Refinement: encapsulated bag inventory Surface container (1px hairline border, tabular mass digits, status badge, single-line TactileButtons), modernized action headers (`Cafe Cup Logbook`, `Cupping Sessions`, `Roast-Rest Kinetics`) with weighted title columns and single-line `TactileButton` (`RoundedCornerShape(8.dp)`), zero multi-line wrapping into circular/oval button blobs |
 | v1.9.2 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.2/coffee-creator-v1.9.2.apk) | [Notes](docs/releases/v1.9.2.md) · Anti-Slop UI/UX Tactile Navigation Refinement: single-line horizontal scroll rows with dedicated M3 icons and spring micro-depression physics (`scale = 0.96f`) across Journal categories, Journal method filters, Sensory mode tabs, and Sensory flavor taxonomy categories; zero multi-row chip wrapping; 48dp+ touch target compliance |
@@ -40,9 +41,10 @@ Uninstall removes private records/grants; export a backup first if you want them
 | v1.3.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.3.0/coffee-creator-v1.3.0.apk) | [Notes](docs/releases/v1.3.0.md) · Epic S2-E02: Recipe composer, Hamilton-Hare pour scaling, optical Brix→TDS refractometer lab, expert dial-in, and offline Android Sharesheet |
 | v1.2.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.2.0/coffee-creator-v1.2.0.apk) | [Notes](docs/releases/v1.2.0.md) · Modern UI cards, FlowRow chip Brew navigation, custom bean/method inputs, curated library (10 recipes, 8 single-origins, 5 sensory logs) |
 | v1.1.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk) | [Notes](docs/releases/v1.1.0.md) · Real Room/FTS4 records, local llama.cpp GGUF/ONNX RAG, SAF storage |
-| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.9.5. |
+| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.9.6. |
 
-v1.9.5 APK verification: 121,486,374 bytes, SHA256: `d84569a5035fa1d9f0aaf7a7f697dd8d073bd72f90ecb4e15ed75474a58129a4`.
+v1.9.6 APK verification: 121,486,374 bytes, SHA256: `d3d28471fdf73702d7b9016776552bbfc3ce72989c5cb8552c9d0e207e352c6f`.
+Historical 1.9.5 SHA256: `d84569a5035fa1d9f0aaf7a7f697dd8d073bd72f90ecb4e15ed75474a58129a4`.
 Historical 1.9.4 SHA256: `d5a0a24c3d4b2822fb5a06db421128e47bed6ee18e5a61e75836d5bd51de368f`.
 Historical 1.9.3 SHA256: `04634335007971c79a219d7c77193cb111276f56f23820eeaefb76bfca812ebf`.
 Historical 1.9.2 SHA256: `ab068dea442fafbf44939cc96730387be5b1862e345d4c30733c41ed1aaea648`.
@@ -58,14 +60,15 @@ Historical 1.2.0 SHA256: `4c197fcee278508ee62ba57b3a8ac6524186c9f56ebcc07bce5891
 Historical 1.0.0 SHA256: `2843362ff29dd536da78f4263d5e2b66d1a98482c47c1376db037e3439ca02ff`.
 [All releases](https://github.com/Adrian463588/coffee-creator/releases).
 
-Local checks: 206 JVM tests pass with 0 failures; Compose UI tested via Robolectric and physical Samsung SM-G988B.
-See [requirement checklist and remaining acceptance](docs/VERIFICATION.md).
+The current local provenance-safe change has 210 passing JVM tests and passing
+Android lint. KtLint, Detekt and current-commit device acceptance remain in
+progress; see the [requirement checklist and verification evidence](docs/VERIFICATION.md).
 
 ## Screenshots
 
 Actual local Robolectric/Compose renders from isolated BDD tests, not physical-device
 captures. Test recipe values are authored QA inputs, not measured user brews.
-The latest UI is tested without ADB, following the user's final testing instruction.
+These screenshots are local Robolectric/Compose renders, not current physical-device captures.
 
 | Home | Formulation | Models |
 |---|---|---|

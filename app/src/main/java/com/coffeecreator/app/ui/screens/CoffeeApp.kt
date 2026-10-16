@@ -89,6 +89,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -123,8 +124,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -422,7 +425,7 @@ private fun InfoCard(title: String, detail: String, content: @Composable () -> U
             .fillMaxWidth()
             .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -496,24 +499,30 @@ private fun TactileFilterChip(
     leadingIcon: (@Composable () -> Unit)? = null,
     enabled: Boolean = true
 ) {
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
+        targetValue = if (isPressed && enabled) 0.97f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "chipTactileScale"
     )
     FilterChip(
         selected = selected,
-        onClick = onClick,
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
         label = label,
         leadingIcon = leadingIcon,
         enabled = enabled,
         interactionSource = interactionSource,
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
     )
 }
 
@@ -527,24 +536,30 @@ private fun TactileButton(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
+        targetValue = if (isPressed && enabled) 0.97f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "buttonTactileScale"
     )
     Button(
-        onClick = onClick,
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
         enabled = enabled,
         colors = colors,
         shape = shape,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        },
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
         content = content
     )
 }
@@ -556,29 +571,81 @@ private fun TactileOutlinedButton(
     enabled: Boolean = true,
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
-    border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
+    border: BorderStroke? = null,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
+        targetValue = if (isPressed && enabled) 0.97f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "outlinedButtonTactileScale"
     )
     OutlinedButton(
-        onClick = onClick,
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
         enabled = enabled,
         shape = shape,
         contentPadding = contentPadding,
-        border = border,
+        border = border ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
         interactionSource = interactionSource,
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        },
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
         content = content
     )
+}
+
+@Composable
+private fun TactileCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(12.dp),
+    colors: CardColors = CardDefaults.cardColors(),
+    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
+) {
+    if (onClick != null) {
+        val haptic = LocalHapticFeedback.current
+        val interactionSource = remember { MutableInteractionSource() }
+        val isPressed by interactionSource.collectIsPressedAsState()
+        val scale by animateFloatAsState(
+            targetValue = if (isPressed) 0.98f else 1f,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+            label = "cardTactileScale"
+        )
+        Card(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            },
+            modifier = modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+            shape = shape,
+            colors = colors,
+            border = border,
+            interactionSource = interactionSource,
+            content = content
+        )
+    } else {
+        Card(
+            modifier = modifier.animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+            shape = shape,
+            colors = colors,
+            border = border,
+            content = content
+        )
+    }
 }
 
 @Composable
@@ -587,7 +654,7 @@ private fun Field(label: String, value: String, onChange: (String) -> Unit, tag:
         value = value,
         onValueChange = onChange,
         label = { Text(label) },
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         modifier = Modifier.fillMaxWidth().testTag(tag),
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text)
@@ -596,13 +663,18 @@ private fun Field(label: String, value: String, onChange: (String) -> Unit, tag:
 
 @Composable
 private fun Select(label: String, selected: String, choices: List<Pair<String, String>>, onSelect: (String) -> Unit, tag: String) {
+    val haptic = LocalHapticFeedback.current
     var open by rememberSaveable { mutableStateOf(false) }
-    val arrowRotation by animateFloatAsState(targetValue = if (open) 180f else 0f, label = "dropdownArrow")
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (open) 180f else 0f,
+        animationSpec = tween(150),
+        label = "dropdownArrow"
+    )
     Column {
-        OutlinedButton(
+        TactileOutlinedButton(
             onClick = { open = true },
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(tag),
-            shape = RoundedCornerShape(10.dp)
+            shape = RoundedCornerShape(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -612,6 +684,7 @@ private fun Select(label: String, selected: String, choices: List<Pair<String, S
                 Text(
                     "$label: ${choices.find { it.first == selected }?.second ?: selected.ifBlank { "Choose" }}",
                     maxLines = 1,
+                    softWrap = false,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
                 )
@@ -625,13 +698,22 @@ private fun Select(label: String, selected: String, choices: List<Pair<String, S
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             choices.forEach { (id, text) ->
                 DropdownMenuItem(
-                    text = { Text(text, fontWeight = if (id == selected) FontWeight.SemiBold else FontWeight.Normal) },
+                    text = {
+                        Text(
+                            text,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = if (id == selected) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    },
                     leadingIcon = if (id == selected) {
                         { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                     } else {
                         null
                     },
                     onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onSelect(id)
                         open = false
                     }
@@ -1223,7 +1305,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 .testTag("timer:display"),
                                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                             shape = RoundedCornerShape(16.dp),
-                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
                                         ) {
                                             Column(
                                                 modifier = Modifier
@@ -1289,8 +1371,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                         text = elapsedFormatted,
                                                         style = MaterialTheme.typography.displayMedium.copy(
                                                             fontFamily = FontFamily.Monospace,
-                                                            fontWeight = FontWeight.Bold
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontFeatureSettings = "tnum"
                                                         ),
+                                                        maxLines = 1,
+                                                        softWrap = false,
                                                         color = MaterialTheme.colorScheme.onSurface,
                                                         modifier = Modifier.semantics {
                                                             liveRegion = LiveRegionMode.Polite
@@ -1309,8 +1394,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                             )} g",
                                                             style = MaterialTheme.typography.headlineMedium.copy(
                                                                 fontFamily = FontFamily.Monospace,
-                                                                fontWeight = FontWeight.Bold
-                                                            )
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontFeatureSettings = "tnum"
+                                                            ),
+                                                            maxLines = 1,
+                                                            softWrap = false
                                                         )
                                                         Text(
                                                             text = "${"%.2f".format(
@@ -1319,8 +1407,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                             )} g/s",
                                                             style = MaterialTheme.typography.titleMedium.copy(
                                                                 fontFamily = FontFamily.Monospace,
-                                                                fontWeight = FontWeight.SemiBold
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                fontFeatureSettings = "tnum"
                                                             ),
+                                                            maxLines = 1,
+                                                            softWrap = false,
                                                             color = MaterialTheme.colorScheme.secondary
                                                         )
                                                     }
@@ -1334,7 +1425,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 modifier = Modifier.fillMaxWidth().testTag("timer:step_card"),
                                                 color = MaterialTheme.colorScheme.surface,
                                                 shape = RoundedCornerShape(10.dp),
-                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
                                             ) {
                                                 Column(
                                                     modifier = Modifier.padding(12.dp),

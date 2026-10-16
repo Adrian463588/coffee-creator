@@ -57,6 +57,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -84,6 +86,7 @@ fun SensoryWheelVisualizer(
     modifier: Modifier = Modifier
 ) {
     val categories = SensoryTaxonomyRegistry.DEFAULT_CATEGORIES
+    val haptic = LocalHapticFeedback.current
     var focusedCategory by rememberSaveable { mutableStateOf(selectedCategory?.id ?: categories.first().id) }
     val activeCategory = categories.firstOrNull { it.id == focusedCategory } ?: categories.first()
 
@@ -121,6 +124,7 @@ fun SensoryWheelVisualizer(
                                 val sweepPerCategory = 360f / categories.size
                                 val categoryIndex = (angle / sweepPerCategory).toInt().coerceIn(0, categories.lastIndex)
                                 val chosen = categories[categoryIndex]
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 focusedCategory = chosen.id
                                 onCategorySelected(chosen)
                             }
@@ -360,6 +364,7 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
     var selectedCategoryFilter by rememberSaveable { mutableStateOf("All") }
     val selectedList = remember { mutableStateListOf<String>().apply { addAll(initialSelected) } }
 
+    val haptic = LocalHapticFeedback.current
     val categories = listOf("All") + SensoryTaxonomyRegistry.DEFAULT_CATEGORIES.map { it.name }
     val allResults = if (searchQuery.isBlank()) {
         if (selectedCategoryFilter == "All") {
@@ -430,7 +435,10 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
                     categories.forEach { cat ->
                         FilterChip(
                             selected = selectedCategoryFilter == cat,
-                            onClick = { selectedCategoryFilter = cat },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                selectedCategoryFilter = cat
+                            },
                             label = { Text(cat, fontSize = 11.sp) },
                             modifier = Modifier.heightIn(min = 32.dp)
                         )
@@ -452,7 +460,10 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.clickable { selectedList.remove(descName) }
+                                modifier = Modifier.clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    selectedList.remove(descName)
+                                }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -487,6 +498,7 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
                         FilterChip(
                             selected = isChecked,
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (isChecked) selectedList.remove(desc.name) else selectedList.add(desc.name)
                             },
                             label = {
@@ -519,10 +531,14 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onConfirm(selectedList.toList())
-                onDismissRequest()
-            }) {
+            Button(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onConfirm(selectedList.toList())
+                    onDismissRequest()
+                },
+                shape = RoundedCornerShape(8.dp)
+            ) {
                 Text("Apply Notes (${selectedList.size})")
             }
         },

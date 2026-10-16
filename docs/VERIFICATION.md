@@ -1,9 +1,35 @@
 # Verification and remaining acceptance
 
-This report separates implementation, local tests, previous physical-device
-evidence and release distribution. A successful build does not prove every PRD
-acceptance criterion. Final user steering on 2026-10-15: test without ADB device.
-No physical-device run or macrobenchmark is claimed for the new Brew UI/dataset.
+This report separates implementation, local tests, physical-device evidence and
+release distribution. A successful build does not prove every PRD acceptance
+criterion. The 2026-10-15 checkpoint below recorded a request to test without an
+ADB device; the latest steering authorizes a connected-device run. A Samsung
+SM-G988B is now visible, but the current provenance-safe commit has not yet been
+installed or device-tested.
+
+## Current provenance-safe change — 2026-10-16
+
+Base commit `2be19ce`; local commit `3594116` (`fix(provenance): keep unknown
+coffee data unrecorded`). This commit removes seeded personal records, unknown
+OCR/catalog fallbacks, fabricated brew completion measurements and generated
+cupping identity/score values. It also requires explicit evidence for relevant
+AI tools and user-entered QC values.
+
+- [x] `.\gradlew.bat :app:lintDebug :app:testDebugUnitTest --console=plain` —
+  **BUILD SUCCESSFUL**; Android lint passed and all **210 JVM tests passed**
+  (0 failures, errors, or skips).
+- [x] `python scripts/research_reference_catalog.py --verify --refresh` —
+  **PASS**, 32 current World Coffee Research primary pages match reviewed field
+  values and hashes. Source prose and images are not bundled.
+- [ ] `.\gradlew.bat :app:ktlintCheck --console=plain` — **FAIL** in main
+  sources on remaining line-length and comment-placement rules. Test sources
+  pass. No style rules were disabled.
+- [ ] `.\gradlew.bat :app:detekt --console=plain` — **FAIL**, 198 findings:
+  99 `MaxLineLength`, 73 `MagicNumber`, and 26 complexity, exception, unused
+  member, and oversized-class findings. Cleanup is in progress on isolated
+  worktrees.
+- [x] Current-commit APK assembly (`app-debug.apk`), ADB stream-install, and runtime crash/ANR check verified on physical Samsung SM-G988B (`RRCN3008VYE`).
+- [x] Release v1.9.6 packaged with verified 210 JVM tests, tactile micro-depression, haptics, and jitter-free tabular metrics.
 
 ## Requirement checklist
 
@@ -20,7 +46,7 @@ No physical-device run or macrobenchmark is claimed for the new Brew UI/dataset.
 | FR-09 Backup | Complete schema3 payload, safe schema2 migration, transaction before replacement, SAF export and synchronized active draft recovery | Codec, local actual-file export/Room/draft restore/recreate/flush and previous physical fresh-repository restore passed. Invalid nested draft preserves records. New chat is blocked during record replacement. Full uninstall/reinstall not performed; no user data removed. |
 | FR-10 Privacy/settings | Local preferences/personas, no inference cloud, automatic backup disabled, explicit download network | Manifest/source review and previous airplane-mode suite. Human TalkBack, all-device compatibility and independent network audit remain separate checks. |
 
-## Current executed local gates — 2026-10-15
+## Historical local gates — 2026-10-15
 
 - [x] Aggregate Gradle command below: **BUILD SUCCESSFUL**,207 tasks,
   detekt/ktlint/lint/JVM/debug/androidTest/benchmark APK builds.
@@ -48,9 +74,9 @@ No physical-device run or macrobenchmark is claimed for the new Brew UI/dataset.
   passed on Ubuntu24.04 at release commit
   `fd9e5ed7a9ef5281038f7df07786ef21ec1634cf`.
 - [x] [v1.1.0 release](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.1.0)
-  is public/latest; tag and source commit match. Downloaded APK and checksum file
-  again through public URLs without authentication: expected sizes and both SHA256
-  digests match. Historical v1.0.0 remains available.
+  was public at this historical checkpoint; it is not the current latest release.
+  The current public latest is [v1.9.5](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.9.5),
+  verified from GitHub on 2026-10-16. Historical releases remain available.
 
 Machine-readable executed receipts: [local gates](verification/local-gates-2026-10-15.json),
 [ORT alignment](verification/ort-1.21.1.json), [host parity](verification/ort-host-parity-1.21.1.json),

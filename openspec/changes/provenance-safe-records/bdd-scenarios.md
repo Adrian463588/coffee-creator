@@ -6,6 +6,29 @@ Given a local repository with no personal records
 When Coffee Creator finishes initialization
 Then journal, cafe visits, cupping sessions, physical QC, roast-rest observations, and personal inventory remain empty
 And curated material is available only after the user requests its import.
+And the palate profile contains no personal evidence until the user records it.
+
+## Rating-only journal entry
+
+Given a fresh profile with no personal sensory evidence
+And a journal entry with a numeric rating but no recorded sensory scores
+When the user saves the entry
+Then the entry is retained as authored
+And no roast, acidity, sweetness, bitterness, or body evidence is inferred
+And the personal palate evidence weight remains unchanged.
+
+## Durable workbench records
+
+Given user-created journal, cupping, cafe-cup, physical-QC, roast-rest, inventory, equipment, water, green-lot, and roast-batch records
+When those records are saved and the repository is reopened
+Then every record is restored with the same user-provided values and provenance.
+
+## Complete backup round trip
+
+Given all supported durable user-record families in the local repository
+When the user exports a full backup and restores it into an empty repository
+Then every supported record is restored atomically
+And temporary selections and incomplete form drafts are not misrepresented as saved records.
 
 ## Brew completion
 
