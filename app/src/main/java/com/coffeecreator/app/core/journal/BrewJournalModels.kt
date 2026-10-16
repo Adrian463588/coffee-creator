@@ -40,13 +40,16 @@ data class BrewJournalEntry(
     } else {
         null
     },
-    val rating: Double? = null, // Scale 1.0 to 10.0
+    // Scale 1.0 to 10.0
+    val rating: Double? = null,
     val tasteNotes: List<String> = emptyList(),
-    val sensoryScores: Map<String, Int> = emptyMap(), // Aroma, Acidity, Sweetness, Body, Bitterness (1-10)
+    // Aroma, Acidity, Sweetness, Body, Bitterness (1-10)
+    val sensoryScores: Map<String, Int> = emptyMap(),
     val generalNotes: String = "",
     /** The water value is a recipe target and the timer duration is the only observed event fact. */
     val timerOnly: Boolean = false,
-    val photoUris: List<String> = emptyList(), // Preserved as standard URI strings
+    // Preserved as standard URI strings
+    val photoUris: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
@@ -77,7 +80,8 @@ data class EspressoJournalDetails(
         0.0
     },
     val basketSizeGrams: Double? = null,
-    val puckPrepMethods: List<String> = emptyList(), // e.g. "WDT", "RDT", "Screen", "Puck Paper"
+    // e.g. "WDT", "RDT", "Screen", "Puck Paper"
+    val puckPrepMethods: List<String> = emptyList(),
     val firstDropSeconds: Int? = null,
     val peakPressureBars: Double? = null
 )
@@ -186,7 +190,8 @@ data class CafeCupEntry(
     val drinkName: String,
     val originOrBean: String = "",
     val pricePaid: String = "",
-    val rating: Double = 8.0, // 1.0 to 10.0
+    // 1.0 to 10.0
+    val rating: Double = 8.0,
     val notes: String = "",
     val photoUris: List<String> = emptyList(),
     val timestamp: Long = System.currentTimeMillis()

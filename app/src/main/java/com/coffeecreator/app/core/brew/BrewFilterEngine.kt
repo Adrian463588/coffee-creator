@@ -16,6 +16,12 @@ import kotlin.math.sqrt
  * - Auto-start and espresso flow auto-stop threshold evaluators
  */
 object BrewFilterEngine {
+    private const val FLOW_REGRESSION_EPSILON_SECONDS_SQUARED = 1e-9
+    private const val FLOW_RATE_NOISE_FLOOR_GPS = 0.05
+    private const val VESSEL_REMOVAL_DROP_GRAMS = 5.0
+    private const val AUTO_START_WEIGHT_DELTA_GRAMS = 0.5
+    private const val ESPRESSO_STOP_FLOW_RATE_GPS = 0.20
+    private const val ESPRESSO_STOP_SUSTAINED_DURATION_MS = 1500L
 
     /**
      * Calculates rolling flow rate (g/s) from discrete (timestampMonoMs, weightGrams) samples
@@ -48,11 +54,11 @@ object BrewFilterEngine {
             denominator += dt * dt
         }
 
-        if (denominator <= 1e-9) return 0.0
+        if (denominator <= FLOW_REGRESSION_EPSILON_SECONDS_SQUARED) return 0.0
         val slope = numerator / denominator
 
         // Noise floor suppression: clamp near-zero flow to 0.0
-        if (abs(slope) < 0.05) return 0.0
+        if (abs(slope) < FLOW_RATE_NOISE_FLOOR_GPS) return 0.0
 
         return BigDecimal.valueOf(slope)
             .setScale(2, RoundingMode.HALF_UP)
@@ -72,7 +78,7 @@ object BrewFilterEngine {
         val deltaWeight = rawWeight - prevFiltered
 
         // 1. Vessel removal detection: steep negative drop (> 5g in < 250ms)
-        if (deltaWeight < -5.0 && timeDeltaMs in 1..400) {
+        if (deltaWeight < -VESSEL_REMOVAL_DROP_GRAMS && timeDeltaMs in 1..400) {
             return Pair(prevFiltered, DiscontinuityType.VESSEL_REMOVAL)
         }
 
@@ -173,7 +179,8 @@ object BrewFilterEngine {
     /**
      * Detects weight-triggered auto-start condition: positive delta >= 0.5g within short window.
      */
-    fun checkAutoStart(rawWeightDelta: Double, timeDeltaMs: Long): Boolean = rawWeightDelta >= 0.5 && timeDeltaMs in 1..600
+    fun checkAutoStart(rawWeightDelta: Double, timeDeltaMs: Long): Boolean =
+        rawWeightDelta >= AUTO_START_WEIGHT_DELTA_GRAMS && timeDeltaMs in 1..600
 
     /**
      * Detects espresso auto-stop condition: flow rate < 0.20 g/s sustained for >= 1.5s after reaching yield.
@@ -183,5 +190,7 @@ object BrewFilterEngine {
         sustainedDurationMs: Long,
         currentYieldGrams: Double,
         minYieldGrams: Double = 5.0
-    ): Boolean = currentYieldGrams >= minYieldGrams && flowRateGps < 0.20 && sustainedDurationMs >= 1500L
+    ): Boolean = currentYieldGrams >= minYieldGrams &&
+        flowRateGps < ESPRESSO_STOP_FLOW_RATE_GPS &&
+        sustainedDurationMs >= ESPRESSO_STOP_SUSTAINED_DURATION_MS
 }

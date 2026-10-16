@@ -424,6 +424,14 @@ class ActiveBrewJournalAnalyticsTest {
         assertEquals("Comandante", brew.grinderModel)
     }
 
+    @Test
+    fun malformedBeanconquerorJsonReturnsAnEmptyImport() {
+        val (beans, brews) = BrewAnalyticsEngine.parseBeanconquerorJson("{ invalid")
+
+        assertTrue(beans.isEmpty())
+        assertTrue(brews.isEmpty())
+    }
+
     // S2-049: Cafe cup journal (manual entry, zero maps)
     @Test
     fun testCafeCupEntryPersistence() {

@@ -9,6 +9,8 @@ import java.time.LocalDate
 // ============================================================================
 
 object PalateQuizMapper {
+    private const val INITIAL_VARIANCE = 0.04
+
     fun createFromQuiz(answers: PalateQuizAnswers, id: String = "personal_palate"): PalateProfile {
         val vector = PalateVector(
             roast = answers.roast.vectorValue,
@@ -22,7 +24,13 @@ object PalateQuizMapper {
             vector = vector,
             cumulativeEvidenceWeight = 5.0,
             qualifiedSessionCount = 0,
-            varianceVector = PalateVector(0.04, 0.04, 0.04, 0.04, 0.04),
+            varianceVector = PalateVector(
+                INITIAL_VARIANCE,
+                INITIAL_VARIANCE,
+                INITIAL_VARIANCE,
+                INITIAL_VARIANCE,
+                INITIAL_VARIANCE
+            ),
             isQuizCompleted = true,
             lastUpdatedEpochMs = System.currentTimeMillis()
         )
@@ -111,45 +119,49 @@ object RecommendationEngine {
         today: LocalDate = LocalDate.now()
     ): List<RecommendationItem> {
         val gearFactor = if (availableGearMethods.contains(brewMethod) || availableGearMethods.isEmpty()) 1.0 else 0.0
-        if (gearFactor == 0.0) return emptyList()
+        if (gearFactor == 0.0 || !palate.hasRecordedPreference) return emptyList()
 
         val p = palate.vector.toDoubleArray()
         val pNorm = Math.sqrt(p.sumOf { it * it })
 
-        return candidates.map { bean ->
-            val b = bean.sensoryProfile.toDoubleArray()
-            val bNorm = Math.sqrt(b.sumOf { it * it })
-            val dot = p.indices.sumOf { p[it] * b[it] }
-            val cosine = if (pNorm > 0 && bNorm > 0) (dot / (pNorm * bNorm)).coerceIn(0.0, 1.0) else 0.0
+        return candidates
+            .asSequence()
+            .filter { it.availableMassGrams.isFinite() && it.availableMassGrams > 0.0 }
+            .map { bean ->
+                val b = bean.sensoryProfile.toDoubleArray()
+                val bNorm = Math.sqrt(b.sumOf { it * it })
+                val dot = p.indices.sumOf { p[it] * b[it] }
+                val cosine = if (pNorm > 0 && bNorm > 0) (dot / (pNorm * bNorm)).coerceIn(0.0, 1.0) else 0.0
 
-            val days = java.time.temporal.ChronoUnit.DAYS.between(bean.roastDate, today).coerceAtLeast(0)
-            val freshness = when {
-                days < 5 -> 0.75 + 0.25 * (days.toDouble() / 5.0)
-                days in 5..28 -> 1.00
-                else -> Math.max(0.40, Math.exp(-(days - 28).toDouble() / 30.0))
+                val days = java.time.temporal.ChronoUnit.DAYS.between(bean.roastDate, today).coerceAtLeast(0)
+                val freshness = when {
+                    days < 5 -> 0.75 + 0.25 * (days.toDouble() / 5.0)
+                    days in 5..28 -> 1.00
+                    else -> Math.max(0.40, Math.exp(-(days - 28).toDouble() / 30.0))
+                }
+
+                val score = cosine * freshness * gearFactor
+                val degasStatus = if (days in 5..28) "Peak flavor window ($days days post-roast)" else "$days days post-roast"
+                val explanation =
+                    "Vector similarity: ${(cosine * 100).toInt()}% from supplied profile vectors. " +
+                        "Roast age: $degasStatus. Available stock: ${bean.availableMassGrams}g. Gear: $brewMethod available."
+
+                RecommendationItem(
+                    beanId = bean.beanId,
+                    beanName = bean.beanName,
+                    compositeScore = BigDecimal.valueOf(score).setScale(4, RoundingMode.HALF_UP).toDouble(),
+                    cosineSimilarity = BigDecimal.valueOf(cosine).setScale(4, RoundingMode.HALF_UP).toDouble(),
+                    freshnessFactor = BigDecimal.valueOf(freshness).setScale(4, RoundingMode.HALF_UP).toDouble(),
+                    roastAgeDays = days,
+                    explanationText = explanation
+                )
             }
-
-            val score = cosine * freshness * gearFactor
-            val dominantTrait = when {
-                bean.sensoryProfile.acidity > 0.7 -> "Vibrant Acidity"
-                bean.sensoryProfile.sweetness > 0.7 -> "Rich Sweetness"
-                bean.sensoryProfile.body > 0.7 -> "Silky Body"
-                else -> "Balanced Roast"
-            }
-            val degasStatus = if (days in 5..28) "Peak flavor window ($days days post-roast)" else "$days days post-roast"
-            val explanation = "Matched ${(cosine * 100).toInt()}% with palate ($dominantTrait). Degas: $degasStatus. Gear: $brewMethod available."
-
-            RecommendationItem(
-                beanId = bean.beanId,
-                beanName = bean.beanName,
-                compositeScore = BigDecimal.valueOf(score).setScale(4, RoundingMode.HALF_UP).toDouble(),
-                cosineSimilarity = BigDecimal.valueOf(cosine).setScale(4, RoundingMode.HALF_UP).toDouble(),
-                freshnessFactor = BigDecimal.valueOf(freshness).setScale(4, RoundingMode.HALF_UP).toDouble(),
-                roastAgeDays = days,
-                explanationText = explanation
-            )
-        }.sortedByDescending { it.compositeScore }
+            .sortedByDescending { it.compositeScore }
+            .toList()
     }
+
+    private val PalateProfile.hasRecordedPreference: Boolean
+        get() = isQuizCompleted || qualifiedSessionCount > 0
 }
 
 // ============================================================================
@@ -157,6 +169,19 @@ object RecommendationEngine {
 // ============================================================================
 
 object FeedbackLoopEngine {
+    private const val FAST_DRAW_DOWN_THRESHOLD_SECONDS = 15
+    private const val GRIND_ADJUSTMENT_CLICKS = 1
+    private const val MINIMUM_GRINDER_SETTING = 1
+    private const val TEMPERATURE_ADJUSTMENT_CELSIUS = 2.0
+    private const val BOILING_POINT_MARGIN_CELSIUS = 0.5
+    private const val MINIMUM_BREW_TEMPERATURE_CELSIUS = 85.0
+    private const val DOSE_ADJUSTMENT_GRAMS = 1.0
+    private const val WATER_ADJUSTMENT_GRAMS = 20.0
+    private const val FAST_DRAW_DOWN_EXPECTED_DELTA_SECONDS = 20
+    private const val SLOW_DRAW_DOWN_EXPECTED_DELTA_SECONDS = -20
+    private const val DOSE_EXPECTED_DELTA_SECONDS = 5
+    private const val WATER_EXPECTED_DELTA_SECONDS = 8
+
     fun proposeAdjustment(
         previousRecipe: Map<String, Any>,
         actualDurationSeconds: Int,
@@ -164,117 +189,155 @@ object FeedbackLoopEngine {
         diagnosis: SensoryFeedbackDiagnosis,
         boilingPointCelsius: Double? = null
     ): OvatAdjustmentProposal {
-        val deltaSec = actualDurationSeconds - targetDurationSeconds
         require(actualDurationSeconds > 0 && targetDurationSeconds > 0) { "Brew durations must be positive." }
-        fun numericSetting(name: String): Double {
-            val value = (previousRecipe[name] as? Number)?.toDouble()
-                ?: throw IllegalArgumentException("A recorded $name value is required for this adjustment.")
-            require(value.isFinite() && value > 0.0) { "Recorded $name must be positive." }
-            return value
-        }
-        fun grindClicks(): Int {
-            val value = numericSetting("grindClicks")
-            require(value % 1.0 == 0.0) { "Grinder clicks must be a whole number." }
-            return value.toInt()
-        }
-        fun temperature(): Double {
-            val value = numericSetting("waterTempCelsius")
-            val boilingPoint = boilingPointCelsius
-                ?.takeIf { it.isFinite() && it > 0.0 }
-                ?: throw IllegalArgumentException("A confirmed local boiling point is required for a temperature adjustment.")
-            require(value <= boilingPoint) {
-                "Recorded water temperature cannot exceed the measured boiling point."
-            }
-            return value
-        }
-
+        val durationDeltaSeconds = actualDurationSeconds - targetDurationSeconds
         return when (diagnosis) {
-            SensoryFeedbackDiagnosis.SOUR_UNDER_EXTRACTED -> {
-                if (deltaSec < -15) {
-                    val currentGrind = grindClicks()
-                    val newGrind = Math.max(1, currentGrind - 1)
-                    OvatAdjustmentProposal(
-                        variableAdjusted = "Grind Size",
-                        previousValue = "$currentGrind clicks",
-                        proposedValue = "$newGrind clicks",
-                        diagnosticReason = "Fast drawdown (${actualDurationSeconds}s vs target ${targetDurationSeconds}s) causing under-extraction. Grind 1 click finer.",
-                        expectedDrawdownDeltaSeconds = 20,
-                        modifiedRecipePayload = previousRecipe + ("grindClicks" to newGrind)
+            SensoryFeedbackDiagnosis.SOUR_UNDER_EXTRACTED ->
+                if (durationDeltaSeconds < -FAST_DRAW_DOWN_THRESHOLD_SECONDS) {
+                    adjustGrind(
+                        previousRecipe,
+                        finer = true,
+                        actualDurationSeconds = actualDurationSeconds,
+                        targetDurationSeconds = targetDurationSeconds
                     )
                 } else {
-                    val currentTemp = temperature()
-                    val maxSafeTemp = requireNotNull(boilingPointCelsius) - 0.5
-                    val newTemp = Math.min(maxSafeTemp, currentTemp + 2.0)
-                    OvatAdjustmentProposal(
-                        variableAdjusted = "Water Temperature",
-                        previousValue = "$currentTemp°C",
-                        proposedValue = "$newTemp°C",
-                        diagnosticReason = "Normal drawdown timing but sour cup indicates thermodynamic under-extraction. Increase temperature by 2.0°C.",
-                        expectedDrawdownDeltaSeconds = 0,
-                        modifiedRecipePayload = previousRecipe + ("waterTempCelsius" to newTemp)
+                    adjustTemperature(
+                        previousRecipe,
+                        increase = true,
+                        boilingPointCelsius = boilingPointCelsius
                     )
                 }
-            }
-            SensoryFeedbackDiagnosis.BITTER_OVER_EXTRACTED -> {
-                if (deltaSec > 15) {
-                    val currentGrind = grindClicks()
-                    val newGrind = currentGrind + 1
-                    OvatAdjustmentProposal(
-                        variableAdjusted = "Grind Size",
-                        previousValue = "$currentGrind clicks",
-                        proposedValue = "$newGrind clicks",
-                        diagnosticReason = "Slow drawdown (${actualDurationSeconds}s vs target ${targetDurationSeconds}s) indicates bed clogging/over-extraction. Grind 1 click coarser.",
-                        expectedDrawdownDeltaSeconds = -20,
-                        modifiedRecipePayload = previousRecipe + ("grindClicks" to newGrind)
+            SensoryFeedbackDiagnosis.BITTER_OVER_EXTRACTED ->
+                if (durationDeltaSeconds > FAST_DRAW_DOWN_THRESHOLD_SECONDS) {
+                    adjustGrind(
+                        previousRecipe,
+                        finer = false,
+                        actualDurationSeconds = actualDurationSeconds,
+                        targetDurationSeconds = targetDurationSeconds
                     )
                 } else {
-                    val currentTemp = temperature()
-                    val newTemp = Math.max(85.0, currentTemp - 2.0)
-                    OvatAdjustmentProposal(
-                        variableAdjusted = "Water Temperature",
-                        previousValue = "$currentTemp°C",
-                        proposedValue = "$newTemp°C",
-                        diagnosticReason = "Normal drawdown but astringent/bitter finish indicates excessive thermal extraction. Decrease temperature by 2.0°C.",
-                        expectedDrawdownDeltaSeconds = 0,
-                        modifiedRecipePayload = previousRecipe + ("waterTempCelsius" to newTemp)
+                    adjustTemperature(
+                        previousRecipe,
+                        increase = false,
+                        boilingPointCelsius = boilingPointCelsius
                     )
                 }
-            }
-            SensoryFeedbackDiagnosis.WEAK_WATERY -> {
-                val currentDose = numericSetting("doseGrams")
-                val newDose = BigDecimal.valueOf(currentDose + 1.0).setScale(1, RoundingMode.HALF_UP).toDouble()
-                OvatAdjustmentProposal(
-                    variableAdjusted = "Coffee Dose",
-                    previousValue = "${currentDose}g",
-                    proposedValue = "${newDose}g",
-                    diagnosticReason = "Weak concentration/low body with balanced flavor profile. Tighten brew ratio by increasing coffee dose.",
-                    expectedDrawdownDeltaSeconds = 5,
-                    modifiedRecipePayload = previousRecipe + ("doseGrams" to newDose)
-                )
-            }
-            SensoryFeedbackDiagnosis.HARSH_CONCENTRATED -> {
-                val currentWater = numericSetting("waterGrams")
-                val newWater = currentWater + 20.0
-                OvatAdjustmentProposal(
-                    variableAdjusted = "Water Volume",
-                    previousValue = "${currentWater}g",
-                    proposedValue = "${newWater}g",
-                    diagnosticReason = "Harsh high concentration. Loosen brew ratio by adding 20g water to soften TDS.",
-                    expectedDrawdownDeltaSeconds = 8,
-                    modifiedRecipePayload = previousRecipe + ("waterGrams" to newWater)
-                )
-            }
-            SensoryFeedbackDiagnosis.BALANCED -> {
-                OvatAdjustmentProposal(
-                    variableAdjusted = "None",
-                    previousValue = "Optimal",
-                    proposedValue = "Lock Recipe",
-                    diagnosticReason = "Recipe is dialed in. No variable changes required.",
-                    expectedDrawdownDeltaSeconds = 0,
-                    modifiedRecipePayload = previousRecipe
-                )
-            }
+            SensoryFeedbackDiagnosis.WEAK_WATERY -> adjustDose(previousRecipe)
+            SensoryFeedbackDiagnosis.HARSH_CONCENTRATED -> adjustWater(previousRecipe)
+            SensoryFeedbackDiagnosis.BALANCED -> OvatAdjustmentProposal(
+                variableAdjusted = "None",
+                previousValue = "Optimal",
+                proposedValue = "Lock Recipe",
+                diagnosticReason = "Recipe is dialed in. No variable changes required.",
+                expectedDrawdownDeltaSeconds = 0,
+                modifiedRecipePayload = previousRecipe
+            )
         }
+    }
+
+    private fun adjustGrind(
+        previousRecipe: Map<String, Any>,
+        finer: Boolean,
+        actualDurationSeconds: Int,
+        targetDurationSeconds: Int
+    ): OvatAdjustmentProposal {
+        val current = numericSetting(previousRecipe, "grindClicks")
+        require(current % 1.0 == 0.0) { "Grinder clicks must be a whole number." }
+        val currentClicks = current.toInt()
+        val adjustedClicks = if (finer) {
+            maxOf(MINIMUM_GRINDER_SETTING, currentClicks - GRIND_ADJUSTMENT_CLICKS)
+        } else {
+            currentClicks + GRIND_ADJUSTMENT_CLICKS
+        }
+        val reason = if (finer) {
+            "Fast drawdown (${actualDurationSeconds}s vs target ${targetDurationSeconds}s) " +
+                "causing under-extraction. Grind 1 click finer."
+        } else {
+            "Slow drawdown (${actualDurationSeconds}s vs target ${targetDurationSeconds}s) " +
+                "indicates bed clogging/over-extraction. Grind 1 click coarser."
+        }
+        return OvatAdjustmentProposal(
+            variableAdjusted = "Grind Size",
+            previousValue = "$currentClicks clicks",
+            proposedValue = "$adjustedClicks clicks",
+            diagnosticReason = reason,
+            expectedDrawdownDeltaSeconds = if (finer) {
+                FAST_DRAW_DOWN_EXPECTED_DELTA_SECONDS
+            } else {
+                SLOW_DRAW_DOWN_EXPECTED_DELTA_SECONDS
+            },
+            modifiedRecipePayload = previousRecipe + ("grindClicks" to adjustedClicks)
+        )
+    }
+
+    private fun adjustTemperature(
+        previousRecipe: Map<String, Any>,
+        increase: Boolean,
+        boilingPointCelsius: Double?
+    ): OvatAdjustmentProposal {
+        val current = numericSetting(previousRecipe, "waterTempCelsius")
+        val boilingPoint = boilingPointCelsius
+            ?.takeIf { it.isFinite() && it > 0.0 }
+            ?: throw IllegalArgumentException("A confirmed local boiling point is required for a temperature adjustment.")
+        require(current <= boilingPoint) {
+            "Recorded water temperature cannot exceed the measured boiling point."
+        }
+        val adjusted = if (increase) {
+            minOf(boilingPoint - BOILING_POINT_MARGIN_CELSIUS, current + TEMPERATURE_ADJUSTMENT_CELSIUS)
+        } else {
+            maxOf(MINIMUM_BREW_TEMPERATURE_CELSIUS, current - TEMPERATURE_ADJUSTMENT_CELSIUS)
+        }
+        return OvatAdjustmentProposal(
+            variableAdjusted = "Water Temperature",
+            previousValue = "$current°C",
+            proposedValue = "$adjusted°C",
+            diagnosticReason = if (increase) {
+                "Normal drawdown timing but sour cup indicates thermodynamic under-extraction. " +
+                    "Increase temperature by 2.0°C."
+            } else {
+                "Normal drawdown but astringent/bitter finish indicates excessive thermal extraction. " +
+                    "Decrease temperature by 2.0°C."
+            },
+            expectedDrawdownDeltaSeconds = 0,
+            modifiedRecipePayload = previousRecipe + ("waterTempCelsius" to adjusted)
+        )
+    }
+
+    private fun adjustDose(previousRecipe: Map<String, Any>): OvatAdjustmentProposal {
+        val currentDose = numericSetting(previousRecipe, "doseGrams")
+        val newDose = BigDecimal.valueOf(currentDose + DOSE_ADJUSTMENT_GRAMS)
+            .setScale(1, RoundingMode.HALF_UP)
+            .toDouble()
+        return OvatAdjustmentProposal(
+            variableAdjusted = "Coffee Dose",
+            previousValue = "${currentDose}g",
+            proposedValue = "${newDose}g",
+            diagnosticReason =
+            "Weak concentration/low body with balanced flavor profile. " +
+                "Tighten brew ratio by increasing coffee dose.",
+            expectedDrawdownDeltaSeconds = DOSE_EXPECTED_DELTA_SECONDS,
+            modifiedRecipePayload = previousRecipe + ("doseGrams" to newDose)
+        )
+    }
+
+    private fun adjustWater(previousRecipe: Map<String, Any>): OvatAdjustmentProposal {
+        val currentWater = numericSetting(previousRecipe, "waterGrams")
+        val newWater = currentWater + WATER_ADJUSTMENT_GRAMS
+        return OvatAdjustmentProposal(
+            variableAdjusted = "Water Volume",
+            previousValue = "${currentWater}g",
+            proposedValue = "${newWater}g",
+            diagnosticReason = "Harsh high concentration. Loosen brew ratio by adding 20g water to soften TDS.",
+            expectedDrawdownDeltaSeconds = WATER_EXPECTED_DELTA_SECONDS,
+            modifiedRecipePayload = previousRecipe + ("waterGrams" to newWater)
+        )
+    }
+
+    private fun numericSetting(recipe: Map<String, Any>, name: String): Double {
+        val value = (recipe[name] as? Number)?.toDouble()
+            ?: throw IllegalArgumentException("A recorded $name value is required for this adjustment.")
+        require(value.isFinite() && value > 0.0) { "Recorded $name must be positive." }
+        return value
     }
 }
 
@@ -283,13 +346,18 @@ object FeedbackLoopEngine {
 // ============================================================================
 
 object WeatherAltitudeCalculator {
+    private const val MINIMUM_SUPPORTED_ELEVATION_METERS = -500.0
+    private const val MAXIMUM_SUPPORTED_ELEVATION_METERS = 9000.0
+
     fun calculateBoilingPointCelsius(elevationValue: Double, unit: ElevationUnit = ElevationUnit.METERS): Double {
         require(elevationValue.isFinite()) { "Elevation must be finite." }
         val elevationMeters = when (unit) {
             ElevationUnit.METERS -> elevationValue
             ElevationUnit.FEET -> elevationValue * 0.3048
         }
-        require(elevationMeters in -500.0..9000.0) { "Elevation must be between -500m and 9000m." }
+        require(elevationMeters in MINIMUM_SUPPORTED_ELEVATION_METERS..MAXIMUM_SUPPORTED_ELEVATION_METERS) {
+            "Elevation must be between -500m and 9000m."
+        }
         val tBoil = 100.0 - (elevationMeters / 300.0)
         return BigDecimal.valueOf(tBoil).setScale(2, RoundingMode.HALF_UP).toDouble()
     }
@@ -330,7 +398,8 @@ object IngredientSafetyValidator {
 
         if (foodGrade != true) {
             flags.add(
-                "CRITICAL: Substance '$name' lacks verified Food Chemicals Codex (FCC) food-grade certification. Perfumery and cosmetic aroma compounds are prohibited from coffee beverages."
+                "CRITICAL: Substance '$name' lacks verified Food Chemicals Codex (FCC) food-grade certification. " +
+                    "Perfumery and cosmetic aroma compounds are prohibited from coffee beverages."
             )
             return SafetyAuditResult(IngredientSafetyLevel.CRITICAL_NON_FOOD_PROHIBITED, flags, false)
         }

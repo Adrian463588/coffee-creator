@@ -17,7 +17,8 @@ data class ProvenanceBadge(
     val authorOrModelId: String,
     val confidenceLower: BigDecimal? = null,
     val confidenceUpper: BigDecimal? = null,
-    val confidenceLevelPercent: Int? = null, // e.g. 95%
+    // e.g. 95%
+    val confidenceLevelPercent: Int? = null,
     val methodDisclaimer: String,
     val timestamp: Long
 )
@@ -333,7 +334,8 @@ enum class MaskingMode {
 
 data class CuppingSample(
     val sampleId: String,
-    val blindCode: String, // e.g. "Sample #A1", "Bowl #03"
+    // e.g. "Sample #A1", "Bowl #03"
+    val blindCode: String,
     val actualBeanId: String?,
     val beanName: String,
     val roaster: String?,
@@ -361,8 +363,10 @@ data class AuditEntry(
 )
 
 data class DefectRecord(
-    val taintCupCount: Int = 0, // 2 points deduction per cup
-    val faultCupCount: Int = 0, // 4 points deduction per cup
+    // 2 points deduction per cup
+    val taintCupCount: Int = 0,
+    // 4 points deduction per cup
+    val faultCupCount: Int = 0,
     val defectDescription: String = ""
 )
 
@@ -404,14 +408,16 @@ data class AttributeConsensus(
     val mean: BigDecimal,
     val median: BigDecimal,
     val stdDev: BigDecimal,
-    val agreementIndex: BigDecimal, // 0.0 to 1.0
+    // 0.0 to 1.0
+    val agreementIndex: BigDecimal,
     val outlierEvaluatorIds: List<String>
 )
 
 data class DescriptorConcordance(
     val descriptor: String,
     val selectionCount: Int,
-    val selectionFrequency: BigDecimal, // 0.0 to 1.0
+    // 0.0 to 1.0
+    val selectionFrequency: BigDecimal,
     val isConsensus: Boolean
 )
 
@@ -465,18 +471,23 @@ data class GreenCoffeeDefectEntry(
 data class PhysicalQcRecord(
     val id: String,
     val sampleId: String,
-    val sampleMassGrams: BigDecimal = BigDecimal("350.0"), // standard 350g green sample
-    val moisturePercentage: BigDecimal, // standard target 10.0% - 12.0%
-    val waterActivityAw: BigDecimal, // standard target 0.50 - 0.65
+    // standard 350g green sample
+    val sampleMassGrams: BigDecimal = BigDecimal("350.0"),
+    // standard target 10.0% - 12.0%
+    val moisturePercentage: BigDecimal,
+    // standard target 0.50 - 0.65
+    val waterActivityAw: BigDecimal,
     val bulkDensityGPerL: BigDecimal,
-    val screenDistribution: Map<Int, BigDecimal> = emptyMap(), // e.g. 18 -> 45.0%
+    // e.g. 18 -> 45.0%
+    val screenDistribution: Map<Int, BigDecimal> = emptyMap(),
     val defects: List<GreenCoffeeDefectEntry> = emptyList(),
     val totalPrimaryDefects: Int,
     val totalSecondaryDefects: Int,
     val calculatedGrade: String,
     val roastedAgtronWholeBean: BigDecimal,
     val roastedAgtronGround: BigDecimal,
-    val roastDeltaAgtron: BigDecimal // Ground - WholeBean
+    // Ground - WholeBean
+    val roastDeltaAgtron: BigDecimal
 )
 
 // ============================================================================

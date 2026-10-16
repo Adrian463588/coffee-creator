@@ -33,6 +33,27 @@ class BackupCodecTest {
     }
 
     @Test
+    fun givenDurableWorkbenchSettings_whenExportedAndDecoded_thenEverySettingSurvives() {
+        val settings = mapOf(
+            "appearance.darkTheme" to "true",
+            "draft" to "{\"doseGrams\":15.0}",
+            "cuppings" to "[]",
+            "journal_entries" to "[]",
+            "palate_profile" to "{\"qualifiedSessionCount\":2}",
+            "weather_parameters" to "{\"elevationMeters\":1200}",
+            "user_units" to "{\"mass\":\"GRAMS\"}",
+            "user_language" to "id"
+        )
+
+        val decoded = BackupCodec.decode(
+            BackupCodec.encode(completePayload().copy(settings = settings), exportedAt = 84L)
+        )
+
+        assertEquals(settings, decoded.payload.settings)
+        assertEquals(settings.size, decoded.manifest.recordCounts["settings"])
+    }
+
+    @Test
     fun givenChangedPayload_whenDecoded_thenChecksumMismatchIsRejected() {
         val encoded = BackupCodec.encode(completePayload())
         assertThrows(IllegalArgumentException::class.java) {

@@ -1,5 +1,7 @@
 package com.coffeecreator.app.core.ble
 
+private const val DEFAULT_SCALE_RSSI = -60
+
 /**
  * Discrete scale sample containing raw and filtered mass readings,
  * flow rate derivative in g/s, and physical artifact flags.
@@ -43,6 +45,6 @@ data class BleScaleDevice(
     val name: String,
     val macAddress: String,
     val protocolType: ScaleProtocolType = ScaleProtocolType.GENERIC_GATT,
-    val rssi: Int = -60,
+    val rssi: Int = DEFAULT_SCALE_RSSI,
     val batteryPercent: Int? = null
 )

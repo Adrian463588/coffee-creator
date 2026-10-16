@@ -64,6 +64,42 @@ class ActivePersonalizationRagTest {
     // S2-064: Bayesian Exponential Moving Average Profile Update
     // ========================================================================
     @Test
+    fun defaultPalateProfileHasNeutralCoordinatesAndNoRecordedEvidence() {
+        val profile = PalateProfile()
+
+        assertEquals(PalateVector(0.50, 0.50, 0.50, 0.50, 0.50), profile.vector)
+        assertEquals(PalateVector(1.0, 1.0, 1.0, 1.0, 1.0), profile.varianceVector)
+        assertEquals(0.0, profile.cumulativeEvidenceWeight, 0.0)
+        assertEquals(0, profile.qualifiedSessionCount)
+        assertFalse(profile.isQuizCompleted)
+        assertEquals(0L, profile.lastUpdatedEpochMs)
+    }
+
+    @Test
+    fun firstQualifiedObservationInitializesNeutralProfileFromRecordedEvidence() {
+        val profile = PalateProfile()
+        val observation = PersonalSensoryEvidence(
+            roast = 0.20,
+            acidity = 0.90,
+            sweetness = 0.85,
+            bitterness = 0.15,
+            body = 0.30,
+            rating = 9.0
+        )
+
+        val updated = PalateBayesianEngine.updateProfile(profile, observation)
+
+        assertEquals(
+            PalateVector(0.20, 0.90, 0.85, 0.15, 0.30),
+            updated.vector
+        )
+        assertEquals(0.667, updated.cumulativeEvidenceWeight, 0.0)
+        assertEquals(1, updated.qualifiedSessionCount)
+        assertTrue(updated.lastUpdatedEpochMs > 0L)
+        assertFalse(updated.isQuizCompleted)
+    }
+
+    @Test
     fun testBayesianMovingAverageUpdate() {
         val initial = PalateProfile(
             vector = PalateVector(0.50, 0.50, 0.50, 0.50, 0.50),
@@ -108,7 +144,8 @@ class ActivePersonalizationRagTest {
     @Test
     fun testExplainableInventoryRecommendations() {
         val palate = PalateProfile(
-            vector = PalateVector(0.20, 0.90, 0.80, 0.15, 0.30)
+            vector = PalateVector(0.20, 0.90, 0.80, 0.15, 0.30),
+            isQuizCompleted = true
         )
         val candidates = listOf(
             BeanInventoryCandidate(
@@ -149,6 +186,45 @@ class ActivePersonalizationRagTest {
         assertTrue(ranked[0].explanationText.contains("Peak flavor window"))
         assertTrue(ranked[0].freshnessFactor == 1.0)
         assertTrue(ranked.find { it.beanId == "ken-03" }!!.freshnessFactor < 1.0)
+    }
+
+    @Test
+    fun inventoryRecommendationsRequireRecordedPreferencesAndPositiveAvailableStock() {
+        val bean = BeanInventoryCandidate(
+            beanId = "available",
+            beanName = "Verified inventory record",
+            sensoryProfile = PalateVector(0.20, 0.90, 0.80, 0.15, 0.30),
+            roastDate = LocalDate.now().minusDays(14),
+            availableMassGrams = 250.0
+        )
+        val noEvidence = RecommendationEngine.rankInventory(
+            palate = PalateProfile(),
+            candidates = listOf(bean),
+            availableGearMethods = emptySet(),
+            brewMethod = "Pour Over"
+        )
+        val explicitProfile = PalateProfile(
+            vector = bean.sensoryProfile,
+            isQuizCompleted = true
+        )
+        val ranked = RecommendationEngine.rankInventory(
+            palate = explicitProfile,
+            candidates = listOf(
+                bean.copy(availableMassGrams = 0.0),
+                bean.copy(beanId = "negative", availableMassGrams = -1.0),
+                bean.copy(beanId = "nan", availableMassGrams = Double.NaN),
+                bean.copy(beanId = "infinite", availableMassGrams = Double.POSITIVE_INFINITY),
+                bean
+            ),
+            availableGearMethods = emptySet(),
+            brewMethod = "Pour Over"
+        )
+
+        assertTrue(noEvidence.isEmpty())
+        assertEquals(listOf("available"), ranked.map { it.beanId })
+        assertTrue(ranked.single().explanationText.contains("Vector similarity"))
+        assertTrue(ranked.single().explanationText.contains("Available stock: 250.0g"))
+        assertFalse(ranked.single().explanationText.contains("Vibrant Acidity"))
     }
 
     // ========================================================================

@@ -42,6 +42,13 @@ enum class BodyPreference(val vectorValue: Double) {
     HEAVY_CREAMY_FULL(0.95)
 }
 
+private object PalateProfileDefaults {
+    const val NEUTRAL_COORDINATE = 0.50
+    const val UNINFORMED_VARIANCE = 1.0
+    const val INITIAL_EVIDENCE_WEIGHT = 0.0
+    const val INITIAL_TIMESTAMP_EPOCH_MS = 0L
+}
+
 data class PalateQuizAnswers(
     val roast: RoastPreference = RoastPreference.MEDIUM_LIGHT,
     val acidity: AcidityTolerance = AcidityTolerance.HIGH_ENTHUSIAST,
@@ -68,12 +75,25 @@ data class PalateVector(
 
 data class PalateProfile(
     val id: String = "default_palate",
-    val vector: PalateVector = PalateVector(0.30, 0.80, 0.75, 0.20, 0.50),
-    val cumulativeEvidenceWeight: Double = 5.0, // Prior beta_0
+    val vector: PalateVector = PalateVector(
+        PalateProfileDefaults.NEUTRAL_COORDINATE,
+        PalateProfileDefaults.NEUTRAL_COORDINATE,
+        PalateProfileDefaults.NEUTRAL_COORDINATE,
+        PalateProfileDefaults.NEUTRAL_COORDINATE,
+        PalateProfileDefaults.NEUTRAL_COORDINATE
+    ),
+    /** Evidence weight from explicit quiz answers and qualified sensory observations. */
+    val cumulativeEvidenceWeight: Double = PalateProfileDefaults.INITIAL_EVIDENCE_WEIGHT,
     val qualifiedSessionCount: Int = 0,
-    val varianceVector: PalateVector = PalateVector(0.04, 0.04, 0.04, 0.04, 0.04),
+    val varianceVector: PalateVector = PalateVector(
+        PalateProfileDefaults.UNINFORMED_VARIANCE,
+        PalateProfileDefaults.UNINFORMED_VARIANCE,
+        PalateProfileDefaults.UNINFORMED_VARIANCE,
+        PalateProfileDefaults.UNINFORMED_VARIANCE,
+        PalateProfileDefaults.UNINFORMED_VARIANCE
+    ),
     val isQuizCompleted: Boolean = false,
-    val lastUpdatedEpochMs: Long = System.currentTimeMillis()
+    val lastUpdatedEpochMs: Long = PalateProfileDefaults.INITIAL_TIMESTAMP_EPOCH_MS
 )
 
 // ============================================================================
@@ -86,7 +106,8 @@ data class PersonalSensoryEvidence(
     val sweetness: Double,
     val bitterness: Double,
     val body: Double,
-    val rating: Double, // Qualified sessions: >= 7.50
+    /** Only qualified sessions (rating >= 7.50) update the personal palate. */
+    val rating: Double,
     val daysAgo: Double = 0.0
 ) {
     init {
@@ -174,7 +195,8 @@ enum class BaristaPersonaPreset(val id: String, val title: String, val baseSyste
     SPECIALTY_Q_GRADER(
         "specialty_q_grader",
         "Specialty Q-Grader",
-        "Rigorous technical coffee evaluator. Grounds analysis on SCA protocol, physical extraction kinetics, TDS, and organic acid balance."
+        "Rigorous technical coffee evaluator. Grounds analysis on SCA protocol, physical extraction kinetics, TDS, " +
+            "and organic acid balance."
     ),
     FRIENDLY_HOME_BARISTA(
         "friendly_home_barista",
@@ -184,6 +206,7 @@ enum class BaristaPersonaPreset(val id: String, val title: String, val baseSyste
     RD_COFFEE_CHEMIST(
         "rd_coffee_chemist",
         "R&D Coffee Chemist",
-        "Scientific extraction researcher. Emphasizes thermodynamics, degassing mass-transfer kinetics, water ionic content, and solubility."
+        "Scientific extraction researcher. Emphasizes thermodynamics, degassing mass-transfer kinetics, " +
+            "water ionic content, and solubility."
     )
 }

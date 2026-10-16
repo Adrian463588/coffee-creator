@@ -4,6 +4,8 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 
+private const val MILLIS_PER_DAY = 86_400_000L
+
 // ============================================================================
 // S2-001 & S2-002: Bean & Bag Inventory Domain Models
 // ============================================================================
@@ -47,7 +49,7 @@ data class FreezeEvent(
     fun durationDays(currentEpochMs: Long = System.currentTimeMillis()): Long {
         val end = thawedAtEpochMs ?: currentEpochMs
         val elapsedMs = maxOf(0L, end - frozenAtEpochMs)
-        return elapsedMs / (1000L * 60L * 60L * 24L)
+        return elapsedMs / MILLIS_PER_DAY
     }
 }
 
@@ -113,6 +115,30 @@ data class FreshnessAnalysis(
 )
 
 object RoastRestCalculator {
+    private const val LIGHT_NATURAL_PEAK_START_DAY = 11
+    private const val LIGHT_NATURAL_PEAK_END_DAY = 35
+    private const val LIGHT_NATURAL_STALE_CUTOFF_DAY = 75
+    private const val LIGHT_WASHED_PEAK_START_DAY = 8
+    private const val LIGHT_WASHED_PEAK_END_DAY = 28
+    private const val LIGHT_WASHED_STALE_CUTOFF_DAY = 60
+    private const val MEDIUM_LIGHT_PEAK_START_DAY = 7
+    private const val MEDIUM_LIGHT_PEAK_END_DAY = 24
+    private const val MEDIUM_LIGHT_STALE_CUTOFF_DAY = 50
+    private const val MEDIUM_PEAK_START_DAY = 6
+    private const val MEDIUM_PEAK_END_DAY = 21
+    private const val MEDIUM_STALE_CUTOFF_DAY = 45
+    private const val MEDIUM_DARK_PEAK_START_DAY = 5
+    private const val MEDIUM_DARK_PEAK_END_DAY = 16
+    private const val MEDIUM_DARK_STALE_CUTOFF_DAY = 35
+    private const val DARK_PEAK_START_DAY = 4
+    private const val DARK_PEAK_END_DAY = 12
+    private const val DARK_STALE_CUTOFF_DAY = 28
+    private const val UNKNOWN_PEAK_START_DAY = 7
+    private const val UNKNOWN_PEAK_END_DAY = 21
+    private const val UNKNOWN_STALE_CUTOFF_DAY = 45
+
+    private data class RestWindow(val peakStart: Int, val peakEnd: Int, val staleCutoff: Int)
+
     fun calculateFreshness(
         roastDate: LocalDate,
         roastLevel: RoastLevel,
@@ -132,25 +158,41 @@ object RoastRestCalculator {
             maxOf(0L, totalCalendarDays - totalFrozenDays)
         }
 
-        val (peakStart, peakEnd, staleCutoff) = when (roastLevel) {
+        val window = when (roastLevel) {
             RoastLevel.LIGHT, RoastLevel.CINNAMON -> {
                 if (process == ProcessMethod.NATURAL || process == ProcessMethod.ANAEROBIC_NATURAL) {
-                    Triple(11, 35, 75)
+                    RestWindow(
+                        LIGHT_NATURAL_PEAK_START_DAY,
+                        LIGHT_NATURAL_PEAK_END_DAY,
+                        LIGHT_NATURAL_STALE_CUTOFF_DAY
+                    )
                 } else {
-                    Triple(8, 28, 60)
+                    RestWindow(
+                        LIGHT_WASHED_PEAK_START_DAY,
+                        LIGHT_WASHED_PEAK_END_DAY,
+                        LIGHT_WASHED_STALE_CUTOFF_DAY
+                    )
                 }
             }
-            RoastLevel.MEDIUM_LIGHT -> Triple(7, 24, 50)
-            RoastLevel.MEDIUM -> Triple(6, 21, 45)
-            RoastLevel.MEDIUM_DARK -> Triple(5, 16, 35)
-            RoastLevel.DARK, RoastLevel.VERY_DARK -> Triple(4, 12, 28)
-            RoastLevel.UNKNOWN -> Triple(7, 21, 45)
+            RoastLevel.MEDIUM_LIGHT -> RestWindow(
+                MEDIUM_LIGHT_PEAK_START_DAY,
+                MEDIUM_LIGHT_PEAK_END_DAY,
+                MEDIUM_LIGHT_STALE_CUTOFF_DAY
+            )
+            RoastLevel.MEDIUM -> RestWindow(MEDIUM_PEAK_START_DAY, MEDIUM_PEAK_END_DAY, MEDIUM_STALE_CUTOFF_DAY)
+            RoastLevel.MEDIUM_DARK -> RestWindow(
+                MEDIUM_DARK_PEAK_START_DAY,
+                MEDIUM_DARK_PEAK_END_DAY,
+                MEDIUM_DARK_STALE_CUTOFF_DAY
+            )
+            RoastLevel.DARK, RoastLevel.VERY_DARK -> RestWindow(DARK_PEAK_START_DAY, DARK_PEAK_END_DAY, DARK_STALE_CUTOFF_DAY)
+            RoastLevel.UNKNOWN -> RestWindow(UNKNOWN_PEAK_START_DAY, UNKNOWN_PEAK_END_DAY, UNKNOWN_STALE_CUTOFF_DAY)
         }
 
         val state = when {
-            effectiveRestDays < peakStart -> FreshnessState.TOO_FRESH_DEGASSING
-            effectiveRestDays <= peakEnd -> FreshnessState.PEAK_FLAVOR
-            effectiveRestDays <= staleCutoff -> FreshnessState.STABLE_MATURE
+            effectiveRestDays < window.peakStart -> FreshnessState.TOO_FRESH_DEGASSING
+            effectiveRestDays <= window.peakEnd -> FreshnessState.PEAK_FLAVOR
+            effectiveRestDays <= window.staleCutoff -> FreshnessState.STABLE_MATURE
             else -> FreshnessState.STALE_OXIDIZED
         }
 
@@ -158,20 +200,22 @@ object RoastRestCalculator {
             FreshnessState.TOO_FRESH_DEGASSING ->
                 "Day $effectiveRestDays: Rapid CO2 desorption underway. High risk of extraction channeling and sour, unstable crema."
             FreshnessState.PEAK_FLAVOR ->
-                "Day $effectiveRestDays: Optimal aromatic expression (peak window: days $peakStart–$peakEnd). Balanced solubility and sweetness."
+                "Day $effectiveRestDays: Optimal aromatic expression (peak window: days ${window.peakStart}–${window.peakEnd}). " +
+                    "Balanced solubility and sweetness."
             FreshnessState.STABLE_MATURE ->
                 "Day $effectiveRestDays: Degassing complete; gradual volatile loss. Consistent extraction, slightly muted florals."
             FreshnessState.STALE_OXIDIZED ->
-                "Day $effectiveRestDays: Exceeded day $staleCutoff threshold. Oxidation of delicate lipids produces papery, woody, flat flavor."
+                "Day $effectiveRestDays: Exceeded day ${window.staleCutoff} threshold. " +
+                    "Oxidation of delicate lipids produces papery, woody, flat flavor."
         }
 
         return FreshnessAnalysis(
             effectiveRestDays = effectiveRestDays,
             totalFrozenDays = totalFrozenDays,
             state = state,
-            peakStartDay = peakStart,
-            peakEndDay = peakEnd,
-            staleCutoffDay = staleCutoff,
+            peakStartDay = window.peakStart,
+            peakEndDay = window.peakEnd,
+            staleCutoffDay = window.staleCutoff,
             heuristicRationale = rationale
         )
     }
@@ -258,11 +302,15 @@ enum class WaterRecipePreset {
 data class WaterMineralProfile(
     val id: String,
     val name: String,
-    val calciumPpm: BigDecimal, // mg/L Ca2+
-    val magnesiumPpm: BigDecimal, // mg/L Mg2+
-    val sodiumPpm: BigDecimal, // mg/L Na+
+    /** Dissolved calcium concentration in mg/L. */
+    val calciumPpm: BigDecimal,
+    /** Dissolved magnesium concentration in mg/L. */
+    val magnesiumPpm: BigDecimal,
+    /** Dissolved sodium concentration in mg/L. */
+    val sodiumPpm: BigDecimal,
     val potassiumPpm: BigDecimal = BigDecimal.ZERO,
-    val bicarbonatePpm: BigDecimal, // mg/L HCO3-
+    /** Bicarbonate concentration in mg/L. */
+    val bicarbonatePpm: BigDecimal,
     val totalHardnessPpmCaCO3: BigDecimal,
     val totalAlkalinityPpmCaCO3: BigDecimal,
     val calculatedTdsPpm: BigDecimal,
@@ -406,90 +454,97 @@ data class BagOcrParsedDraft(
 )
 
 object OfflineBagOcrParser {
+    private val countries = listOf(
+        "ETHIOPIA", "COLOMBIA", "KENYA", "GUATEMALA", "PANAMA", "INDONESIA",
+        "COSTA RICA", "BRAZIL", "RWANDA", "BURUNDI", "YEMEN", "HONDURAS"
+    )
+    private val altitudeRegex = Regex("(\\d{3,4})\\s*(?:-|–)?\\s*(\\d{3,4})?\\s*(?:M|MASL|MTR)", RegexOption.IGNORE_CASE)
+    private val roastDateRegex = Regex("(\\d{4})[-/](\\d{2})[-/](\\d{2})")
+    private val packageMassRegex = Regex("(\\d+(?:\\.\\d+)?)\\s*(G|KG)", RegexOption.IGNORE_CASE)
+
     fun parseBagText(photoUri: String?, text: String): BagOcrParsedDraft {
-        val lines = text.lines().map { it.trim() }.filter { it.isNotBlank() }
-
-        var roaster: String? = null
-        var beanName: String? = null
-        var origin: String? = null
-        var process: ProcessMethod = ProcessMethod.UNKNOWN
-        var varietal: String? = null
-        var altitude: Int? = null
-        var roastDate: LocalDate? = null
-        var packageMass: BigDecimal? = null
-
-        val countries = listOf(
-            "ETHIOPIA", "COLOMBIA", "KENYA", "GUATEMALA", "PANAMA", "INDONESIA",
-            "COSTA RICA", "BRAZIL", "RWANDA", "BURUNDI", "YEMEN", "HONDURAS"
-        )
-
-        for (line in lines) {
-            val upper = line.uppercase()
-            // Origin detection
-            countries.find { upper.contains(it) }?.let { matched ->
-                if (origin == null) origin = matched
-            }
-
-            // Process detection
-            when {
-                upper.contains("WASHED") -> process = ProcessMethod.WASHED
-                upper.contains("NATURAL") -> process = ProcessMethod.NATURAL
-                upper.contains("HONEY") -> process = ProcessMethod.HONEY
-                upper.contains("ANAEROBIC") -> process = ProcessMethod.ANAEROBIC_NATURAL
-                upper.contains("WET HULLED") || upper.contains("GILING BASAH") -> process = ProcessMethod.WET_HULLED
-            }
-
-            // Altitude detection (e.g. 1800m, 1800 masl, 1800-2000m)
-            val altRegex = Regex("(\\d{3,4})\\s*(?:-|–)?\\s*(\\d{3,4})?\\s*(?:M|MASL|MTR)", RegexOption.IGNORE_CASE)
-            altRegex.find(line)?.let { match ->
-                altitude = match.groupValues[1].toIntOrNull()
-            }
-
-            // Roast date detection (YYYY-MM-DD or DD/MM/YYYY)
-            val isoDateRegex = Regex("(\\d{4})[-/](\\d{2})[-/](\\d{2})")
-            isoDateRegex.find(line)?.let { match ->
-                runCatching {
-                    roastDate = LocalDate.parse(match.value.replace('/', '-'))
-                }
-            }
-
-            // Package mass (e.g., 250g, 250 g, 500g, 1kg)
-            val weightRegex = Regex("(\\d+(?:\\.\\d+)?)\\s*(G|KG)", RegexOption.IGNORE_CASE)
-            weightRegex.find(line)?.let { match ->
-                val unit = match.groupValues[2].uppercase()
-                val number = match.groupValues[1].toBigDecimalOrNull()
-                if (number != null && number > BigDecimal.ZERO) {
-                    val massGrams = if (unit == "KG") number.multiply(BigDecimal("1000")) else number
-                    packageMass = massGrams.setScale(2, RoundingMode.HALF_UP)
-                }
-            }
-        }
-
-        // Heuristic fallback for roaster and name
-        if (lines.isNotEmpty()) {
-            roaster = lines.firstOrNull { !it.contains("ROAST", ignoreCase = true) && !it.contains("WEIGHT", ignoreCase = true) }
-            beanName = lines.drop(1).firstOrNull { it != origin && !it.contains("PROCESS", ignoreCase = true) }
-        }
-
+        val lines = text.lines().map(String::trim).filter(String::isNotBlank)
+        val fields = BagFields()
+        lines.forEach { fields.read(it) }
+        val roaster = lines.firstOrNull { !it.contains("ROAST", ignoreCase = true) && !it.contains("WEIGHT", ignoreCase = true) }
+        val beanName = lines.drop(1).firstOrNull { it != fields.origin && !it.contains("PROCESS", ignoreCase = true) }
         return BagOcrParsedDraft(
             photoUri = photoUri,
             rawExtractedText = text,
             roaster = ExtractedOcrField(roaster, rawSnippet = roaster ?: ""),
             beanName = ExtractedOcrField(beanName, rawSnippet = beanName ?: ""),
-            origin = ExtractedOcrField(origin, rawSnippet = origin ?: ""),
+            origin = ExtractedOcrField(fields.origin, rawSnippet = fields.origin ?: ""),
             process = ExtractedOcrField(
-                process.takeUnless { it == ProcessMethod.UNKNOWN },
-                rawSnippet = lines.firstOrNull {
-                    listOf("WASHED", "NATURAL", "HONEY", "ANAEROBIC", "WET HULLED", "GILING BASAH")
-                        .any { token -> it.contains(token, ignoreCase = true) }
-                }.orEmpty()
+                fields.process.takeUnless { it == ProcessMethod.UNKNOWN },
+                rawSnippet = processSnippet(lines)
             ),
-            varietal = ExtractedOcrField(varietal, rawSnippet = varietal ?: ""),
-            altitudeMeters = ExtractedOcrField(altitude, rawSnippet = altitude?.toString() ?: ""),
-            roastDate = ExtractedOcrField(roastDate, rawSnippet = roastDate?.toString() ?: ""),
-            packageMassGrams = ExtractedOcrField(packageMass, rawSnippet = packageMass?.toPlainString() ?: "")
+            varietal = ExtractedOcrField(null, rawSnippet = ""),
+            altitudeMeters = ExtractedOcrField(fields.altitude, rawSnippet = fields.altitude?.toString() ?: ""),
+            roastDate = ExtractedOcrField(fields.roastDate, rawSnippet = fields.roastDate?.toString() ?: ""),
+            packageMassGrams = ExtractedOcrField(fields.packageMass, rawSnippet = fields.packageMass?.toPlainString() ?: "")
         )
     }
+
+    private fun processSnippet(lines: List<String>): String = lines.firstOrNull { line ->
+        PROCESS_LABELS.any { label -> line.contains(label, ignoreCase = true) }
+    }.orEmpty()
+
+    private data class BagFields(
+        var origin: String? = null,
+        var process: ProcessMethod = ProcessMethod.UNKNOWN,
+        var altitude: Int? = null,
+        var roastDate: LocalDate? = null,
+        var packageMass: BigDecimal? = null
+    ) {
+        fun read(line: String) {
+            val upper = line.uppercase()
+            detectOrigin(upper)
+            detectProcess(upper)
+            detectAltitude(line)
+            detectRoastDate(line)
+            detectPackageMass(line)
+        }
+
+        private fun detectOrigin(upper: String) {
+            if (origin == null) origin = countries.firstOrNull(upper::contains)
+        }
+
+        private fun detectProcess(upper: String) {
+            process = detectedProcess(upper) ?: process
+        }
+
+        private fun detectAltitude(line: String) {
+            altitudeRegex.find(line)?.let { altitude = it.groupValues[1].toIntOrNull() }
+        }
+
+        private fun detectRoastDate(line: String) {
+            roastDateRegex.find(line)?.let { match ->
+                runCatching { roastDate = LocalDate.parse(match.value.replace('/', '-')) }
+            }
+        }
+
+        private fun detectPackageMass(line: String) {
+            packageMassRegex.find(line)?.let { match ->
+                val amount = match.groupValues[1].toBigDecimalOrNull() ?: return
+                if (amount > BigDecimal.ZERO) {
+                    val unit = match.groupValues[2].uppercase()
+                    val grams = if (unit == "KG") amount.multiply(BigDecimal("1000")) else amount
+                    packageMass = grams.setScale(2, RoundingMode.HALF_UP)
+                }
+            }
+        }
+
+        private fun detectedProcess(upper: String): ProcessMethod? = when {
+            upper.contains("WASHED") -> ProcessMethod.WASHED
+            upper.contains("NATURAL") -> ProcessMethod.NATURAL
+            upper.contains("HONEY") -> ProcessMethod.HONEY
+            upper.contains("ANAEROBIC") -> ProcessMethod.ANAEROBIC_NATURAL
+            upper.contains("WET HULLED") || upper.contains("GILING BASAH") -> ProcessMethod.WET_HULLED
+            else -> null
+        }
+    }
+
+    private val PROCESS_LABELS = listOf("WASHED", "NATURAL", "HONEY", "ANAEROBIC", "WET HULLED", "GILING BASAH")
 }
 
 // ============================================================================
@@ -550,7 +605,8 @@ data class GreenCoffeeLot(
     val waterActivityAw: BigDecimal,
     val category1DefectCount: Int,
     val category2DefectCount: Int,
-    val screenDistributionPercent: Map<Int, BigDecimal> = emptyMap(), // Screen sizes e.g. 15..19
+    // Screen sizes e.g. 15..19
+    val screenDistributionPercent: Map<Int, BigDecimal> = emptyMap(),
     val sampleStatus: SampleLotStatus = SampleLotStatus.OFFER_SAMPLE,
     val notes: String = ""
 ) {

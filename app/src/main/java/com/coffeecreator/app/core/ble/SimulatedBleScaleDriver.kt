@@ -1,8 +1,6 @@
 package com.coffeecreator.app.core.ble
 
 import com.coffeecreator.app.core.brew.BrewFilterEngine
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -11,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+
+private const val SIMULATED_CONNECTION_STEP_DELAY_MS = 50L
 
 /**
  * Deterministic simulated scale driver for offline demonstration,
@@ -24,8 +24,7 @@ class SimulatedBleScaleDriver(
         protocolType = ScaleProtocolType.SIMULATED,
         rssi = -42,
         batteryPercent = 95
-    ),
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+    )
 ) : BleScaleDriver {
 
     private val _connectionState = MutableStateFlow(ScaleConnectionState.DISCONNECTED)
@@ -44,9 +43,9 @@ class SimulatedBleScaleDriver(
 
     override suspend fun connect(): Result<Unit> = runCatching {
         _connectionState.value = ScaleConnectionState.CONNECTING
-        delay(50)
+        delay(SIMULATED_CONNECTION_STEP_DELAY_MS)
         _connectionState.value = ScaleConnectionState.CONNECTED
-        delay(50)
+        delay(SIMULATED_CONNECTION_STEP_DELAY_MS)
         _connectionState.value = ScaleConnectionState.READY
     }
 

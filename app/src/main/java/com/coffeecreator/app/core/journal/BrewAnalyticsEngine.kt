@@ -3,7 +3,9 @@ package com.coffeecreator.app.core.journal
 import com.coffeecreator.app.core.data.RecordJson
 import com.coffeecreator.app.core.model.CalculationMetadata
 import com.coffeecreator.app.core.model.CoffeeBean
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.google.gson.JsonParseException
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Instant
@@ -92,101 +94,128 @@ object BrewAnalyticsEngine {
      * strictly ONE modification at a time.
      */
     fun evaluateOvat(entry: BrewJournalEntry, tasteFlags: List<String> = emptyList()): OvatRecommendation? {
-        val combinedTaste = (tasteFlags + entry.tasteNotes).map { it.uppercase().trim() }
-        val isEspresso = entry.isEspresso || entry.brewMethod.contains("Espresso", ignoreCase = true)
-        val meanFlow = entry.espressoDetails?.meanFlowRateGps ?: 0.0
-        val ey = entry.extractionYieldPercent
-        val tds = entry.measuredTdsPercent
-        if (entry.timerOnly || (ey == null && tds == null && combinedTaste.isEmpty())) return null
+        val context = OvatContext.from(entry, tasteFlags)
+        if (!context.hasRecommendationEvidence) return null
+        return channelingRecommendation(context)
+            ?: underExtractedRecommendation(context)
+            ?: overExtractedRecommendation(context)
+            ?: weakBrewRecommendation(context)
+            ?: strongBrewRecommendation(context)
+            ?: balancedRecommendation()
+    }
 
-        // 1. Channeling / Fracture Detection
-        val hasChannelingFlags = ("SOUR" in combinedTaste && "ASTRINGENT" in combinedTaste) ||
-            ("SOUR" in combinedTaste && "BITTER" in combinedTaste) ||
-            (isEspresso && entry.brewDurationSeconds < 20 && meanFlow > 3.0)
+    private fun channelingRecommendation(context: OvatContext): OvatRecommendation? {
+        val hasSensoryDissonance = "SOUR" in context.taste &&
+            ("ASTRINGENT" in context.taste || "BITTER" in context.taste)
+        val hasRapidEspressoFlow = context.isEspresso &&
+            context.entry.brewDurationSeconds < 20 && context.meanFlow > 3.0
+        if (!hasSensoryDissonance && !hasRapidEspressoFlow) return null
+        return OvatRecommendation(
+            targetVariable = OvatTargetVariable.PUCK_PREPARATION,
+            direction = AdjustmentDirection.MODIFY_TECHNIQUE,
+            suggestedMagnitude = "WDT + level tamp",
+            physicalReasoning = "Erratic fast flow and concurrent sour/astringent notes indicate micro-channeling " +
+                "where water bypasses bed zones.",
+            expectedImpact = "Eliminates localized under- and over-extraction channels before adjusting grinder setting.",
+            diagnosticBasis = "Channeling indicators detected: rapid duration (<20s) or dual sour/bitter sensory dissonance.",
+            confidenceScore = 0.95
+        )
+    }
 
-        if (hasChannelingFlags) {
-            return OvatRecommendation(
-                targetVariable = OvatTargetVariable.PUCK_PREPARATION,
-                direction = AdjustmentDirection.MODIFY_TECHNIQUE,
-                suggestedMagnitude = "WDT + level tamp",
-                physicalReasoning = "Erratic fast flow and concurrent sour/astringent notes indicate micro-channeling where water bypasses bed zones.",
-                expectedImpact = "Eliminates localized under- and over-extraction channels before adjusting grinder setting.",
-                diagnosticBasis = "Channeling indicators detected: rapid duration (<20s) or dual sour/bitter sensory dissonance.",
-                confidenceScore = 0.95
-            )
-        }
-
-        // 2. Under-Extracted / Sour / Acidic
-        val isUnderExtracted = (ey != null && ey < 18.0) ||
-            combinedTaste.any { it in setOf("SOUR", "ACIDIC", "UNDER_EXTRACTED", "SALTY", "HOLLOW") }
-
-        if (isUnderExtracted) {
-            return OvatRecommendation(
-                targetVariable = OvatTargetVariable.GRIND_SIZE,
-                direction = AdjustmentDirection.FINER,
-                suggestedMagnitude = "1 step / notch finer",
-                physicalReasoning = "Decreasing particle radius increases contact surface area and tortuosity, increasing extraction yield.",
-                expectedImpact = "Increases Extraction Yield by ~0.5% - 1.2%, softening sour acids into sweet caramelized sugars.",
-                diagnosticBasis = "Extraction yield < 18.0% or dominant sour/under-extracted sensory descriptors.",
-                confidenceScore = 0.92
-            )
-        }
-
-        // 3. Over-Extracted / Bitter / Dry / Astringent
-        val isOverExtracted = (ey != null && ey > 22.0) ||
-            combinedTaste.any { it in setOf("BITTER", "ASTRINGENT", "DRY", "HARSH", "OVER_EXTRACTED", "ASHY") }
-
-        if (isOverExtracted) {
-            return OvatRecommendation(
-                targetVariable = OvatTargetVariable.GRIND_SIZE,
-                direction = AdjustmentDirection.COARSER,
-                suggestedMagnitude = "1 step / notch coarser",
-                physicalReasoning = "Increasing particle radius reduces contact time and curbs dissolution of high molecular-weight chlorogenic acid lactones and phenylindanes.",
-                expectedImpact = "Decreases Extraction Yield by ~0.6% - 1.5%, removing dry astringency and harsh finish.",
-                diagnosticBasis = "Extraction yield > 22.0% or prominent bitterness/dry astringency.",
-                confidenceScore = 0.90
-            )
-        }
-
-        // 4. Weak / Low TDS
-        val isWeak = if (isEspresso) (tds != null && tds < 7.5) else (tds != null && tds < 1.15)
-        if (isWeak) {
-            return OvatRecommendation(
-                targetVariable = OvatTargetVariable.BREW_RATIO_YIELD,
-                direction = AdjustmentDirection.DECREASE,
-                suggestedMagnitude = if (isEspresso) "-2.0g liquid yield" else "-1.0 ratio denominator (e.g. 1:16 -> 1:15)",
-                physicalReasoning = "Decreasing solvent volume relative to solute raises total dissolved solids concentration.",
-                expectedImpact = "Increases beverage strength and tactile mouthfeel body without over-extracting solids.",
-                diagnosticBasis = "TDS below optimal beverage strength window.",
-                confidenceScore = 0.88
-            )
-        }
-
-        // 5. Strong / High TDS
-        val isStrong = if (isEspresso) (tds != null && tds > 12.0) else (tds != null && tds > 1.55)
-        if (isStrong) {
-            return OvatRecommendation(
-                targetVariable = OvatTargetVariable.BREW_RATIO_YIELD,
-                direction = AdjustmentDirection.INCREASE,
-                suggestedMagnitude = if (isEspresso) "+3.0g liquid yield" else "+15g bypass water",
-                physicalReasoning = "Adding solvent dilutes intense dissolved solids concentration without altering extracted flavour profile.",
-                expectedImpact = "Increases clarity and separation of delicate floral/fruit aromatic compounds.",
-                diagnosticBasis = "TDS exceeds optimal drinkability window.",
-                confidenceScore = 0.88
-            )
-        }
-
-        // 6. Optimal & Dialed-in
+    private fun underExtractedRecommendation(context: OvatContext): OvatRecommendation? {
+        val isUnderExtracted = (context.ey != null && context.ey < 18.0) ||
+            context.taste.any { it in UNDER_EXTRACTED_TASTES }
+        if (!isUnderExtracted) return null
         return OvatRecommendation(
             targetVariable = OvatTargetVariable.GRIND_SIZE,
             direction = AdjustmentDirection.FINER,
-            suggestedMagnitude = "Hold steady (0 adjustment)",
-            physicalReasoning = "Extraction parameters reside within the ideal SCA Gold Cup window.",
-            expectedImpact = "Maintain consistent repeatable preparation.",
-            diagnosticBasis = "Extraction yield and strength are harmoniously balanced.",
-            confidenceScore = 0.98
+            suggestedMagnitude = "1 step / notch finer",
+            physicalReasoning = "Decreasing particle radius increases contact surface area and tortuosity, increasing extraction yield.",
+            expectedImpact = "Increases Extraction Yield by ~0.5% - 1.2%, softening sour acids into sweet caramelized sugars.",
+            diagnosticBasis = "Extraction yield < 18.0% or dominant sour/under-extracted sensory descriptors.",
+            confidenceScore = 0.92
         )
     }
+
+    private fun overExtractedRecommendation(context: OvatContext): OvatRecommendation? {
+        val isOverExtracted = (context.ey != null && context.ey > 22.0) ||
+            context.taste.any { it in OVER_EXTRACTED_TASTES }
+        if (!isOverExtracted) return null
+        return OvatRecommendation(
+            targetVariable = OvatTargetVariable.GRIND_SIZE,
+            direction = AdjustmentDirection.COARSER,
+            suggestedMagnitude = "1 step / notch coarser",
+            physicalReasoning = "Increasing particle radius reduces contact time and curbs dissolution of high " +
+                "molecular-weight chlorogenic acid lactones and phenylindanes.",
+            expectedImpact = "Decreases Extraction Yield by ~0.6% - 1.5%, removing dry astringency and harsh finish.",
+            diagnosticBasis = "Extraction yield > 22.0% or prominent bitterness/dry astringency.",
+            confidenceScore = 0.90
+        )
+    }
+
+    private fun weakBrewRecommendation(context: OvatContext): OvatRecommendation? {
+        val threshold = if (context.isEspresso) 7.5 else 1.15
+        if (context.tds == null || context.tds >= threshold) return null
+        return OvatRecommendation(
+            targetVariable = OvatTargetVariable.BREW_RATIO_YIELD,
+            direction = AdjustmentDirection.DECREASE,
+            suggestedMagnitude = if (context.isEspresso) "-2.0g liquid yield" else "-1.0 ratio denominator (e.g. 1:16 -> 1:15)",
+            physicalReasoning = "Decreasing solvent volume relative to solute raises total dissolved solids concentration.",
+            expectedImpact = "Increases beverage strength and tactile mouthfeel body without over-extracting solids.",
+            diagnosticBasis = "TDS below optimal beverage strength window.",
+            confidenceScore = 0.88
+        )
+    }
+
+    private fun strongBrewRecommendation(context: OvatContext): OvatRecommendation? {
+        val threshold = if (context.isEspresso) 12.0 else 1.55
+        if (context.tds == null || context.tds <= threshold) return null
+        return OvatRecommendation(
+            targetVariable = OvatTargetVariable.BREW_RATIO_YIELD,
+            direction = AdjustmentDirection.INCREASE,
+            suggestedMagnitude = if (context.isEspresso) "+3.0g liquid yield" else "+15g bypass water",
+            physicalReasoning = "Adding solvent dilutes intense dissolved solids concentration without altering extracted flavour profile.",
+            expectedImpact = "Increases clarity and separation of delicate floral/fruit aromatic compounds.",
+            diagnosticBasis = "TDS exceeds optimal drinkability window.",
+            confidenceScore = 0.88
+        )
+    }
+
+    private fun balancedRecommendation() = OvatRecommendation(
+        targetVariable = OvatTargetVariable.GRIND_SIZE,
+        direction = AdjustmentDirection.FINER,
+        suggestedMagnitude = "Hold steady (0 adjustment)",
+        physicalReasoning = "Extraction parameters reside within the ideal SCA Gold Cup window.",
+        expectedImpact = "Maintain consistent repeatable preparation.",
+        diagnosticBasis = "Extraction yield and strength are harmoniously balanced.",
+        confidenceScore = 0.98
+    )
+
+    private data class OvatContext(
+        val entry: BrewJournalEntry,
+        val taste: List<String>,
+        val isEspresso: Boolean,
+        val meanFlow: Double,
+        val ey: Double?,
+        val tds: Double?
+    ) {
+        val hasRecommendationEvidence: Boolean
+            get() = !entry.timerOnly && (ey != null || tds != null || taste.isNotEmpty())
+
+        companion object {
+            fun from(entry: BrewJournalEntry, tasteFlags: List<String>) = OvatContext(
+                entry = entry,
+                taste = (tasteFlags + entry.tasteNotes).map { it.uppercase().trim() },
+                isEspresso = entry.isEspresso || entry.brewMethod.contains("Espresso", ignoreCase = true),
+                meanFlow = entry.espressoDetails?.meanFlowRateGps ?: 0.0,
+                ey = entry.extractionYieldPercent,
+                tds = entry.measuredTdsPercent
+            )
+        }
+    }
+
+    private val UNDER_EXTRACTED_TASTES = setOf("SOUR", "ACIDIC", "UNDER_EXTRACTED", "SALTY", "HOLLOW")
+    private val OVER_EXTRACTED_TASTES = setOf("BITTER", "ASTRINGENT", "DRY", "HARSH", "OVER_EXTRACTED", "ASHY")
 
     /**
      * Compute current and longest active brewing streak from session dates.
@@ -341,7 +370,8 @@ object BrewAnalyticsEngine {
     fun exportJournalToCsv(entries: List<BrewJournalEntry>): String {
         val sb = StringBuilder()
         sb.append(
-            "id,createdAt,beanName,brewMethod,equipment,doseGrams,waterGrams,ratio,temperatureC,brewDurationSeconds,drawdownSeconds,tdsPercent,eyPercent,rating,grinderModel,grindSetting,tags,generalNotes\n"
+            "id,createdAt,beanName,brewMethod,equipment,doseGrams,waterGrams,ratio,temperatureC," +
+                "brewDurationSeconds,drawdownSeconds,tdsPercent,eyPercent,rating,grinderModel,grindSetting,tags,generalNotes\n"
         )
 
         for (e in entries) {
@@ -379,92 +409,66 @@ object BrewAnalyticsEngine {
      * Parse Beanconqueror JSON export into CoffeeBean and BrewJournalEntry lists.
      */
     fun parseBeanconquerorJson(json: String): Pair<List<CoffeeBean>, List<BrewJournalEntry>> {
-        val beans = mutableListOf<CoffeeBean>()
-        val brews = mutableListOf<BrewJournalEntry>()
-
-        try {
-            val root = RecordJson.gson.fromJson(json, JsonObject::class.java)
-
-            // Parse BEANS
-            if (root.has("BEANS") && root["BEANS"].isJsonArray) {
-                val array = root.getAsJsonArray("BEANS")
-                for (elem in array) {
-                    if (elem.isJsonObject) {
-                        val obj = elem.asJsonObject
-                        val beanId = obj.get("id")?.asString ?: UUID.randomUUID().toString()
-                        val name = obj.get("name")?.asString ?: "Imported Bean"
-                        val roaster = obj.get("roaster")?.asString ?: "Unknown"
-                        val origin = obj.get("origin")?.asString ?: "Unknown"
-                        val roastDate = obj.get("roastingDate")?.asString
-                        val process = obj.get("processing")?.asString ?: "Unknown"
-                        val elevationStr = obj.get("elevation")?.asString ?: ""
-                        val altitude = Regex("\\d+").find(elevationStr)?.value?.toIntOrNull()
-
-                        beans.add(
-                            CoffeeBean(
-                                id = beanId,
-                                name = name,
-                                producer = roaster,
-                                country = origin,
-                                process = process,
-                                roastDate = roastDate,
-                                altitudeMeters = altitude,
-                                provenance = "Imported from Beanconqueror export"
-                            )
-                        )
-                    }
-                }
-            }
-
-            // Parse BREWS
-            if (root.has("BREWS") && root["BREWS"].isJsonArray) {
-                val array = root.getAsJsonArray("BREWS")
-                for (elem in array) {
-                    if (elem.isJsonObject) {
-                        val obj = elem.asJsonObject
-                        val brewId = obj.get("id")?.asString ?: UUID.randomUUID().toString()
-                        val beanId = obj.get("bean")?.asString
-                        val grindSize = obj.get("grind_size")?.asString ?: ""
-                        val grinder = obj.get("grinder")?.asString ?: ""
-                        val method = obj.get("method_of_preparation")?.asString ?: "Pour Over"
-                        val coffeeAmount = obj.get("coffee_amount")?.asDouble ?: 15.0
-                        val waterAmount = obj.get("water_amount")?.asDouble ?: 250.0
-                        val brewTime = obj.get("total_brew_time")?.asInt ?: 180
-                        val beverageMass = obj.get("brew_beverage_quantity")?.asDouble
-                        val tds = obj.get("tds")?.asDouble
-                        val ratingRaw = obj.get("rating")?.asDouble
-                        // Beanconqueror rating is often 1-5, map to 1-10
-                        val mappedRating = if (ratingRaw != null && ratingRaw <= 5.0) {
-                            ratingRaw * 2.0
-                        } else {
-                            ratingRaw
-                        }
-                        val note = obj.get("note")?.asString ?: ""
-
-                        brews.add(
-                            BrewJournalEntry(
-                                id = brewId,
-                                beanId = beanId,
-                                beanName = beans.find { it.id == beanId }?.name ?: "Beanconqueror Bean",
-                                brewMethod = method,
-                                doseGrams = coffeeAmount,
-                                waterGrams = waterAmount,
-                                beverageMassGrams = beverageMass,
-                                brewDurationSeconds = brewTime,
-                                grinderModel = grinder,
-                                grindSetting = grindSize,
-                                measuredTdsPercent = tds,
-                                rating = mappedRating,
-                                generalNotes = note
-                            )
-                        )
-                    }
-                }
-            }
-        } catch (_: Exception) {
-            // Graceful fallback on non-Beanconqueror schemas
-        }
-
-        return Pair(beans, brews)
+        val root = parseJsonObject(json) ?: return emptyList<CoffeeBean>() to emptyList()
+        val beans = root.objects("BEANS").map(::parseImportedBean)
+        val brews = root.objects("BREWS").map { parseImportedBrew(it, beans) }
+        return beans to brews
     }
+
+    private fun parseJsonObject(json: String): JsonObject? = try {
+        RecordJson.gson.fromJson(json, JsonObject::class.java)
+    } catch (_: JsonParseException) {
+        null
+    } catch (_: IllegalStateException) {
+        null
+    }
+
+    private fun JsonObject.objects(field: String): List<JsonObject> =
+        get(field)?.takeIf(JsonElement::isJsonArray)?.asJsonArray?.mapNotNull { element ->
+            element.takeIf(JsonElement::isJsonObject)?.asJsonObject
+        }.orEmpty()
+
+    private fun parseImportedBean(obj: JsonObject): CoffeeBean {
+        val elevation = obj.stringValue("elevation").orEmpty()
+        return CoffeeBean(
+            id = obj.stringValue("id") ?: UUID.randomUUID().toString(),
+            name = obj.stringValue("name") ?: "Imported Bean",
+            producer = obj.stringValue("roaster") ?: "Unknown",
+            country = obj.stringValue("origin") ?: "Unknown",
+            process = obj.stringValue("processing") ?: "Unknown",
+            roastDate = obj.stringValue("roastingDate"),
+            altitudeMeters = Regex("\\d+").find(elevation)?.value?.toIntOrNull(),
+            provenance = "Imported from Beanconqueror export"
+        )
+    }
+
+    private fun parseImportedBrew(obj: JsonObject, beans: List<CoffeeBean>): BrewJournalEntry {
+        val beanId = obj.stringValue("bean")
+        val rating = obj.doubleValue("rating")?.let { value -> if (value <= 5.0) value * 2.0 else value }
+        return BrewJournalEntry(
+            id = obj.stringValue("id") ?: UUID.randomUUID().toString(),
+            beanId = beanId,
+            beanName = beans.find { it.id == beanId }?.name ?: "Beanconqueror Bean",
+            brewMethod = obj.stringValue("method_of_preparation") ?: "Pour Over",
+            doseGrams = obj.doubleValue("coffee_amount") ?: DEFAULT_IMPORTED_DOSE_GRAMS,
+            waterGrams = obj.doubleValue("water_amount") ?: DEFAULT_IMPORTED_WATER_GRAMS,
+            beverageMassGrams = obj.doubleValue("brew_beverage_quantity"),
+            brewDurationSeconds = obj.intValue("total_brew_time") ?: DEFAULT_IMPORTED_BREW_SECONDS,
+            grinderModel = obj.stringValue("grinder") ?: "",
+            grindSetting = obj.stringValue("grind_size") ?: "",
+            measuredTdsPercent = obj.doubleValue("tds"),
+            rating = rating,
+            generalNotes = obj.stringValue("note") ?: ""
+        )
+    }
+
+    private fun JsonObject.stringValue(field: String): String? = get(field)?.takeIf(JsonElement::isJsonPrimitive)?.asJsonPrimitive?.asString
+
+    private fun JsonObject.doubleValue(field: String): Double? = stringValue(field)?.toDoubleOrNull()?.takeIf(Double::isFinite)
+
+    private fun JsonObject.intValue(field: String): Int? = stringValue(field)?.toDoubleOrNull()?.takeIf(Double::isFinite)?.toInt()
+
+    private const val DEFAULT_IMPORTED_DOSE_GRAMS = 15.0
+    private const val DEFAULT_IMPORTED_WATER_GRAMS = 250.0
+    private const val DEFAULT_IMPORTED_BREW_SECONDS = 180
 }

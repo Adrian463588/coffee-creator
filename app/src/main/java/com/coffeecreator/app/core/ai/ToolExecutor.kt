@@ -158,108 +158,138 @@ class ToolExecutor(
     suspend fun execute(toolName: String, arguments: Map<String, Any?>): ToolExecutionResult = try {
         val tool = registry.find { it.name == toolName } ?: error("Tool is not allowlisted: $toolName")
         validateArguments(tool, arguments)
-        fun number(name: String) = (arguments.getValue(name) as Number).toDouble()
-        fun string(name: String) = arguments.getValue(name) as String
-        val result: Any = when (toolName) {
-            "calculate_brew_ratio" -> CoffeeScienceEngine.calculateBrewRatio(number("doseGrams"), number("waterGrams")).getOrThrow()
-            "calculate_extraction_yield" -> CoffeeScienceEngine.calculateExtractionYield(
-                number("doseGrams"),
-                number("beverageMassGrams"),
-                number("measuredTdsPercent")
-            ).getOrThrow()
-            "calculate_dilution" -> CoffeeScienceEngine.calculateDilution(
-                number("initialMassGrams"),
-                number("initialTdsPercent"),
-                number("addedWaterGrams")
-            ).getOrThrow()
-            "calculate_concentration_ppm" -> CoffeeScienceEngine.calculateConcentration(
-                number("soluteMassGrams"),
-                number("solutionMassGrams")
-            ).getOrThrow()
-            "convert_units" -> CoffeeScienceEngine.calculateVolumeToMass(number("volumeMl"), number("densityGramsPerMl")).getOrThrow()
-            "lookup_ingredient" -> ingredients().filter { it.name.contains(string("query"), true) }
-            "lookup_coffee_origin" -> beans().filter {
-                listOf(it.name, it.country, it.region, it.process).any { value -> value.contains(string("query"), true) }
-            }
-            "search_documents" -> search(string("query"))
-            "estimate_sensory_profile" -> {
-                val recipe = recipes().find { it.id == string("recipeId") } ?: error("Recipe not found.")
-                val bean = beans().find { it.id == recipe.beanId }
-                val ey = if (recipe.beverageMassGrams != null && recipe.measuredTdsPercent != null) {
-                    CoffeeScienceEngine.calculateExtractionYield(
-                        recipe.doseGrams,
-                        recipe.beverageMassGrams,
-                        recipe.measuredTdsPercent
-                    ).getOrNull()?.extractionYieldPercent
-                } else {
-                    null
-                }
-                SensoryRulesEngine.estimateProfile(bean, recipe, ey)
-            }
-            "recommend_recipe", "save_recipe" -> Recipe(
-                id = UUID.randomUUID().toString(),
-                name = string("name"),
-                doseGrams = number("doseGrams"),
-                waterGrams = number("waterGrams"),
-                brewMethod = string("brewMethod")
-            ).also { DomainValidation.validateRecipe(it, ingredients()) }
-            "calculate_altitude_boiling_point" -> {
-                val elevation = number("elevationMeters")
-                val tBoil = WeatherAltitudeCalculator.calculateBoilingPointCelsius(elevation)
-                val maxBrewTemp = WeatherAltitudeCalculator.clampWaterTemperature(95.0, elevation)
-                mapOf(
-                    "elevationMeters" to elevation,
-                    "boilingPointCelsius" to tBoil,
-                    "maxSafeBrewTempCelsius" to maxBrewTemp,
-                    "status" to "At ${elevation}m, water boils at $tBoil°C"
-                )
-            }
-            "audit_ingredient_safety" -> {
-                val ingName = string("ingredientName")
-                val pct = number("massFractionPercent")
-                val matched = ingredients().find { it.name.contains(ingName, ignoreCase = true) }
-                    ?: error("No local ingredient record verifies '$ingName'.")
-                IngredientSafetyValidator.auditIngredient(
-                    ingName,
-                    matched.foodGrade,
-                    matched.allergens,
-                    pct,
-                    matched.supplierMaxPercent
-                )
-            }
-            "propose_feedback_adjustment" -> {
-                val actualDuration = number("actualDurationSeconds")
-                val targetDuration = number("targetDurationSeconds")
-                require(actualDuration % 1.0 == 0.0 && targetDuration % 1.0 == 0.0) {
-                    "Brew durations must be whole seconds."
-                }
-                val diag = SensoryFeedbackDiagnosis.valueOf(string("diagnosis").uppercase())
-                val recipeInputs = mapOf(
-                    "grindClicks" to number("grindClicks"),
-                    "waterTempCelsius" to number("waterTempCelsius"),
-                    "doseGrams" to number("doseGrams"),
-                    "waterGrams" to number("waterGrams")
-                )
-                require(number("grindClicks") % 1.0 == 0.0) { "Grinder clicks must be a whole number." }
-                FeedbackLoopEngine.proposeAdjustment(
-                    recipeInputs,
-                    actualDuration.toInt(),
-                    targetDuration.toInt(),
-                    diag,
-                    number("boilingPointCelsius")
-                )
-            }
-            "recommend_inventory_bean" -> error(
-                "Verified bag inventory and a recorded sensory profile are not available to this tool."
-            )
-            else -> error("Tool not implemented.")
-        }
+        val result = dispatchTool(toolName, ToolArguments(arguments))
         val confirmation = tool.isWriteOperation
         ToolExecutionResult(toolName, true, gson.toJson(result), confirmation, result)
     } catch (cancelled: CancellationException) {
         throw cancelled
     } catch (boundaryFailure: Exception) {
         ToolExecutionResult(toolName, false, boundaryFailure.message ?: "Tool validation failed.")
+    }
+
+    private suspend fun dispatchTool(toolName: String, arguments: ToolArguments): Any = when (toolName) {
+        in CALCULATION_TOOLS -> executeCalculation(toolName, arguments)
+        in LOOKUP_TOOLS -> executeLookup(toolName, arguments)
+        "estimate_sensory_profile" -> estimateSensoryProfile(arguments.string("recipeId"))
+        "recommend_recipe", "save_recipe" -> createRecipe(arguments)
+        "calculate_altitude_boiling_point" -> calculateAltitudeBoilingPoint(arguments.number("elevationMeters"))
+        "audit_ingredient_safety" -> auditIngredientSafety(arguments)
+        "propose_feedback_adjustment" -> proposeFeedbackAdjustment(arguments)
+        "recommend_inventory_bean" -> error(
+            "Verified bag inventory and a recorded sensory profile are not available to this tool."
+        )
+        else -> error("Tool not implemented.")
+    }
+
+    private fun executeCalculation(toolName: String, arguments: ToolArguments): Any = when (toolName) {
+        "calculate_brew_ratio" -> CoffeeScienceEngine.calculateBrewRatio(
+            arguments.number("doseGrams"),
+            arguments.number("waterGrams")
+        ).getOrThrow()
+        "calculate_extraction_yield" -> CoffeeScienceEngine.calculateExtractionYield(
+            arguments.number("doseGrams"),
+            arguments.number("beverageMassGrams"),
+            arguments.number("measuredTdsPercent")
+        ).getOrThrow()
+        "calculate_dilution" -> CoffeeScienceEngine.calculateDilution(
+            arguments.number("initialMassGrams"),
+            arguments.number("initialTdsPercent"),
+            arguments.number("addedWaterGrams")
+        ).getOrThrow()
+        "calculate_concentration_ppm" -> CoffeeScienceEngine.calculateConcentration(
+            arguments.number("soluteMassGrams"),
+            arguments.number("solutionMassGrams")
+        ).getOrThrow()
+        "convert_units" -> CoffeeScienceEngine.calculateVolumeToMass(
+            arguments.number("volumeMl"),
+            arguments.number("densityGramsPerMl")
+        ).getOrThrow()
+        else -> error("Unsupported calculation tool: $toolName")
+    }
+
+    private suspend fun executeLookup(toolName: String, arguments: ToolArguments): Any {
+        val query = arguments.string("query")
+        return when (toolName) {
+            "lookup_ingredient" -> ingredients().filter { it.name.contains(query, ignoreCase = true) }
+            "lookup_coffee_origin" -> beans().filter { bean ->
+                listOf(bean.name, bean.country, bean.region, bean.process)
+                    .any { field -> field.contains(query, ignoreCase = true) }
+            }
+            "search_documents" -> search(query)
+            else -> error("Unsupported lookup tool: $toolName")
+        }
+    }
+
+    private fun estimateSensoryProfile(recipeId: String): Any {
+        val recipe = recipes().find { it.id == recipeId } ?: error("Recipe not found.")
+        val bean = beans().find { it.id == recipe.beanId }
+        val ey = if (recipe.beverageMassGrams != null && recipe.measuredTdsPercent != null) {
+            CoffeeScienceEngine.calculateExtractionYield(
+                recipe.doseGrams,
+                recipe.beverageMassGrams,
+                recipe.measuredTdsPercent
+            ).getOrNull()?.extractionYieldPercent
+        } else {
+            null
+        }
+        return SensoryRulesEngine.estimateProfile(bean, recipe, ey)
+    }
+
+    private fun createRecipe(arguments: ToolArguments): Recipe = Recipe(
+        id = UUID.randomUUID().toString(),
+        name = arguments.string("name"),
+        doseGrams = arguments.number("doseGrams"),
+        waterGrams = arguments.number("waterGrams"),
+        brewMethod = arguments.string("brewMethod")
+    ).also { DomainValidation.validateRecipe(it, ingredients()) }
+
+    private fun calculateAltitudeBoilingPoint(elevationMeters: Double): Map<String, Any> {
+        val boilingPoint = WeatherAltitudeCalculator.calculateBoilingPointCelsius(elevationMeters)
+        val maxBrewTemperature = WeatherAltitudeCalculator.clampWaterTemperature(95.0, elevationMeters)
+        return mapOf(
+            "elevationMeters" to elevationMeters,
+            "boilingPointCelsius" to boilingPoint,
+            "maxSafeBrewTempCelsius" to maxBrewTemperature,
+            "status" to "At ${elevationMeters}m, water boils at $boilingPoint°C"
+        )
+    }
+
+    private fun auditIngredientSafety(arguments: ToolArguments): Any {
+        val ingredientName = arguments.string("ingredientName")
+        val massFractionPercent = arguments.number("massFractionPercent")
+        val matched = ingredients().find { it.name.contains(ingredientName, ignoreCase = true) }
+            ?: error("No local ingredient record verifies '$ingredientName'.")
+        return IngredientSafetyValidator.auditIngredient(
+            ingredientName,
+            matched.foodGrade,
+            matched.allergens,
+            massFractionPercent,
+            matched.supplierMaxPercent
+        )
+    }
+
+    private fun proposeFeedbackAdjustment(arguments: ToolArguments): Any {
+        val actualDuration = arguments.number("actualDurationSeconds")
+        val targetDuration = arguments.number("targetDurationSeconds")
+        require(actualDuration % 1.0 == 0.0 && targetDuration % 1.0 == 0.0) {
+            "Brew durations must be whole seconds."
+        }
+        val grinderClicks = arguments.number("grindClicks")
+        require(grinderClicks % 1.0 == 0.0) { "Grinder clicks must be a whole number." }
+        val recipeInputs = mapOf(
+            "grindClicks" to grinderClicks,
+            "waterTempCelsius" to arguments.number("waterTempCelsius"),
+            "doseGrams" to arguments.number("doseGrams"),
+            "waterGrams" to arguments.number("waterGrams")
+        )
+        val diagnosis = SensoryFeedbackDiagnosis.valueOf(arguments.string("diagnosis").uppercase())
+        return FeedbackLoopEngine.proposeAdjustment(
+            recipeInputs,
+            actualDuration.toInt(),
+            targetDuration.toInt(),
+            diagnosis,
+            arguments.number("boilingPointCelsius")
+        )
     }
 
     private fun validateArguments(tool: ToolDefinition, arguments: Map<String, Any?>) {
@@ -280,5 +310,22 @@ class ToolExecutor(
                 "Invalid $type argument: $name"
             }
         }
+    }
+
+    private data class ToolArguments(private val values: Map<String, Any?>) {
+        fun number(name: String): Double = (values.getValue(name) as Number).toDouble()
+
+        fun string(name: String): String = values.getValue(name) as String
+    }
+
+    private companion object {
+        val CALCULATION_TOOLS = setOf(
+            "calculate_brew_ratio",
+            "calculate_extraction_yield",
+            "calculate_dilution",
+            "calculate_concentration_ppm",
+            "convert_units"
+        )
+        val LOOKUP_TOOLS = setOf("lookup_ingredient", "lookup_coffee_origin", "search_documents")
     }
 }

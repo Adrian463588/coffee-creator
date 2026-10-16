@@ -1,13 +1,13 @@
 package com.coffeecreator.app.core.sensory
 
 import java.math.BigDecimal
-import java.math.MathContext
 import java.math.RoundingMode
 import java.security.MessageDigest
 
 object CuppingAnalyticsEngine {
-
-    private val MC = MathContext(8, RoundingMode.HALF_UP)
+    private const val LIGHT_ROAST_STALING_DAY = 45
+    private const val DARK_ROAST_STALING_DAY = 25
+    private const val MEDIUM_ROAST_STALING_DAY = 35
 
     // ========================================================================
     // 1. Multi-Evaluator Consensus & Dispersion (S2-059)
@@ -291,8 +291,10 @@ object CuppingAnalyticsEngine {
 
     fun predictRoastRestCurve(
         bagId: String,
-        roastLevel: String = "LIGHT", // LIGHT, MEDIUM, DARK
-        process: String = "WASHED" // WASHED, NATURAL, ANAEROBIC
+        // LIGHT, MEDIUM, DARK
+        roastLevel: String = "LIGHT",
+        // WASHED, NATURAL, ANAEROBIC
+        process: String = "WASHED"
     ): RestCurvePrediction {
         val cleanRoast = roastLevel.uppercase()
         val cleanProcess = process.uppercase()
@@ -301,15 +303,15 @@ object CuppingAnalyticsEngine {
             cleanRoast.contains("LIGHT") -> {
                 val start = if (cleanProcess.contains("ANAEROBIC") || cleanProcess.contains("NATURAL")) 8 else 10
                 val end = if (cleanProcess.contains("ANAEROBIC") || cleanProcess.contains("NATURAL")) 28 else 24
-                Triple(start, end, 45)
+                Triple(start, end, LIGHT_ROAST_STALING_DAY)
             }
             cleanRoast.contains("DARK") -> {
-                Triple(3, 10, 25)
+                Triple(3, 10, DARK_ROAST_STALING_DAY)
             }
             else -> { // MEDIUM
                 val start = if (cleanProcess.contains("NATURAL")) 5 else 6
                 val end = if (cleanProcess.contains("NATURAL")) 20 else 18
-                Triple(start, end, 35)
+                Triple(start, end, MEDIUM_ROAST_STALING_DAY)
             }
         }
 
@@ -319,7 +321,8 @@ object CuppingAnalyticsEngine {
             confidenceLower = BigDecimal(peakStart),
             confidenceUpper = BigDecimal(peakEnd),
             confidenceLevelPercent = 85,
-            methodDisclaimer = "Heuristic estimate based on bean density, process, and roast level. Actual degassing rates depend on ambient storage temperature and valve packaging.",
+            methodDisclaimer = "Heuristic estimate based on bean density, process, and roast level. " +
+                "Actual degassing rates depend on ambient storage temperature and valve packaging.",
             timestamp = System.currentTimeMillis()
         )
 
@@ -397,7 +400,8 @@ object CuppingAnalyticsEngine {
 
             if (phys != null) {
                 sb.append(
-                    "- **Physical QC:** Grade: ${phys.calculatedGrade}, Moisture: ${phys.moisturePercentage}%, aw: ${phys.waterActivityAw}, Agtron Roast Delta: ${phys.roastDeltaAgtron}\n"
+                    "- **Physical QC:** Grade: ${phys.calculatedGrade}, Moisture: ${phys.moisturePercentage}%, " +
+                        "aw: ${phys.waterActivityAw}, Agtron Roast Delta: ${phys.roastDeltaAgtron}\n"
                 )
             }
             sb.append("\n")
@@ -406,9 +410,12 @@ object CuppingAnalyticsEngine {
             val descCsv = consensus.descriptorCloud.take(3).joinToString(";") { it.descriptor }
             val gradeCsv = phys?.calculatedGrade ?: "N/A"
             val agtronCsv = phys?.roastDeltaAgtron?.toString() ?: "N/A"
-            csv.append(
-                "${sample.sampleId},\"${sample.blindCode}\",\"${if (sample.isRevealed) sample.beanName else "MASKED"}\",\"${if (sample.isRevealed) sample.origin.orEmpty() else "MASKED"}\",${consensus.finalConsensusScore},${consensus.overallPanelAgreementIndex},\"$descCsv\",\"$gradeCsv\",$agtronCsv\n"
-            )
+            val beanName = if (sample.isRevealed) sample.beanName else "MASKED"
+            val origin = if (sample.isRevealed) sample.origin.orEmpty() else "MASKED"
+            val identityColumns = "${sample.sampleId},\"${sample.blindCode}\",\"$beanName\",\"$origin\","
+            val consensusColumns =
+                "${consensus.finalConsensusScore},${consensus.overallPanelAgreementIndex},\"$descCsv\","
+            csv.append(identityColumns + consensusColumns + "\"$gradeCsv\",$agtronCsv\n")
         }
 
         sb.append("## Audit Trail Log\n")
@@ -416,10 +423,10 @@ object CuppingAnalyticsEngine {
             sb.append("_No administrative state mutations recorded._\n")
         } else {
             session.auditTrail.forEach { entry ->
+                val timestamp = java.util.Date(entry.timestamp)
                 sb.append(
-                    "- [${java.util.Date(
-                        entry.timestamp
-                    )}] User `${entry.editorId}`: **${entry.action}** — ${entry.reason} (State: ${entry.previousStateSummary} -> ${entry.newStateSummary})\n"
+                    "- [$timestamp] User `${entry.editorId}`: **${entry.action}** — ${entry.reason} " +
+                        "(State: ${entry.previousStateSummary} -> ${entry.newStateSummary})\n"
                 )
             }
         }
