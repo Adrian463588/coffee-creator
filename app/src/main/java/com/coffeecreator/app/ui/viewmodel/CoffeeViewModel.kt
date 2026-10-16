@@ -21,9 +21,9 @@ import com.coffeecreator.app.core.brew.AudioCueType
 import com.coffeecreator.app.core.brew.BrewSessionState
 import com.coffeecreator.app.core.brew.HapticCueType
 import com.coffeecreator.app.core.catalog.BagOcrParsedDraft
-import com.coffeecreator.app.core.catalog.EquipmentOcrParsedDraft
 import com.coffeecreator.app.core.catalog.DetailedBeanRecord
 import com.coffeecreator.app.core.catalog.EquipmentItem
+import com.coffeecreator.app.core.catalog.EquipmentOcrParsedDraft
 import com.coffeecreator.app.core.catalog.FoodGradeIngredientItem
 import com.coffeecreator.app.core.catalog.GreenCoffeeLot
 import com.coffeecreator.app.core.catalog.GrinderRecord
@@ -84,7 +84,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
 
 data class CoffeeUiState(
     val ready: Boolean = false,
@@ -188,8 +187,8 @@ internal fun ModelAsset.isSupportedByNativeRuntime(): Boolean =
 class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val saved: SavedStateHandle) : ViewModel() {
     internal val gson = Gson()
     val diagnosticBuffer = DiagnosticLogBuffer(500)
-    internal val _state = MutableStateFlow(CoffeeUiState())
-    val state: StateFlow<CoffeeUiState> = _state.asStateFlow()
+    internal val mutableState = MutableStateFlow(CoffeeUiState())
+    val state: StateFlow<CoffeeUiState> = mutableState.asStateFlow()
     internal val draftWrites = MutableStateFlow<RecipeDraft?>(null)
     internal var generation: Job? = null
     internal var photoOcrJob: Job? = null
@@ -218,7 +217,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
                     failure
                 )
             }
-            _state.update {
+            mutableState.update {
                 it.copy(
                     journalEntries = storedRecords.journalEntries,
                     cafeCupEntries = storedRecords.cafeCupEntries,
@@ -258,7 +257,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
                     JsonInputPolicy.validateDepth(draftJson)
                     gson.fromJson(draftJson, RecipeDraft::class.java).also { it.validate() }
                 }.getOrNull()?.let { draft ->
-                    _state.update { it.copy(draft = draft) }
+                    mutableState.update { it.copy(draft = draft) }
                 }
             }
             undoDraft = saved.get<String>("undoDraft")?.let { json ->
@@ -267,15 +266,15 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
                     gson.fromJson(json, RecipeDraft::class.java).also { it.validate() }
                 }.getOrNull()
             }
-            _state.update { it.copy(ready = true, canUndoDraft = undoDraft != null) }
+            mutableState.update { it.copy(ready = true, canUndoDraft = undoDraft != null) }
             observeDurableRecords()
             calculate()
         }
         viewModelScope.launch {
             graph.preferences.data.catch { failure ->
-                _state.update { it.copy(error = "Preferences unavailable: ${failure.message}. Recipe records are retained.") }
+                mutableState.update { it.copy(error = "Preferences unavailable: ${failure.message}. Recipe records are retained.") }
             }.collect { prefs ->
-                _state.update {
+                mutableState.update {
                     it.copy(
                         theme = prefs.theme.ifBlank { "system" },
                         maxTokens = prefs.maxTokens.takeIf { count -> count in 16..256 } ?: 128,
@@ -289,7 +288,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
         viewModelScope.launch {
             graph.native.status.collect { status ->
                 if (status is NativeLlmStatus.Unloaded || status is NativeLlmStatus.Failed) {
-                    _state.update { it.copy(loadedModel = null) }
+                    mutableState.update { it.copy(loadedModel = null) }
                 }
             }
         }
@@ -304,7 +303,9 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (boundaryFailure: Exception) {
-                        _state.update { it.copy(error = "Draft not autosaved: ${boundaryFailure.message}. Saved revisions are retained.") }
+                        mutableState.update {
+                            it.copy(error = "Draft not autosaved: ${boundaryFailure.message}. " + "Saved revisions are retained.")
+                        }
                     }
                 }
             }
@@ -328,36 +329,70 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
 
     private fun observeRepository() {
         val repository = graph.repository
-        viewModelScope.launch { repository.errorState.collect { error -> if (error != null) _state.update { it.copy(error = error) } } }
-        viewModelScope.launch { repository.beans.collect { beans -> _state.update { it.copy(beans = beans) } } }
-        viewModelScope.launch { repository.ingredients.collect { ingredients -> _state.update { it.copy(ingredients = ingredients) } } }
+        viewModelScope.launch {
+            repository.errorState.collect { error ->
+                if (error != null) {
+                    mutableState.update {
+                        it.copy(
+                            error = error
+                        )
+                    }
+                }
+            }
+        }
+        viewModelScope.launch { repository.beans.collect { beans -> mutableState.update { it.copy(beans = beans) } } }
+        viewModelScope.launch {
+            repository.ingredients.collect { ingredients ->
+                mutableState.update {
+                    it.copy(
+                        ingredients = ingredients
+                    )
+                }
+            }
+        }
         viewModelScope.launch {
             repository.recipes.collect { recipes ->
-                _state.update { current -> current.copy(recipes = recipes) }
+                mutableState.update { current -> current.copy(recipes = recipes) }
                 refreshStreakAndStats()
             }
         }
         viewModelScope.launch {
-            repository.sensoryObservations.collect { observations -> _state.update { it.copy(observations = observations) } }
+            repository.sensoryObservations.collect { observations -> mutableState.update { it.copy(observations = observations) } }
         }
         viewModelScope.launch {
-            repository.sensoryEstimates.collect { estimates -> _state.update { it.copy(estimates = estimates) } }
+            repository.sensoryEstimates.collect { estimates -> mutableState.update { it.copy(estimates = estimates) } }
         }
-        viewModelScope.launch { repository.documents.collect { documents -> _state.update { it.copy(documents = documents) } } }
-        viewModelScope.launch { repository.chunks.collect { chunks -> _state.update { it.copy(chunks = chunks) } } }
-        viewModelScope.launch { repository.models.collect { models -> _state.update { it.copy(models = models) } } }
-        viewModelScope.launch { repository.personas.collect { personas -> _state.update { it.copy(personas = personas) } } }
-        viewModelScope.launch { repository.selectedPersona.collect { persona -> _state.update { it.copy(selectedPersona = persona) } } }
+        viewModelScope.launch { repository.documents.collect { documents -> mutableState.update { it.copy(documents = documents) } } }
+        viewModelScope.launch { repository.chunks.collect { chunks -> mutableState.update { it.copy(chunks = chunks) } } }
+        viewModelScope.launch { repository.models.collect { models -> mutableState.update { it.copy(models = models) } } }
+        viewModelScope.launch { repository.personas.collect { personas -> mutableState.update { it.copy(personas = personas) } } }
         viewModelScope.launch {
-            repository.chatMessages.collect { messages -> if (!_state.value.generating) _state.update { it.copy(messages = messages) } }
+            repository.selectedPersona.collect { persona ->
+                mutableState.update {
+                    it.copy(
+                        selectedPersona = persona
+                    )
+                }
+            }
         }
-        viewModelScope.launch { repository.safDirectoryUri.collect { uri -> _state.update { it.copy(directory = uri) } } }
+        viewModelScope.launch {
+            repository.chatMessages.collect { messages ->
+                if (!mutableState.value.generating) {
+                    mutableState.update {
+                        it.copy(
+                            messages = messages
+                        )
+                    }
+                }
+            }
+        }
+        viewModelScope.launch { repository.safDirectoryUri.collect { uri -> mutableState.update { it.copy(directory = uri) } } }
     }
 
     private fun observeDurableRecords() {
         viewModelScope.launch {
             state.map(::durableSnapshot).collect { current ->
-                if (!_state.value.ready || !graph.repository.ready.value) return@collect
+                if (!mutableState.value.ready || !graph.repository.ready.value) return@collect
                 val previous = persistedCoffeeSnapshot
                 if (previous == null) {
                     persistedCoffeeSnapshot = current
@@ -373,7 +408,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (boundaryFailure: Exception) {
-                    _state.update {
+                    mutableState.update {
                         it.copy(error = "Personal records were not saved: ${boundaryFailure.message ?: "local storage unavailable"}.")
                     }
                 }
@@ -391,7 +426,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
                     equipment = current.equipmentCatalog
                 )
             }.distinctUntilChanged().drop(1).collect {
-                _state.update { current ->
+                mutableState.update { current ->
                     if (current.inventoryRecommendations.isEmpty()) {
                         current
                     } else {
@@ -429,25 +464,25 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
         graph.rag.index(graph.repository.chunks.value.filter { it.documentId == document.id }) { index, total ->
             progress("Embedding source chunks $index / $total")
         }
-        _state.update { it.copy(notice = "Indexed ${document.title} with real source provenance.") }
+        mutableState.update { it.copy(notice = "Indexed ${document.title} with real source provenance.") }
     }
     fun reindex(document: KnowledgeDocument) = task("Reindexing retained chunks") {
         graph.rag.index(graph.repository.chunks.value.filter { it.documentId == document.id })
-        _state.update { it.copy(notice = "Source chunks indexed; repeated content is deduplicated.") }
+        mutableState.update { it.copy(notice = "Source chunks indexed; repeated content is deduplicated.") }
     }
     fun searchDocuments(query: String) = task("Retrieving local evidence") {
         graph.rag.index(graph.repository.chunks.value)
         val result = graph.rag.search(query)
-        _state.update { it.copy(searchResult = result) }
+        mutableState.update { it.copy(searchResult = result) }
     }
     fun inspectChunk(chunk: DocumentChunk?) {
-        _state.update { it.copy(inspectedChunk = chunk, sourceOpenError = null) }
+        mutableState.update { it.copy(inspectedChunk = chunk, sourceOpenError = null) }
     }
     fun openOriginal(context: android.content.Context) {
-        val chunk = _state.value.inspectedChunk ?: return
+        val chunk = mutableState.value.inspectedChunk ?: return
         viewModelScope.launch {
             try {
-                val source = _state.value.documents.find { it.id == chunk.documentId }
+                val source = mutableState.value.documents.find { it.id == chunk.documentId }
                 require(source != null && source.sourceUri.startsWith("content://")) {
                     "Original grant unavailable. Read the retained excerpt here."
                 }
@@ -471,7 +506,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (boundaryFailure: Exception) {
-                _state.update {
+                mutableState.update {
                     it.copy(
                         sourceOpenError = (boundaryFailure.message ?: "Original source unavailable.") +
                             " Retained excerpts remain readable."
@@ -483,11 +518,11 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
 
     fun selectDirectory(uri: Uri) = task("Verifying chosen directory") {
         val count = graph.assets.selectDirectory(uri)
-        _state.update { it.copy(notice = "Directory grant saved; $count verified model bundle(s) recovered.") }
+        mutableState.update { it.copy(notice = "Directory grant saved; $count verified model bundle(s) recovered.") }
     }
     fun discoverAssets() = task("Verifying published bundles") {
         val count = graph.assets.discover()
-        _state.update { it.copy(notice = "Recovered $count verified model bundle(s). Exports restore app records separately.") }
+        mutableState.update { it.copy(notice = "Recovered $count verified model bundle(s). Exports restore app records separately.") }
     }
     fun registerManifest(json: String) = task("Validating model manifest") { graph.assets.registerManifest(json) }
     fun modelAction(asset: ModelAsset, action: String) = task("Model: $action") {
@@ -501,11 +536,11 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
                     "This asset is download-only; the installed app has no compatible inference runtime."
                 }
                 graph.native.load(graph.assets.stageForInference(asset))
-                _state.update { it.copy(loadedModel = asset.name, notice = "Loaded actual local GGUF: ${asset.name}") }
+                mutableState.update { it.copy(loadedModel = asset.name, notice = "Loaded actual local GGUF: ${asset.name}") }
             }
             "unload" -> {
                 graph.native.unload()
-                _state.update { it.copy(loadedModel = null, notice = "Native model unloaded.") }
+                mutableState.update { it.copy(loadedModel = null, notice = "Native model unloaded.") }
             }
             else -> error("Unknown model action.")
         }
@@ -514,16 +549,16 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
 
     fun exportBackup(uri: Uri, resolver: android.content.ContentResolver) = task("Exporting complete local records") {
         val json = withDraftWritesPaused {
-            val snapshot = durableSnapshot(_state.value)
+            val snapshot = durableSnapshot(mutableState.value)
             graph.repository.saveSettings(
-                snapshot.allSettings(CoffeeDurableSnapshotCodec.serializer) + ("draft" to gson.toJson(_state.value.draft))
+                snapshot.allSettings(CoffeeDurableSnapshotCodec.serializer) + ("draft" to gson.toJson(mutableState.value.draft))
             )
             persistedCoffeeSnapshot = snapshot
             graph.repository.exportBackupJson()
         }
         resolver.openOutputStream(uri, "wt")?.use { it.write(json.toByteArray(Charsets.UTF_8)) } ?: error("Cannot write export.")
         diagnosticBuffer.log(LogLevel.INFO, "Backup", "Full backup exported to SAF URI: $uri")
-        _state.update {
+        mutableState.update {
             it.copy(notice = "Complete integrity-checked backup exported. This file contains personal records; keep it private.")
         }
     }
@@ -532,7 +567,11 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
             ?: error("Cannot read backup.")
         restoreRecords(json)
         graph.rag.clearVectors()
-        _state.update { it.copy(notice = "Validated backup restored atomically. Reselect source/model directories to restore grants.") }
+        mutableState.update {
+            it.copy(
+                notice = "Validated backup restored atomically. Reselect source/model directories to restore grants."
+            )
+        }
     }
     internal suspend fun restoreRecords(json: String) {
         // Validate UI-owned draft fields and extended settings before replacing records.
@@ -559,7 +598,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
                     persistedCoffeeSnapshot = restoredRecords
                     publishDraft(restored)
                     calculate()
-                    _state.update {
+                    mutableState.update {
                         it.copy(
                             selectedRecipeId = null,
                             estimate = null,
@@ -602,7 +641,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
     }
 
     private fun progress(message: String) {
-        _state.update { it.copy(progress = message) }
+        mutableState.update { it.copy(progress = message) }
     }
     internal fun decimal(input: String) = DomainValidation.parseDecimal(input).toDouble()
     internal fun optionalDecimal(input: String) = input.takeIf(String::isNotBlank)?.let(::decimal)
@@ -611,17 +650,17 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
     }
 
     internal fun task(description: String, block: suspend () -> Unit) {
-        if (_state.value.busy) return
-        _state.update { it.copy(busy = true, progress = description, error = null, notice = null) }
+        if (mutableState.value.busy) return
+        mutableState.update { it.copy(busy = true, progress = description, error = null, notice = null) }
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { block() }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (boundaryFailure: Exception) {
-                _state.update { it.copy(error = boundaryFailure.message ?: "Operation failed. Your existing records were retained.") }
+                mutableState.update { it.copy(error = boundaryFailure.message ?: "Operation failed. Your existing records were retained.") }
             } finally {
-                _state.update { it.copy(busy = false, progress = "") }
+                mutableState.update { it.copy(busy = false, progress = "") }
             }
         }
     }

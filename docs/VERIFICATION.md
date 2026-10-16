@@ -1,50 +1,37 @@
 # Verification and remaining acceptance
 
-This report separates implementation, local tests, physical-device evidence and
-release distribution. A successful build does not prove every PRD acceptance
-criterion. The 2026-10-15 checkpoint below recorded a request to test without an
-ADB device; the latest steering authorizes a connected-device run. A Samsung
-SM-G988B is now visible, but the current provenance-safe commit has not yet been
-installed or device-tested.
+This report records evidence for the v1.10.0 candidate and keeps software gates,
+device checks, and field acceptance separate. A successful build does not establish
+every PRD acceptance criterion.
 
-## Current provenance-safe change — 2026-10-16
+## Current candidate — 2026-10-17
 
-Base commit `2be19ce`; local commit `3594116` (`fix(provenance): keep unknown
-coffee data unrecorded`). This commit removes seeded personal records, unknown
-OCR/catalog fallbacks, fabricated brew completion measurements and generated
-cupping identity/score values. It also requires explicit evidence for relevant
-AI tools and user-entered QC values.
+- [x] `rtk proxy .\gradlew.bat :app:ktlintCheck :app:detekt :app:lintDebug :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --continue --console=plain --no-parallel --max-workers=1` — **BUILD SUCCESSFUL**; 120 actionable tasks, 244 JVM tests, zero failures/errors/skips. KtLint, Detekt and Android lint passed. Lint/compiler advisories remain visible; no blanket suppression was added.
+- [x] `rtk proxy python scripts/research_reference_catalog.py --verify --refresh` — **PASS**; 32 reviewed World Coffee Research variety records match the current primary pages and stored receipts. It does not establish that the bounded catalog is exhaustive.
+- [x] `rtk proxy python scripts/verify_apk.py app/build/outputs/apk/debug/app-debug.apk` — **PASS**; APK ZIP structure and 20 native libraries for arm64-v8a/x86_64 meet the repository's 16 KiB alignment checks. Static inspection is not runtime proof.
+- [x] Debug APK: 122,338,672 bytes, SHA-256 `d06e9c6bace080fb4e24cf34dfe66af21817e6fd2a18e9cd811c03f4c478fbc4`; package version 1.10.0, code 16, minSdk 26, targetSdk 35. Debug signing only; no production signing claim.
+- [x] Physical device: Samsung SM-G988B (`RRCN3008VYE`), Android 13/API 33, Owner user 0. Replaced with `adb install --user 0 -r` (**Success**); no uninstall or app-data clear. `MainActivity` reached `RESUMED`, app process remained active, and `adb logcat -d -t 2000 -s AndroidRuntime:E` returned no errors after launch. Airplane mode was enabled (`settings get global airplane_mode_on = 1`). Instrumentation was invoked through `adb shell am instrument --user 0` because the Gradle `-Pandroid.testInstrumentationRunnerArguments.*` property conflicts with the pinned Protobuf Gradle plugin's `sourceSets` configuration.
+- [x] 19 focused device test methods passed: `ManualJourneyTest` 4, `BrewSectionTest` 3, `CatalogPhotoCaptureDeviceTest` 1, `OfflineImageOcrDeviceTest` 4, `DocumentDeviceTest` 4, `RagEvaluationDeviceTest` 1, and two `OfflineAiDeviceTest` cases (verified MiniLM embeddings and malformed-GGUF recovery).
+- [x] On-device authored RAG fixture: 100 questions (90 answerable), direct facts 40/40, Recall@5 0.944444, cross-document 0.85, numeric/tool-needed 0.90, conflict cases 1.0, correct abstentions 10/10, false abstentions 0, deterministic numeric cases 20/20. Fixture SHA-256 `d67ae1172a0618b896ac20630fe3ee730b8b200c5a83729f3f3f0aa333da7b8d`. Airplane mode and no active network were recorded. This is a project-authored fixture, not an independently adjudicated answer-quality study; generated-answer faithfulness and LLM tool-selection accuracy were not measured.
+- [ ] Real bag/equipment photo acceptance remains pending. Device OCR coverage used generated test images; no human-captured coffee packaging was supplied or inspected. Correction, attachment retention and camera-to-record behavior still need a real label journey.
+- [ ] Current SAF checksum/import acceptance was blocked before the operation because no persistable permission grant exists for the QA tree URI. No SAF-owned file or user data was changed. Obtain a user-selected QA folder grant before rerunning asset/backup provider scenarios.
+- [ ] Qwen native generation, Kafi/Gemma transfer and inference are unverified on this device. The Qwen test GGUF is absent from the device; verified MiniLM embedding and malformed-GGUF recovery tests do not prove LLM generation or model catalog downloads.
+- [ ] Manual TalkBack, font-scale/expanded-layout review, macrobenchmark, independently adjudicated RAG faithfulness, and barista/sensory field evaluation remain outstanding.
 
-- [x] `.\gradlew.bat :app:lintDebug :app:testDebugUnitTest --console=plain` —
-  **BUILD SUCCESSFUL**; Android lint passed and all **210 JVM tests passed**
-  (0 failures, errors, or skips).
-- [x] `python scripts/research_reference_catalog.py --verify --refresh` —
-  **PASS**, 32 current World Coffee Research primary pages match reviewed field
-  values and hashes. Source prose and images are not bundled.
-- [ ] `.\gradlew.bat :app:ktlintCheck --console=plain` — **FAIL** in main
-  sources on remaining line-length and comment-placement rules. Test sources
-  pass. No style rules were disabled.
-- [ ] `.\gradlew.bat :app:detekt --console=plain` — **FAIL**, 198 findings:
-  99 `MaxLineLength`, 73 `MagicNumber`, and 26 complexity, exception, unused
-  member, and oversized-class findings. Cleanup is in progress on isolated
-  worktrees.
-- [x] Current-commit APK assembly (`app-debug.apk`), ADB stream-install, and runtime crash/ANR check verified on physical Samsung SM-G988B (`RRCN3008VYE`).
-- [x] Release v1.9.6 packaged with verified 210 JVM tests, tactile micro-depression, haptics, and jitter-free tabular metrics.
+## PRD requirement checklist
 
-## Requirement checklist
-
-| Requirement | Implemented behavior | Verification / remaining acceptance |
+| Requirement | Implemented behavior | Evidence and remaining acceptance |
 |---|---|---|
-| FR-01 Catalog | Durable local custom/reference beans, ingredients, search/edit, explicit unknown facts | Seed/dataset, validation and migration checks; provenance in DATASET.md. Catalog is bounded, not exhaustive. |
-| FR-02 Formulation | Unit-aware manual recipe, optional measured fields, copy/version/draft, destructive draft Undo and Brew chips | Golden/validation tests; local Compose section/recreation/double-reset tests. New physical UX/field test not run. |
-| FR-03 Calculations | Pure Kotlin mass ratio, EY, dilution, concentration, density conversion with inputs/units/assumptions | 18g/270g/1.30% golden yields19.50%; boundary and provenance tests. No laboratory accuracy claim. |
-| FR-04 Sensory | Human observations and separately persisted uncalibrated estimates; original radar artwork | Domain/backup checks; actual barista/panel validation remains not run. |
-| FR-05 Local LLM | Pinned native GGUF stream/cancel/load guards and coordinator context preflight | Previous device native suite passed; latest coordinator and dependency changes need physical retest. |
-| FR-06 RAG/OCR | Actual ONNX, Room FTS4 + ObjectBox, TXT/PDF/English OCR, source-bound citations and recovery | Prior physical ingestion passed. Last physical RAG direct39/40 failed; host reproduction after fix40/40 is separate evidence. Current Android retest not run. Generated-answer faithfulness not measured. |
-| FR-07 Typed tools | Allowlisted validated Kotlin tools, input review, confirmed writes, deadlines/budgets | JSON/schema/math/safety JVM checks. LLM tool-selection accuracy not measured. |
-| FR-08 Assets | Explicit HTTPS transfers, checkpoints/identity/range/hash, staged SAF publication and discovery | Transfer-policy unit checks and prior physical SAF import/hash/discovery passed. Real HTTP interruption/reboot/provider matrix remains not run. |
-| FR-09 Backup | Complete schema3 payload, safe schema2 migration, transaction before replacement, SAF export and synchronized active draft recovery | Codec, local actual-file export/Room/draft restore/recreate/flush and previous physical fresh-repository restore passed. Invalid nested draft preserves records. New chat is blocked during record replacement. Full uninstall/reinstall not performed; no user data removed. |
-| FR-10 Privacy/settings | Local preferences/personas, no inference cloud, automatic backup disabled, explicit download network | Manifest/source review and previous airplane-mode suite. Human TalkBack, all-device compatibility and independent network audit remain separate checks. |
+| FR-01 Catalog | Local bean/ingredient editing and search; unknown lot facts remain unknown; sourced variety references | 32 primary WCR records reverified; validation and persistence unit tests pass. Dataset is bounded, not exhaustive. |
+| FR-02 Formulation | Unit-aware recipe entry, saved revisions/drafts, measurement provenance, separate Brew chips/cards | JVM/Compose BDD tests pass; keyboard now closes before save validation so errors remain visible. Real barista workflow review remains pending. |
+| FR-03 Calculations | Deterministic typed ratio, dilution, concentration, density and approximate extraction | Golden case 18 g dose / 270 g beverage / measured 1.30% TDS = approximate 19.50% EY; boundary and provenance tests pass. No lab accuracy claim. |
+| FR-04 Sensory | Human-entered observations and visibly uncalibrated estimates | Domain/persistence tests pass. Sensory panel and repeatability validation remain pending. |
+| FR-05 Local LLM | Optional local GGUF adapter with bounds, cancellation, unsupported-model recovery | Malformed-GGUF recovery passed on device; actual Qwen generation/cancel/memory-pressure acceptance not run on this candidate. Manual mode remains available without a model. |
+| FR-06 RAG/OCR | Local TXT/PDF/OCR ingestion, hybrid retrieval, source-linked citations and abstention | TXT/PDF/scanned-PDF and authored RAG device cases pass in airplane mode. Fixture scores above; real label photos and independent answer-faithfulness review remain pending. |
+| FR-07 Typed tools | Allowlisted validated Kotlin actions, bounded inputs and confirmation for writes | Schema, range and deterministic calculation JVM tests pass. Model tool-selection accuracy remains unmeasured. |
+| FR-08 Models/assets | Explicit transfers into a user-selected SAF folder with identity/range/hash validation | Catalog metadata and transfer policy tests pass. Current SAF provider/download/restore matrix blocked by missing user grant; no Kafi/Gemma transfer is claimed. |
+| FR-09 Backup | Versioned, checksum-validated backup and transactional restore with draft synchronization | JVM codec/Room/restore tests pass; current physical SAF restore not run because no tree grant. No uninstall/reinstall or user-data deletion was performed. |
+| FR-10 Privacy/settings | Offline-first workflows, no telemetry/cloud inference, explicit user-requested asset network | Airplane-mode RAG/device checks pass; source/manifest review passes. Independent network audit and human accessibility/device matrix remain pending. |
 
 ## Historical local gates — 2026-10-15
 
@@ -93,7 +80,7 @@ BouncyCastle TrustAll warnings,1 Compose state autoboxing informational finding.
 No warning was suppressed to obtain a release. Dependency/target upgrades require
 their own compatibility validation; debug preview does not claim Play compliance.
 
-## Previous physical-device evidence
+## Historical physical-device evidence (older candidates)
 
 Reference: Samsung SM-G988B, Android13/API33, arm64-v8a. Tests used replace-install
 for user0 and isolated UUID databases/owned QA files. No uninstall, global reset

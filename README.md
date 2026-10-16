@@ -8,9 +8,9 @@ network access; models need a first-time install before natural-language chat.
 
 ## Download
 
-[Download the latest debug preview APK (v1.9.6)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.6/coffee-creator-v1.9.6.apk)
-· [Release notes](docs/releases/v1.9.6.md)
-· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.6/SHA256SUMS.txt)
+[Download the latest debug preview APK (v1.10.0)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.0/coffee-creator-v1.10.0.apk)
+· [Release notes](docs/releases/v1.10.0.md)
+· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.0/SHA256SUMS.txt)
 
 The distribution APK is debug-signed, targets Android 8/API 26+ and arm64-v8a/x86_64.
 The physical test reference is Samsung SM-G988B, Android 13/API 33. Other device/RAM/
@@ -18,7 +18,7 @@ provider tiers are separate validation work; see [verification](docs/VERIFICATIO
 Install an APK from GitHub using Android's explicit install permission. For ADB:
 
 ```powershell
-adb install --user 0 -r coffee-creator-v1.9.6.apk
+adb install --user 0 -r coffee-creator-v1.10.0.apk
 ```
 
 Replacement installation preserves app records when the signing key matches.
@@ -26,6 +26,7 @@ Uninstall removes private records/grants; export a backup first if you want them
 
 | Version | Date | APK | History |
 |---|---|---|---|
+| v1.10.0 | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.0/coffee-creator-v1.10.0.apk) | [Notes](docs/releases/v1.10.0.md) · Offline bean/equipment label capture and review, conservative OCR drafts, durable record restore, verified Kafi/Gemma model catalog, evidence-safe extraction calculations, and keyboard-safe validation |
 | v1.9.6 | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.6/coffee-creator-v1.9.6.apk) | [Notes](docs/releases/v1.9.6.md) · Tactile Industrial & Precision Coffee Lab UI/UX Refinement: standardized 0.97f spring micro-depression physics & subtle haptic feedback across buttons/chips/dropdowns, jitter-free tabular monospace figures (tnum) on timers and telemetry, 1px solid hairline borders (0.40f alpha), concentric nested corner geometry, and 100% JVM/device verification |
 | v1.9.5 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.5/coffee-creator-v1.9.5.apk) | [Notes](docs/releases/v1.9.5.md) · Epic S2-E05 Deepening: Complete interactive multi-ring Compose Canvas Sensory Wheel (`SensoryWheelVisualizer`), touch-arc polar hit detection & category zoom, expanded 90+ SCA/WCR & Roda Rasa taxonomy across 9 categories and 26 subcategories with dedicated commercial defect/taint catalog, multi-select `FlavorWheelPickerDialog` integrated into cupping and journal notes, dynamic cupping attribute scoring across all 4 templates, and 100% JVM & physical device verification |
 | v1.9.4 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.4/coffee-creator-v1.9.4.apk) | [Notes](docs/releases/v1.9.4.md) · Verified E2E ADB Device Release: BackHandler sub-screen navigation, restored journal recipe revision list, FlowRow cupping action buttons with single-line constraint, auto-logged sensory observation persistence & exception safety, 100% connected & unit test pass on Samsung SM-G988B |
@@ -43,6 +44,7 @@ Uninstall removes private records/grants; export a backup first if you want them
 | v1.1.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk) | [Notes](docs/releases/v1.1.0.md) · Real Room/FTS4 records, local llama.cpp GGUF/ONNX RAG, SAF storage |
 | v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.9.6. |
 
+v1.10.0 APK verification: 122,338,672 bytes, SHA256: `d06e9c6bace080fb4e24cf34dfe66af21817e6fd2a18e9cd811c03f4c478fbc4`.
 v1.9.6 APK verification: 121,486,374 bytes, SHA256: `d3d28471fdf73702d7b9016776552bbfc3ce72989c5cb8552c9d0e207e352c6f`.
 Historical 1.9.5 SHA256: `d84569a5035fa1d9f0aaf7a7f697dd8d073bd72f90ecb4e15ed75474a58129a4`.
 Historical 1.9.4 SHA256: `d5a0a24c3d4b2822fb5a06db421128e47bed6ee18e5a61e75836d5bd51de368f`.
@@ -60,9 +62,11 @@ Historical 1.2.0 SHA256: `4c197fcee278508ee62ba57b3a8ac6524186c9f56ebcc07bce5891
 Historical 1.0.0 SHA256: `2843362ff29dd536da78f4263d5e2b66d1a98482c47c1376db037e3439ca02ff`.
 [All releases](https://github.com/Adrian463588/coffee-creator/releases).
 
-The current local provenance-safe change has 210 passing JVM tests and passing
-Android lint. KtLint, Detekt and current-commit device acceptance remain in
-progress; see the [requirement checklist and verification evidence](docs/VERIFICATION.md).
+Latest local gates for v1.10.0: 244 JVM tests passed, KtLint, Detekt, Android lint,
+debug APK and androidTest APK builds passed. Nineteen focused tests ran on a Samsung
+SM-G988B in airplane mode. The verification report records setup-blocked SAF/model
+checks and product acceptance still needing real label photos, accessibility review,
+and independent RAG/field validation; see the [requirement checklist and evidence](docs/VERIFICATION.md).
 
 ## Screenshots
 
@@ -163,13 +167,13 @@ not encryption/authentication. Keep exports private; regrant SAF after reinstall
 
 Only verified compatible manifests may be loaded. Tiny models can give incorrect
 answers; generated text is labeled unverified and source inspection remains essential.
-The authored RAG fixture measures retrieval/tool contracts; independently adjudicated
-answer faithfulness, broad provider/RAM/device coverage and field usability are
-separate gates listed honestly in verification. No exact flavor prediction is promised.
-The last physical RAG run failed at 39/40 direct facts; the subsequent fix passed a
-host reproduction at 40/40, with no new Android retest. Kafi/Gemma full transfer and
-inference are not claimed tested. This release is a debug preview, not a declaration
-that all production/device acceptance gates have passed.
+The latest airplane-mode RAG fixture run on Samsung SM-G988B scored 40/40 direct facts,
+Recall@5 0.944444, 10/10 correct abstentions, and 20/20 deterministic numeric cases.
+It is an authored fixture, not independent adjudication; generated-answer faithfulness
+and LLM tool selection remain unmeasured. The on-device OCR test used generated label
+images, not real coffee packaging. Kafi/Gemma transfer and inference, SAF provider
+recovery with a fresh user grant, TalkBack/font-scale review, and field sensory testing
+remain pending. This debug preview does not claim all production acceptance gates passed.
 
 See [third-party assets and licenses](docs/THIRD_PARTY.md). Do not infer an application
 license from dependency licenses. Contributions must preserve provenance, scientific

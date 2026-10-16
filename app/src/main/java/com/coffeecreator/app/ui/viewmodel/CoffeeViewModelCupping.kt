@@ -7,7 +7,6 @@ import com.coffeecreator.app.core.ai.personalization.BeanInventoryCandidate
 import com.coffeecreator.app.core.ai.personalization.ElevationUnit
 import com.coffeecreator.app.core.ai.personalization.FeedbackLoopEngine
 import com.coffeecreator.app.core.ai.personalization.IngredientSafetyValidator
-import com.coffeecreator.app.core.ai.personalization.OvatAdjustmentProposal
 import com.coffeecreator.app.core.ai.personalization.PalateBayesianEngine
 import com.coffeecreator.app.core.ai.personalization.PalateQuizAnswers
 import com.coffeecreator.app.core.ai.personalization.PalateQuizMapper
@@ -15,7 +14,6 @@ import com.coffeecreator.app.core.ai.personalization.PalateVector
 import com.coffeecreator.app.core.ai.personalization.PersonaSanitizer
 import com.coffeecreator.app.core.ai.personalization.PersonalSensoryEvidence
 import com.coffeecreator.app.core.ai.personalization.RecommendationEngine
-import com.coffeecreator.app.core.ai.personalization.SafetyAuditResult
 import com.coffeecreator.app.core.ai.personalization.SensoryFeedbackDiagnosis
 import com.coffeecreator.app.core.ai.personalization.WeatherAltitudeCalculator
 import com.coffeecreator.app.core.ai.personalization.WeatherParameters
@@ -24,8 +22,6 @@ import com.coffeecreator.app.core.catalog.DetailedBeanRecord
 import com.coffeecreator.app.core.catalog.EquipmentItem
 import com.coffeecreator.app.core.catalog.RoastLevel
 import com.coffeecreator.app.core.model.AssistantPersona
-import com.coffeecreator.app.core.model.Ingredient
-import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.reliability.AppLanguage
 import com.coffeecreator.app.core.reliability.LogLevel
 import com.coffeecreator.app.core.reliability.ModuleStatus
@@ -41,13 +37,10 @@ import com.coffeecreator.app.core.sensory.MaskingMode
 import com.coffeecreator.app.core.sensory.PhysicalQcRecord
 import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.coffeecreator.app.core.sensory.SessionStatus
-import com.google.gson.Gson
 import java.math.BigDecimal
 import java.util.UUID
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-
 
 private val SUPPORTED_ROAST_LEVELS = listOf(
     RoastLevel.CINNAMON,
@@ -61,7 +54,7 @@ private val SUPPORTED_ROAST_LEVELS = listOf(
 private val REQUIRED_RECOMMENDATION_SENSORY_KEYS = listOf("acidity", "sweetness", "bitterness", "body")
 
 fun CoffeeViewModel.selectCuppingSession(sessionId: String?) {
-    _state.update {
+    mutableState.update {
         it.copy(
             activeCuppingSessionId = sessionId,
             selectedCuppingSampleId = it.cuppingSessions.find { s -> s.id == sessionId }?.samples?.firstOrNull()?.sampleId
@@ -70,7 +63,7 @@ fun CoffeeViewModel.selectCuppingSession(sessionId: String?) {
 }
 
 fun CoffeeViewModel.selectCuppingSample(sampleId: String?) {
-    _state.update { it.copy(selectedCuppingSampleId = sampleId) }
+    mutableState.update { it.copy(selectedCuppingSampleId = sampleId) }
 }
 
 fun CoffeeViewModel.createCuppingSession(
@@ -92,12 +85,12 @@ fun CoffeeViewModel.createCuppingSession(
             createdAtEpochMs = System.currentTimeMillis()
         )
     }.getOrElse { error ->
-        _state.update { it.copy(notice = error.message ?: "Complete the cupping session details first.") }
+        mutableState.update { it.copy(notice = error.message ?: "Complete the cupping session details first.") }
         return
     }
     val sessionId = session.id
 
-    _state.update {
+    mutableState.update {
         it.copy(
             cuppingSessions = listOf(session) + it.cuppingSessions,
             activeCuppingSessionId = sessionId,
@@ -108,7 +101,7 @@ fun CoffeeViewModel.createCuppingSession(
 }
 
 fun CoffeeViewModel.revealCuppingSample(sessionId: String, sampleId: String) {
-    _state.update { current ->
+    mutableState.update { current ->
         val updated = current.cuppingSessions.map { s ->
             if (s.id == sessionId) {
                 val updatedSamples = s.samples.map { smp ->
@@ -142,26 +135,26 @@ fun CoffeeViewModel.submitCuppingSheet(
     defectDesc: String = "",
     notes: String = ""
 ) {
-    val session = _state.value.cuppingSessions.find { it.id == sessionId }
+    val session = mutableState.value.cuppingSessions.find { it.id == sessionId }
     if (session == null || session.samples.none { it.sampleId == sampleId }) {
-        _state.update { it.copy(notice = "Choose a sample in an existing cupping session.") }
+        mutableState.update { it.copy(notice = "Choose a sample in an existing cupping session.") }
         return
     }
     if (session.status != SessionStatus.OPEN && session.status != SessionStatus.REOPENED) {
-        _state.update { it.copy(notice = "This cupping session is ${session.status.name.lowercase()}.") }
+        mutableState.update { it.copy(notice = "This cupping session is ${session.status.name.lowercase()}.") }
         return
     }
     if (session.evaluators.none { it.id == evaluatorId }) {
-        _state.update { it.copy(notice = "Choose an evaluator before submitting scores.") }
+        mutableState.update { it.copy(notice = "Choose an evaluator before submitting scores.") }
         return
     }
     if (taintCups < 0 || faultCups < 0) {
-        _state.update { it.copy(notice = "Defect counts cannot be negative.") }
+        mutableState.update { it.copy(notice = "Defect counts cannot be negative.") }
         return
     }
     runCatching { CuppingAnalyticsEngine.validateAttributeScores(session.template, attributeScores) }
         .onFailure { error ->
-            _state.update { it.copy(notice = error.message ?: "Enter all protocol scores.") }
+            mutableState.update { it.copy(notice = error.message ?: "Enter all protocol scores.") }
             return
         }
     val defects = DefectRecord(taintCups, faultCups, defectDesc)
@@ -184,7 +177,7 @@ fun CoffeeViewModel.submitCuppingSheet(
         submittedAt = System.currentTimeMillis()
     )
 
-    _state.update { current ->
+    mutableState.update { current ->
         val updated = current.cuppingSessions.map { s ->
             if (s.id == sessionId) {
                 val newSheets = s.sheets.filter { it.sampleId != sampleId || it.evaluatorId != evaluatorId } + sheet
@@ -198,7 +191,7 @@ fun CoffeeViewModel.submitCuppingSheet(
 }
 
 fun CoffeeViewModel.closeCuppingSession(sessionId: String) {
-    _state.update { current ->
+    mutableState.update { current ->
         val updated = current.cuppingSessions.map { s ->
             if (s.id == sessionId) {
                 val audit = s.auditTrail + AuditEntry(
@@ -219,7 +212,7 @@ fun CoffeeViewModel.closeCuppingSession(sessionId: String) {
 }
 
 fun CoffeeViewModel.reopenCuppingSession(sessionId: String, editorId: String, reason: String) {
-    _state.update { current ->
+    mutableState.update { current ->
         val updated = current.cuppingSessions.map { s ->
             if (s.id == sessionId) {
                 val audit = s.auditTrail + AuditEntry(
@@ -240,23 +233,23 @@ fun CoffeeViewModel.reopenCuppingSession(sessionId: String, editorId: String, re
 }
 
 fun CoffeeViewModel.savePhysicalQc(record: PhysicalQcRecord) {
-    _state.update {
+    mutableState.update {
         val map = it.physicalQcRecords + (record.sampleId to record)
         it.copy(physicalQcRecords = map, notice = "Saved Physical QC record: ${record.calculatedGrade}.")
     }
 }
 
 fun CoffeeViewModel.recordRoastRestObservation(observation: RoastRestObservation) {
-    _state.update {
+    mutableState.update {
         val list = listOf(observation) + it.roastRestObservations.filter { o -> o.id != observation.id }
         it.copy(roastRestObservations = list, notice = "Logged roast-rest observation: ${observation.observedPhase.label}.")
     }
 }
 
 fun CoffeeViewModel.exportSessionQcReport(sessionId: String) {
-    val session = _state.value.cuppingSessions.find { it.id == sessionId } ?: return
-    val receipt = CuppingAnalyticsEngine.generateOfflineReport(session, _state.value.physicalQcRecords)
-    _state.update {
+    val session = mutableState.value.cuppingSessions.find { it.id == sessionId } ?: return
+    val receipt = CuppingAnalyticsEngine.generateOfflineReport(session, mutableState.value.physicalQcRecords)
+    mutableState.update {
         it.copy(
             generatedQcReceipt = receipt,
             notice = "Generated QC Report (SHA-256: ${receipt.sha256Fingerprint.take(12)}...)"
@@ -265,7 +258,7 @@ fun CoffeeViewModel.exportSessionQcReport(sessionId: String) {
 }
 
 fun CoffeeViewModel.clearQcReceipt() {
-    _state.update { it.copy(generatedQcReceipt = null) }
+    mutableState.update { it.copy(generatedQcReceipt = null) }
 }
 
 // ========================================================================
@@ -274,7 +267,7 @@ fun CoffeeViewModel.clearQcReceipt() {
 
 fun CoffeeViewModel.submitPalateQuiz(answers: PalateQuizAnswers) {
     val profile = PalateQuizMapper.createFromQuiz(answers)
-    _state.update {
+    mutableState.update {
         it.copy(
             palateProfile = profile,
             notice = "Calibrated personal palate profile! Light/Acidity/Sweetness calibrated."
@@ -289,23 +282,19 @@ fun CoffeeViewModel.updatePalateSliders(
     bitterness: Double? = null,
     body: Double? = null
 ) {
-    val profile = _state.value.palateProfile
-    if (!profile.isQuizCompleted && profile.qualifiedSessionCount == 0) {
-        _state.update { it.copy(notice = "Complete the palate quiz before changing preference sliders.") }
-        return
-    }
+    val profile = mutableState.value.palateProfile
     val updated = PalateQuizMapper.updateManualSliders(profile, roast, acidity, sweetness, bitterness, body)
-    _state.update { it.copy(palateProfile = updated, notice = "Updated palate preference sliders.") }
+    mutableState.update { it.copy(palateProfile = updated, notice = "Updated palate preference sliders.") }
 }
 
 fun CoffeeViewModel.recordSensoryEvidence(evidence: PersonalSensoryEvidence) {
-    val profile = _state.value.palateProfile
+    val profile = mutableState.value.palateProfile
     if (!profile.isQuizCompleted && profile.qualifiedSessionCount == 0) {
-        _state.update { it.copy(notice = "Complete the palate quiz before recording sensory evidence.") }
+        mutableState.update { it.copy(notice = "Complete the palate quiz before recording sensory evidence.") }
         return
     }
     val updated = PalateBayesianEngine.updateProfile(profile, evidence)
-    _state.update {
+    mutableState.update {
         it.copy(
             palateProfile = updated,
             notice = "Bayesian palate vector updated from qualified session (${evidence.rating}/10)."
@@ -319,7 +308,7 @@ fun CoffeeViewModel.updateWeatherParameters(elevationMeters: Double) {
         elevationMeters = elevationMeters,
         calculatedBoilingPointCelsius = tBoil
     )
-    _state.update {
+    mutableState.update {
         it.copy(
             weatherParams = params,
             notice = "Elevation entered as ${elevationMeters.toInt()}m. Approximate boiling-point estimate: $tBoil°C."
@@ -328,13 +317,15 @@ fun CoffeeViewModel.updateWeatherParameters(elevationMeters: Double) {
 }
 
 fun CoffeeViewModel.generateInventoryRecommendations(brewMethod: String = "Pour Over (V60)") {
-    val current = _state.value
-    val hasPersonalEvidence = current.palateProfile.isQuizCompleted || current.palateProfile.qualifiedSessionCount > 0
-    if (!hasPersonalEvidence) {
-        _state.update {
+    val current = mutableState.value
+    val hasRecordedPreference = current.palateProfile.isQuizCompleted || current.palateProfile.hasManualPreference ||
+        current.palateProfile.qualifiedSessionCount > 0
+    if (!hasRecordedPreference) {
+        mutableState.update {
             it.copy(
                 inventoryRecommendations = emptyList(),
-                notice = "Complete the palate quiz or record a qualified sensory session before requesting recommendations."
+                notice = "Set a palate preference, complete the quiz, or record a qualified sensory session " +
+                    "before requesting recommendations."
             )
         }
         return
@@ -344,7 +335,7 @@ fun CoffeeViewModel.generateInventoryRecommendations(brewMethod: String = "Pour 
         .flatMap(::declaredBrewMethods)
         .filterTo(mutableSetOf()) { it.equals(brewMethod, ignoreCase = true) }
     if (compatibleGear.isEmpty()) {
-        _state.update {
+        mutableState.update {
             it.copy(
                 inventoryRecommendations = emptyList(),
                 notice = "No recommendation for $brewMethod: add equipment with an explicit matching brew method."
@@ -357,7 +348,7 @@ fun CoffeeViewModel.generateInventoryRecommendations(brewMethod: String = "Pour 
         bean.toInventoryCandidate(current.journalEntries)
     }
     if (candidates.isEmpty()) {
-        _state.update {
+        mutableState.update {
             it.copy(
                 inventoryRecommendations = emptyList(),
                 notice = "No recommendation: inventory needs a roast date, positive remaining bag mass, " +
@@ -373,7 +364,7 @@ fun CoffeeViewModel.generateInventoryRecommendations(brewMethod: String = "Pour 
         availableGearMethods = compatibleGear,
         brewMethod = brewMethod
     )
-    _state.update {
+    mutableState.update {
         it.copy(
             inventoryRecommendations = recommendations,
             notice = if (recommendations.isEmpty()) {
@@ -429,11 +420,11 @@ private fun DetailedBeanRecord.toInventoryCandidate(
 }
 
 fun CoffeeViewModel.proposeSingleVariableAdjustment(diagnosis: SensoryFeedbackDiagnosis, actualSec: Int, targetSec: Int) {
-    val current = _state.value
+    val current = mutableState.value
     val recipe = try {
         current.draft.build(current.ingredients)
     } catch (invalid: IllegalArgumentException) {
-        _state.update {
+        mutableState.update {
             it.copy(
                 ovatAdjustmentProposal = null,
                 notice = invalid.message ?: "Save valid recipe values before requesting an adjustment."
@@ -462,12 +453,12 @@ fun CoffeeViewModel.proposeSingleVariableAdjustment(diagnosis: SensoryFeedbackDi
             boilingPointCelsius = current.weatherParams.calculatedBoilingPointCelsius
         )
     } catch (invalid: IllegalArgumentException) {
-        _state.update {
+        mutableState.update {
             it.copy(ovatAdjustmentProposal = null, notice = invalid.message ?: "Required recipe evidence is missing.")
         }
         return
     }
-    _state.update {
+    mutableState.update {
         it.copy(
             ovatAdjustmentProposal = proposal,
             notice = "Proposed adjustment from the current recipe: ${proposal.variableAdjusted} -> ${proposal.proposedValue}"
@@ -476,8 +467,8 @@ fun CoffeeViewModel.proposeSingleVariableAdjustment(diagnosis: SensoryFeedbackDi
 }
 
 fun CoffeeViewModel.applyOvatAdjustmentToDraft() {
-    val proposal = _state.value.ovatAdjustmentProposal ?: return
-    val currentDraft = _state.value.draft
+    val proposal = mutableState.value.ovatAdjustmentProposal ?: return
+    val currentDraft = mutableState.value.draft
     val newFields = currentDraft.fields.toMutableMap()
     when (proposal.variableAdjusted) {
         "Grind Size" -> {
@@ -498,7 +489,7 @@ fun CoffeeViewModel.applyOvatAdjustmentToDraft() {
         }
     }
     val updatedDraft = currentDraft.copy(fields = newFields)
-    _state.update {
+    mutableState.update {
         it.copy(
             draft = updatedDraft,
             ovatAdjustmentProposal = null,
@@ -508,7 +499,7 @@ fun CoffeeViewModel.applyOvatAdjustmentToDraft() {
 }
 
 fun CoffeeViewModel.dismissOvatAdjustment() {
-    _state.update { it.copy(ovatAdjustmentProposal = null) }
+    mutableState.update { it.copy(ovatAdjustmentProposal = null) }
 }
 
 fun CoffeeViewModel.selectBaristaPersonaPreset(preset: BaristaPersonaPreset) {
@@ -518,7 +509,7 @@ fun CoffeeViewModel.selectBaristaPersonaPreset(preset: BaristaPersonaPreset) {
         description = preset.baseSystemPrompt,
         systemPrompt = preset.baseSystemPrompt
     )
-    _state.update {
+    mutableState.update {
         val list = if (it.personas.none { p -> p.id == preset.id }) it.personas + persona else it.personas
         it.copy(personas = list, selectedPersona = persona, notice = "Switched persona to '${preset.title}'.")
     }
@@ -532,14 +523,14 @@ fun CoffeeViewModel.updateCustomPersonaPrompt(customPrompt: String) {
         description = sanitized,
         systemPrompt = sanitized
     )
-    _state.update {
+    mutableState.update {
         val list = it.personas.filter { p -> p.id != "custom_persona" } + customPersona
         it.copy(personas = list, selectedPersona = customPersona, notice = "Custom persona prompt sanitized and saved.")
     }
 }
 
 fun CoffeeViewModel.auditIngredientSafety(name: String, massFractionPercent: Double) {
-    val matches = _state.value.ingredients.filter { it.name.contains(name.trim(), ignoreCase = true) }
+    val matches = mutableState.value.ingredients.filter { it.name.contains(name.trim(), ignoreCase = true) }
     val audit = when (matches.size) {
         1 -> matches.single().let { ingredient ->
             IngredientSafetyValidator.auditIngredient(
@@ -552,7 +543,7 @@ fun CoffeeViewModel.auditIngredientSafety(name: String, massFractionPercent: Dou
         }
         else -> IngredientSafetyValidator.auditIngredient(name, null, emptyList(), massFractionPercent, null)
     }
-    _state.update {
+    mutableState.update {
         it.copy(
             safetyAuditResult = audit,
             notice = if (audit.permitsBeverageConsumption) {
@@ -565,14 +556,14 @@ fun CoffeeViewModel.auditIngredientSafety(name: String, massFractionPercent: Dou
 }
 
 fun CoffeeViewModel.clearNotice() {
-    _state.update { it.copy(notice = null, error = null) }
+    mutableState.update { it.copy(notice = null, error = null) }
 }
 fun CoffeeViewModel.flushDraft() {
-    if (_state.value.ready && !replacingDraft) graph.persistDraft(gson.toJson(_state.value.draft))
+    if (mutableState.value.ready && !replacingDraft) graph.persistDraft(gson.toJson(mutableState.value.draft))
 }
 fun CoffeeViewModel.setLanguage(lang: AppLanguage) = task("Updating language") {
     graph.repository.saveSetting("user_language", lang.code)
-    _state.update {
+    mutableState.update {
         val updated = it.unitPreferences.copy(language = lang)
         it.copy(unitPreferences = updated, notice = "Language updated to ${lang.displayName}.")
     }
@@ -581,7 +572,7 @@ fun CoffeeViewModel.setLanguage(lang: AppLanguage) = task("Updating language") {
 
 fun CoffeeViewModel.setUnitPreferences(prefs: UserUnitPreferences) = task("Saving unit preferences") {
     graph.repository.saveSetting("user_units", gson.toJson(prefs))
-    _state.update { it.copy(unitPreferences = prefs, notice = "Unit preferences updated.") }
+    mutableState.update { it.copy(unitPreferences = prefs, notice = "Unit preferences updated.") }
     diagnosticBuffer.log(
         LogLevel.INFO,
         "Settings",
@@ -590,16 +581,16 @@ fun CoffeeViewModel.setUnitPreferences(prefs: UserUnitPreferences) = task("Savin
 }
 
 fun CoffeeViewModel.selectHelpTopic(topicId: String?) {
-    _state.update { it.copy(selectedHelpTopicId = topicId) }
+    mutableState.update { it.copy(selectedHelpTopicId = topicId) }
 }
 
 fun CoffeeViewModel.refreshDiagnostics() {
-    _state.update { it.copy(diagnosticLogSnapshot = diagnosticBuffer.snapshot()) }
+    mutableState.update { it.copy(diagnosticLogSnapshot = diagnosticBuffer.snapshot()) }
 }
 
 fun CoffeeViewModel.clearDiagnostics() {
     diagnosticBuffer.clear()
-    _state.update { it.copy(diagnosticLogSnapshot = emptyList(), notice = "Diagnostic logs cleared.") }
+    mutableState.update { it.copy(diagnosticLogSnapshot = emptyList(), notice = "Diagnostic logs cleared.") }
 }
 
 fun CoffeeViewModel.exportDiagnosticLogs(context: Context) {
@@ -616,7 +607,7 @@ fun CoffeeViewModel.exportDiagnosticLogs(context: Context) {
 }
 
 fun CoffeeViewModel.updateDegradationState(llm: ModuleStatus? = null, ocr: ModuleStatus? = null, ble: ModuleStatus? = null) {
-    _state.update {
+    mutableState.update {
         val current = it.degradationState
         val newState = current.copy(
             llmStatus = llm ?: current.llmStatus,

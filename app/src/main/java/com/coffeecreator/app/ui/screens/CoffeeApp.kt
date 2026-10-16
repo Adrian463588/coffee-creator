@@ -90,7 +90,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -129,7 +128,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -174,7 +175,6 @@ import com.coffeecreator.app.core.filesystem.BuiltInAssets
 import com.coffeecreator.app.core.filesystem.CatalogPhotoCapture
 import com.coffeecreator.app.core.journal.CafeCupEntry
 import com.coffeecreator.app.core.model.CoffeeBean
-import com.coffeecreator.app.core.model.Ingredient
 import com.coffeecreator.app.core.model.ModelStatus
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.reliability.AppLanguage
@@ -197,12 +197,13 @@ import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
 import com.coffeecreator.app.ui.viewmodel.RecipeDraft
-import com.coffeecreator.app.ui.viewmodel.addDraftStep
 import com.coffeecreator.app.ui.viewmodel.addBagToBean
 import com.coffeecreator.app.ui.viewmodel.addDetailedBean
+import com.coffeecreator.app.ui.viewmodel.addDraftStep
 import com.coffeecreator.app.ui.viewmodel.addLine
 import com.coffeecreator.app.ui.viewmodel.applyOvatAdjustmentToDraft
 import com.coffeecreator.app.ui.viewmodel.auditIngredientSafety
+import com.coffeecreator.app.ui.viewmodel.cancelCatalogPhotoOcr
 import com.coffeecreator.app.ui.viewmodel.cancelDeletion
 import com.coffeecreator.app.ui.viewmodel.cancelGeneration
 import com.coffeecreator.app.ui.viewmodel.clearComparison
@@ -213,11 +214,11 @@ import com.coffeecreator.app.ui.viewmodel.clearQcReceipt
 import com.coffeecreator.app.ui.viewmodel.closeCuppingSession
 import com.coffeecreator.app.ui.viewmodel.confirmAiRecipe
 import com.coffeecreator.app.ui.viewmodel.confirmDeletion
-import com.coffeecreator.app.ui.viewmodel.confirmOcrDraft
 import com.coffeecreator.app.ui.viewmodel.confirmEquipmentOcrDraft
-import com.coffeecreator.app.ui.viewmodel.cancelCatalogPhotoOcr
+import com.coffeecreator.app.ui.viewmodel.confirmOcrDraft
 import com.coffeecreator.app.ui.viewmodel.confirmToolInputs
 import com.coffeecreator.app.ui.viewmodel.connectMockScale
+import com.coffeecreator.app.ui.viewmodel.convertDraftBrix
 import com.coffeecreator.app.ui.viewmodel.createCuppingSession
 import com.coffeecreator.app.ui.viewmodel.deductDoseFromBag
 import com.coffeecreator.app.ui.viewmodel.deleteCafeCup
@@ -225,12 +226,12 @@ import com.coffeecreator.app.ui.viewmodel.deleteDetailedBean
 import com.coffeecreator.app.ui.viewmodel.deleteEquipmentItem
 import com.coffeecreator.app.ui.viewmodel.deleteGrinder
 import com.coffeecreator.app.ui.viewmodel.deleteJournalEntry
-import com.coffeecreator.app.ui.viewmodel.dismissAiRecipe
-import com.coffeecreator.app.ui.viewmodel.dismissOvatAdjustment
-import com.coffeecreator.app.ui.viewmodel.dismissOcrDraft
-import com.coffeecreator.app.ui.viewmodel.dismissEquipmentOcrDraft
-import com.coffeecreator.app.ui.viewmodel.dismissToolInputs
 import com.coffeecreator.app.ui.viewmodel.disconnectScale
+import com.coffeecreator.app.ui.viewmodel.dismissAiRecipe
+import com.coffeecreator.app.ui.viewmodel.dismissEquipmentOcrDraft
+import com.coffeecreator.app.ui.viewmodel.dismissOcrDraft
+import com.coffeecreator.app.ui.viewmodel.dismissOvatAdjustment
+import com.coffeecreator.app.ui.viewmodel.dismissToolInputs
 import com.coffeecreator.app.ui.viewmodel.editRecipe
 import com.coffeecreator.app.ui.viewmodel.estimateCaffeineForDose
 import com.coffeecreator.app.ui.viewmodel.evaluateOvatForEntry
@@ -257,22 +258,22 @@ import com.coffeecreator.app.ui.viewmodel.refreshDiagnostics
 import com.coffeecreator.app.ui.viewmodel.refreshStreakAndStats
 import com.coffeecreator.app.ui.viewmodel.removeDraftStep
 import com.coffeecreator.app.ui.viewmodel.removeLine
+import com.coffeecreator.app.ui.viewmodel.reopenCuppingSession
+import com.coffeecreator.app.ui.viewmodel.repeatLastBrew
+import com.coffeecreator.app.ui.viewmodel.reportCatalogPhotoError
+import com.coffeecreator.app.ui.viewmodel.requestDeletion
 import com.coffeecreator.app.ui.viewmodel.resetBrewSession
 import com.coffeecreator.app.ui.viewmodel.resetTimer
-import com.coffeecreator.app.ui.viewmodel.reopenCuppingSession
 import com.coffeecreator.app.ui.viewmodel.restartBrewStep
-import com.coffeecreator.app.ui.viewmodel.repeatLastBrew
-import com.coffeecreator.app.ui.viewmodel.requestDeletion
 import com.coffeecreator.app.ui.viewmodel.revealCuppingSample
 import com.coffeecreator.app.ui.viewmodel.runManualCalculation
 import com.coffeecreator.app.ui.viewmodel.saveBean
-import com.coffeecreator.app.ui.viewmodel.scanCatalogPhoto
-import com.coffeecreator.app.ui.viewmodel.reportCatalogPhotoError
 import com.coffeecreator.app.ui.viewmodel.saveCafeCup
 import com.coffeecreator.app.ui.viewmodel.saveEntryAsTemplate
 import com.coffeecreator.app.ui.viewmodel.saveIngredient
 import com.coffeecreator.app.ui.viewmodel.saveRecipe
 import com.coffeecreator.app.ui.viewmodel.scaleDraft
+import com.coffeecreator.app.ui.viewmodel.scanCatalogPhoto
 import com.coffeecreator.app.ui.viewmodel.selectBaristaPersonaPreset
 import com.coffeecreator.app.ui.viewmodel.selectComparisonSlot
 import com.coffeecreator.app.ui.viewmodel.selectCuppingSample
@@ -286,22 +287,21 @@ import com.coffeecreator.app.ui.viewmodel.startBrewSession
 import com.coffeecreator.app.ui.viewmodel.submitCuppingSheet
 import com.coffeecreator.app.ui.viewmodel.submitPalateQuiz
 import com.coffeecreator.app.ui.viewmodel.tareScale
-import com.coffeecreator.app.ui.viewmodel.toggleHaptics
-import com.coffeecreator.app.ui.viewmodel.toggleKeepScreenOn
-import com.coffeecreator.app.ui.viewmodel.toggleSound
-import com.coffeecreator.app.ui.viewmodel.toggleTimer
 import com.coffeecreator.app.ui.viewmodel.toggleBeanFavorite
 import com.coffeecreator.app.ui.viewmodel.toggleEquipmentFavorite
 import com.coffeecreator.app.ui.viewmodel.toggleFreezeBag
 import com.coffeecreator.app.ui.viewmodel.toggleGrinderFavorite
+import com.coffeecreator.app.ui.viewmodel.toggleHaptics
+import com.coffeecreator.app.ui.viewmodel.toggleKeepScreenOn
+import com.coffeecreator.app.ui.viewmodel.toggleSound
+import com.coffeecreator.app.ui.viewmodel.toggleTimer
+import com.coffeecreator.app.ui.viewmodel.undoDraftChange
 import com.coffeecreator.app.ui.viewmodel.updateCustomPersonaPrompt
 import com.coffeecreator.app.ui.viewmodel.updateDraftStep
 import com.coffeecreator.app.ui.viewmodel.updateField
 import com.coffeecreator.app.ui.viewmodel.updateJournalEntryTasteNotes
 import com.coffeecreator.app.ui.viewmodel.updatePalateSliders
 import com.coffeecreator.app.ui.viewmodel.updateWeatherParameters
-import com.coffeecreator.app.ui.viewmodel.undoDraftChange
-import com.coffeecreator.app.ui.viewmodel.convertDraftBrix
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -309,7 +309,6 @@ import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
 private const val DECIMAL_GIGABYTE_BYTES = 1_000_000_000.0
@@ -322,6 +321,9 @@ private const val ONE_AND_HALF_RECIPE_SCALE = 1.5
 private const val CAFFEINE_BLEND_ARABICA_FRACTION = 0.5
 private const val SAFE_BREW_TEMPERATURE_MARGIN_CELSIUS = 0.5
 private const val MAX_CUSTOM_PERSONA_CHARS = 300
+private const val TRANSITION_FADE_IN_MILLIS = 150
+private const val TRANSITION_FADE_OUT_MILLIS = 100
+private const val WIDE_INPUT_WEIGHT = 1.5f
 private const val TIMER_RESTART_ACTION_WEIGHT = 1.1f
 private const val TIMER_FINISH_ACTION_WEIGHT = 1.4f
 private const val POUR_INCREMENT_SMALL_GRAMS = 10.0
@@ -738,52 +740,6 @@ private fun TactileOutlinedButton(
 }
 
 @Composable
-private fun TactileCard(
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(12.dp),
-    colors: CardColors = CardDefaults.cardColors(),
-    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
-) {
-    if (onClick != null) {
-        val haptic = LocalHapticFeedback.current
-        val interactionSource = remember { MutableInteractionSource() }
-        val isPressed by interactionSource.collectIsPressedAsState()
-        val scale by animateFloatAsState(
-            targetValue = if (isPressed) 0.98f else 1f,
-            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-            label = "cardTactileScale"
-        )
-        Card(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onClick()
-            },
-            modifier = modifier
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
-            shape = shape,
-            colors = colors,
-            border = border,
-            interactionSource = interactionSource,
-            content = content
-        )
-    } else {
-        Card(
-            modifier = modifier.animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
-            shape = shape,
-            colors = colors,
-            border = border,
-            content = content
-        )
-    }
-}
-
-@Composable
 private fun Field(label: String, value: String, onChange: (String) -> Unit, tag: String, numeric: Boolean = false) {
     OutlinedTextField(
         value = value,
@@ -990,6 +946,8 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
 @Composable
 private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: Int) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val fields = state.draft.fields
     var selectedSection by rememberSaveable(resetKey) { mutableStateOf(BrewSection.Recipe.name) }
     val section = BrewSection.valueOf(selectedSection)
@@ -1487,9 +1445,9 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                         }
                                                     ) {
                                                         Text(
-                                                                text = session?.scaleDevice?.name
-                                                                    ?: session?.scaleConnectionState?.name
-                                                                    ?: "DISCONNECTED",
+                                                            text = session?.scaleDevice?.name
+                                                                ?: session?.scaleConnectionState?.name
+                                                                ?: "DISCONNECTED",
                                                             style = MaterialTheme.typography.labelSmall,
                                                             fontWeight = FontWeight.Medium,
                                                             color = if (session?.scaleConnectionState == ScaleConnectionState.READY) {
@@ -1631,15 +1589,19 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                     currentProgress.cumulativeTargetWaterGrams
                                             )
                                             val (proxText, proxColor) = when (prox) {
-                                                ProximityState.NORMAL -> "Pouring: ${remainingGrams}g remaining" to
-                                                    MaterialTheme.colorScheme.onSurface
-                                                ProximityState.APPROACHING_10G -> "Within 10g (${remainingGrams}g left)" to
-                                                    MaterialTheme.colorScheme.tertiary
+                                                ProximityState.NORMAL ->
+                                                    "Pouring: ${remainingGrams}g remaining" to
+                                                        MaterialTheme.colorScheme.onSurface
+                                                ProximityState.APPROACHING_10G ->
+                                                    "Within 10g (${remainingGrams}g left)" to
+                                                        MaterialTheme.colorScheme.tertiary
                                                 ProximityState.IMMINENT_2G -> "Within 2g! Prepare cutoff" to MaterialTheme.colorScheme.error
-                                                ProximityState.TARGET_MATCHED -> "Target Matched (${targetGrams}g)" to
-                                                    MaterialTheme.colorScheme.primary
-                                                ProximityState.OVERSHOOT -> "Target Overshoot (+${overshootGrams}g)" to
-                                                    MaterialTheme.colorScheme.error
+                                                ProximityState.TARGET_MATCHED ->
+                                                    "Target Matched (${targetGrams}g)" to
+                                                        MaterialTheme.colorScheme.primary
+                                                ProximityState.OVERSHOOT ->
+                                                    "Target Overshoot (+${overshootGrams}g)" to
+                                                        MaterialTheme.colorScheme.error
                                             }
                                             Surface(
                                                 modifier = Modifier.fillMaxWidth().testTag("timer:proximity_badge"),
@@ -1745,13 +1707,13 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 modifier = Modifier.padding(end = 8.dp)
                                             )
                                             Text(
-                                            text = if (state.timerRunning) {
-                                                "Pause Session"
-                                            } else if (session?.status == BrewExecutionStatus.PAUSED) {
-                                                "Resume Session"
-                                            } else {
-                                                "Start Session"
-                                            },
+                                                text = if (state.timerRunning) {
+                                                    "Pause Session"
+                                                } else if (session?.status == BrewExecutionStatus.PAUSED) {
+                                                    "Resume Session"
+                                                } else {
+                                                    "Start Session"
+                                                },
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -1906,7 +1868,8 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                         AnimatedContent(
                             targetState = ratioLabel,
                             transitionSpec = {
-                                fadeIn(animationSpec = tween(150)) togetherWith fadeOut(animationSpec = tween(100))
+                                fadeIn(animationSpec = tween(TRANSITION_FADE_IN_MILLIS)) togetherWith
+                                    fadeOut(animationSpec = tween(TRANSITION_FADE_OUT_MILLIS))
                             },
                             label = "ratioAnimation"
                         ) { targetText ->
@@ -1914,14 +1877,19 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                         }
                     }
                     Button(
-                        onClick = model::saveRecipe,
+                        onClick = {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                            model.saveRecipe()
+                        },
                         enabled = state.ready && !state.busy,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:save")
                     ) {
                         AnimatedContent(
                             targetState = (state.draft.id == null),
                             transitionSpec = {
-                                fadeIn(animationSpec = tween(150)) togetherWith fadeOut(animationSpec = tween(100))
+                                fadeIn(animationSpec = tween(TRANSITION_FADE_IN_MILLIS)) togetherWith
+                                    fadeOut(animationSpec = tween(TRANSITION_FADE_OUT_MILLIS))
                             },
                             label = "saveLabelAnimation"
                         ) { isNew ->
@@ -2002,6 +1970,13 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
         if (uri != null) {
             photoScope.launch {
                 if (saved) {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        discardCameraOutput(uri)
+                        model.reportCatalogPhotoError(
+                            "System camera capture requires Android 10 or later. Choose a photo instead."
+                        )
+                        return@launch
+                    }
                     val publishResult = runCatching {
                         withContext(Dispatchers.IO) { CatalogPhotoCapture.publish(context.contentResolver, uri) }
                     }
@@ -2839,8 +2814,11 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        if (draft.photoUri == null) "No photo is attached to this draft."
-                        else "The selected label photo will be attached to the saved bean."
+                        if (draft.photoUri == null) {
+                            "No photo is attached to this draft."
+                        } else {
+                            "The selected label photo will be attached to the saved bean."
+                        }
                     )
                     Field("Roaster", editRoaster, { editRoaster = it }, "ocr:roaster")
                     Field("Bean Name", editName, { editName = it }, "ocr:name")
@@ -2926,8 +2904,11 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                             "unobserved properties remain unknown."
                     )
                     Text(
-                        if (draft.photoUri == null) "No photo is attached to this draft."
-                        else "The selected label photo will be attached to this equipment record."
+                        if (draft.photoUri == null) {
+                            "No photo is attached to this draft."
+                        } else {
+                            "The selected label photo will be attached to this equipment record."
+                        }
                     )
                     Field("Brand (leave blank if unknown)", editBrand, { editBrand = it }, "ocr:equipment_brand")
                     Field("Model (leave blank if unknown)", editModel, { editModel = it }, "ocr:equipment_model")
@@ -3285,9 +3266,9 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 (if (entry.timerOnly) "recipe target " else "") +
                                 "${entry.waterGrams}g water (1:${entry.ratioDenominator}) · " +
                                 "${entry.brewDurationSeconds}s · ${entry.waterTemperatureCelsius}°C",
-                    "Grind: ${entry.grinderModel.ifBlank { "Burr Grinder" }} [${entry.grindSetting}] · " +
-                        "TDS: ${entry.measuredTdsPercent?.let { "$it%" } ?: "—"} · " +
-                        "Approx EY: ${entry.extractionYieldPercent?.let { "$it%" } ?: "—"}",
+                            "Grind: ${entry.grinderModel.ifBlank { "Burr Grinder" }} [${entry.grindSetting}] · " +
+                                "TDS: ${entry.measuredTdsPercent?.let { "$it%" } ?: "—"} · " +
+                                "Approx EY: ${entry.extractionYieldPercent?.let { "$it%" } ?: "—"}",
                             "Rating: ⭐ ${entry.rating ?: "—"}/10 · Tags: ${entry.tags.joinToString(", ")}",
                             if (entry.tasteNotes.isNotEmpty()) "Notes: ${entry.tasteNotes.joinToString(", ")}" else "",
                             if (entry.generalNotes.isNotBlank()) "\"${entry.generalNotes}\"" else ""
@@ -3503,8 +3484,13 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 )
                                 Text(
                                     "• Duration Δ: " +
-                                        (if (comp.durationDeltaSeconds >= 0) "+${comp.durationDeltaSeconds}"
-                                        else "${comp.durationDeltaSeconds}") + " s",
+                                        (
+                                            if (comp.durationDeltaSeconds >= 0) {
+                                                "+${comp.durationDeltaSeconds}"
+                                            } else {
+                                                "${comp.durationDeltaSeconds}"
+                                            }
+                                            ) + " s",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
@@ -3521,8 +3507,13 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 )
                                 Text(
                                     "• Water Temp Δ: " +
-                                        (if (comp.temperatureDeltaCelsius >= 0) "+${comp.temperatureDeltaCelsius}"
-                                        else "${comp.temperatureDeltaCelsius}") + " °C",
+                                        (
+                                            if (comp.temperatureDeltaCelsius >= 0) {
+                                                "+${comp.temperatureDeltaCelsius}"
+                                            } else {
+                                                "${comp.temperatureDeltaCelsius}"
+                                            }
+                                            ) + " °C",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -4378,8 +4369,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                                 scoringSample = sample.sampleId
                                                 evaluatorIdInput = activeSession.evaluators.firstOrNull()?.id ?: ""
                                             },
-                                        enabled = activeSession.status == SessionStatus.OPEN ||
-                                            activeSession.status == SessionStatus.REOPENED
+                                            enabled = activeSession.status == SessionStatus.OPEN ||
+                                                activeSession.status == SessionStatus.REOPENED
                                         ) {
                                             Text("Score Sample", maxLines = 1, softWrap = false)
                                         }
@@ -4440,8 +4431,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
                                     Text(
-                        " [HUMAN OBSERVATION] Empirical Cupper Panel. " +
-                            "No uncalibrated AI predictions in official consensus score. ",
+                                        " [HUMAN OBSERVATION] Empirical Cupper Panel. " +
+                                            "No uncalibrated AI predictions in official consensus score. ",
                                         style = MaterialTheme.typography.labelSmall,
                                         modifier = Modifier.padding(6.dp)
                                     )
@@ -4619,17 +4610,19 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                 GreenCoffeeDefectEntry(GreenDefectType.BROKEN_CHIPPED, defectCounts[2]!!)
                             )
                         )
-                    } else null
+                    } else {
+                        null
+                    }
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             if (gradeResult == null) {
-                                    Text(
-                                        "Enter valid measurements and defect counts to calculate a grade.",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
+                                Text(
+                                    "Enter valid measurements and defect counts to calculate a grade.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             } else {
                                 Text("Calculated Grade: ${gradeResult.first}", style = MaterialTheme.typography.titleMedium)
                                 Text(
@@ -4760,9 +4753,9 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                 }
                             }
                             Text(
-                                    "Aroma: ${obs.observedAroma} · Acidity: ${obs.observedAcidity} · " +
-                                        "Sweetness: ${obs.observedSweetness} | Carbonic Sharpness: " +
-                                        "${if (obs.perceivedCarbonicAcid) "Yes" else "No"}",
+                                "Aroma: ${obs.observedAroma} · Acidity: ${obs.observedAcidity} · " +
+                                    "Sweetness: ${obs.observedSweetness} | Carbonic Sharpness: " +
+                                    "${if (obs.perceivedCarbonicAcid) "Yes" else "No"}",
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(obs.qualitativeNotes, style = MaterialTheme.typography.bodySmall)
@@ -4775,8 +4768,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 item {
                     InfoCard(
                         "Safe Food-Grade Calibration Reference Lab (S2-052)",
-                "Standard sensory training exercises for palate calibration with rigorous food-grade purity " +
-                    "standards and chemical safety boundaries."
+                        "Standard sensory training exercises for palate calibration with rigorous food-grade purity " +
+                            "standards and chemical safety boundaries."
                     )
                 }
 
@@ -4804,54 +4797,56 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                } else items(SensoryTaxonomyRegistry.STANDARD_CALIBRATION_EXERCISES, key = { it.id }) { ex ->
-                    val massG = SensoryTaxonomyRegistry.calculateCalibrationBatch(ex, volMl)
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(ex.compoundName, style = MaterialTheme.typography.titleSmall)
-                                    Text(
-                                        "${ex.chemicalFormula} · Grade: ${ex.requiredGrade.name}",
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                } else {
+                    items(SensoryTaxonomyRegistry.STANDARD_CALIBRATION_EXERCISES, key = { it.id }) { ex ->
+                        val massG = SensoryTaxonomyRegistry.calculateCalibrationBatch(ex, volMl)
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(
-                                        " $massG g / ${volMl.toInt()} mL ",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        modifier = Modifier.padding(6.dp)
-                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(ex.compoundName, style = MaterialTheme.typography.titleSmall)
+                                        Text(
+                                            "${ex.chemicalFormula} · Grade: ${ex.requiredGrade.name}",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                                    ) {
+                                        Text(
+                                            " $massG g / ${volMl.toInt()} mL ",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            modifier = Modifier.padding(6.dp)
+                                        )
+                                    }
                                 }
-                            }
-                            Spacer(Modifier.height(6.dp))
-                            Text(ex.preparationInstructions, style = MaterialTheme.typography.bodySmall)
-                            Spacer(Modifier.height(4.dp))
-                            Text("Sensory Cue: ${ex.sensoryCueDescription}", style = MaterialTheme.typography.bodySmall)
-                            Spacer(Modifier.height(6.dp))
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                                )
-                            ) {
-                                Column(modifier = Modifier.padding(8.dp)) {
-                                    Text(
-                                        "⚠️ SAFETY BOUNDARY: ${ex.safetyWarning}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.error
+                                Spacer(Modifier.height(6.dp))
+                                Text(ex.preparationInstructions, style = MaterialTheme.typography.bodySmall)
+                                Spacer(Modifier.height(4.dp))
+                                Text("Sensory Cue: ${ex.sensoryCueDescription}", style = MaterialTheme.typography.bodySmall)
+                                Spacer(Modifier.height(6.dp))
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                                     )
-                                    Text(
-                                        "Max Daily Tasting Limit: ${ex.maxDailyConsumptionLimitMl} mL | Allergen: ${ex.allergenNotice}",
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        Text(
+                                            "⚠️ SAFETY BOUNDARY: ${ex.safetyWarning}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        Text(
+                                            "Max Daily Tasting Limit: ${ex.maxDailyConsumptionLimitMl} mL | Allergen: ${ex.allergenNotice}",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -5911,7 +5906,7 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                             value = auditIngName,
                             onValueChange = { auditIngName = it },
                             label = { Text("Ingredient Name") },
-                            modifier = Modifier.weight(1.5f)
+                            modifier = Modifier.weight(WIDE_INPUT_WEIGHT)
                         )
                         OutlinedTextField(
                             value = auditIngPct,
@@ -5921,8 +5916,8 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                         )
                     }
                     Text(
-                            "Food-grade status, allergens, and supplier limits come from the local ingredient record. " +
-                                "Missing evidence blocks approval.",
+                        "Food-grade status, allergens, and supplier limits come from the local ingredient record. " +
+                            "Missing evidence blocks approval.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     val ingredientDosePercent = auditIngPct.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..100.0 }
@@ -6126,7 +6121,7 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     )
                     OutlinedTextField(
                         value = customPersonaText,
-                        onValueChange = { customPersonaText = it.take(300) },
+                        onValueChange = { customPersonaText = it.take(MAX_CUSTOM_PERSONA_CHARS) },
                         label = { Text("System Prompt (${customPersonaText.length}/${MAX_CUSTOM_PERSONA_CHARS})") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3

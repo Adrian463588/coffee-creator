@@ -4,9 +4,9 @@ import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.coffeecreator.app.core.catalog.BagInventoryItem
 import com.coffeecreator.app.core.catalog.BagStatus
-import com.coffeecreator.app.core.catalog.CatalogPhotoTarget
 import com.coffeecreator.app.core.catalog.CatalogExportPayload
 import com.coffeecreator.app.core.catalog.CatalogImportExportEngine
+import com.coffeecreator.app.core.catalog.CatalogPhotoTarget
 import com.coffeecreator.app.core.catalog.ConflictResolutionStrategy
 import com.coffeecreator.app.core.catalog.DetailedBeanRecord
 import com.coffeecreator.app.core.catalog.EquipmentItem
@@ -22,6 +22,7 @@ import com.coffeecreator.app.core.catalog.OfflineEquipmentOcrParser
 import com.coffeecreator.app.core.catalog.RoastBatchRecord
 import com.coffeecreator.app.core.catalog.WaterMineralProfile
 import com.coffeecreator.app.core.reliability.LogLevel
+import java.io.IOException
 import java.math.BigDecimal
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
@@ -34,26 +35,25 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-
 fun CoffeeViewModel.addDetailedBean(bean: DetailedBeanRecord) {
-    _state.update { it.copy(detailedBeans = it.detailedBeans + bean) }
+    mutableState.update { it.copy(detailedBeans = it.detailedBeans + bean) }
     diagnosticBuffer.log(LogLevel.INFO, "BEAN", "Added bean '${bean.roaster} - ${bean.name}'")
 }
 
 fun CoffeeViewModel.updateDetailedBean(bean: DetailedBeanRecord) {
-    _state.update {
+    mutableState.update {
         it.copy(detailedBeans = it.detailedBeans.map { b -> if (b.id == bean.id) bean else b })
     }
 }
 
 fun CoffeeViewModel.deleteDetailedBean(id: String) {
-    _state.update {
+    mutableState.update {
         it.copy(detailedBeans = it.detailedBeans.filterNot { b -> b.id == id })
     }
 }
 
 fun CoffeeViewModel.toggleBeanFavorite(id: String) {
-    _state.update {
+    mutableState.update {
         it.copy(detailedBeans = it.detailedBeans.map { b -> if (b.id == id) b.copy(isFavorite = !b.isFavorite) else b })
     }
 }
@@ -75,7 +75,7 @@ fun CoffeeViewModel.addBagToBean(beanId: String, packageMassGrams: BigDecimal, r
         },
         pricePaid = price
     )
-    _state.update {
+    mutableState.update {
         it.copy(
             detailedBeans = it.detailedBeans.map { b ->
                 if (b.id == beanId) b.copy(bags = b.bags + newBag) else b
@@ -86,7 +86,7 @@ fun CoffeeViewModel.addBagToBean(beanId: String, packageMassGrams: BigDecimal, r
 
 fun CoffeeViewModel.deductDoseFromBag(bagId: String, doseGrams: BigDecimal): Boolean {
     var success = false
-    _state.update {
+    mutableState.update {
         it.copy(
             detailedBeans = it.detailedBeans.map { b ->
                 val bag = b.bags.find { bag -> bag.id == bagId }
@@ -109,7 +109,7 @@ fun CoffeeViewModel.deductDoseFromBag(bagId: String, doseGrams: BigDecimal): Boo
 }
 
 fun CoffeeViewModel.toggleFreezeBag(bagId: String) {
-    _state.update {
+    mutableState.update {
         it.copy(
             detailedBeans = it.detailedBeans.map { b ->
                 val bag = b.bags.find { bag -> bag.id == bagId }
@@ -129,68 +129,68 @@ fun CoffeeViewModel.toggleFreezeBag(bagId: String) {
 }
 
 fun CoffeeViewModel.addGrinder(grinder: GrinderRecord) {
-    _state.update { it.copy(grinders = it.grinders + grinder) }
+    mutableState.update { it.copy(grinders = it.grinders + grinder) }
 }
 
 fun CoffeeViewModel.toggleGrinderFavorite(id: String) {
-    _state.update {
+    mutableState.update {
         it.copy(grinders = it.grinders.map { g -> if (g.id == id) g.copy(isFavorite = !g.isFavorite) else g })
     }
 }
 
 fun CoffeeViewModel.deleteGrinder(id: String) {
-    _state.update { it.copy(grinders = it.grinders.filterNot { g -> g.id == id }) }
+    mutableState.update { it.copy(grinders = it.grinders.filterNot { g -> g.id == id }) }
 }
 
 fun CoffeeViewModel.addEquipmentItem(item: EquipmentItem) {
-    _state.update { it.copy(equipmentCatalog = it.equipmentCatalog + item) }
+    mutableState.update { it.copy(equipmentCatalog = it.equipmentCatalog + item) }
 }
 
 fun CoffeeViewModel.toggleEquipmentFavorite(id: String) {
-    _state.update {
+    mutableState.update {
         it.copy(equipmentCatalog = it.equipmentCatalog.map { e -> if (e.id == id) e.copy(isFavorite = !e.isFavorite) else e })
     }
 }
 
 fun CoffeeViewModel.deleteEquipmentItem(id: String) {
-    _state.update { it.copy(equipmentCatalog = it.equipmentCatalog.filterNot { e -> e.id == id }) }
+    mutableState.update { it.copy(equipmentCatalog = it.equipmentCatalog.filterNot { e -> e.id == id }) }
 }
 
 fun CoffeeViewModel.addWaterProfile(profile: WaterMineralProfile) {
-    _state.update { it.copy(waterProfiles = it.waterProfiles + profile) }
+    mutableState.update { it.copy(waterProfiles = it.waterProfiles + profile) }
 }
 
 fun CoffeeViewModel.deleteWaterProfile(id: String) {
-    _state.update { it.copy(waterProfiles = it.waterProfiles.filterNot { w -> w.id == id }) }
+    mutableState.update { it.copy(waterProfiles = it.waterProfiles.filterNot { w -> w.id == id }) }
 }
 
 fun CoffeeViewModel.addFoodGradeIngredient(item: FoodGradeIngredientItem) {
-    _state.update { it.copy(foodGradeIngredients = it.foodGradeIngredients + item) }
+    mutableState.update { it.copy(foodGradeIngredients = it.foodGradeIngredients + item) }
 }
 
 fun CoffeeViewModel.deleteFoodGradeIngredient(id: String) {
-    _state.update { it.copy(foodGradeIngredients = it.foodGradeIngredients.filterNot { i -> i.id == id }) }
+    mutableState.update { it.copy(foodGradeIngredients = it.foodGradeIngredients.filterNot { i -> i.id == id }) }
 }
 
 fun CoffeeViewModel.addGreenLot(lot: GreenCoffeeLot) {
-    _state.update { it.copy(greenCoffeeLots = it.greenCoffeeLots + lot) }
+    mutableState.update { it.copy(greenCoffeeLots = it.greenCoffeeLots + lot) }
 }
 
 fun CoffeeViewModel.deleteGreenLot(id: String) {
-    _state.update { it.copy(greenCoffeeLots = it.greenCoffeeLots.filterNot { l -> l.id == id }) }
+    mutableState.update { it.copy(greenCoffeeLots = it.greenCoffeeLots.filterNot { l -> l.id == id }) }
 }
 
 fun CoffeeViewModel.addRoastBatch(batch: RoastBatchRecord) {
-    _state.update { it.copy(roastBatches = it.roastBatches + batch) }
+    mutableState.update { it.copy(roastBatches = it.roastBatches + batch) }
 }
 
 fun CoffeeViewModel.deleteRoastBatch(id: String) {
-    _state.update { it.copy(roastBatches = it.roastBatches.filterNot { r -> r.id == id }) }
+    mutableState.update { it.copy(roastBatches = it.roastBatches.filterNot { r -> r.id == id }) }
 }
 
 fun CoffeeViewModel.parseBagOcr(photoUri: String?, text: String) {
     val draft = OfflineBagOcrParser.parseBagText(photoUri, text)
-    _state.update {
+    mutableState.update {
         it.copy(
             pendingOcrDraft = draft,
             pendingEquipmentOcrDraft = null,
@@ -202,7 +202,7 @@ fun CoffeeViewModel.parseBagOcr(photoUri: String?, text: String) {
 
 fun CoffeeViewModel.parseEquipmentOcr(photoUri: String?, text: String) {
     val draft = OfflineEquipmentOcrParser.parseEquipmentText(photoUri, text)
-    _state.update {
+    mutableState.update {
         it.copy(
             pendingEquipmentOcrDraft = draft,
             pendingOcrDraft = null,
@@ -213,9 +213,9 @@ fun CoffeeViewModel.parseEquipmentOcr(photoUri: String?, text: String) {
 }
 
 fun CoffeeViewModel.scanCatalogPhoto(uri: Uri, target: CatalogPhotoTarget, capturedByCamera: Boolean = false) {
-    if (_state.value.busy) return
+    if (mutableState.value.busy) return
     val job = viewModelScope.launch {
-        _state.update {
+        mutableState.update {
             it.copy(
                 busy = true,
                 progress = "Recognizing label locally",
@@ -244,7 +244,7 @@ fun CoffeeViewModel.scanCatalogPhoto(uri: Uri, target: CatalogPhotoTarget, captu
             } else {
                 "Label recognized offline. Review every field before saving."
             }
-            _state.update { state ->
+            mutableState.update { state ->
                 when (target) {
                     CatalogPhotoTarget.BEAN -> state.copy(
                         pendingOcrDraft = OfflineBagOcrParser.parseBagText(retainedPhotoUri, text),
@@ -259,14 +259,18 @@ fun CoffeeViewModel.scanCatalogPhoto(uri: Uri, target: CatalogPhotoTarget, captu
                 }
             }
         } catch (cancelled: CancellationException) {
-            _state.update { it.copy(photoOcrNotice = "Photo scan canceled. No catalog record was saved.") }
+            mutableState.update { it.copy(photoOcrNotice = "Photo scan canceled. No catalog record was saved.") }
             throw cancelled
-        } catch (failure: Exception) {
-            _state.update {
-                it.copy(photoOcrError = failure.message ?: "Photo could not be read. Select it again or enter text manually.")
-            }
+        } catch (failure: IOException) {
+            reportCatalogPhotoError(failure.message ?: PHOTO_OCR_FALLBACK_ERROR)
+        } catch (failure: SecurityException) {
+            reportCatalogPhotoError(failure.message ?: PHOTO_OCR_FALLBACK_ERROR)
+        } catch (failure: IllegalArgumentException) {
+            reportCatalogPhotoError(failure.message ?: PHOTO_OCR_FALLBACK_ERROR)
+        } catch (failure: IllegalStateException) {
+            reportCatalogPhotoError(failure.message ?: PHOTO_OCR_FALLBACK_ERROR)
         } finally {
-            _state.update { it.copy(busy = false, progress = "") }
+            mutableState.update { it.copy(busy = false, progress = "") }
             if (photoOcrJob === currentCoroutineContext()[Job]) photoOcrJob = null
         }
     }
@@ -278,19 +282,22 @@ fun CoffeeViewModel.cancelCatalogPhotoOcr() {
 }
 
 fun CoffeeViewModel.reportCatalogPhotoError(message: String) {
-    _state.update { it.copy(photoOcrError = message) }
+    mutableState.update { it.copy(photoOcrError = message) }
 }
+
+private const val PHOTO_OCR_FALLBACK_ERROR = "Photo could not be read. Select it again or enter text manually."
 
 fun CoffeeViewModel.confirmOcrDraft(confirmedBean: DetailedBeanRecord) = task("Saving reviewed bean label") {
     val photoAvailable = confirmedBean.photoUri?.let { photo ->
         withContext(Dispatchers.IO) { graph.bagPhotoOcr.isReadable(Uri.parse(photo)) }
     } ?: false
     addDetailedBean(confirmedBean.copy(photoUri = confirmedBean.photoUri.takeIf { photoAvailable }))
-    _state.update {
+    mutableState.update {
         it.copy(
             pendingOcrDraft = null,
             photoOcrNotice = if (confirmedBean.photoUri != null && !photoAvailable) {
-                "The label image grant expired. Your corrected bean was saved without the attachment; scan or select the image again to attach it."
+                "The label image grant expired. Your corrected bean was saved without the attachment; " +
+                    "scan or select the image again to attach it."
             } else {
                 it.photoOcrNotice
             }
@@ -303,11 +310,12 @@ fun CoffeeViewModel.confirmEquipmentOcrDraft(confirmedEquipment: EquipmentItem) 
         withContext(Dispatchers.IO) { graph.bagPhotoOcr.isReadable(Uri.parse(photo)) }
     } ?: false
     addEquipmentItem(confirmedEquipment.copy(photoUri = confirmedEquipment.photoUri.takeIf { photoAvailable }))
-    _state.update {
+    mutableState.update {
         it.copy(
             pendingEquipmentOcrDraft = null,
             photoOcrNotice = if (confirmedEquipment.photoUri != null && !photoAvailable) {
-                "The label image grant expired. Your corrected equipment was saved without the attachment; scan or select the image again to attach it."
+                "The label image grant expired. Your corrected equipment was saved without the attachment; " +
+                    "scan or select the image again to attach it."
             } else {
                 it.photoOcrNotice
             }
@@ -316,20 +324,20 @@ fun CoffeeViewModel.confirmEquipmentOcrDraft(confirmedEquipment: EquipmentItem) 
 }
 
 fun CoffeeViewModel.dismissOcrDraft() {
-    _state.update { it.copy(pendingOcrDraft = null) }
+    mutableState.update { it.copy(pendingOcrDraft = null) }
 }
 
 fun CoffeeViewModel.dismissEquipmentOcrDraft() {
-    _state.update { it.copy(pendingEquipmentOcrDraft = null) }
+    mutableState.update { it.copy(pendingEquipmentOcrDraft = null) }
 }
 
 fun CoffeeViewModel.previewCatalogImport(jsonContent: String): ImportDryRunSummary {
     val preview = CatalogImportExportEngine.previewImport(
         jsonContent,
-        _state.value.detailedBeans,
-        _state.value.equipmentCatalog
+        mutableState.value.detailedBeans,
+        mutableState.value.equipmentCatalog
     )
-    _state.update { it.copy(catalogImportPreview = preview) }
+    mutableState.update { it.copy(catalogImportPreview = preview) }
     return preview
 }
 
@@ -337,10 +345,10 @@ fun CoffeeViewModel.executeCatalogImport(jsonContent: String, strategy: Conflict
     val (receipt, updatedCollections) = CatalogImportExportEngine.executeImport(
         jsonContent,
         strategy,
-        _state.value.detailedBeans,
-        _state.value.equipmentCatalog
+        mutableState.value.detailedBeans,
+        mutableState.value.equipmentCatalog
     )
-    _state.update {
+    mutableState.update {
         it.copy(
             detailedBeans = updatedCollections.first,
             equipmentCatalog = updatedCollections.second,
@@ -350,22 +358,23 @@ fun CoffeeViewModel.executeCatalogImport(jsonContent: String, strategy: Conflict
     diagnosticBuffer.log(
         LogLevel.INFO,
         "IMPORT",
-        "Catalog import completed: created=${receipt.createdCount}, updated=${receipt.updatedCount}, renamed=${receipt.renamedCount}, skipped=${receipt.skippedCount}"
+        "Catalog import completed: created=${receipt.createdCount}, updated=${receipt.updatedCount}, " +
+            "renamed=${receipt.renamedCount}, skipped=${receipt.skippedCount}"
     )
     return receipt
 }
 
 fun CoffeeViewModel.exportCatalogJson(): String {
     val payload = CatalogExportPayload(
-        beans = _state.value.detailedBeans,
-        grinders = _state.value.grinders,
-        equipment = _state.value.equipmentCatalog,
-        waters = _state.value.waterProfiles,
-        ingredients = _state.value.foodGradeIngredients
+        beans = mutableState.value.detailedBeans,
+        grinders = mutableState.value.grinders,
+        equipment = mutableState.value.equipmentCatalog,
+        waters = mutableState.value.waterProfiles,
+        ingredients = mutableState.value.foodGradeIngredients
     )
     return CatalogImportExportEngine.exportToJson(payload)
 }
 
 fun CoffeeViewModel.exportBeansCsv(): String {
-    return CatalogImportExportEngine.exportBeansToCsv(_state.value.detailedBeans)
+    return CatalogImportExportEngine.exportBeansToCsv(mutableState.value.detailedBeans)
 }

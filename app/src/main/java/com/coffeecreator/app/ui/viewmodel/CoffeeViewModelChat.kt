@@ -11,30 +11,28 @@ import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-
 fun CoffeeViewModel.sendChat(prompt: String) {
-    if (prompt.isBlank() || _state.value.generating || _state.value.busy || replacingDraft) return
+    if (prompt.isBlank() || mutableState.value.generating || mutableState.value.busy || replacingDraft) return
     if (prompt.length > InputLimits.QUERY_CHARS || '\u0000' in prompt) {
-        _state.update { it.copy(error = "Message exceeds the safe input budget; shorten it before sending.") }
+        mutableState.update { it.copy(error = "Message exceeds the safe input budget; shorten it before sending.") }
         return
     }
     generation = viewModelScope.launch {
-        _state.update { it.copy(generating = true, error = null) }
+        mutableState.update { it.copy(generating = true, error = null) }
         val user = ChatMessage(UUID.randomUUID().toString(), "user", prompt)
         val replyId = UUID.randomUUID().toString()
-        _state.update { it.copy(messages = it.messages + user + ChatMessage(replyId, "assistant", "")) }
+        mutableState.update { it.copy(messages = it.messages + user + ChatMessage(replyId, "assistant", "")) }
         val response = StringBuilder()
         try {
             if (prompt.trim().startsWith('{')) {
                 val result = withContext(Dispatchers.Default) { graph.tools.executeJson(prompt) }
                 response.append("Exact Kotlin tool result (${result.toolName}):\n${result.output}")
-                _state.update { state ->
+                mutableState.update { state ->
                     state.copy(
                         messages = state.messages.map { message ->
                             if (message.id ==
@@ -48,14 +46,14 @@ fun CoffeeViewModel.sendChat(prompt: String) {
                     )
                 }
                 if (result.requiresUserConfirmation || result.toolName == "recommend_recipe") {
-                    _state.update { it.copy(pendingRecipe = result.structuredData as? Recipe) }
+                    mutableState.update { it.copy(pendingRecipe = result.structuredData as? Recipe) }
                 }
                 replaceReply(replyId, response.toString())
             } else {
                 require(graph.native.initialized) {
                     "No local model loaded. Use Models to install/load a verified GGUF, or run a typed tool with explicit arguments."
                 }
-                val persona = _state.value.selectedPersona ?: error("Select a persona.")
+                val persona = mutableState.value.selectedPersona ?: error("Select a persona.")
                 if (graph.repository.chunks.value.isNotEmpty()) graph.rag.index(graph.repository.chunks.value)
                 val evidence = if (graph.repository.chunks.value.isNotEmpty()) {
                     graph.rag.search(prompt).let {
@@ -64,8 +62,8 @@ fun CoffeeViewModel.sendChat(prompt: String) {
                 } else {
                     null
                 }
-                if (evidence != null) _state.update { it.copy(searchResult = evidence) }
-                val history = _state.value.messages.dropLast(2).filter {
+                if (evidence != null) mutableState.update { it.copy(searchResult = evidence) }
+                val history = mutableState.value.messages.dropLast(2).filter {
                     it.content.isNotBlank() &&
                         it.role in setOf("user", "assistant")
                 }.takeLast(2)
@@ -76,7 +74,7 @@ fun CoffeeViewModel.sendChat(prompt: String) {
                     persona,
                     history,
                     evidence,
-                    NativeGenerationOptions(maxTokens = _state.value.maxTokens, temperature = _state.value.temperature),
+                    NativeGenerationOptions(maxTokens = mutableState.value.maxTokens, temperature = mutableState.value.temperature),
                     onSources = { deliveredSources = it },
                     onTool = ::addToolCard
                 ).collect { token ->
@@ -91,14 +89,14 @@ fun CoffeeViewModel.sendChat(prompt: String) {
             throw cancelled
         } catch (boundaryFailure: Exception) {
             replaceReply(replyId, response.toString() + "\n${boundaryFailure.message}")
-            _state.update { it.copy(error = boundaryFailure.message) }
+            mutableState.update { it.copy(error = boundaryFailure.message) }
         } finally {
-            _state.update { it.copy(generating = false) }
+            mutableState.update { it.copy(generating = false) }
             withContext(kotlinx.coroutines.NonCancellable + Dispatchers.IO) {
                 try {
-                    graph.repository.saveChatMessages(_state.value.messages.takeLast(100))
+                    graph.repository.saveChatMessages(mutableState.value.messages.takeLast(100))
                 } catch (boundaryFailure: Exception) {
-                    _state.update { it.copy(error = "Chat history was not saved: ${boundaryFailure.message}") }
+                    mutableState.update { it.copy(error = "Chat history was not saved: ${boundaryFailure.message}") }
                 }
             }
         }
@@ -112,9 +110,9 @@ private fun CoffeeViewModel.addToolCard(result: com.coffeecreator.app.core.ai.To
         toolCallName = result.toolName,
         toolResultJson = result.output
     )
-    _state.update { it.copy(messages = it.messages + card, pendingToolJson = result.inputConfirmationJson ?: it.pendingToolJson) }
+    mutableState.update { it.copy(messages = it.messages + card, pendingToolJson = result.inputConfirmationJson ?: it.pendingToolJson) }
     if (result.requiresUserConfirmation || result.toolName == "recommend_recipe") {
-        _state.update { it.copy(pendingRecipe = result.structuredData as? Recipe) }
+        mutableState.update { it.copy(pendingRecipe = result.structuredData as? Recipe) }
     }
 }
 private fun CoffeeViewModel.replaceReply(
@@ -123,7 +121,7 @@ private fun CoffeeViewModel.replaceReply(
     citations: List<String> = emptyList(),
     sourceIds: List<String> = emptyList()
 ) {
-    _state.update {
+    mutableState.update {
         it.copy(
             messages = it.messages.map { message ->
                 if (message.id ==
@@ -142,19 +140,19 @@ fun CoffeeViewModel.cancelGeneration() {
     generation?.cancel()
 }
 fun CoffeeViewModel.confirmAiRecipe() = task("Saving user-confirmed AI draft") {
-    val draft = _state.value.pendingRecipe ?: error("No recipe draft awaiting approval.")
+    val draft = mutableState.value.pendingRecipe ?: error("No recipe draft awaiting approval.")
     graph.repository.saveRecipe(draft)
-    _state.update { it.copy(pendingRecipe = null, notice = "Saved confirmed draft. No measurements were invented.") }
+    mutableState.update { it.copy(pendingRecipe = null, notice = "Saved confirmed draft. No measurements were invented.") }
 }
 fun CoffeeViewModel.dismissAiRecipe() {
-    _state.update { it.copy(pendingRecipe = null) }
+    mutableState.update { it.copy(pendingRecipe = null) }
 }
 fun CoffeeViewModel.confirmToolInputs() {
-    if (_state.value.busy || replacingDraft) return
-    val json = _state.value.pendingToolJson ?: return
-    _state.update { it.copy(pendingToolJson = null) }
+    if (mutableState.value.busy || replacingDraft) return
+    val json = mutableState.value.pendingToolJson ?: return
+    mutableState.update { it.copy(pendingToolJson = null) }
     sendChat(json)
 }
 fun CoffeeViewModel.dismissToolInputs() {
-    _state.update { it.copy(pendingToolJson = null) }
+    mutableState.update { it.copy(pendingToolJson = null) }
 }

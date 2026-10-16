@@ -56,8 +56,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -72,7 +72,6 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
-
 
 private const val FULL_CIRCLE_DEGREES = 360f
 
@@ -103,7 +102,7 @@ fun SensoryWheelVisualizer(
                 .size(280.dp)
                 .semantics {
                     contentDescription =
-                    "Interactive Coffee Flavor Wheel. 9 primary categories. " +
+                        "Interactive Coffee Flavor Wheel. 9 primary categories. " +
                         "Currently focused on ${activeCategory.name}. Tap any sector to explore subcategories and descriptors."
                 },
             contentAlignment = Alignment.Center

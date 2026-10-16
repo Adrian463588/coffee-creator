@@ -21,7 +21,6 @@ import java.util.UUID
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
-
 private const val QUALIFIED_JOURNAL_RATING = 7.5
 private const val MILLIS_PER_DAY = 86_400_000.0
 
@@ -44,7 +43,7 @@ internal fun BrewJournalEntry.toPersonalSensoryEvidence(): PersonalSensoryEviden
 }
 
 fun CoffeeViewModel.saveJournalEntry(entry: BrewJournalEntry) {
-    _state.update { current ->
+    mutableState.update { current ->
         val list = listOf(entry) + current.journalEntries.filter { e -> e.id != entry.id }
         val evidence = entry.toPersonalSensoryEvidence()
         val updatedPalate = evidence?.let { PalateBayesianEngine.updateProfile(current.palateProfile, it) }
@@ -56,7 +55,7 @@ fun CoffeeViewModel.saveJournalEntry(entry: BrewJournalEntry) {
 }
 
 fun CoffeeViewModel.deleteJournalEntry(id: String) {
-    _state.update {
+    mutableState.update {
         val list = it.journalEntries.filter { e -> e.id != id }
         it.copy(journalEntries = list, notice = "Deleted journal entry.")
     }
@@ -64,7 +63,7 @@ fun CoffeeViewModel.deleteJournalEntry(id: String) {
 }
 
 fun CoffeeViewModel.updateJournalEntryTasteNotes(id: String, notes: List<String>) {
-    _state.update { current ->
+    mutableState.update { current ->
         val updated = current.journalEntries.map { entry ->
             if (entry.id == id) entry.copy(tasteNotes = notes, updatedAt = System.currentTimeMillis()) else entry
         }
@@ -73,11 +72,11 @@ fun CoffeeViewModel.updateJournalEntryTasteNotes(id: String, notes: List<String>
 }
 
 fun CoffeeViewModel.updateJournalFilter(criteria: BrewFilterCriteria) {
-    _state.update { it.copy(journalFilterCriteria = criteria) }
+    mutableState.update { it.copy(journalFilterCriteria = criteria) }
 }
 
 fun CoffeeViewModel.selectComparisonSlot(entry: BrewJournalEntry?, slot: String) {
-    _state.update { current ->
+    mutableState.update { current ->
         val newA = if (slot == "A") entry else current.selectedComparisonA
         val newB = if (slot == "B") entry else current.selectedComparisonB
         val comparison = if (newA != null && newB != null) {
@@ -90,12 +89,12 @@ fun CoffeeViewModel.selectComparisonSlot(entry: BrewJournalEntry?, slot: String)
 }
 
 fun CoffeeViewModel.clearComparison() {
-    _state.update { it.copy(selectedComparisonA = null, selectedComparisonB = null, activeComparison = null) }
+    mutableState.update { it.copy(selectedComparisonA = null, selectedComparisonB = null, activeComparison = null) }
 }
 
 fun CoffeeViewModel.evaluateOvatForEntry(entry: BrewJournalEntry, tasteFlags: List<String> = emptyList()) {
     val rec = BrewAnalyticsEngine.evaluateOvat(entry, tasteFlags)
-    _state.update {
+    mutableState.update {
         it.copy(
             activeOvatRecommendation = rec,
             notice = if (rec == null) {
@@ -109,12 +108,12 @@ fun CoffeeViewModel.evaluateOvatForEntry(entry: BrewJournalEntry, tasteFlags: Li
 
 fun CoffeeViewModel.estimateCaffeineForDose(doseGrams: Double, arabicaFraction: Double = 1.0) {
     val estimate = BrewAnalyticsEngine.estimateCaffeine(doseGrams, arabicaFraction)
-    _state.update { it.copy(activeCaffeineEstimate = estimate) }
+    mutableState.update { it.copy(activeCaffeineEstimate = estimate) }
 }
 
 fun CoffeeViewModel.repeatLastBrew() {
-    val last = _state.value.journalEntries.maxByOrNull { it.createdAt } ?: return
-    val matchingRecipe = _state.value.recipes.find { it.id == last.recipeId }
+    val last = mutableState.value.journalEntries.maxByOrNull { it.createdAt } ?: return
+    val matchingRecipe = mutableState.value.recipes.find { it.id == last.recipeId }
     if (matchingRecipe != null) {
         editRecipe(matchingRecipe)
         initBrewSession(matchingRecipe)
@@ -133,7 +132,7 @@ fun CoffeeViewModel.repeatLastBrew() {
         )
         initBrewSession(newRecipe)
     }
-    _state.update { it.copy(notice = "Repeated previous brew: ${last.brewMethod} (${last.doseGrams}g). Armed on timer.") }
+    mutableState.update { it.copy(notice = "Repeated previous brew: ${last.brewMethod} (${last.doseGrams}g). Armed on timer.") }
 }
 
 fun CoffeeViewModel.saveEntryAsTemplate(entry: BrewJournalEntry, templateName: String) = task("Saving brew template") {
@@ -154,25 +153,25 @@ fun CoffeeViewModel.saveEntryAsTemplate(entry: BrewJournalEntry, templateName: S
         notes = entry.generalNotes
     )
     graph.repository.saveRecipe(recipe)
-    _state.update { it.copy(notice = "Saved template '${recipe.name}' to Recipe Library.") }
+    mutableState.update { it.copy(notice = "Saved template '${recipe.name}' to Recipe Library.") }
 }
 
 fun CoffeeViewModel.saveCafeCup(entry: CafeCupEntry) {
-    _state.update {
+    mutableState.update {
         val list = listOf(entry) + it.cafeCupEntries.filter { c -> c.id != entry.id }
         it.copy(cafeCupEntries = list, notice = "Saved cafe cup: ${entry.drinkName} at ${entry.cafeName}.")
     }
 }
 
 fun CoffeeViewModel.deleteCafeCup(id: String) {
-    _state.update {
+    mutableState.update {
         val list = it.cafeCupEntries.filter { c -> c.id != id }
         it.copy(cafeCupEntries = list, notice = "Deleted cafe cup.")
     }
 }
 
 fun CoffeeViewModel.exportJournalCsv(context: Context) {
-    val csv = BrewAnalyticsEngine.exportJournalToCsv(_state.value.journalEntries)
+    val csv = BrewAnalyticsEngine.exportJournalToCsv(mutableState.value.journalEntries)
     RecipeExportFormatter.shareJournalCsv(context, csv)
 }
 
@@ -184,7 +183,7 @@ fun CoffeeViewModel.importBeanconquerorJson(json: String) = task("Importing Bean
             graph.repository.addBean(bean)
         }
     }
-    _state.update { current ->
+    mutableState.update { current ->
         val updatedBrews = brews + current.journalEntries.filter { j -> brews.none { it.id == j.id } }
         current.copy(
             journalEntries = updatedBrews,
@@ -197,7 +196,7 @@ fun CoffeeViewModel.importBeanconquerorJson(json: String) = task("Importing Bean
 fun CoffeeViewModel.previewBackup(backupJson: String) {
     val preview = runCatching {
         val validated = BackupCodec.decode(backupJson)
-        val currentBeans = _state.value.beans.associateBy { it.id }
+        val currentBeans = mutableState.value.beans.associateBy { it.id }
         val items = validated.payload.beans.map { incoming ->
             val local = currentBeans[incoming.id]
             val status = when {
@@ -221,21 +220,21 @@ fun CoffeeViewModel.previewBackup(backupJson: String) {
             items = items
         )
     }.getOrNull()
-    _state.update { it.copy(importConflictPreview = preview) }
+    mutableState.update { it.copy(importConflictPreview = preview) }
 }
 
 fun CoffeeViewModel.clearConflictPreview() {
-    _state.update { it.copy(importConflictPreview = null) }
+    mutableState.update { it.copy(importConflictPreview = null) }
 }
 
 fun CoffeeViewModel.refreshStreakAndStats() {
-    val entries = _state.value.journalEntries
+    val entries = mutableState.value.journalEntries
     val zone = ZoneId.systemDefault()
     val dates = entries.map { Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate() }
     val streak = BrewAnalyticsEngine.calculateStreak(dates)
     val now = LocalDate.now()
     val stats = BrewAnalyticsEngine.calculateMonthlyStats(entries, now.year, now.monthValue)
-    _state.update { it.copy(brewStreak = streak, monthlyStats = stats) }
+    mutableState.update { it.copy(brewStreak = streak, monthlyStats = stats) }
 }
 
 // ========================================================================

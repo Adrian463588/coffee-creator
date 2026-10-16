@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.io.InputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -28,7 +29,13 @@ class OfflineImageOcr(
 
     fun isReadable(uri: Uri): Boolean = uri.scheme == "content" && try {
         context.contentResolver.openFileDescriptor(uri, "r")?.use { true } ?: false
-    } catch (_: Exception) {
+    } catch (_: IOException) {
+        false
+    } catch (_: SecurityException) {
+        false
+    } catch (_: IllegalArgumentException) {
+        false
+    } catch (_: IllegalStateException) {
         false
     }
 

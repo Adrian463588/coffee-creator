@@ -77,8 +77,7 @@ object BuiltInAssets {
         }
     }
 
-    fun canLoadForInference(asset: ModelAsset): Boolean =
-        runtimeCapability(asset) == ModelRuntimeCapability.LLAMA_CPP_INFERENCE
+    fun canLoadForInference(asset: ModelAsset): Boolean = runtimeCapability(asset) == ModelRuntimeCapability.LLAMA_CPP_INFERENCE
 
     fun safFileExtension(asset: ModelAsset): String = when (runtimeCapability(asset)) {
         ModelRuntimeCapability.LLAMA_CPP_INFERENCE -> "gguf"

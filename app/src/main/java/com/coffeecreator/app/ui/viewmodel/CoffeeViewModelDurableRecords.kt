@@ -14,22 +14,20 @@ import com.coffeecreator.app.core.catalog.RoastBatchRecord
 import com.coffeecreator.app.core.catalog.RoastDataPoint
 import com.coffeecreator.app.core.catalog.WaterMineralProfile
 import com.coffeecreator.app.core.data.BackupCodec
+import com.coffeecreator.app.core.engine.CoffeeScienceEngine
 import com.coffeecreator.app.core.engine.JsonInputPolicy
 import com.coffeecreator.app.core.journal.BrewJournalEntry
 import com.coffeecreator.app.core.journal.CafeCupEntry
 import com.coffeecreator.app.core.reliability.UserUnitPreferences
-import com.coffeecreator.app.core.sensory.AttributeDefinition
 import com.coffeecreator.app.core.sensory.CuppingSample
 import com.coffeecreator.app.core.sensory.CuppingSession
-import com.coffeecreator.app.core.sensory.CuppingTemplate
-import com.coffeecreator.app.core.sensory.DefectRecord
-import com.coffeecreator.app.core.sensory.EvaluationSheet
 import com.coffeecreator.app.core.sensory.PhysicalQcRecord
 import com.coffeecreator.app.core.sensory.ProvenanceBadge
 import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
+import com.google.gson.JsonParseException
 import com.google.gson.Strictness
 import com.google.gson.reflect.TypeToken
 import java.lang.reflect.Modifier
@@ -37,7 +35,9 @@ import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.math.BigDecimal
 import java.time.LocalDate
+import kotlin.math.abs
 
+private const val EXTRACTION_YIELD_TOLERANCE_PERCENT = 1e-9
 
 internal data class CoffeeDurableSnapshot(
     val journalEntries: List<BrewJournalEntry>,
@@ -129,11 +129,7 @@ internal object CoffeeDurableSnapshotCodec {
 
     fun decode(settings: Map<String, String>): CoffeeDurableSnapshot = snapshot(settings, strict = true) { _, _ -> }
 
-    private fun snapshot(
-        settings: Map<String, String>,
-        strict: Boolean,
-        onMalformed: (String, Exception) -> Unit
-    ): CoffeeDurableSnapshot {
+    private fun snapshot(settings: Map<String, String>, strict: Boolean, onMalformed: (String, Exception) -> Unit): CoffeeDurableSnapshot {
         val result = CoffeeDurableSnapshot(
             journalEntries = listSetting(settings, "journal_entries", BrewJournalEntry::class.java, strict, onMalformed),
             cafeCupEntries = listSetting(settings, "cafe_cups", CafeCupEntry::class.java, strict, onMalformed),
@@ -149,7 +145,13 @@ internal object CoffeeDurableSnapshotCodec {
             grinders = listSetting(settings, "grinders", GrinderRecord::class.java, strict, onMalformed),
             equipmentCatalog = listSetting(settings, "equipment_catalog", EquipmentItem::class.java, strict, onMalformed),
             waterProfiles = listSetting(settings, "water_profiles", WaterMineralProfile::class.java, strict, onMalformed),
-            foodGradeIngredients = listSetting(settings, "food_grade_ingredients", FoodGradeIngredientItem::class.java, strict, onMalformed),
+            foodGradeIngredients = listSetting(
+                settings,
+                "food_grade_ingredients",
+                FoodGradeIngredientItem::class.java,
+                strict,
+                onMalformed
+            ),
             greenCoffeeLots = listSetting(settings, "green_coffee_lots", GreenCoffeeLot::class.java, strict, onMalformed),
             roastBatches = listSetting(settings, "roast_batches", RoastBatchRecord::class.java, strict, onMalformed)
         )
@@ -200,7 +202,7 @@ internal object CoffeeDurableSnapshotCodec {
         settings: Map<String, String>,
         key: String,
         strict: Boolean,
-        onMalformed: (String, Exception) -> Unit,
+        noinline onMalformed: (String, Exception) -> Unit,
         decode: (String) -> T
     ): T? {
         val json = settings[key] ?: return null
@@ -208,11 +210,26 @@ internal object CoffeeDurableSnapshotCodec {
             require(json.length <= BackupCodec.MAX_SETTING_CHARS) { "Saved '$key' exceeds the supported size limit." }
             JsonInputPolicy.validateDepth(json)
             decode(json)
-        } catch (failure: Exception) {
-            if (strict) throw IllegalArgumentException("Invalid '$key' snapshot; existing records were not changed.", failure)
-            onMalformed(key, failure)
-            null
+        } catch (failure: JsonParseException) {
+            recoverMalformedSetting(key, strict, onMalformed, failure)
+        } catch (failure: ClassCastException) {
+            recoverMalformedSetting(key, strict, onMalformed, failure)
+        } catch (failure: IllegalArgumentException) {
+            recoverMalformedSetting(key, strict, onMalformed, failure)
+        } catch (failure: IllegalStateException) {
+            recoverMalformedSetting(key, strict, onMalformed, failure)
         }
+    }
+
+    private fun <T> recoverMalformedSetting(
+        key: String,
+        strict: Boolean,
+        onMalformed: (String, Exception) -> Unit,
+        failure: Exception
+    ): T? {
+        if (strict) throw IllegalArgumentException("Invalid '$key' snapshot; existing records were not changed.", failure)
+        onMalformed(key, failure)
+        return null
     }
 
     private fun validateShapeIfStrict(json: String, expectedType: Type, strict: Boolean) {
@@ -270,7 +287,9 @@ internal object CoffeeDurableSnapshotCodec {
 
     private fun validateRecord(element: JsonElement, type: Class<*>, path: String) {
         require(element.isJsonObject) { "$path must be an object." }
-        val fields = type.declaredFields.filterNot { Modifier.isStatic(it.modifiers) || it.isSynthetic || Modifier.isTransient(it.modifiers) }
+        val fields = type.declaredFields.filterNot {
+            Modifier.isStatic(it.modifiers) || it.isSynthetic || Modifier.isTransient(it.modifiers)
+        }
         val optional = optionalFields[type].orEmpty()
         val fieldNames = fields.map { it.name }.toSet()
         val value = element.asJsonObject
@@ -290,8 +309,10 @@ internal object CoffeeDurableSnapshotCodec {
         val type = keyType as? Class<*> ?: error("Unsupported map key in $path.")
         when (type) {
             String::class.java -> Unit
-            Int::class.java, Int::class.javaPrimitiveType -> require(key.toIntOrNull() != null) { "$path has a non-integer map key." }
-            Long::class.java, Long::class.javaPrimitiveType -> require(key.toLongOrNull() != null) { "$path has a non-integer map key." }
+            Int::class.javaPrimitiveType, Int::class.javaObjectType ->
+                require(key.toIntOrNull() != null) { "$path has a non-integer map key." }
+            Long::class.javaPrimitiveType, Long::class.javaObjectType ->
+                require(key.toLongOrNull() != null) { "$path has a non-integer map key." }
             else -> error("Unsupported map key in $path.")
         }
     }
@@ -346,12 +367,16 @@ internal object CoffeeDurableSnapshotCodec {
             snapshot.roastBatches.size
         ).sum()
         require(totalRecords <= BackupCodec.MAX_RECORDS) { "Personal records exceed the supported backup limit." }
-        require(snapshot.journalEntries.map { it.id }.toSet().size == snapshot.journalEntries.size) { "Duplicate journal entry identifiers." }
+        require(
+            snapshot.journalEntries.map { it.id }.toSet().size == snapshot.journalEntries.size
+        ) { "Duplicate journal entry identifiers." }
         require(snapshot.cafeCupEntries.map { it.id }.toSet().size == snapshot.cafeCupEntries.size) { "Duplicate cafe cup identifiers." }
         require(snapshot.cuppingSessions.map { it.id }.toSet().size == snapshot.cuppingSessions.size) { "Duplicate cupping identifiers." }
         require(snapshot.detailedBeans.map { it.id }.toSet().size == snapshot.detailedBeans.size) { "Duplicate detailed bean identifiers." }
         require(snapshot.grinders.map { it.id }.toSet().size == snapshot.grinders.size) { "Duplicate grinder identifiers." }
-        require(snapshot.equipmentCatalog.map { it.id }.toSet().size == snapshot.equipmentCatalog.size) { "Duplicate equipment identifiers." }
+        require(
+            snapshot.equipmentCatalog.map { it.id }.toSet().size == snapshot.equipmentCatalog.size
+        ) { "Duplicate equipment identifiers." }
         require(snapshot.waterProfiles.map { it.id }.toSet().size == snapshot.waterProfiles.size) { "Duplicate water profile identifiers." }
         require(snapshot.foodGradeIngredients.map { it.id }.toSet().size == snapshot.foodGradeIngredients.size) {
             "Duplicate food-grade ingredient identifiers."
@@ -367,35 +392,67 @@ internal object CoffeeDurableSnapshotCodec {
         require(snapshot.journalEntries.all { it.id.isNotBlank() && (it.rating == null || it.rating in 1.0..10.0) }) {
             "Invalid journal entry metadata."
         }
+        snapshot.journalEntries.forEach(::validateJournalExtractionYield)
         require(snapshot.cafeCupEntries.all { it.id.isNotBlank() && it.rating in 1.0..10.0 }) { "Invalid cafe cup entry." }
         val bagIds = snapshot.detailedBeans.flatMap { bean -> bean.bags.map { bag -> bag.id } }
         require(bagIds.all(String::isNotBlank) && bagIds.toSet().size == bagIds.size) { "Bag identifiers must be unique and non-empty." }
-        require(snapshot.detailedBeans.all { bean ->
-            bean.id.isNotBlank() && bean.bags.all { bag ->
-                bag.beanId == bean.id && bag.packageMassGrams > BigDecimal.ZERO &&
-                    bag.remainingMassGrams >= BigDecimal.ZERO && bag.remainingMassGrams <= bag.packageMassGrams
+        require(
+            snapshot.detailedBeans.all { bean ->
+                bean.id.isNotBlank() && bean.bags.all { bag ->
+                    bag.beanId == bean.id && bag.packageMassGrams > BigDecimal.ZERO &&
+                        bag.remainingMassGrams >= BigDecimal.ZERO && bag.remainingMassGrams <= bag.packageMassGrams
+                }
             }
-        }) {
+        ) {
             "Bag inventory refers to a different bean."
         }
         require(snapshot.roastRestObservations.all { observation -> bagIds.contains(observation.bagId) }) {
             "Roast-rest observations must refer to a saved bag."
         }
-        require(snapshot.roastBatches.all { batch ->
-            batch.firstCrackTimeSeconds in 1..<batch.totalRoastDurationSeconds &&
-                (batch.greenLotId == null || snapshot.greenCoffeeLots.any { it.id == batch.greenLotId }) &&
-                (batch.blendComponents.isEmpty() || batch.blendComponents
-                    .fold(BigDecimal.ZERO) { total, component -> total.add(component.componentPercentage) }
-                    .compareTo(BigDecimal("100.00")) == 0)
-        }) {
+        require(
+            snapshot.roastBatches.all { batch ->
+                batch.firstCrackTimeSeconds in 1..<batch.totalRoastDurationSeconds &&
+                    (batch.greenLotId == null || snapshot.greenCoffeeLots.any { it.id == batch.greenLotId }) &&
+                    (
+                        batch.blendComponents.isEmpty() || batch.blendComponents
+                            .fold(BigDecimal.ZERO) { total, component -> total.add(component.componentPercentage) }
+                            .compareTo(BigDecimal("100.00")) == 0
+                        )
+            }
+        ) {
             "Roast batch timing, green-lot links, or blend percentages are invalid."
         }
         require(snapshot.palateProfile.vector.toDoubleArray().all { it.isFinite() && it in 0.0..1.0 }) {
             "Invalid palate profile vector."
         }
-        require(snapshot.palateProfile.varianceVector.toDoubleArray().all { it.isFinite() && it in 0.0..1.0 } &&
-            snapshot.palateProfile.cumulativeEvidenceWeight.isFinite() && snapshot.palateProfile.cumulativeEvidenceWeight >= 0.0 &&
-            snapshot.palateProfile.qualifiedSessionCount >= 0
+        require(
+            snapshot.palateProfile.varianceVector.toDoubleArray().all { it.isFinite() && it in 0.0..1.0 } &&
+                snapshot.palateProfile.cumulativeEvidenceWeight.isFinite() && snapshot.palateProfile.cumulativeEvidenceWeight >= 0.0 &&
+                snapshot.palateProfile.qualifiedSessionCount >= 0
         ) { "Invalid palate profile evidence metadata." }
+    }
+
+    private fun validateJournalExtractionYield(entry: BrewJournalEntry) {
+        entry.beverageMassGrams?.let { mass ->
+            require(mass.isFinite() && mass > 0.0) { "Journal beverage mass must be positive and finite." }
+        }
+        entry.measuredTdsPercent?.let { tds ->
+            require(tds.isFinite() && tds in 0.0..100.0) { "Journal measured TDS must be finite and in [0, 100]." }
+        }
+        val storedYield = entry.extractionYieldPercent ?: return
+        require(entry.beverageMassGrams != null && entry.measuredTdsPercent != null) {
+            "Stored extraction yield requires measured beverage mass and measured TDS."
+        }
+        val calculated = CoffeeScienceEngine.calculateExtractionYield(
+            entry.doseGrams,
+            entry.beverageMassGrams,
+            entry.measuredTdsPercent,
+            entry.brewMethod
+        ).getOrElse { failure ->
+            throw IllegalArgumentException("Stored extraction-yield measurement inputs are invalid.", failure)
+        }.extractionYieldPercent
+        require(storedYield.isFinite() && abs(storedYield - calculated) <= EXTRACTION_YIELD_TOLERANCE_PERCENT) {
+            "Stored extraction yield does not match its measured mass-balance inputs."
+        }
     }
 }

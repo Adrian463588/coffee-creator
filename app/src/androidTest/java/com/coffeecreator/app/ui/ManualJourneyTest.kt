@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -94,7 +95,13 @@ class ManualJourneyTest {
             field("name", title)
             field("dose", "NaN")
             rule.onNodeWithTag("form:save").performClick()
-            rule.onNodeWithText("Enter a decimal number without grouping separators.").assertIsDisplayed()
+            val validationMessage = "Enter a decimal number without grouping separators."
+            rule.waitUntil(5_000) {
+                rule.onAllNodesWithText(validationMessage).fetchSemanticsNodes().isNotEmpty()
+            }
+            rule.mainClock.advanceTimeBy(1_000)
+            rule.waitForIdle()
+            rule.onNodeWithText(validationMessage).assertIsDisplayed()
             assertTrue(repository.recipes.value.none { it.name == title })
         } finally {
             restoreAfterScenario(previousDraft, title)

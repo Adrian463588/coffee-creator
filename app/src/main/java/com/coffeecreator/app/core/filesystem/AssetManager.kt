@@ -134,7 +134,15 @@ class AssetManager(
 
     suspend fun forget(asset: ModelAsset) {
         // User-owned published weights remain in their SAF directory.
-        repository.upsertModel(asset.copy(status = ModelStatus.CATALOGUED, localUri = null, error = null))
+        repository.upsertModel(
+            asset.copy(
+                status = ModelStatus.CATALOGUED,
+                localUri = null,
+                downloadedBytes = 0,
+                progressPercent = 0,
+                error = null
+            )
+        )
     }
 
     suspend fun importModel(asset: ModelAsset, uri: Uri) = assetLock(asset.id).withLock {

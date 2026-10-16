@@ -31,7 +31,11 @@ class OfflineImageOcrDeviceTest {
                         "ETHIOPIA WASHED 250G",
                         36f,
                         260f,
-                        Paint().apply { color = Color.BLACK; textSize = 82f; isAntiAlias = true }
+                        Paint().apply {
+                            color = Color.BLACK
+                            textSize = 82f
+                            isAntiAlias = true
+                        }
                     )
                 }
                 source.outputStream().use { output ->
@@ -82,7 +86,15 @@ class OfflineImageOcrDeviceTest {
             try {
                 Canvas(image).apply {
                     drawColor(Color.WHITE)
-                    drawText("COFFEE LABEL", 20f, 100f, Paint().apply { color = Color.BLACK; textSize = 32f })
+                    drawText(
+                        "COFFEE LABEL",
+                        20f,
+                        100f,
+                        Paint().apply {
+                            color = Color.BLACK
+                            textSize = 32f
+                        }
+                    )
                 }
                 source.outputStream().use { output -> check(image.compress(Bitmap.CompressFormat.JPEG, 95, output)) }
             } finally {
