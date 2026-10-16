@@ -5413,6 +5413,7 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                                 IngredientSafetyLevel.SAFE_FOOD_GRADE -> MaterialTheme.colorScheme.primaryContainer
                                 IngredientSafetyLevel.WARNING_ALLERGEN_PRESENT -> MaterialTheme.colorScheme.secondaryContainer
                                 IngredientSafetyLevel.CRITICAL_NON_FOOD_PROHIBITED -> MaterialTheme.colorScheme.errorContainer
+                                IngredientSafetyLevel.CRITICAL_DOSAGE_LIMIT_EXCEEDED -> MaterialTheme.colorScheme.errorContainer
                             },
                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         ) {

@@ -242,6 +242,40 @@ class ActiveBrewJournalAnalyticsTest {
         assertTrue(rec.suggestedMagnitude.contains("coarser", ignoreCase = true))
     }
 
+    @Test
+    fun unknownSensoryNotesDoNotProduceAnUnsupportedBalancedRecommendation() {
+        val entry = BrewJournalEntry(
+            id = "unverified-sensory-note",
+            brewMethod = "Pour Over",
+            doseGrams = 15.0,
+            waterGrams = 250.0,
+            brewDurationSeconds = 180,
+            tasteNotes = listOf("fruity", "")
+        )
+
+        assertNull(BrewAnalyticsEngine.evaluateOvat(entry))
+    }
+
+    @Test
+    fun balancedOvatRecommendationRequiresMeasuredYieldAndStrengthInRange() {
+        val measuredEntry = BrewJournalEntry(
+            id = "measured-balanced-cup",
+            brewMethod = "Pour Over",
+            doseGrams = 18.0,
+            waterGrams = 300.0,
+            beverageMassGrams = 270.0,
+            measuredTdsPercent = 1.30,
+            brewDurationSeconds = 180
+        )
+
+        val recommendation = requireNotNull(BrewAnalyticsEngine.evaluateOvat(measuredEntry))
+
+        assertEquals(
+            "Measured extraction yield and strength fall within method-specific reference ranges.",
+            recommendation.diagnosticBasis
+        )
+    }
+
     // S2-044: Interactive charts data models & aggregation
     @Test
     fun testChartsControlChartQuadrants() {
@@ -430,6 +464,27 @@ class ActiveBrewJournalAnalyticsTest {
 
         assertTrue(beans.isEmpty())
         assertTrue(brews.isEmpty())
+    }
+
+    @Test
+    fun malformedBeanconquerorMeasurementsAreSkippedInsteadOfReplacedWithDefaults() {
+        val json = """
+            {
+              "BEANS": [{"id":"bean-1","name":"Verified bean"}],
+              "BREWS": [
+                {"id":"bad-dose","bean":"bean-1","coffee_amount":"unknown","water_amount":250,"total_brew_time":180},
+                {"id":"missing-water","bean":"bean-1","coffee_amount":16,"total_brew_time":180},
+                {"id":"bad-duration","bean":"bean-1","coffee_amount":16,"water_amount":250,"total_brew_time":180.5},
+                {"id":"valid","bean":"bean-1","coffee_amount":16,"water_amount":250,"total_brew_time":180}
+              ]
+            }
+        """.trimIndent()
+
+        val (_, brews) = BrewAnalyticsEngine.parseBeanconquerorJson(json)
+
+        assertEquals(listOf("valid"), brews.map { it.id })
+        assertEquals(16.0, brews.single().doseGrams, 0.0)
+        assertEquals(250.0, brews.single().waterGrams, 0.0)
     }
 
     // S2-049: Cafe cup journal (manual entry, zero maps)

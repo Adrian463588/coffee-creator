@@ -59,6 +59,24 @@ class ToolExecutorTest {
         assertFalse(result.isSuccess)
     }
 
+    @Test fun givenModelClaimsBalancedWithoutSensoryEvidence_whenFeedbackToolCalled_thenReject() = runTest {
+        val result = executor.execute(
+            "propose_feedback_adjustment",
+            mapOf(
+                "actualDurationSeconds" to 180,
+                "targetDurationSeconds" to 180,
+                "diagnosis" to "BALANCED",
+                "grindClicks" to 18,
+                "waterTempCelsius" to 93.0,
+                "doseGrams" to 15.0,
+                "waterGrams" to 250.0,
+                "boilingPointCelsius" to 100.0
+            )
+        )
+
+        assertFalse(result.isSuccess)
+    }
+
     @Test fun givenNoInventoryRecords_whenRecommendationRequested_thenAbstain() = runTest {
         val result = executor.execute("recommend_inventory_bean", mapOf("brewMethod" to "Pour Over"))
 

@@ -101,7 +101,7 @@ object BrewAnalyticsEngine {
             ?: overExtractedRecommendation(context)
             ?: weakBrewRecommendation(context)
             ?: strongBrewRecommendation(context)
-            ?: balancedRecommendation()
+            ?: balancedRecommendation().takeIf { context.hasMeasuredBalancedCup }
     }
 
     private fun channelingRecommendation(context: OvatContext): OvatRecommendation? {
@@ -185,10 +185,10 @@ object BrewAnalyticsEngine {
         targetVariable = OvatTargetVariable.GRIND_SIZE,
         direction = AdjustmentDirection.FINER,
         suggestedMagnitude = "Hold steady (0 adjustment)",
-        physicalReasoning = "Extraction parameters reside within the ideal SCA Gold Cup window.",
+        physicalReasoning = "Recorded extraction yield and beverage strength fall within method-specific reference ranges.",
         expectedImpact = "Maintain consistent repeatable preparation.",
-        diagnosticBasis = "Extraction yield and strength are harmoniously balanced.",
-        confidenceScore = 0.98
+        diagnosticBasis = "Measured extraction yield and strength fall within method-specific reference ranges.",
+        confidenceScore = 0.80
     )
 
     private data class OvatContext(
@@ -199,23 +199,35 @@ object BrewAnalyticsEngine {
         val ey: Double?,
         val tds: Double?
     ) {
+        val hasMeasuredBalancedCup: Boolean
+            get() {
+                val expectedTds = if (isEspresso) 7.5..12.0 else 1.15..1.45
+                return ey?.let { it in 18.0..22.0 } == true && tds?.let { it in expectedTds } == true
+            }
+
         val hasRecommendationEvidence: Boolean
             get() = !entry.timerOnly && (ey != null || tds != null || taste.isNotEmpty())
 
         companion object {
-            fun from(entry: BrewJournalEntry, tasteFlags: List<String>) = OvatContext(
-                entry = entry,
-                taste = (tasteFlags + entry.tasteNotes).map { it.uppercase().trim() },
-                isEspresso = entry.isEspresso || entry.brewMethod.contains("Espresso", ignoreCase = true),
-                meanFlow = entry.espressoDetails?.meanFlowRateGps ?: 0.0,
-                ey = entry.extractionYieldPercent,
-                tds = entry.measuredTdsPercent
-            )
+            fun from(entry: BrewJournalEntry, tasteFlags: List<String>): OvatContext {
+                val isEspresso = entry.isEspresso || entry.brewMethod.contains("Espresso", ignoreCase = true)
+                return OvatContext(
+                    entry = entry,
+                    taste = (tasteFlags + entry.tasteNotes)
+                        .map { it.uppercase().trim() }
+                        .filter { it in RECOGNIZED_TASTES },
+                    isEspresso = isEspresso,
+                    meanFlow = entry.espressoDetails?.meanFlowRateGps ?: 0.0,
+                    ey = entry.extractionYieldPercent,
+                    tds = entry.measuredTdsPercent
+                )
+            }
         }
     }
 
     private val UNDER_EXTRACTED_TASTES = setOf("SOUR", "ACIDIC", "UNDER_EXTRACTED", "SALTY", "HOLLOW")
     private val OVER_EXTRACTED_TASTES = setOf("BITTER", "ASTRINGENT", "DRY", "HARSH", "OVER_EXTRACTED", "ASHY")
+    private val RECOGNIZED_TASTES = UNDER_EXTRACTED_TASTES + OVER_EXTRACTED_TASTES
 
     /**
      * Compute current and longest active brewing streak from session dates.
@@ -411,7 +423,7 @@ object BrewAnalyticsEngine {
     fun parseBeanconquerorJson(json: String): Pair<List<CoffeeBean>, List<BrewJournalEntry>> {
         val root = parseJsonObject(json) ?: return emptyList<CoffeeBean>() to emptyList()
         val beans = root.objects("BEANS").map(::parseImportedBean)
-        val brews = root.objects("BREWS").map { parseImportedBrew(it, beans) }
+        val brews = root.objects("BREWS").mapNotNull { parseImportedBrew(it, beans) }
         return beans to brews
     }
 
@@ -442,7 +454,10 @@ object BrewAnalyticsEngine {
         )
     }
 
-    private fun parseImportedBrew(obj: JsonObject, beans: List<CoffeeBean>): BrewJournalEntry {
+    private fun parseImportedBrew(obj: JsonObject, beans: List<CoffeeBean>): BrewJournalEntry? {
+        val doseGrams = obj.doubleValue("coffee_amount")?.takeIf { it > 0.0 } ?: return null
+        val waterGrams = obj.doubleValue("water_amount")?.takeIf { it > 0.0 } ?: return null
+        val brewDurationSeconds = obj.intValue("total_brew_time")?.takeIf { it > 0 } ?: return null
         val beanId = obj.stringValue("bean")
         val rating = obj.doubleValue("rating")?.let { value -> if (value <= 5.0) value * 2.0 else value }
         return BrewJournalEntry(
@@ -450,10 +465,10 @@ object BrewAnalyticsEngine {
             beanId = beanId,
             beanName = beans.find { it.id == beanId }?.name ?: "Beanconqueror Bean",
             brewMethod = obj.stringValue("method_of_preparation") ?: "Pour Over",
-            doseGrams = obj.doubleValue("coffee_amount") ?: DEFAULT_IMPORTED_DOSE_GRAMS,
-            waterGrams = obj.doubleValue("water_amount") ?: DEFAULT_IMPORTED_WATER_GRAMS,
+            doseGrams = doseGrams,
+            waterGrams = waterGrams,
             beverageMassGrams = obj.doubleValue("brew_beverage_quantity"),
-            brewDurationSeconds = obj.intValue("total_brew_time") ?: DEFAULT_IMPORTED_BREW_SECONDS,
+            brewDurationSeconds = brewDurationSeconds,
             grinderModel = obj.stringValue("grinder") ?: "",
             grindSetting = obj.stringValue("grind_size") ?: "",
             measuredTdsPercent = obj.doubleValue("tds"),
@@ -466,9 +481,8 @@ object BrewAnalyticsEngine {
 
     private fun JsonObject.doubleValue(field: String): Double? = stringValue(field)?.toDoubleOrNull()?.takeIf(Double::isFinite)
 
-    private fun JsonObject.intValue(field: String): Int? = stringValue(field)?.toDoubleOrNull()?.takeIf(Double::isFinite)?.toInt()
-
-    private const val DEFAULT_IMPORTED_DOSE_GRAMS = 15.0
-    private const val DEFAULT_IMPORTED_WATER_GRAMS = 250.0
-    private const val DEFAULT_IMPORTED_BREW_SECONDS = 180
+    private fun JsonObject.intValue(field: String): Int? = stringValue(field)
+        ?.toDoubleOrNull()
+        ?.takeIf { it.isFinite() && it % 1.0 == 0.0 }
+        ?.toInt()
 }

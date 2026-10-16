@@ -66,6 +66,41 @@ When the tool executes
 Then it abstains with a clear unavailable-evidence result
 And returns no fabricated candidate or numeric recipe.
 
+## Manual palate preferences
+
+Given the user explicitly changes a palate preference slider
+And no quiz or qualified tasting session has been completed
+When inventory recommendations are requested
+Then recommendations may use that declared preference
+And the profile remains distinct from quiz and sensory-session evidence.
+
+## Incomplete imported brews
+
+Given a Beanconqueror brew has a missing, malformed, non-positive, or fractional required measurement
+When the export is imported
+Then that brew is skipped with its unavailable values preserved as unknown
+And no plausible dose, water mass, or duration is substituted.
+
+## Balanced extraction assessment
+
+Given an entry has no recognized sensory diagnostic and lacks measured beverage mass, dose, and TDS evidence
+When OVAT analysis is requested
+Then the analysis abstains instead of claiming the cup is balanced.
+
+Given measured extraction yield and strength fall inside their method-specific reference ranges
+When OVAT analysis is requested
+Then the balanced result identifies those measured inputs as its basis.
+
+## Safety boundaries
+
+Given a food-grade ingredient exceeds its supplier's stated maximum dosage
+When the safety tool audits it
+Then beverage use is blocked as a critical dosage-limit violation.
+
+Given a temperature adjustment would exceed the confirmed boiling-point margin or fall below the supported brew range
+When OVAT proposes a change
+Then it abstains with a reason and never returns a value in the opposite direction.
+
 ## Preservation
 
 Given existing journal, sensory, inventory, model, and SAF records

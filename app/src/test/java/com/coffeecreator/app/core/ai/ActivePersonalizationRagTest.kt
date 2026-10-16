@@ -28,6 +28,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -227,6 +228,29 @@ class ActivePersonalizationRagTest {
         assertFalse(ranked.single().explanationText.contains("Vibrant Acidity"))
     }
 
+    @Test
+    fun manualSliderPreferenceEnablesRecommendationsWithoutBecomingQuizOrSensoryEvidence() {
+        val updated = PalateQuizMapper.updateManualSliders(PalateProfile(), acidity = 0.9)
+        val candidate = BeanInventoryCandidate(
+            beanId = "manual-preference",
+            beanName = "Available bean",
+            sensoryProfile = updated.vector,
+            roastDate = LocalDate.now().minusDays(14),
+            availableMassGrams = 200.0
+        )
+
+        val ranked = RecommendationEngine.rankInventory(
+            palate = updated,
+            candidates = listOf(candidate),
+            availableGearMethods = emptySet(),
+            brewMethod = "Pour Over"
+        )
+
+        assertFalse(updated.isQuizCompleted)
+        assertEquals(0, updated.qualifiedSessionCount)
+        assertEquals(1, ranked.size)
+    }
+
     // ========================================================================
     // S2-066: OVAT Brewing Feedback Loop
     // ========================================================================
@@ -280,6 +304,36 @@ class ActivePersonalizationRagTest {
         )
         assertEquals("Coffee Dose", weakProp.variableAdjusted)
         assertEquals(16.0, weakProp.modifiedRecipePayload["doseGrams"])
+    }
+
+    @Test
+    fun temperatureAdjustmentAbstainsWhenTheRequestedDirectionCannotBeMetSafely() {
+        val nearBoiling = mapOf(
+            "grindClicks" to 18,
+            "waterTempCelsius" to 99.0,
+            "doseGrams" to 15.0,
+            "waterGrams" to 250.0
+        )
+        val atMinimum = nearBoiling + ("waterTempCelsius" to 85.0)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedbackLoopEngine.proposeAdjustment(
+                previousRecipe = nearBoiling,
+                actualDurationSeconds = 155,
+                targetDurationSeconds = 155,
+                diagnosis = SensoryFeedbackDiagnosis.SOUR_UNDER_EXTRACTED,
+                boilingPointCelsius = 100.0
+            )
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedbackLoopEngine.proposeAdjustment(
+                previousRecipe = atMinimum,
+                actualDurationSeconds = 155,
+                targetDurationSeconds = 155,
+                diagnosis = SensoryFeedbackDiagnosis.BITTER_OVER_EXTRACTED,
+                boilingPointCelsius = 100.0
+            )
+        }
     }
 
     // ========================================================================
@@ -427,5 +481,15 @@ class ActivePersonalizationRagTest {
         )
         assertEquals(IngredientSafetyLevel.SAFE_FOOD_GRADE, cleanResult.level)
         assertTrue(cleanResult.permitsBeverageConsumption)
+
+        val overLimitResult = IngredientSafetyValidator.auditIngredient(
+            name = "Food-grade aroma solution",
+            foodGrade = true,
+            allergens = emptyList(),
+            massFractionPercent = 1.1,
+            supplierMaxPercent = 1.0
+        )
+        assertEquals(IngredientSafetyLevel.CRITICAL_DOSAGE_LIMIT_EXCEEDED, overLimitResult.level)
+        assertFalse(overLimitResult.permitsBeverageConsumption)
     }
 }

@@ -54,6 +54,8 @@ object PalateQuizMapper {
         )
         return current.copy(
             vector = updatedVector,
+            hasManualPreference = current.hasManualPreference ||
+                listOf(roast, acidity, sweetness, bitterness, body).any { it != null },
             lastUpdatedEpochMs = System.currentTimeMillis()
         )
     }
@@ -161,7 +163,7 @@ object RecommendationEngine {
     }
 
     private val PalateProfile.hasRecordedPreference: Boolean
-        get() = isQuizCompleted || qualifiedSessionCount > 0
+        get() = isQuizCompleted || hasManualPreference || qualifiedSessionCount > 0
 }
 
 // ============================================================================
@@ -282,10 +284,21 @@ object FeedbackLoopEngine {
         require(current <= boilingPoint) {
             "Recorded water temperature cannot exceed the measured boiling point."
         }
+        require(current >= MINIMUM_BREW_TEMPERATURE_CELSIUS) {
+            "Recorded water temperature is below the supported brew adjustment range."
+        }
         val adjusted = if (increase) {
-            minOf(boilingPoint - BOILING_POINT_MARGIN_CELSIUS, current + TEMPERATURE_ADJUSTMENT_CELSIUS)
+            val proposed = current + TEMPERATURE_ADJUSTMENT_CELSIUS
+            require(proposed <= boilingPoint - BOILING_POINT_MARGIN_CELSIUS) {
+                "A 2.0°C increase would exceed the safe limit below the measured boiling point."
+            }
+            proposed
         } else {
-            maxOf(MINIMUM_BREW_TEMPERATURE_CELSIUS, current - TEMPERATURE_ADJUSTMENT_CELSIUS)
+            val proposed = current - TEMPERATURE_ADJUSTMENT_CELSIUS
+            require(proposed >= MINIMUM_BREW_TEMPERATURE_CELSIUS) {
+                "A 2.0°C decrease would fall below the supported brew adjustment range."
+            }
+            proposed
         }
         return OvatAdjustmentProposal(
             variableAdjusted = "Water Temperature",
@@ -409,8 +422,14 @@ object IngredientSafetyValidator {
             return SafetyAuditResult(IngredientSafetyLevel.CRITICAL_NON_FOOD_PROHIBITED, flags, false)
         }
 
-        if (supplierMaxPercent != null && massFractionPercent > supplierMaxPercent) {
-            flags.add("WARNING: Dosage $massFractionPercent% exceeds supplier safe food dosage limit ($supplierMaxPercent%).")
+        if (supplierMaxPercent != null) {
+            require(supplierMaxPercent.isFinite() && supplierMaxPercent in 0.0..100.0) {
+                "Supplier dosage limit must be finite and within 0% and 100%."
+            }
+            if (massFractionPercent > supplierMaxPercent) {
+                flags.add("CRITICAL: Dosage $massFractionPercent% exceeds supplier safe food dosage limit ($supplierMaxPercent%).")
+                return SafetyAuditResult(IngredientSafetyLevel.CRITICAL_DOSAGE_LIMIT_EXCEEDED, flags, false)
+            }
         }
 
         if (allergens.isNotEmpty()) {

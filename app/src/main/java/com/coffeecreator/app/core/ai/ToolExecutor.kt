@@ -283,6 +283,9 @@ class ToolExecutor(
             "waterGrams" to arguments.number("waterGrams")
         )
         val diagnosis = SensoryFeedbackDiagnosis.valueOf(arguments.string("diagnosis").uppercase())
+        require(diagnosis != SensoryFeedbackDiagnosis.BALANCED) {
+            "Balanced feedback requires confirmed sensory and measured extraction evidence."
+        }
         return FeedbackLoopEngine.proposeAdjustment(
             recipeInputs,
             actualDuration.toInt(),

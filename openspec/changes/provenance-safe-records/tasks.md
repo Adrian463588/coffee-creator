@@ -5,6 +5,8 @@
 - [x] Add tests proving brew completion stores only supported timer facts.
 - [x] Add OCR tests for missing/invalid/explicit package mass and unknown confidence.
 - [x] Add tool tests for unknown ingredient safety and absent recommendation/feedback evidence.
+- [x] Add BDD regressions for manual preferences, malformed imports, unsupported balanced claims, supplier limits, and safe temperatures.
+- [x] Enforce the corresponding evidence and safety boundaries in the domain engines and AI tool adapter.
 - [x] Remove automatic personal-history and inventory seed injection without deleting stored records.
 - [x] Remove synthetic brew completion measurements and sensory observations.
 - [x] Make OCR/manual catalog paths preserve unknowns and require explicit package mass for inventory.

@@ -93,6 +93,8 @@ data class PalateProfile(
         PalateProfileDefaults.UNINFORMED_VARIANCE
     ),
     val isQuizCompleted: Boolean = false,
+    /** True only after the user explicitly changes one or more preference sliders. */
+    val hasManualPreference: Boolean = false,
     val lastUpdatedEpochMs: Long = PalateProfileDefaults.INITIAL_TIMESTAMP_EPOCH_MS
 )
 
@@ -178,7 +180,8 @@ data class WeatherParameters(
 enum class IngredientSafetyLevel {
     SAFE_FOOD_GRADE,
     WARNING_ALLERGEN_PRESENT,
-    CRITICAL_NON_FOOD_PROHIBITED
+    CRITICAL_NON_FOOD_PROHIBITED,
+    CRITICAL_DOSAGE_LIMIT_EXCEEDED
 }
 
 data class SafetyAuditResult(
