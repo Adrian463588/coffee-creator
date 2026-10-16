@@ -57,6 +57,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Check
@@ -561,13 +562,14 @@ private fun TactileButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     colors: ButtonColors = ButtonDefaults.buttonColors(),
-    shape: androidx.compose.ui.graphics.Shape = ButtonDefaults.shape,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
+        targetValue = if (isPressed) 0.96f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "buttonTactileScale"
     )
@@ -576,6 +578,39 @@ private fun TactileButton(
         enabled = enabled,
         colors = colors,
         shape = shape,
+        contentPadding = contentPadding,
+        interactionSource = interactionSource,
+        modifier = modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
+        content = content
+    )
+}
+
+@Composable
+private fun TactileOutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "outlinedButtonTactileScale"
+    )
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        shape = shape,
+        contentPadding = contentPadding,
+        border = border,
         interactionSource = interactionSource,
         modifier = modifier.graphicsLayer {
             scaleX = scale
@@ -1722,32 +1757,77 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         if (bean.bags.isNotEmpty()) {
                             Text("Bags in Inventory (${bean.bags.size}):", style = MaterialTheme.typography.labelMedium)
                             bean.bags.forEach { bag ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                                 ) {
-                                    Column {
-                                        Text(
-                                            "${bag.remainingMassGrams}g / ${bag.packageMassGrams}g [${bag.status.name}]",
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                        if (bag.freezeHistory.any { it.isOngoing }) {
-                                            Text("❄ Sub-zero frozen: Aging paused", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                            Text(
+                                                "${bag.remainingMassGrams}g / ${bag.packageMassGrams}g",
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontFeatureSettings = "tnum",
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            ) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = if (bag.status == BagStatus.ACTIVE) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+                                                ) {
+                                                    Text(
+                                                        bag.status.name,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = if (bag.status == BagStatus.ACTIVE) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                                        maxLines = 1,
+                                                        softWrap = false
+                                                    )
+                                                }
+                                                if (bag.freezeHistory.any { it.isOngoing }) {
+                                                    Text("❄ Frozen", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, maxLines = 1, softWrap = false)
+                                                }
+                                            }
                                         }
-                                    }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        OutlinedButton(
-                                            onClick = { model.toggleFreezeBag(bag.id) },
-                                            enabled = bag.status != BagStatus.FINISHED
-                                        ) {
-                                            Text(if (bag.status == BagStatus.FROZEN) "Thaw" else "Freeze")
-                                        }
-                                        Button(
-                                            onClick = { model.deductDoseFromBag(bag.id, BigDecimal("18.00")) },
-                                            enabled = bag.status != BagStatus.FROZEN && bag.status != BagStatus.FINISHED && bag.remainingMassGrams > BigDecimal.ZERO
-                                        ) {
-                                            Text("Brew -18g")
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            TactileOutlinedButton(
+                                                onClick = { model.toggleFreezeBag(bag.id) },
+                                                enabled = bag.status != BagStatus.FINISHED,
+                                                shape = RoundedCornerShape(8.dp),
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                modifier = Modifier.height(34.dp)
+                                            ) {
+                                                Text(
+                                                    if (bag.status == BagStatus.FROZEN) "Thaw" else "Freeze",
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    style = MaterialTheme.typography.labelMedium
+                                                )
+                                            }
+                                            TactileButton(
+                                                onClick = { model.deductDoseFromBag(bag.id, BigDecimal("18.00")) },
+                                                enabled = bag.status != BagStatus.FROZEN && bag.status != BagStatus.FINISHED && bag.remainingMassGrams > BigDecimal.ZERO,
+                                                shape = RoundedCornerShape(8.dp),
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                modifier = Modifier.height(34.dp)
+                                            ) {
+                                                Text(
+                                                    "Brew -18g",
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -2678,13 +2758,23 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
             JournalTab.CAFE_CUPS -> {
                 item {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cafe Cup Logbook (Manual, Zero Maps)", style = MaterialTheme.typography.titleMedium)
-                        Button(onClick = { showAddCafeDialog = true }) {
-                            Text("+ Add Cafe Cup")
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text("Cafe Cup Logbook", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text("Manual entry · Zero cloud maps", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TactileButton(
+                            onClick = { showAddCafeDialog = true },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Add Cup", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
@@ -3120,16 +3210,23 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
             SensoryTab.SESSIONS -> {
                 item {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cupping Sessions", style = MaterialTheme.typography.titleMedium)
-                        Button(
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text("Cupping Sessions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text("SCA / CoE protocol evaluations", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TactileButton(
                             onClick = { showCreateSessionDialog = true },
-                            modifier = Modifier.testTag("sensory:btn_new_session")
+                            modifier = Modifier.height(36.dp).testTag("sensory:btn_new_session"),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Text("New Session")
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("New Session", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
@@ -3507,13 +3604,23 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 item {
                     HorizontalDivider(Modifier.padding(vertical = 12.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Roast-Rest Degassing Curve (S2-062)", style = MaterialTheme.typography.titleMedium)
-                        Button(onClick = { showLogObsDialog = true }) {
-                            Text("Log Observation")
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text("Roast-Rest Kinetics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text("S2-062 degassing curve & logs", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TactileButton(
+                            onClick = { showLogObsDialog = true },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Log Obs", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
