@@ -28,7 +28,9 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -143,6 +145,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -737,6 +740,47 @@ private fun TactileOutlinedButton(
             },
         content = content
     )
+}
+
+@Composable
+private fun TelemetryStatusPill(
+    label: String,
+    status: String,
+    isActive: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .background(
+                        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        shape = CircleShape
+                    )
+            )
+            Text(
+                text = "$label: $status",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFeatureSettings = "tnum",
+                    fontWeight = FontWeight.Medium
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
 }
 
 @Composable
@@ -5611,32 +5655,33 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
         // ====================================================================
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Barista Persona", style = MaterialTheme.typography.titleMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
+                    Text("Barista Persona", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        TactileFilterChip(
                             selected = state.selectedPersona?.id == BaristaPersonaPreset.SPECIALTY_Q_GRADER.id,
                             onClick = { model.selectBaristaPersonaPreset(BaristaPersonaPreset.SPECIALTY_Q_GRADER) },
-                            label = { Text("Specialty Q-Grader") }
+                            label = { Text("Specialty Q-Grader", maxLines = 1, softWrap = false) }
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.selectedPersona?.id == BaristaPersonaPreset.FRIENDLY_HOME_BARISTA.id,
                             onClick = { model.selectBaristaPersonaPreset(BaristaPersonaPreset.FRIENDLY_HOME_BARISTA) },
-                            label = { Text("Friendly Barista") }
+                            label = { Text("Friendly Barista", maxLines = 1, softWrap = false) }
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.selectedPersona?.id == BaristaPersonaPreset.RD_COFFEE_CHEMIST.id,
                             onClick = { model.selectBaristaPersonaPreset(BaristaPersonaPreset.RD_COFFEE_CHEMIST) },
-                            label = { Text("R&D Chemist") }
+                            label = { Text("R&D Chemist", maxLines = 1, softWrap = false) }
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.selectedPersona?.id == "custom_persona",
                             onClick = { showCustomPersonaDialog = true },
-                            label = { Text("Custom Prompt") }
+                            label = { Text("Custom Prompt", maxLines = 1, softWrap = false) }
                         )
                     }
                     Text(
@@ -5653,18 +5698,24 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
         // ====================================================================
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     val profile = state.palateProfile
                     val hasPersonalProfile = profile.isQuizCompleted || profile.qualifiedSessionCount > 0
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Personal Palate Profile", style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Personal Palate Profile", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f))
                         ) {
                             Text(
                                 when {
@@ -5672,8 +5723,10 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                                     hasPersonalProfile -> "Evidence: ${profile.qualifiedSessionCount} sessions"
                                     else -> "No personal profile"
                                 },
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }
                     }
@@ -5684,7 +5737,7 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                                 "Sweetness: ${(profile.vector.sweetness * 10).toInt()}/10 · " +
                                 "Bitterness: ${(profile.vector.bitterness * 10).toInt()}/10 · " +
                                 "Body: ${(profile.vector.body * 10).toInt()}/10",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum")
                         )
                     } else {
                         Text(
@@ -5693,16 +5746,16 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { showQuizDialog = true }) {
-                            Text(if (profile.isQuizCompleted) "Retake Palate Quiz" else "Take Palate Quiz")
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        TactileButton(onClick = { showQuizDialog = true }) {
+                            Text(if (profile.isQuizCompleted) "Retake Palate Quiz" else "Take Palate Quiz", maxLines = 1, softWrap = false)
                         }
-                        OutlinedButton(onClick = {
+                        TactileOutlinedButton(onClick = {
                             model.updatePalateSliders(
                                 acidity = ((profile.vector.acidity + 0.1).coerceAtMost(1.0))
                             )
                         }, enabled = hasPersonalProfile) {
-                            Text("+ Acidity Bias")
+                            Text("+ Acidity Bias", maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -6051,43 +6104,43 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
     if (showQuizDialog) {
         AlertDialog(
             onDismissRequest = { showQuizDialog = false },
-            title = { Text("Offline Palate Quiz") },
+            title = { Text("Offline Palate Quiz", fontWeight = FontWeight.SemiBold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("1. Roast Preference:", style = MaterialTheme.typography.bodyMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("1. Roast Preference:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         RoastPreference.values().forEach { r ->
-                            FilterChip(selected = quizRoast == r, onClick = { quizRoast = r }, label = { Text(r.name) })
+                            TactileFilterChip(selected = quizRoast == r, onClick = { quizRoast = r }, label = { Text(r.name, maxLines = 1, softWrap = false) })
                         }
                     }
-                    Text("2. Acidity Tolerance:", style = MaterialTheme.typography.bodyMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("2. Acidity Tolerance:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         AcidityTolerance.values().forEach { a ->
-                            FilterChip(selected = quizAcidity == a, onClick = { quizAcidity = a }, label = { Text(a.name) })
+                            TactileFilterChip(selected = quizAcidity == a, onClick = { quizAcidity = a }, label = { Text(a.name, maxLines = 1, softWrap = false) })
                         }
                     }
-                    Text("3. Sweetness Priority:", style = MaterialTheme.typography.bodyMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("3. Sweetness Priority:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         SweetnessPriority.values().forEach { s ->
-                            FilterChip(selected = quizSweetness == s, onClick = { quizSweetness = s }, label = { Text(s.name) })
+                            TactileFilterChip(selected = quizSweetness == s, onClick = { quizSweetness = s }, label = { Text(s.name, maxLines = 1, softWrap = false) })
                         }
                     }
-                    Text("4. Bitterness Sensitivity:", style = MaterialTheme.typography.bodyMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("4. Bitterness Sensitivity:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         BitternessSensitivity.values().forEach { b ->
-                            FilterChip(selected = quizBitterness == b, onClick = { quizBitterness = b }, label = { Text(b.name) })
+                            TactileFilterChip(selected = quizBitterness == b, onClick = { quizBitterness = b }, label = { Text(b.name, maxLines = 1, softWrap = false) })
                         }
                     }
-                    Text("5. Body Preference:", style = MaterialTheme.typography.bodyMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("5. Body Preference:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         BodyPreference.values().forEach { m ->
-                            FilterChip(selected = quizBody == m, onClick = { quizBody = m }, label = { Text(m.name) })
+                            TactileFilterChip(selected = quizBody == m, onClick = { quizBody = m }, label = { Text(m.name, maxLines = 1, softWrap = false) })
                         }
                     }
                 }
             },
             confirmButton = {
-                Button(onClick = {
+                TactileButton(onClick = {
                     model.submitPalateQuiz(
                         PalateQuizAnswers(
                             roast = quizRoast,
@@ -6099,7 +6152,7 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     )
                     showQuizDialog = false
                 }) {
-                    Text("Save & Calibrate")
+                    Text("Save & Calibrate", maxLines = 1, softWrap = false)
                 }
             },
             dismissButton = {
@@ -6178,13 +6231,16 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
         item {
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("settings:language_card"),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         if (isIndonesian) "Bahasa Aplikasi (On-Device Language)" else "App Language (On-Device Language)",
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         if (isIndonesian) {
@@ -6196,16 +6252,16 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.language == AppLanguage.ENGLISH,
                             onClick = { model.setLanguage(AppLanguage.ENGLISH) },
-                            label = { Text("English (EN)") },
+                            label = { Text("English (EN)", maxLines = 1, softWrap = false) },
                             modifier = Modifier.testTag("settings:lang_en")
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.language == AppLanguage.INDONESIAN,
                             onClick = { model.setLanguage(AppLanguage.INDONESIAN) },
-                            label = { Text("Bahasa Indonesia (ID)") },
+                            label = { Text("Bahasa Indonesia (ID)", maxLines = 1, softWrap = false) },
                             modifier = Modifier.testTag("settings:lang_id")
                         )
                     }
@@ -6219,13 +6275,16 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
         item {
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("settings:units_card"),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         if (isIndonesian) "Preferensi Satuan Fisika Seduh" else "Brewing Physics Unit Preferences",
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         if (isIndonesian) {
@@ -6240,63 +6299,63 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                     // Temperature unit
                     Text(if (isIndonesian) "Suhu Air:" else "Water Temperature:", style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.temperatureUnit == TemperatureUnit.CELSIUS,
                             onClick = { model.setUnitPreferences(state.unitPreferences.copy(temperatureUnit = TemperatureUnit.CELSIUS)) },
-                            label = { Text("Celsius (°C)") }
+                            label = { Text("Celsius (°C)", maxLines = 1, softWrap = false) }
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.temperatureUnit == TemperatureUnit.FAHRENHEIT,
                             onClick = {
                                 model.setUnitPreferences(
                                     state.unitPreferences.copy(temperatureUnit = TemperatureUnit.FAHRENHEIT)
                                 )
                             },
-                            label = { Text("Fahrenheit (°F)") }
+                            label = { Text("Fahrenheit (°F)", maxLines = 1, softWrap = false) }
                         )
                     }
 
                     // Mass unit
                     Text(if (isIndonesian) "Massa Biji & Air:" else "Coffee & Water Mass:", style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.massUnit == MassUnit.GRAMS,
                             onClick = { model.setUnitPreferences(state.unitPreferences.copy(massUnit = MassUnit.GRAMS)) },
-                            label = { Text("Grams (g)") }
+                            label = { Text("Grams (g)", maxLines = 1, softWrap = false) }
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.massUnit == MassUnit.OUNCES,
                             onClick = { model.setUnitPreferences(state.unitPreferences.copy(massUnit = MassUnit.OUNCES)) },
-                            label = { Text("Ounces (oz)") }
+                            label = { Text("Ounces (oz)", maxLines = 1, softWrap = false) }
                         )
                     }
 
                     // Volume & Elevation
                     Text(if (isIndonesian) "Volume & Ketinggian:" else "Volume & Elevation:", style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.volumeUnit == VolumeUnit.MILLILITERS,
                             onClick = { model.setUnitPreferences(state.unitPreferences.copy(volumeUnit = VolumeUnit.MILLILITERS)) },
-                            label = { Text("mL") }
+                            label = { Text("mL", maxLines = 1, softWrap = false) }
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.volumeUnit == VolumeUnit.FLUID_OUNCES,
                             onClick = { model.setUnitPreferences(state.unitPreferences.copy(volumeUnit = VolumeUnit.FLUID_OUNCES)) },
-                            label = { Text("fl oz") }
+                            label = { Text("fl oz", maxLines = 1, softWrap = false) }
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.elevationUnit == ElevationUnit.METERS,
                             onClick = { model.setUnitPreferences(state.unitPreferences.copy(elevationUnit = ElevationUnit.METERS)) },
-                            label = { Text("masl") }
+                            label = { Text("masl", maxLines = 1, softWrap = false) }
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = state.unitPreferences.elevationUnit == ElevationUnit.FEET,
                             onClick = { model.setUnitPreferences(state.unitPreferences.copy(elevationUnit = ElevationUnit.FEET)) },
-                            label = { Text("ft") }
+                            label = { Text("ft", maxLines = 1, softWrap = false) }
                         )
                     }
 
-                    // Live sample conversion preview
+                    // Live sample conversion preview with concentric border and tabular figures
                     val isFahr = state.unitPreferences.temperatureUnit == TemperatureUnit.FAHRENHEIT
                     val isOz = state.unitPreferences.massUnit == MassUnit.OUNCES
                     val sampleTemp = if (isFahr) "199.4 °F" else "93.0 °C"
@@ -6305,13 +6364,17 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                     Surface(
                         color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = "Live Preview: Dose $sampleDose • Water $sampleWater • Temp $sampleTemp",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
                             modifier = Modifier.padding(8.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -6319,44 +6382,75 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
         }
 
         // ====================================================================
-        // S2-081: Graceful Degradation Status & Subsystem Health
+        // S2-081: Graceful Degradation Status & Subsystem Health (Anti-Slop Redesign)
         // ====================================================================
         item {
             val badge = state.degradationState.activeBadge
             val badgeText = if (isIndonesian) badge.labelId else badge.labelEn
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("settings:degradation_card"),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
                 colors = CardDefaults.cardColors(
                     containerColor = if (badge.isDegraded) {
-                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f)
                     } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                     }
                 )
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             if (isIndonesian) "Status Subsistem & Degradasi" else "Subsystem Degradation Status",
                             style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
                         )
+                        // Anti-Slop: Guaranteed Single-Line Industrial Status Banner
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (badge.isDegraded) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (badge.isDegraded) {
+                                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.60f)
+                            } else {
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                            },
+                            border = BorderStroke(
+                                1.dp,
+                                if (badge.isDegraded) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.50f)
+                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = badgeText,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.surface,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            color = if (badge.isDegraded) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                                            shape = CircleShape
+                                        )
+                                )
+                                Text(
+                                    text = badgeText.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 0.5.sp,
+                                        fontFeatureSettings = "tnum"
+                                    ),
+                                    color = if (badge.isDegraded) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
+
                     Text(
                         if (isIndonesian) {
                             "Aplikasi dirancang agar tetap 100% fungsional pada mode manual saat model AI, " +
@@ -6368,18 +6462,29 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(
-                            "LLM: ${if (state.loadedModel != null) "✓ Active" else "— Manual"}",
-                            style = MaterialTheme.typography.labelMedium
+
+                    // Industrial Telemetry Pill Row (3 equal columns, tabular figures, no horizontal jitter)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TelemetryStatusPill(
+                            label = "LLM",
+                            status = if (state.loadedModel != null) "Active" else "Manual",
+                            isActive = state.loadedModel != null,
+                            modifier = Modifier.weight(1f)
                         )
-                        Text(
-                            "OCR: ${if (state.degradationState.ocrStatus == ModuleStatus.AVAILABLE) "✓ Active" else "— Manual"}",
-                            style = MaterialTheme.typography.labelMedium
+                        TelemetryStatusPill(
+                            label = "OCR",
+                            status = if (state.degradationState.ocrStatus == ModuleStatus.AVAILABLE) "Active" else "Manual",
+                            isActive = state.degradationState.ocrStatus == ModuleStatus.AVAILABLE,
+                            modifier = Modifier.weight(1f)
                         )
-                        Text(
-                            "BLE: ${if (state.brewSession?.scaleDevice != null) "✓ Connected" else "— Offline"}",
-                            style = MaterialTheme.typography.labelMedium
+                        TelemetryStatusPill(
+                            label = "BLE",
+                            status = if (state.brewSession?.scaleDevice != null) "Connected" else "Offline",
+                            isActive = state.brewSession?.scaleDevice != null,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -6392,13 +6497,16 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
         item {
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("settings:diagnostics_card"),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         if (isIndonesian) "Diagnostik Aktivitas On-Device" else "On-Device Activity Diagnostics",
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         if (isIndonesian) {
@@ -6409,21 +6517,23 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { model.refreshDiagnostics() }, modifier = Modifier.testTag("settings:refresh_diag")) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        TactileOutlinedButton(onClick = { model.refreshDiagnostics() }, modifier = Modifier.testTag("settings:refresh_diag")) {
                             Text(
                                 if (isIndonesian) {
                                     "Segarkan Log (${state.diagnosticLogSnapshot.size})"
                                 } else {
                                     "Refresh Logs (${state.diagnosticLogSnapshot.size})"
-                                }
+                                },
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
-                        Button(onClick = { model.exportDiagnosticLogs(context) }, modifier = Modifier.testTag("settings:export_diag")) {
-                            Text(if (isIndonesian) "Ekspor Log (Sharesheet)" else "Export Logs (Sharesheet)")
+                        TactileButton(onClick = { model.exportDiagnosticLogs(context) }, modifier = Modifier.testTag("settings:export_diag")) {
+                            Text(if (isIndonesian) "Ekspor Log (Sharesheet)" else "Export Logs (Sharesheet)", maxLines = 1, softWrap = false)
                         }
                         TextButton(onClick = { model.clearDiagnostics() }) {
-                            Text(if (isIndonesian) "Hapus Log" else "Clear Logs")
+                            Text(if (isIndonesian) "Hapus Log" else "Clear Logs", maxLines = 1, softWrap = false)
                         }
                     }
 
@@ -6431,13 +6541,14 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                         Surface(
                             color = MaterialTheme.colorScheme.surface,
                             shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)),
                             modifier = Modifier.fillMaxWidth().heightIn(max = 160.dp)
                         ) {
                             Column(Modifier.padding(8.dp).verticalScroll(rememberScrollState())) {
                                 state.diagnosticLogSnapshot.takeLast(6).reversed().forEach { log ->
                                     Text(
                                         text = "[#${log.sequenceId}] [${log.level}] [${log.tag}] ${log.message}",
-                                        style = MaterialTheme.typography.labelSmall,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
                                         color = if (log.level == LogLevel.ERROR) {
                                             MaterialTheme.colorScheme.error
                                         } else {
@@ -6458,13 +6569,16 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
         item {
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("settings:help_card"),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         if (isIndonesian) "Panduan Bantuan & Pemulihan Offline" else "Offline Help & Error Recovery",
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         if (isIndonesian) {
@@ -6477,11 +6591,11 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                     )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         OfflineHelpCatalog.topics.forEach { topic ->
-                            OutlinedButton(
+                            TactileOutlinedButton(
                                 onClick = { activeHelpDialog = topic.id },
                                 modifier = Modifier.testTag("help:${topic.id}")
                             ) {
-                                Text(if (isIndonesian) topic.titleId else topic.titleEn)
+                                Text(if (isIndonesian) topic.titleId else topic.titleEn, maxLines = 1, softWrap = false)
                             }
                         }
                     }
