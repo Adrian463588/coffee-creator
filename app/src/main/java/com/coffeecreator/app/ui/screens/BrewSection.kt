@@ -47,6 +47,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 
+
+private const val SELECTED_CHIP_FADE_IN_MS = 150
+private const val SELECTED_CHIP_FADE_OUT_MS = 100
+private const val DETAIL_FADE_IN_MS = 180
+private const val DETAIL_FADE_OUT_MS = 120
+
 internal enum class BrewSection(val label: String, val detail: String) {
     Recipe("Recipe", "Plan dose, water, ratio & scaling"),
     Steps("Steps", "Ordered pours, times, temps and valves"),
@@ -112,7 +118,7 @@ internal fun BrewSectionTabs(selected: BrewSection, modifier: Modifier = Modifie
                         AnimatedContent(
                             targetState = (section == selected),
                             transitionSpec = {
-                                fadeIn(animationSpec = tween(150)) togetherWith fadeOut(animationSpec = tween(100))
+                                fadeIn(animationSpec = tween(SELECTED_CHIP_FADE_IN_MS)) togetherWith fadeOut(animationSpec = tween(SELECTED_CHIP_FADE_OUT_MS))
                             },
                             label = "chipIcon:${section.name}"
                         ) { isSelected ->
@@ -148,7 +154,7 @@ internal fun BrewSectionTabs(selected: BrewSection, modifier: Modifier = Modifie
         AnimatedContent(
             targetState = selected.detail,
             transitionSpec = {
-                fadeIn(animationSpec = tween(180)) togetherWith fadeOut(animationSpec = tween(120))
+                fadeIn(animationSpec = tween(DETAIL_FADE_IN_MS)) togetherWith fadeOut(animationSpec = tween(DETAIL_FADE_OUT_MS))
             },
             label = "sectionDetail"
         ) { detailText ->

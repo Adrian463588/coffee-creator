@@ -73,6 +73,9 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+
+private const val FULL_CIRCLE_DEGREES = 360f
+
 /**
  * Interactive, tactile Compose Canvas Sensory Wheel component (S2-051).
  * Multi-ring concentric sunburst wheel with touch-arc detection, category focus,
@@ -99,7 +102,9 @@ fun SensoryWheelVisualizer(
             modifier = Modifier
                 .size(280.dp)
                 .semantics {
-                    contentDescription = "Interactive Coffee Flavor Wheel. 9 primary categories. Currently focused on ${activeCategory.name}. Tap any sector to explore subcategories and flavor descriptors."
+                    contentDescription =
+                    "Interactive Coffee Flavor Wheel. 9 primary categories. " +
+                        "Currently focused on ${activeCategory.name}. Tap any sector to explore subcategories and descriptors."
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -119,9 +124,9 @@ fun SensoryWheelVisualizer(
                             // Ignore taps inside dead center or outside wheel
                             if (dist >= innerDeadZone && dist <= maxRadius) {
                                 var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
-                                if (angle < 0f) angle += 360f
+                                if (angle < 0f) angle += FULL_CIRCLE_DEGREES
 
-                                val sweepPerCategory = 360f / categories.size
+                                val sweepPerCategory = FULL_CIRCLE_DEGREES / categories.size
                                 val categoryIndex = (angle / sweepPerCategory).toInt().coerceIn(0, categories.lastIndex)
                                 val chosen = categories[categoryIndex]
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -136,14 +141,14 @@ fun SensoryWheelVisualizer(
                 val midRadius = size.minDimension * 0.36f
                 val innerRadius = size.minDimension * 0.24f
 
-                val sweepPerCat = 360f / categories.size
+                val sweepPerCat = FULL_CIRCLE_DEGREES / categories.size
 
                 categories.forEachIndexed { idx, cat ->
                     val startAngle = idx * sweepPerCat
                     val isSelected = cat.id == focusedCategory
                     val parsedColor = try {
                         Color(AndroidColor.parseColor(cat.colorHex))
-                    } catch (_: Exception) {
+                    } catch (_: IllegalArgumentException) {
                         Color.Gray
                     }
 
@@ -198,7 +203,7 @@ fun SensoryWheelVisualizer(
                 drawCircle(
                     color = try {
                         Color(AndroidColor.parseColor(activeCategory.colorHex))
-                    } catch (_: Exception) {
+                    } catch (_: IllegalArgumentException) {
                         Color.DarkGray
                     },
                     radius = innerRadius * 0.95f,
@@ -244,7 +249,7 @@ fun SensoryWheelVisualizer(
                 val isSelected = cat.id == focusedCategory
                 val catColor = try {
                     Color(AndroidColor.parseColor(cat.colorHex))
-                } catch (_: Exception) {
+                } catch (_: IllegalArgumentException) {
                     MaterialTheme.colorScheme.primary
                 }
                 FilterChip(
@@ -283,7 +288,7 @@ fun SensoryWheelVisualizer(
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = try {
                         Color(AndroidColor.parseColor(activeCategory.colorHex))
-                    } catch (_: Exception) {
+                    } catch (_: IllegalArgumentException) {
                         MaterialTheme.colorScheme.primary
                     }
                 )
@@ -311,7 +316,7 @@ private fun OptInFlowRow(descriptors: List<FlavorDescriptor>, onDescriptorTapped
         descriptors.forEach { desc ->
             val color = try {
                 Color(AndroidColor.parseColor(desc.colorHex))
-            } catch (_: Exception) {
+            } catch (_: IllegalArgumentException) {
                 MaterialTheme.colorScheme.primary
             }
             Surface(
@@ -491,7 +496,7 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
                         val isChecked = selectedList.contains(desc.name)
                         val color = try {
                             Color(AndroidColor.parseColor(desc.colorHex))
-                        } catch (_: Exception) {
+                        } catch (_: IllegalArgumentException) {
                             MaterialTheme.colorScheme.primary
                         }
 

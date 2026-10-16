@@ -191,14 +191,105 @@ import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
 import com.coffeecreator.app.ui.viewmodel.RecipeDraft
+import com.coffeecreator.app.ui.viewmodel.addBagToBean
+import com.coffeecreator.app.ui.viewmodel.addDetailedBean
+import com.coffeecreator.app.ui.viewmodel.addLine
+import com.coffeecreator.app.ui.viewmodel.auditIngredientSafety
+import com.coffeecreator.app.ui.viewmodel.clearComparison
+import com.coffeecreator.app.ui.viewmodel.clearConflictPreview
+import com.coffeecreator.app.ui.viewmodel.clearDiagnostics
+import com.coffeecreator.app.ui.viewmodel.clearQcReceipt
+import com.coffeecreator.app.ui.viewmodel.closeCuppingSession
+import com.coffeecreator.app.ui.viewmodel.confirmOcrDraft
+import com.coffeecreator.app.ui.viewmodel.createCuppingSession
+import com.coffeecreator.app.ui.viewmodel.deductDoseFromBag
+import com.coffeecreator.app.ui.viewmodel.deleteCafeCup
+import com.coffeecreator.app.ui.viewmodel.deleteDetailedBean
+import com.coffeecreator.app.ui.viewmodel.deleteEquipmentItem
+import com.coffeecreator.app.ui.viewmodel.deleteGrinder
+import com.coffeecreator.app.ui.viewmodel.deleteJournalEntry
+import com.coffeecreator.app.ui.viewmodel.dismissOcrDraft
+import com.coffeecreator.app.ui.viewmodel.editRecipe
+import com.coffeecreator.app.ui.viewmodel.estimateCaffeineForDose
+import com.coffeecreator.app.ui.viewmodel.evaluateOvatForEntry
+import com.coffeecreator.app.ui.viewmodel.executeCatalogImport
+import com.coffeecreator.app.ui.viewmodel.exportBeansCsv
+import com.coffeecreator.app.ui.viewmodel.exportCatalogJson
+import com.coffeecreator.app.ui.viewmodel.exportDiagnosticLogs
+import com.coffeecreator.app.ui.viewmodel.exportJournalCsv
+import com.coffeecreator.app.ui.viewmodel.exportSessionQcReport
+import com.coffeecreator.app.ui.viewmodel.feedSimulatedWeight
+import com.coffeecreator.app.ui.viewmodel.generateInventoryRecommendations
+import com.coffeecreator.app.ui.viewmodel.importBeanconquerorJson
+import com.coffeecreator.app.ui.viewmodel.isSupportedByNativeRuntime
+import com.coffeecreator.app.ui.viewmodel.newRecipe
+import com.coffeecreator.app.ui.viewmodel.parseBagOcr
+import com.coffeecreator.app.ui.viewmodel.pauseBrewSession
+import com.coffeecreator.app.ui.viewmodel.previewBackup
+import com.coffeecreator.app.ui.viewmodel.previewCatalogImport
+import com.coffeecreator.app.ui.viewmodel.proposeSingleVariableAdjustment
+import com.coffeecreator.app.ui.viewmodel.recordRoastRestObservation
+import com.coffeecreator.app.ui.viewmodel.refreshDiagnostics
+import com.coffeecreator.app.ui.viewmodel.refreshStreakAndStats
+import com.coffeecreator.app.ui.viewmodel.removeDraftStep
+import com.coffeecreator.app.ui.viewmodel.removeLine
+import com.coffeecreator.app.ui.viewmodel.reopenCuppingSession
+import com.coffeecreator.app.ui.viewmodel.repeatLastBrew
+import com.coffeecreator.app.ui.viewmodel.requestDeletion
+import com.coffeecreator.app.ui.viewmodel.revealCuppingSample
+import com.coffeecreator.app.ui.viewmodel.runManualCalculation
+import com.coffeecreator.app.ui.viewmodel.saveBean
+import com.coffeecreator.app.ui.viewmodel.saveCafeCup
+import com.coffeecreator.app.ui.viewmodel.saveEntryAsTemplate
+import com.coffeecreator.app.ui.viewmodel.saveIngredient
+import com.coffeecreator.app.ui.viewmodel.scaleDraft
+import com.coffeecreator.app.ui.viewmodel.selectBaristaPersonaPreset
+import com.coffeecreator.app.ui.viewmodel.selectComparisonSlot
+import com.coffeecreator.app.ui.viewmodel.selectCuppingSample
+import com.coffeecreator.app.ui.viewmodel.selectCuppingSession
+import com.coffeecreator.app.ui.viewmodel.sendChat
+import com.coffeecreator.app.ui.viewmodel.setLanguage
+import com.coffeecreator.app.ui.viewmodel.setUnitPreferences
+import com.coffeecreator.app.ui.viewmodel.shareRecipe
+import com.coffeecreator.app.ui.viewmodel.startBrewSession
+import com.coffeecreator.app.ui.viewmodel.submitCuppingSheet
+import com.coffeecreator.app.ui.viewmodel.submitPalateQuiz
+import com.coffeecreator.app.ui.viewmodel.toggleBeanFavorite
+import com.coffeecreator.app.ui.viewmodel.toggleEquipmentFavorite
+import com.coffeecreator.app.ui.viewmodel.toggleFreezeBag
+import com.coffeecreator.app.ui.viewmodel.toggleGrinderFavorite
+import com.coffeecreator.app.ui.viewmodel.updateCustomPersonaPrompt
+import com.coffeecreator.app.ui.viewmodel.updateDraftStep
+import com.coffeecreator.app.ui.viewmodel.updateField
+import com.coffeecreator.app.ui.viewmodel.updateJournalEntryTasteNotes
+import com.coffeecreator.app.ui.viewmodel.updatePalateSliders
+import com.coffeecreator.app.ui.viewmodel.updateWeatherParameters
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 import java.util.UUID
 
+
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
 private const val DECIMAL_GIGABYTE_BYTES = 1_000_000_000.0
 private const val LICENSE_SUMMARY_CHARS = 120
+private const val HALF_RECIPE_SCALE = 0.5
+private const val ONE_AND_HALF_RECIPE_SCALE = 1.5
+private const val CAFFEINE_BLEND_ARABICA_FRACTION = 0.5
+private const val SAFE_BREW_TEMPERATURE_MARGIN_CELSIUS = 0.5
+private const val MAX_CUSTOM_PERSONA_CHARS = 300
+private const val TIMER_RESTART_ACTION_WEIGHT = 1.1f
+private const val TIMER_FINISH_ACTION_WEIGHT = 1.4f
+private const val POUR_INCREMENT_SMALL_GRAMS = 10.0
+private const val POUR_INCREMENT_MEDIUM_GRAMS = 25.0
+private const val POUR_INCREMENT_LARGE_GRAMS = 50.0
+private const val POUR_INCREMENT_FULL_GRAMS = 100.0
+private val SIMULATED_POUR_INCREMENT_GRAMS = listOf(
+    POUR_INCREMENT_SMALL_GRAMS,
+    POUR_INCREMENT_MEDIUM_GRAMS,
+    POUR_INCREMENT_LARGE_GRAMS,
+    POUR_INCREMENT_FULL_GRAMS
+)
 private val destinations = listOf(
     Destination("Home", "Home", Icons.Default.Home),
     Destination("Formulate", "Brew", Icons.Default.Coffee),
@@ -963,11 +1054,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                         ) {
                                             Text("Scale:", style = MaterialTheme.typography.labelMedium)
                                             OutlinedButton(
-                                                onClick = { model.scaleDraft(0.5) },
+                                                onClick = { model.scaleDraft(HALF_RECIPE_SCALE) },
                                                 modifier = Modifier.heightIn(min = 36.dp).testTag("form:scale:0.5")
                                             ) { Text("0.5x") }
                                             OutlinedButton(
-                                                onClick = { model.scaleDraft(1.5) },
+                                                onClick = { model.scaleDraft(ONE_AND_HALF_RECIPE_SCALE) },
                                                 modifier = Modifier.heightIn(min = 36.dp).testTag("form:scale:1.5")
                                             ) { Text("1.5x") }
                                             OutlinedButton(
@@ -1541,7 +1632,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                         modifier = Modifier.fillMaxWidth(),
                                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                     ) {
-                                                        listOf(10.0, 25.0, 50.0, 100.0).forEach { delta ->
+                                                        SIMULATED_POUR_INCREMENT_GRAMS.forEach { delta ->
                                                             OutlinedButton(
                                                                 onClick = {
                                                                     model.feedSimulatedWeight(
@@ -1603,7 +1694,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 onClick = model::restartBrewStep,
                                                 enabled = session != null,
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier.weight(1.1f).heightIn(min = 44.dp).testTag("timer:restart_step")
+                                                modifier = Modifier.weight(TIMER_RESTART_ACTION_WEIGHT).heightIn(min = 44.dp).testTag("timer:restart_step")
                                             ) {
                                                 Text("Restart", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                             }
@@ -1618,7 +1709,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 onClick = model::finishBrewSession,
                                                 enabled = session != null && (state.timerSeconds > 0 || session.currentWeightGrams > 0.0),
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier.weight(1.4f).heightIn(min = 44.dp).testTag("timer:finish_and_log")
+                                                modifier = Modifier.weight(TIMER_FINISH_ACTION_WEIGHT).heightIn(min = 44.dp).testTag("timer:finish_and_log")
                                             ) {
                                                 Text("Finish & Log", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                             }
@@ -2602,19 +2693,6 @@ private fun beanForm(bean: CoffeeBean) = mapOf(
     "degasDays" to bean.degasDays?.toString().orEmpty(),
     "density" to bean.densityGramsPerMl?.toString().orEmpty(), "provenance" to bean.provenance
 )
-private fun ingredientForm(ingredient: Ingredient) = mapOf(
-    "name" to ingredient.name,
-    "density" to ingredient.densityGramsPerMl?.toString().orEmpty(),
-    "allergens" to ingredient.allergens.joinToString(),
-    "limit" to ingredient.supplierMaxPercent?.toString().orEmpty(),
-    "provenance" to ingredient.provenance,
-    "foodGrade" to when (ingredient.foodGrade) {
-        true -> "Confirmed food grade"
-        false -> "Not food grade"
-        null -> "Unknown"
-    }
-)
-
 private enum class JournalTab {
     BREWS,
     DIAL_IN,
@@ -3096,8 +3174,9 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             val stats = state.monthlyStats
+                            val monthLabel = stats?.let { "${it.year}-${it.month.toString().padStart(2, '0')}" } ?: "No month recorded"
                             Text(
-                                "📅 Monthly Consumption Stats (${stats?.year ?: 2026}-${stats?.month ?: 10})",
+                                "📅 Monthly Consumption Stats ($monthLabel)",
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text("• Total Brew Sessions: ${stats?.totalBrewsCount ?: 0}", style = MaterialTheme.typography.bodyMedium)
@@ -3154,8 +3233,8 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 FilterChip(
                                     selected = caffeineArabicaFraction in 0.4..0.6,
                                     onClick = {
-                                        caffeineArabicaFraction = 0.5
-                                        model.estimateCaffeineForDose(caffeineDoseInput, 0.5)
+                                        caffeineArabicaFraction = CAFFEINE_BLEND_ARABICA_FRACTION
+                                        model.estimateCaffeineForDose(caffeineDoseInput, CAFFEINE_BLEND_ARABICA_FRACTION)
                                     },
                                     label = { Text("50/50 Blend") }
                                 )
@@ -3628,7 +3707,7 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 items(filtered, key = { it.id }) { desc ->
                     val color: Color = try {
                         Color(AndroidColor.parseColor(desc.colorHex))
-                    } catch (_: Exception) {
+                    } catch (_: IllegalArgumentException) {
                         MaterialTheme.colorScheme.primary
                     }
                     Card(
@@ -4981,14 +5060,15 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
                                 }
                             )
                         }
-                        OutlinedButton(
-                            onClick = {
-                                importingId = asset.id
-                                modelPicker.launch(arrayOf("*/*"))
-                            },
-                            enabled =
-                            state.directory != null && !state.busy
-                        ) { Text("Import matching GGUF") }
+                        if (asset.format.startsWith("GGUF", ignoreCase = true)) {
+                            OutlinedButton(
+                                onClick = {
+                                    importingId = asset.id
+                                    modelPicker.launch(arrayOf("*/*"))
+                                },
+                                enabled = state.directory != null && !state.busy
+                            ) { Text("Import matching GGUF") }
+                        }
                     }
                     if (asset.status in
                         setOf(ModelStatus.DOWNLOADING, ModelStatus.QUEUED)
@@ -5001,10 +5081,14 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
                         TextButton(onClick = { model.modelAction(asset, "cancel") }) { Text("Cancel transfer") }
                     }
                     if (asset.status == ModelStatus.INSTALLED) {
-                        Button(onClick = {
-                            model.modelAction(asset, "load")
-                        }, enabled = !state.busy && !state.generating, modifier = Modifier.testTag("models:load:${asset.id}")) {
-                            Text("Load local model")
+                        if (asset.isSupportedByNativeRuntime()) {
+                            Button(onClick = {
+                                model.modelAction(asset, "load")
+                            }, enabled = !state.busy && !state.generating, modifier = Modifier.testTag("models:load:${asset.id}")) {
+                                Text("Load local model")
+                            }
+                        } else {
+                            Text("Download-only · no compatible inference runtime in this build.")
                         }
                         TextButton(onClick = {
                             model.modelAction(asset, "forget")
@@ -5150,6 +5234,8 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val profile = state.palateProfile
+                    val hasPersonalProfile = profile.isQuizCompleted || profile.qualifiedSessionCount > 0
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Personal Palate Profile", style = MaterialTheme.typography.titleMedium)
                         Surface(
@@ -5157,29 +5243,41 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Text(
-                                "Evidence: ${state.palateProfile.qualifiedSessionCount} sessions",
+                                when {
+                                    profile.isQuizCompleted -> "Quiz calibrated"
+                                    hasPersonalProfile -> "Evidence: ${profile.qualifiedSessionCount} sessions"
+                                    else -> "No personal profile"
+                                },
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
                     }
-                    Text(
-                        "Roast: ${(state.palateProfile.vector.roast * 10).toInt()}/10 · " +
-                            "Acidity: ${(state.palateProfile.vector.acidity * 10).toInt()}/10 · " +
-                            "Sweetness: ${(state.palateProfile.vector.sweetness * 10).toInt()}/10 · " +
-                            "Bitterness: ${(state.palateProfile.vector.bitterness * 10).toInt()}/10 · " +
-                            "Body: ${(state.palateProfile.vector.body * 10).toInt()}/10",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    if (hasPersonalProfile) {
+                        Text(
+                            "Roast: ${(profile.vector.roast * 10).toInt()}/10 · " +
+                                "Acidity: ${(profile.vector.acidity * 10).toInt()}/10 · " +
+                                "Sweetness: ${(profile.vector.sweetness * 10).toInt()}/10 · " +
+                                "Bitterness: ${(profile.vector.bitterness * 10).toInt()}/10 · " +
+                                "Body: ${(profile.vector.body * 10).toInt()}/10",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else {
+                        Text(
+                            "No personal palate profile yet. Complete the quiz to set your preferences.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { showQuizDialog = true }) {
-                            Text(if (state.palateProfile.isQuizCompleted) "Retake Palate Quiz" else "Take Palate Quiz")
+                            Text(if (profile.isQuizCompleted) "Retake Palate Quiz" else "Take Palate Quiz")
                         }
                         OutlinedButton(onClick = {
                             model.updatePalateSliders(
-                                acidity = ((state.palateProfile.vector.acidity + 0.1).coerceAtMost(1.0))
+                                acidity = ((profile.vector.acidity + 0.1).coerceAtMost(1.0))
                             )
-                        }) {
+                        }, enabled = hasPersonalProfile) {
                             Text("+ Acidity Bias")
                         }
                     }
@@ -5357,7 +5455,7 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     }
                     Text(
                         state.weatherParams.calculatedBoilingPointCelsius?.let { boilingPoint ->
-                            "Elevation: ${state.weatherParams.elevationMeters?.toInt()}m · Boiling Point: $boilingPoint°C · Safe Brew Max: ${boilingPoint - 0.5}°C"
+                            "Elevation: ${state.weatherParams.elevationMeters?.toInt()}m · Boiling Point: $boilingPoint°C · Safe Brew Max: ${boilingPoint - SAFE_BREW_TEMPERATURE_MARGIN_CELSIUS}°C"
                         } ?: "Elevation and boiling point are unknown until you enter an elevation.",
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -5590,13 +5688,13 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Max 300 characters. Automatically sanitized against prompt injection.",
+                        "Max ${MAX_CUSTOM_PERSONA_CHARS} characters. Automatically sanitized against prompt injection.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     OutlinedTextField(
                         value = customPersonaText,
                         onValueChange = { customPersonaText = it.take(300) },
-                        label = { Text("System Prompt (${customPersonaText.length}/300)") },
+                        label = { Text("System Prompt (${customPersonaText.length}/${MAX_CUSTOM_PERSONA_CHARS})") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -5626,7 +5724,6 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
     val isIndonesian = state.unitPreferences.language == AppLanguage.INDONESIAN
     var restoring by rememberSaveable { mutableStateOf<Uri?>(null) }
     var activeHelpDialog by rememberSaveable { mutableStateOf<String?>(null) }
-    var personaText by rememberSaveable(state.selectedPersona?.id) { mutableStateOf(state.selectedPersona?.systemPrompt.orEmpty()) }
     var tokens by rememberSaveable(state.maxTokens) { mutableStateOf(state.maxTokens.toString()) }
     var temperature by rememberSaveable(state.temperature) { mutableStateOf(state.temperature.toString()) }
     val exporter =

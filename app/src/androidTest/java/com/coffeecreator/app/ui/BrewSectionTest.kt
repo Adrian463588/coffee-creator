@@ -16,6 +16,8 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import com.coffeecreator.app.CoffeeApplication
 import com.coffeecreator.app.MainActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -40,20 +42,36 @@ class BrewSectionTest {
 
     @Test
     fun givenToolInput_whenSwitchingSectionsAndRecreating_thenValueAndSelectionSurvive() {
-        openBrew()
-        rule.selectBrewSection("Tools")
-        rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("science:initialMassGrams"))
-        rule.onNodeWithTag("science:initialMassGrams").performScrollTo().performTextReplacement("246")
-        rule.selectBrewSection("Recipe")
-        rule.onNodeWithTag("science:initialMassGrams").assertDoesNotExist()
-        rule.selectBrewSection("Tools")
-        rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("science:initialMassGrams"))
-        rule.onNodeWithTag("science:initialMassGrams").assertTextContains("246")
-        rule.activityRule.scenario.recreate()
-        rule.onNodeWithTag("page:Formulate").performScrollToIndex(0)
-        rule.onNodeWithTag("brew:section:Tools").assertIsSelected()
-        rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("science:initialMassGrams"))
-        rule.onNodeWithTag("science:initialMassGrams").assertTextContains("246")
+        val app = rule.activity.application as CoffeeApplication
+        val repository = app.graph.repository
+        rule.waitUntil(15_000) { repository.ready.value }
+        val previousDraft = repository.settings.value["draft"]
+        require(previousDraft == null || previousDraft.length <= MAX_SNAPSHOT_DRAFT_CHARS) {
+            "Existing draft exceeds the test snapshot bound."
+        }
+        try {
+            openBrew()
+            rule.selectBrewSection("Tools")
+            rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("science:initialMassGrams"))
+            rule.onNodeWithTag("science:initialMassGrams").performScrollTo().performTextReplacement("246")
+            rule.selectBrewSection("Recipe")
+            rule.onNodeWithTag("science:initialMassGrams").assertDoesNotExist()
+            rule.selectBrewSection("Tools")
+            rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("science:initialMassGrams"))
+            rule.onNodeWithTag("science:initialMassGrams").assertTextContains("246")
+            rule.activityRule.scenario.recreate()
+            rule.onNodeWithTag("page:Formulate").performScrollToIndex(0)
+            rule.onNodeWithTag("brew:section:Tools").assertIsSelected()
+            rule.onNodeWithTag("page:Formulate").performScrollToNode(hasTestTag("science:initialMassGrams"))
+            rule.onNodeWithTag("science:initialMassGrams").assertTextContains("246")
+        } finally {
+            rule.activityRule.scenario.close()
+            runBlocking(Dispatchers.IO) {
+                app.awaitBackgroundWrites()
+                repository.removeSettings("draft")
+                if (previousDraft != null) repository.saveSetting("draft", previousDraft)
+            }
+        }
     }
 
     @Test
@@ -74,6 +92,8 @@ class BrewSectionTest {
         rule.onNodeWithTag("nav:Formulate").performClick()
     }
 }
+
+private const val MAX_SNAPSHOT_DRAFT_CHARS = 2_097_152
 
 internal fun ComposeContentTestRule.selectBrewSection(section: String) {
     onNodeWithTag("page:Formulate").performScrollToIndex(0)

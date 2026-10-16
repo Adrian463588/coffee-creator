@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.coffeecreator.app.ui.screens.CoffeeApp
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
+import com.coffeecreator.app.ui.viewmodel.flushDraft
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
