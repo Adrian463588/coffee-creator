@@ -1245,7 +1245,12 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
             timestamp = System.currentTimeMillis()
         )
         viewModelScope.launch {
-            graph.repository.saveSensoryObservation(observation)
+            runCatching {
+                if (graph.repository.findRecipeById(session.recipe.id) == null) {
+                    graph.repository.saveRecipe(session.recipe)
+                }
+                graph.repository.saveSensoryObservation(observation)
+            }
         }
 
         val idealPoints = BrewFilterEngine.generateIdealCurvePoints(session.recipe.brewSteps)

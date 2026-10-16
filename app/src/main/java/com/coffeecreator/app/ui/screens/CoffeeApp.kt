@@ -5,6 +5,7 @@ package com.coffeecreator.app.ui.screens
 import android.content.Intent
 import android.net.Uri
 import java.time.LocalDate
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -254,6 +255,7 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
         }
     }
     var menu by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = route != "Home") { navigate("Home") }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val expanded = maxWidth >= 600.dp
         Scaffold(
@@ -2533,6 +2535,37 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                         }
                     }
                 }
+
+                if (state.recipes.isNotEmpty()) {
+                    item {
+                        Heading("Formulated Recipes & Revisions", "Stored recipes with exact measurements and revision history.")
+                    }
+                    items(state.recipes, key = { "recipe_${it.id}" }) { recipe ->
+                        val ratioStr = if (recipe.doseGrams > 0.0) String.format(java.util.Locale.US, "1:%.1f", recipe.waterGrams / recipe.doseGrams) else "—"
+                        InfoCard(
+                            "${recipe.name} · v${recipe.version}",
+                            listOf(
+                                "${recipe.doseGrams}g dose / ${recipe.waterGrams}g water ($ratioStr) · ${recipe.temperatureCelsius}°C",
+                                "TDS: ${recipe.measuredTdsPercent?.let { "$it%" } ?: "not measured"} · Beverage: ${recipe.beverageMassGrams?.let { "${it}g" } ?: "not measured"}",
+                                "Method: ${recipe.brewMethod} · Time: ${recipe.brewTimeSeconds}s"
+                            ).joinToString("\n")
+                        ) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = { edit(recipe) },
+                                    modifier = Modifier.testTag("journal:edit:${recipe.id}")
+                                ) {
+                                    Text("Edit / Revision")
+                                }
+                                if (state.recipes.count { it.revisionGroupId == recipe.revisionGroupId } > 1) {
+                                    OutlinedButton(onClick = { comparing = recipe.revisionGroupId }) {
+                                        Text("Compare versions")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             JournalTab.DIAL_IN -> {
@@ -3273,22 +3306,24 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                     "Evaluators: ${session.evaluators.joinToString { it.name }} | Masking: ${session.maskingMode.name}",
                                     style = MaterialTheme.typography.bodySmall
                                 )
-                                Spacer(Modifier.height(8.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     FilledTonalButton(onClick = { model.selectCuppingSession(session.id) }) {
-                                        Text(if (isSelected) "Active Session" else "Select Session")
+                                        Text(if (isSelected) "Active Session" else "Select Session", maxLines = 1, softWrap = false)
                                     }
                                     if (session.status == SessionStatus.OPEN) {
                                         OutlinedButton(onClick = { model.closeCuppingSession(session.id) }) {
-                                            Text("Close & Lock")
+                                            Text("Close & Lock", maxLines = 1, softWrap = false)
                                         }
                                     } else if (session.status == SessionStatus.CLOSED) {
                                         OutlinedButton(onClick = { showReopenDialog = true }) {
-                                            Text("Reopen...")
+                                            Text("Reopen...", maxLines = 1, softWrap = false)
                                         }
                                     }
                                     Button(onClick = { model.exportSessionQcReport(session.id) }) {
-                                        Text("Export QC")
+                                        Text("Export QC", maxLines = 1, softWrap = false)
                                     }
                                 }
                             }
@@ -3350,8 +3385,10 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                         style = MaterialTheme.typography.labelSmall
                                     )
 
-                                    Spacer(Modifier.height(8.dp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
                                         Button(
                                             onClick = {
                                                 scoringSample = sample.sampleId
@@ -3359,14 +3396,14 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                             },
                                             enabled = activeSession.status == SessionStatus.OPEN || activeSession.status == SessionStatus.REOPENED
                                         ) {
-                                            Text("Score Sample")
+                                            Text("Score Sample", maxLines = 1, softWrap = false)
                                         }
                                         FilledTonalButton(onClick = {
                                             model.selectCuppingSession(activeSession.id)
                                             model.selectCuppingSample(sample.sampleId)
                                             activeTab = SensoryTab.CONSENSUS
                                         }) {
-                                            Text("View Consensus")
+                                            Text("View Consensus", maxLines = 1, softWrap = false)
                                         }
                                     }
                                 }

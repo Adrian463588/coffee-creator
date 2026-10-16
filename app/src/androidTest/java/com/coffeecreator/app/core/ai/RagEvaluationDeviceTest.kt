@@ -385,6 +385,7 @@ class RagEvaluationDeviceTest {
             ).put("finalTdsPercent", value.finalTdsPercent)
             is CalculationResult.Concentration -> JSONObject().put("massFractionPercent", value.massFractionPercent).put("ppm", value.ppm)
             is CalculationResult.UnitConversion -> JSONObject().put("massGrams", value.massGrams)
+            else -> JSONObject()
         }
         val expected = spec.getJSONObject("expected")
         val tolerance = spec.getDouble("absolute_tolerance")

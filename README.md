@@ -8,9 +8,9 @@ network access; models need a first-time install before natural-language chat.
 
 ## Download
 
-[Download the latest debug preview APK (v1.9.3)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.3/coffee-creator-v1.9.3.apk)
-· [Release notes](docs/releases/v1.9.3.md)
-· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.3/SHA256SUMS.txt)
+[Download the latest debug preview APK (v1.9.4)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.4/coffee-creator-v1.9.4.apk)
+· [Release notes](docs/releases/v1.9.4.md)
+· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.4/SHA256SUMS.txt)
 
 The distribution APK is debug-signed, targets Android 8/API 26+ and arm64-v8a/x86_64.
 The physical test reference is Samsung SM-G988B, Android 13/API 33. Other device/RAM/
@@ -18,7 +18,7 @@ provider tiers are separate validation work; see [verification](docs/VERIFICATIO
 Install an APK from GitHub using Android's explicit install permission. For ADB:
 
 ```powershell
-adb install --user 0 -r coffee-creator-v1.9.3.apk
+adb install --user 0 -r coffee-creator-v1.9.4.apk
 ```
 
 Replacement installation preserves app records when the signing key matches.
@@ -26,7 +26,8 @@ Uninstall removes private records/grants; export a backup first if you want them
 
 | Version | Date | APK | History |
 |---|---|---|---|
-| v1.9.3 | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.3/coffee-creator-v1.9.3.apk) | [Notes](docs/releases/v1.9.3.md) · Anti-Slop Ergonomics & Microinteraction Refinement: encapsulated bag inventory Surface container (1px hairline border, tabular mass digits, status badge, single-line TactileButtons), modernized action headers (`Cafe Cup Logbook`, `Cupping Sessions`, `Roast-Rest Kinetics`) with weighted title columns and single-line `TactileButton` (`RoundedCornerShape(8.dp)`), zero multi-line wrapping into circular/oval button blobs |
+| v1.9.4 | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.4/coffee-creator-v1.9.4.apk) | [Notes](docs/releases/v1.9.4.md) · Verified E2E ADB Device Release: BackHandler sub-screen navigation, restored journal recipe revision list, FlowRow cupping action buttons with single-line constraint, auto-logged sensory observation persistence & exception safety, 100% connected & unit test pass on Samsung SM-G988B |
+| v1.9.3 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.3/coffee-creator-v1.9.3.apk) | [Notes](docs/releases/v1.9.3.md) · Anti-Slop Ergonomics & Microinteraction Refinement: encapsulated bag inventory Surface container (1px hairline border, tabular mass digits, status badge, single-line TactileButtons), modernized action headers (`Cafe Cup Logbook`, `Cupping Sessions`, `Roast-Rest Kinetics`) with weighted title columns and single-line `TactileButton` (`RoundedCornerShape(8.dp)`), zero multi-line wrapping into circular/oval button blobs |
 | v1.9.2 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.2/coffee-creator-v1.9.2.apk) | [Notes](docs/releases/v1.9.2.md) · Anti-Slop UI/UX Tactile Navigation Refinement: single-line horizontal scroll rows with dedicated M3 icons and spring micro-depression physics (`scale = 0.96f`) across Journal categories, Journal method filters, Sensory mode tabs, and Sensory flavor taxonomy categories; zero multi-row chip wrapping; 48dp+ touch target compliance |
 | v1.9.1 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.1/coffee-creator-v1.9.1.apk) | [Notes](docs/releases/v1.9.1.md) · Tactile Precision Lab & Anti-Slop UI/UX Refinement: single-row horizontally scrollable category bar with dedicated icons, unified precision laboratory timer & telemetry console (tabular monospace digits, live pulse LED, integrated mass & flow rate, 54dp tactile primary CTA, segmented secondary controls), scrollable brew section tabs, and zero regression |
 | v1.9.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.0/coffee-creator-v1.9.0.apk) | [Notes](docs/releases/v1.9.0.md) · Epic S2-E01: Coffee bean agronomic CRUD, multi-state bag inventory & dose deduction, roast-rest calculator & freeze pause, grinder calibration & burr profiles, multi-category gear catalog, water mineral chemistry ($Ca^{2+}, Mg^{2+}, Na^+, HCO_3^- \to GH/KH/TDS$), food-grade safety verification, offline OCR bag scanner, conflict-resolved JSON/CSV import/export, green coffee physical QC defect grading, and roast batches with RoR & DTR % |
@@ -38,9 +39,10 @@ Uninstall removes private records/grants; export a backup first if you want them
 | v1.3.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.3.0/coffee-creator-v1.3.0.apk) | [Notes](docs/releases/v1.3.0.md) · Epic S2-E02: Recipe composer, Hamilton-Hare pour scaling, optical Brix→TDS refractometer lab, expert dial-in, and offline Android Sharesheet |
 | v1.2.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.2.0/coffee-creator-v1.2.0.apk) | [Notes](docs/releases/v1.2.0.md) · Modern UI cards, FlowRow chip Brew navigation, custom bean/method inputs, curated library (10 recipes, 8 single-origins, 5 sensory logs) |
 | v1.1.0 | 2026-10-15 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk) | [Notes](docs/releases/v1.1.0.md) · Real Room/FTS4 records, local llama.cpp GGUF/ONNX RAG, SAF storage |
-| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.9.3. |
+| v1.0.0 | 2026-10-13 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Prototype; AI/download/storage paths were simulated. Prefer 1.9.4. |
 
-v1.9.3 APK verification: 122,081,725 bytes, SHA256: `04634335007971c79a219d7c77193cb111276f56f23820eeaefb76bfca812ebf`.
+v1.9.4 APK verification: 121,437,222 bytes, SHA256: `d5a0a24c3d4b2822fb5a06db421128e47bed6ee18e5a61e75836d5bd51de368f`.
+Historical 1.9.3 SHA256: `04634335007971c79a219d7c77193cb111276f56f23820eeaefb76bfca812ebf`.
 Historical 1.9.2 SHA256: `ab068dea442fafbf44939cc96730387be5b1862e345d4c30733c41ed1aaea648`.
 Historical 1.9.1 SHA256: `917f9cdbab661c5d991a105047f6cff93aa64d37b8c0a06be826c380152bb921`.
 Historical 1.9.0 SHA256: `4801d10dbc143dfa8e7d0f47b252ecf955e571c0e6219ecc4a9e3cb8ebe5ab35`.
