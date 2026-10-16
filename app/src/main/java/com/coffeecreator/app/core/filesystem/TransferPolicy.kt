@@ -12,6 +12,22 @@ object TransferPolicy {
         require(hash.matches(Regex("[a-fA-F0-9]{64}"))) { "Expected SHA-256 must contain 64 hexadecimal digits." }
     }
 
+    fun validateCompletedTransfer(
+        expectedSizeBytes: Long,
+        actualSizeBytes: Long,
+        expectedSha256: String,
+        actualSha256: String
+    ) {
+        require(expectedSizeBytes > 0L && actualSizeBytes == expectedSizeBytes) {
+            "Transferred byte count does not match the manifest."
+        }
+        validateHash(expectedSha256)
+        validateHash(actualSha256)
+        require(expectedSha256.equals(actualSha256, ignoreCase = true)) {
+            "Transferred SHA-256 does not match the manifest."
+        }
+    }
+
     fun resumeOffset(
         partialSize: Long,
         expectedSize: Long,

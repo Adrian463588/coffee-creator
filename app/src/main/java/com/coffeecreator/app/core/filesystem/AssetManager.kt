@@ -73,8 +73,17 @@ class AssetManager(
         TransferPolicy.safeIdentifier(asset.revision)
         TransferPolicy.validateHash(asset.sha256)
         require(asset.expectedSizeBytes in 1..MAX_MODEL_BYTES) { "Model size must be between 1 byte and 4 GiB." }
-        require(asset.format.startsWith("GGUF", ignoreCase = true)) { "This runtime supports GGUF decoder models." }
-        require(asset.runtime == "llama.cpp" && asset.tokenizerSupport.isNotBlank()) { "Unsupported runtime/tokenizer." }
+        when (BuiltInAssets.runtimeCapability(asset)) {
+            ModelRuntimeCapability.LLAMA_CPP_INFERENCE -> {
+                require(asset.runtime == "llama.cpp" && asset.tokenizerSupport.isNotBlank()) {
+                    "Unsupported runtime/tokenizer."
+                }
+            }
+            ModelRuntimeCapability.DOWNLOAD_ONLY -> require(BuiltInAssets.isPinnedAsset(asset)) {
+                "Download-only assets must match a verified catalog manifest."
+            }
+            ModelRuntimeCapability.UNSUPPORTED -> error("Unsupported runtime or model format.")
+        }
         require(asset.name.isNotBlank() && asset.license.isNotBlank()) { "Name and license are required." }
         val parsed = Uri.parse(asset.downloadUrl)
         require(asset.downloadUrl.isEmpty() || parsed.scheme == "https" && !parsed.host.isNullOrBlank()) {
@@ -323,12 +332,19 @@ class AssetManager(
 
     private suspend fun publish(asset: ModelAsset, file: File) {
         repository.upsertModel(asset.copy(status = ModelStatus.VERIFYING, error = null))
-        require(file.length() == asset.expectedSizeBytes && sha256(file).equals(asset.sha256, ignoreCase = true)) {
-            "Model size or SHA-256 mismatch. Asset was not installed."
-        }
+        TransferPolicy.validateCompletedTransfer(
+            asset.expectedSizeBytes,
+            file.length(),
+            asset.sha256,
+            sha256(file)
+        )
         val tree = directory()
         repository.upsertModel(asset.copy(status = ModelStatus.PUBLISHING))
-        val ownedFile = tree.createFile("application/octet-stream", "verified-${asset.id}-${UUID.randomUUID()}.gguf")
+        val extension = BuiltInAssets.safFileExtension(asset)
+        val ownedFile = tree.createFile(
+            "application/octet-stream",
+            "verified-${asset.id}-${UUID.randomUUID()}.$extension"
+        )
             ?: error("Provider cannot create model; choose a writable directory.")
         var manifest: DocumentFile? = null
         try {
@@ -389,6 +405,9 @@ class AssetManager(
 
     suspend fun stageForInference(asset: ModelAsset): File = withContext(Dispatchers.IO) {
         validateManifest(asset)
+        require(BuiltInAssets.canLoadForInference(asset)) {
+            "This asset is download-only; its inference runtime is not integrated."
+        }
         require(asset.status == ModelStatus.INSTALLED && asset.localUri != null) { "Install a verified model first." }
         val target = File(staging, "${asset.id}-${asset.revision}-working.gguf")
         if (!target.exists() || target.length() != asset.expectedSizeBytes || sha256(target) != asset.sha256.lowercase()) {
@@ -435,9 +454,12 @@ class AssetManager(
                 digest.update(buffer, 0, count)
             }
         } ?: error("Published asset access revoked.")
-        require(bytes == asset.expectedSizeBytes && digest.digest().hex().equals(asset.sha256, true)) {
-            "Provider publication failed size/SHA-256 verification."
-        }
+        TransferPolicy.validateCompletedTransfer(
+            asset.expectedSizeBytes,
+            bytes,
+            asset.sha256,
+            digest.digest().hex()
+        )
     }
 
     private fun partial(asset: ModelAsset) = File(staging, "${TransferPolicy.safeIdentifier(asset.id)}.part")

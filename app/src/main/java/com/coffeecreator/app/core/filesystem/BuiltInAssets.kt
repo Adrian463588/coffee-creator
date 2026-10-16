@@ -2,7 +2,17 @@ package com.coffeecreator.app.core.filesystem
 
 import com.coffeecreator.app.core.model.ModelAsset
 
+enum class ModelRuntimeCapability {
+    LLAMA_CPP_INFERENCE,
+    DOWNLOAD_ONLY,
+    UNSUPPORTED
+}
+
 object BuiltInAssets {
+    const val GEMMA4_LITERT_REVISION = "6e5c4f1e395deb959c494953478fa5cec4b8008f"
+    const val GEMMA4_LITERT_SIZE_BYTES = 2_588_147_712L
+    const val GEMMA4_LITERT_SHA256 = "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c"
+
     val qwen = ModelAsset(
         id = "qwen25-05b-q4", name = "Qwen2.5 0.5B Instruct Q4_K_M",
         revision = "9217f5db79a29953eb74d5343926648285ec7e67", format = "GGUF Q4_K_M",
@@ -37,15 +47,61 @@ object BuiltInAssets {
         runtime = "llama.cpp", tokenizerSupport = "Embedded Gemma 4 tokenizer; text-only, bounded 1024-token context"
     )
 
-    val catalog = listOf(qwen, kafi, gemma4)
+    val gemma4LiteRt = ModelAsset(
+        id = "gemma4-e2b-it-litertlm", name = "Gemma 4 E2B IT · LiteRT-LM",
+        revision = GEMMA4_LITERT_REVISION, format = "LiteRT-LM",
+        expectedSizeBytes = GEMMA4_LITERT_SIZE_BYTES,
+        sha256 = GEMMA4_LITERT_SHA256,
+        downloadUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/" +
+            "$GEMMA4_LITERT_REVISION/gemma-4-E2B-it.litertlm",
+        license = "Apache-2.0; Gemma 4 model weights. https://ai.google.dev/gemma/apache_2",
+        runtime = "LiteRT-LM",
+        tokenizerSupport = "Bundled in LiteRT-LM artifact; app inference adapter not integrated"
+    )
+
+    val catalog = listOf(qwen, kafi, gemma4, gemma4LiteRt)
+
+    /** Returns only an inference capability that the installed app runtime actually supports. */
+    fun runtimeCapability(asset: ModelAsset): ModelRuntimeCapability {
+        val pinned = catalog.find { it.id == asset.id }
+        if (pinned != null && !isPinnedAsset(asset)) return ModelRuntimeCapability.UNSUPPORTED
+        if (pinned?.id == gemma4LiteRt.id) return ModelRuntimeCapability.DOWNLOAD_ONLY
+        return if (
+            asset.runtime == "llama.cpp" &&
+            asset.format.startsWith("GGUF", ignoreCase = true) &&
+            asset.tokenizerSupport.isNotBlank()
+        ) {
+            ModelRuntimeCapability.LLAMA_CPP_INFERENCE
+        } else {
+            ModelRuntimeCapability.UNSUPPORTED
+        }
+    }
+
+    fun canLoadForInference(asset: ModelAsset): Boolean =
+        runtimeCapability(asset) == ModelRuntimeCapability.LLAMA_CPP_INFERENCE
+
+    fun safFileExtension(asset: ModelAsset): String = when (runtimeCapability(asset)) {
+        ModelRuntimeCapability.LLAMA_CPP_INFERENCE -> "gguf"
+        ModelRuntimeCapability.DOWNLOAD_ONLY -> "litertlm"
+        ModelRuntimeCapability.UNSUPPORTED -> error("Unsupported asset format.")
+    }
+
+    /** Lifecycle state and local SAF URI may change; all source and runtime metadata stay pinned. */
+    fun isPinnedAsset(asset: ModelAsset): Boolean {
+        val expected = catalog.find { it.id == asset.id } ?: return false
+        return asset.name == expected.name &&
+            asset.revision == expected.revision &&
+            asset.format == expected.format &&
+            asset.expectedSizeBytes == expected.expectedSizeBytes &&
+            asset.sha256.equals(expected.sha256, ignoreCase = true) &&
+            asset.downloadUrl == expected.downloadUrl &&
+            asset.license == expected.license &&
+            asset.runtime == expected.runtime &&
+            asset.tokenizerSupport == expected.tokenizerSupport
+    }
 
     fun guidance(asset: ModelAsset): String? {
-        val expected = catalog.find { it.id == asset.id } ?: return null
-        if (asset.revision != expected.revision || asset.expectedSizeBytes != expected.expectedSizeBytes ||
-            !asset.sha256.equals(expected.sha256, true) || asset.downloadUrl != expected.downloadUrl
-        ) {
-            return null
-        }
+        if (!isPinnedAsset(asset)) return null
         return when (asset.id) {
             qwen.id -> "Small general assistant. Optional download; no weights bundled."
             kafi.id ->
@@ -55,6 +111,10 @@ object BuiltInAssets {
                 "Multilingual general assistant; text only here. This verified GGUF is 3.11 GB, " +
                     "not the approximately 2.58 GB LiteRT variant. Needs substantial free RAM and space for SAF plus " +
                     "private staging/inference copies. Image/audio and the model's advertised long context are not enabled."
+            gemma4LiteRt.id ->
+                "Official multilingual general-purpose 2.59 GB LiteRT-LM artifact for your SAF directory. " +
+                    "Download and verified storage are supported. Google lists 8 GB minimum device memory; " +
+                    "this app does not yet include a LiteRT-LM inference adapter."
             else -> null
         }
     }
@@ -64,7 +124,11 @@ object BuiltInAssets {
     } else {
         when (asset.id) {
             kafi.id -> "Indonesian cafe and menu dialogue. Use Kotlin tools for exact coffee calculations."
-            gemma4.id -> "Multilingual text chat. Requires substantial free RAM and storage; image/audio are not enabled."
+            gemma4.id ->
+                "Multilingual text chat. Requires substantial free RAM and storage; image/audio are not enabled."
+            gemma4LiteRt.id ->
+                "Multilingual general-purpose Gemma 4 E2B IT artifact. " +
+                    "Download-only until runtime support is integrated."
             else -> "Compact general text assistant. The smallest download in this catalog."
         }
     }
