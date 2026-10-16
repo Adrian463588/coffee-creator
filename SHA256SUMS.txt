@@ -1,4 +1,1 @@
-04634335007971c79a219d7c77193cb111276f56f23820eeaefb76bfca812ebf  coffee-creator-v1.9.3.apk
-ab068dea442fafbf44939cc96730387be5b1862e345d4c30733c41ed1aaea648  coffee-creator-v1.9.2.apk
-917f9cdbab661c5d991a105047f6cff93aa64d37b8c0a06be826c380152bb921  coffee-creator-v1.9.1.apk
-4801d10dbc143dfa8e7d0f47b252ecf955e571c0e6219ecc4a9e3cb8ebe5ab35  coffee-creator-v1.9.0.apk
+d84569a5035fa1d9f0aaf7a7f697dd8d073bd72f90ecb4e15ed75474a58129a4 *coffee-creator-v1.9.5.apk

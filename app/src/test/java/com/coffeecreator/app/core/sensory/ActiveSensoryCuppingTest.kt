@@ -375,4 +375,92 @@ class ActiveSensoryCuppingTest {
         val phaseDay50 = CuppingAnalyticsEngine.classifyObservationPhase(50, prediction)
         assertEquals(DegassingPhase.STALE_OXIDIZED, phaseDay50)
     }
+
+    // Comprehensive Taxonomy Expansion & Defect QC Verification (S2-051, S2-052)
+    @Test
+    fun testExpandedWheelTaxonomyAndDefects() {
+        val taxonomy = SensoryTaxonomyRegistry.DEFAULT_TAXONOMY
+        assertEquals(9, taxonomy.categories.size)
+
+        val defectCategory = SensoryTaxonomyRegistry.findCategoryById("cat_defects_taints", taxonomy)
+        assertNotNull(defectCategory)
+        assertEquals("Defects & Taints", defectCategory!!.name)
+        assertTrue(defectCategory.subcategories.size >= 4)
+
+        // Verify potato defect exists and is flagged as defect
+        val potato = SensoryTaxonomyRegistry.findDescriptorByName("Potato Defect (PTD)", taxonomy)
+        assertNotNull(potato)
+        assertTrue(potato!!.isDefect)
+        assertEquals("sub_microbial_taints", potato.subcategoryId)
+
+        // Verify Indonesian specialty descriptors
+        val gulaAren = SensoryTaxonomyRegistry.findDescriptorByName("Palm Sugar / Gula Aren", taxonomy)
+        assertNotNull(gulaAren)
+        assertEquals("cat_sweet", gulaAren!!.categoryId)
+
+        val pandan = SensoryTaxonomyRegistry.findDescriptorByName("Pandan Leaf / Daun Pandan", taxonomy)
+        assertNotNull(pandan)
+        assertEquals("cat_green", pandan!!.categoryId)
+
+        // Total descriptors count
+        val allDescriptors = SensoryTaxonomyRegistry.getAllDescriptors(taxonomy)
+        assertTrue(allDescriptors.size >= 85)
+
+        // Category & subcategory lookups
+        val fruityDescriptors = SensoryTaxonomyRegistry.getDescriptorsForCategory("cat_fruity", taxonomy)
+        assertTrue(fruityDescriptors.size >= 15)
+
+        val berryDescriptors = SensoryTaxonomyRegistry.getDescriptorsForSubcategory("sub_berry", taxonomy)
+        assertEquals(4, berryDescriptors.size)
+    }
+
+    // Dynamic Cupping Template Scoring Math across all 4 templates (S2-053, S2-055)
+    @Test
+    fun testAllFourCuppingTemplatesScoringMath() {
+        // 1. Espresso Sensory (6 attributes, 1-10 scale, average expected)
+        val espressoScores = mapOf(
+            "crema_texture" to BigDecimal("8.00"),
+            "aroma_intensity" to BigDecimal("8.50"),
+            "acidity_structure" to BigDecimal("8.00"),
+            "sweetness_core" to BigDecimal("9.00"),
+            "viscosity_mouthfeel" to BigDecimal("8.50"),
+            "finish_lingering" to BigDecimal("8.00")
+        )
+        // Average = 50.0 / 6 = 8.33
+        val espressoTotal = CuppingAnalyticsEngine.calculateTotalCuppingScore(
+            CuppingTemplateType.ESPRESSO_SENSORY,
+            espressoScores
+        )
+        assertEquals(BigDecimal("8.33"), espressoTotal)
+
+        // 2. Production QC (4 attributes, 1-10 scale, average expected)
+        val qcScores = mapOf(
+            "profile_match" to BigDecimal("9.00"),
+            "clean_cup" to BigDecimal("9.50"),
+            "roast_development" to BigDecimal("8.50"),
+            "overall_commercial" to BigDecimal("9.00")
+        )
+        // Average = 36.0 / 4 = 9.00
+        val qcTotal = CuppingAnalyticsEngine.calculateTotalCuppingScore(
+            CuppingTemplateType.PRODUCTION_QC,
+            qcScores
+        )
+        assertEquals(BigDecimal("9.00"), qcTotal)
+
+        // 3. Quick Barista Dial-In (6 attributes, 1-10 scale)
+        val dialInScores = mapOf(
+            "sweetness" to BigDecimal("8.00"),
+            "acidity" to BigDecimal("7.50"),
+            "bitterness" to BigDecimal("8.00"),
+            "body" to BigDecimal("8.00"),
+            "balance" to BigDecimal("8.50"),
+            "aftertaste" to BigDecimal("8.00")
+        )
+        // Average = 48.0 / 6 = 8.00
+        val dialInTotal = CuppingAnalyticsEngine.calculateTotalCuppingScore(
+            CuppingTemplateType.QUICK_BARISTA_DIAL_IN,
+            dialInScores
+        )
+        assertEquals(BigDecimal("8.00"), dialInTotal)
+    }
 }

@@ -52,6 +52,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
@@ -63,6 +64,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.BarChart
@@ -116,6 +118,7 @@ import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
 import com.coffeecreator.app.core.sensory.SessionStatus
 import com.coffeecreator.app.core.sensory.StandardCuppingTemplates
+import com.coffeecreator.app.core.sensory.SensoryScaleType
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
@@ -2338,6 +2341,7 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
     var backupJsonInput by rememberSaveable { mutableStateOf("") }
     var caffeineDoseInput by rememberSaveable { mutableStateOf(18.0) }
     var caffeineArabicaFraction by rememberSaveable { mutableStateOf(1.0) }
+    var editingJournalNotesEntry by rememberSaveable { mutableStateOf<String?>(null) }
 
     Page("Journal") {
         item {
@@ -2531,6 +2535,7 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             TextButton(onClick = {
                                 model.saveEntryAsTemplate(entry, "${entry.beanName} ${entry.brewMethod}")
                             }) { Text("Save Template") }
+                            TextButton(onClick = { editingJournalNotesEntry = entry.id }) { Text("Wheel Notes") }
                             TextButton(onClick = { model.deleteJournalEntry(entry.id) }) { Text("Delete") }
                         }
                     }
@@ -2971,6 +2976,22 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
             }
         }, confirmButton = { TextButton(onClick = { comparing = null }) { Text("Close") } })
     }
+
+    if (editingJournalNotesEntry != null) {
+        val entryToEdit = state.journalEntries.find { it.id == editingJournalNotesEntry }
+        if (entryToEdit != null) {
+            FlavorWheelPickerDialog(
+                initialSelected = entryToEdit.tasteNotes,
+                onDismissRequest = { editingJournalNotesEntry = null },
+                onConfirm = { updatedNotes ->
+                    model.updateJournalEntryTasteNotes(entryToEdit.id, updatedNotes)
+                    editingJournalNotesEntry = null
+                }
+            )
+        } else {
+            editingJournalNotesEntry = null
+        }
+    }
 }
 
 private enum class SensoryTab {
@@ -3011,6 +3032,7 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
     var scoreTaints by rememberSaveable { mutableStateOf(0) }
     var scoreFaults by rememberSaveable { mutableStateOf(0) }
     var scoreNotes by rememberSaveable { mutableStateOf("") }
+    var showWheelPickerForSample by rememberSaveable { mutableStateOf(false) }
 
     // Reopen dialog
     var showReopenDialog by rememberSaveable { mutableStateOf(false) }
@@ -3105,6 +3127,18 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
 
         when (activeTab) {
             SensoryTab.WHEEL -> {
+                item {
+                    SensoryWheelVisualizer(
+                        selectedCategory = SensoryTaxonomyRegistry.DEFAULT_CATEGORIES.firstOrNull { it.name.equals(selectedCategoryFilter, ignoreCase = true) },
+                        onCategorySelected = { cat ->
+                            selectedCategoryFilter = cat.name
+                        },
+                        onDescriptorTapped = { desc ->
+                            searchQuery = desc.name
+                        }
+                    )
+                }
+
                 item {
                     OutlinedTextField(
                         value = searchQuery,
@@ -3882,6 +3916,28 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
     // Dialog: Score Sample
     if (scoringSample != null && activeSession != null) {
         val sample = activeSession.samples.find { it.sampleId == scoringSample }
+        val template = activeSession.template
+        var dynamicScores by remember(scoringSample, activeSession.id) {
+            mutableStateOf(template.attributes.associate {
+                it.key to (if (it.scaleType == SensoryScaleType.Q_SCALE_6_TO_10) 8.5f else 8.0f)
+            })
+        }
+        var selectedDescriptorsList by remember(scoringSample) {
+            mutableStateOf(scoreDescriptors.split(',').map { it.trim() }.filter { it.isNotBlank() })
+        }
+
+        if (showWheelPickerForSample) {
+            FlavorWheelPickerDialog(
+                initialSelected = selectedDescriptorsList,
+                onDismissRequest = { showWheelPickerForSample = false },
+                onConfirm = { picked ->
+                    selectedDescriptorsList = picked
+                    scoreDescriptors = picked.joinToString(", ")
+                    showWheelPickerForSample = false
+                }
+            )
+        }
+
         AlertDialog(
             onDismissRequest = { scoringSample = null },
             title = { Text("Score Sample: ${sample?.blindCode}") },
@@ -3899,31 +3955,81 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                         )
                     }
 
-                    Text("Fragrance / Aroma: ${String.format("%.2f", scoreFragrance)}")
-                    Slider(scoreFragrance, { scoreFragrance = it }, valueRange = 6f..10f, steps = 15)
+                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                    Text("Protocol: ${template.title}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
 
-                    Text("Flavor: ${String.format("%.2f", scoreFlavor)}")
-                    Slider(scoreFlavor, { scoreFlavor = it }, valueRange = 6f..10f, steps = 15)
+                    template.attributes.forEach { attr ->
+                        val currVal = dynamicScores[attr.key] ?: (if (attr.scaleType == SensoryScaleType.Q_SCALE_6_TO_10) 8.5f else 8.0f)
+                        val (minVal, maxVal, steps) = when (attr.scaleType) {
+                            SensoryScaleType.Q_SCALE_6_TO_10 -> Triple(6.0f, 10.0f, 15)
+                            SensoryScaleType.ORDINAL_1_TO_10 -> Triple(1.0f, 10.0f, 17)
+                            SensoryScaleType.INTENSITY_0_TO_5 -> Triple(0.0f, 5.0f, 9)
+                            SensoryScaleType.CHECKLIST_5_CUPS -> Triple(0.0f, 5.0f, 4)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(attr.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Text(String.format(java.util.Locale.US, "%.2f", currVal), style = MaterialTheme.typography.labelMedium)
+                        }
+                        Slider(
+                            value = currVal,
+                            onValueChange = { dynamicScores = dynamicScores + (attr.key to it) },
+                            valueRange = minVal..maxVal,
+                            steps = steps
+                        )
+                    }
 
-                    Text("Aftertaste: ${String.format("%.2f", scoreAftertaste)}")
-                    Slider(scoreAftertaste, { scoreAftertaste = it }, valueRange = 6f..10f, steps = 15)
+                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Flavor Wheel Notes (${selectedDescriptorsList.size})", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        TextButton(onClick = { showWheelPickerForSample = true }) {
+                            Icon(Icons.Default.Psychology, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Pick from Wheel")
+                        }
+                    }
 
-                    Text("Acidity: ${String.format("%.2f", scoreAcidity)}")
-                    Slider(scoreAcidity, { scoreAcidity = it }, valueRange = 6f..10f, steps = 15)
-
-                    Text("Body: ${String.format("%.2f", scoreBody)}")
-                    Slider(scoreBody, { scoreBody = it }, valueRange = 6f..10f, steps = 15)
-
-                    Text("Balance: ${String.format("%.2f", scoreBalance)}")
-                    Slider(scoreBalance, { scoreBalance = it }, valueRange = 6f..10f, steps = 15)
-
-                    Text("Overall: ${String.format("%.2f", scoreOverall)}")
-                    Slider(scoreOverall, { scoreOverall = it }, valueRange = 6f..10f, steps = 15)
+                    if (selectedDescriptorsList.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            selectedDescriptorsList.forEach { descName ->
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.clickable {
+                                        selectedDescriptorsList = selectedDescriptorsList - descName
+                                        scoreDescriptors = selectedDescriptorsList.joinToString(", ")
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(descName, style = MaterialTheme.typography.labelSmall)
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(Icons.Default.Clear, "Remove", modifier = Modifier.size(12.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     OutlinedTextField(
                         value = scoreDescriptors,
-                        onValueChange = { scoreDescriptors = it },
-                        label = { Text("Descriptors (comma separated)") },
+                        onValueChange = {
+                            scoreDescriptors = it
+                            selectedDescriptorsList = it.split(',').map { s -> s.trim() }.filter { s -> s.isNotBlank() }
+                        },
+                        label = { Text("Descriptors (comma separated or wheel-picked)") },
                         placeholder = { Text("e.g. Jasmine, Bergamot, Peach") },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -3953,19 +4059,12 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
             },
             confirmButton = {
                 Button(onClick = {
-                    val scores = mapOf(
-                        "fragrance_aroma" to BigDecimal(scoreFragrance.toDouble()).setScale(2, RoundingMode.HALF_UP),
-                        "flavor" to BigDecimal(scoreFlavor.toDouble()).setScale(2, RoundingMode.HALF_UP),
-                        "aftertaste" to BigDecimal(scoreAftertaste.toDouble()).setScale(2, RoundingMode.HALF_UP),
-                        "acidity" to BigDecimal(scoreAcidity.toDouble()).setScale(2, RoundingMode.HALF_UP),
-                        "body" to BigDecimal(scoreBody.toDouble()).setScale(2, RoundingMode.HALF_UP),
-                        "balance" to BigDecimal(scoreBalance.toDouble()).setScale(2, RoundingMode.HALF_UP),
-                        "uniformity" to BigDecimal("10.00"),
-                        "clean_cup" to BigDecimal("10.00"),
-                        "sweetness" to BigDecimal("10.00"),
-                        "overall" to BigDecimal(scoreOverall.toDouble()).setScale(2, RoundingMode.HALF_UP)
-                    )
-                    val descList = scoreDescriptors.split(',').map { it.trim() }.filter { it.isNotBlank() }
+                    val scores = dynamicScores.mapValues {
+                        BigDecimal(it.value.toDouble()).setScale(2, RoundingMode.HALF_UP)
+                    }
+                    val descList = selectedDescriptorsList.ifEmpty {
+                        scoreDescriptors.split(',').map { it.trim() }.filter { it.isNotBlank() }
+                    }
                     model.submitCuppingSheet(
                         sessionId = activeSession.id,
                         sampleId = scoringSample!!,

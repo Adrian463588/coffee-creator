@@ -1597,6 +1597,15 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         refreshStreakAndStats()
     }
 
+    fun updateJournalEntryTasteNotes(id: String, notes: List<String>) {
+        _state.update { current ->
+            val updated = current.journalEntries.map { entry ->
+                if (entry.id == id) entry.copy(tasteNotes = notes, updatedAt = System.currentTimeMillis()) else entry
+            }
+            current.copy(journalEntries = updated, notice = "Updated tasting notes from Flavor Wheel.")
+        }
+    }
+
     fun updateJournalFilter(criteria: BrewFilterCriteria) {
         _state.update { it.copy(journalFilterCriteria = criteria) }
     }
