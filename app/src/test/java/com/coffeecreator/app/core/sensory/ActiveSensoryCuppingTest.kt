@@ -1,11 +1,11 @@
 package com.coffeecreator.app.core.sensory
 
+import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.math.BigDecimal
 
 class ActiveSensoryCuppingTest {
 
@@ -330,9 +330,12 @@ class ActiveSensoryCuppingTest {
     @Test
     fun testPhysicalGreenAndRoastedGrading() {
         val defects = listOf(
-            GreenCoffeeDefectEntry(GreenDefectType.FULL_BLACK, 0), // 0 primary
-            GreenCoffeeDefectEntry(GreenDefectType.PARTIAL_BLACK, 6), // 6/3 = 2 secondary
-            GreenCoffeeDefectEntry(GreenDefectType.BROKEN_CHIPPED, 5) // 5/5 = 1 secondary
+            // 0 primary.
+            GreenCoffeeDefectEntry(GreenDefectType.FULL_BLACK, 0),
+            // 6/3 = 2 secondary.
+            GreenCoffeeDefectEntry(GreenDefectType.PARTIAL_BLACK, 6),
+            // 5/5 = 1 secondary.
+            GreenCoffeeDefectEntry(GreenDefectType.BROKEN_CHIPPED, 5)
         )
         val (grade, defectCounts) = CuppingAnalyticsEngine.gradeGreenPhysicalLot(
             moisturePercentage = BigDecimal("11.2"),

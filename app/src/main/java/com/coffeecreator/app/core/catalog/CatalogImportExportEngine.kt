@@ -6,25 +6,36 @@ import com.google.gson.JsonDeserializer
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
 import java.util.UUID
 
 object CatalogImportExportEngine {
 
     val gson: Gson = GsonBuilder()
-        .registerTypeAdapter(LocalDate::class.java, JsonSerializer<LocalDate> { src, _, _ ->
-            JsonPrimitive(src.toString())
-        })
-        .registerTypeAdapter(LocalDate::class.java, JsonDeserializer { json, _, _ ->
-            LocalDate.parse(json.asString)
-        })
-        .registerTypeAdapter(BigDecimal::class.java, JsonSerializer<BigDecimal> { src, _, _ ->
-            JsonPrimitive(src.toPlainString())
-        })
-        .registerTypeAdapter(BigDecimal::class.java, JsonDeserializer { json, _, _ ->
-            BigDecimal(json.asString)
-        })
+        .registerTypeAdapter(
+            LocalDate::class.java,
+            JsonSerializer<LocalDate> { src, _, _ ->
+                JsonPrimitive(src.toString())
+            }
+        )
+        .registerTypeAdapter(
+            LocalDate::class.java,
+            JsonDeserializer { json, _, _ ->
+                LocalDate.parse(json.asString)
+            }
+        )
+        .registerTypeAdapter(
+            BigDecimal::class.java,
+            JsonSerializer<BigDecimal> { src, _, _ ->
+                JsonPrimitive(src.toPlainString())
+            }
+        )
+        .registerTypeAdapter(
+            BigDecimal::class.java,
+            JsonDeserializer { json, _, _ ->
+                BigDecimal(json.asString)
+            }
+        )
         .setPrettyPrinting()
         .create()
 
@@ -45,7 +56,7 @@ object CatalogImportExportEngine {
                 escapeCsv(b.varietal),
                 b.process.name,
                 b.altitudeMeters?.toString() ?: "",
-                b.roastDate.toString(),
+                b.roastDate?.toString() ?: "",
                 b.roastLevel.name,
                 b.isFavorite.toString()
             )

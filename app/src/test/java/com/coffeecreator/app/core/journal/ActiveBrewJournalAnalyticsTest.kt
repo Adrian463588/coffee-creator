@@ -1,19 +1,32 @@
 package com.coffeecreator.app.core.journal
 
-import com.coffeecreator.app.core.data.BackupCodec
-import com.coffeecreator.app.core.data.BackupPayload
 import com.coffeecreator.app.core.model.CoffeeBean
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
 
 /**
  * Deterministic BDD/TDD unit tests for Epic S2-E04 (Stories S2-039 through S2-050).
  * Tests all pure Kotlin domain models, algorithms, and kinematics without Android SDK dependencies.
  */
 class ActiveBrewJournalAnalyticsTest {
+    @Test
+    fun givenTimerOnlyEntry_whenOvatRequested_thenAbstainWithoutMeasurementsOrSensoryEvidence() {
+        val entry = BrewJournalEntry(
+            id = "timer-only",
+            beanName = "Unknown Bean",
+            brewMethod = "Pour Over",
+            doseGrams = 18.0,
+            waterGrams = 300.0,
+            brewDurationSeconds = 180,
+            timerOnly = true
+        )
+
+        assertNull(BrewAnalyticsEngine.evaluateOvat(entry))
+    }
 
     // S2-039: Detailed brew journal
     @Test
@@ -45,10 +58,46 @@ class ActiveBrewJournalAnalyticsTest {
     @Test
     fun testSearchAndFilterCriteria() {
         val entries = listOf(
-            BrewJournalEntry(id = "log-1", beanName = "Ethiopia Yirgacheffe", brewMethod = "V60", doseGrams = 15.0, waterGrams = 250.0, brewDurationSeconds = 180, rating = 9.0, tags = listOf("Fruity", "Morning")),
-            BrewJournalEntry(id = "log-2", beanName = "Colombia Huila", brewMethod = "Espresso", doseGrams = 18.0, waterGrams = 36.0, brewDurationSeconds = 28, rating = 7.0, tags = listOf("Espresso")),
-            BrewJournalEntry(id = "log-3", beanName = "Kenya Nyeri", brewMethod = "V60", doseGrams = 20.0, waterGrams = 300.0, brewDurationSeconds = 210, rating = 9.5, tags = listOf("Bright", "Clean")),
-            BrewJournalEntry(id = "log-4", beanName = "Panama Geisha", brewMethod = "AeroPress", doseGrams = 14.0, waterGrams = 200.0, brewDurationSeconds = 120, rating = 8.0, tags = listOf("Floral"))
+            BrewJournalEntry(
+                id = "log-1",
+                beanName = "Ethiopia Yirgacheffe",
+                brewMethod = "V60",
+                doseGrams = 15.0,
+                waterGrams = 250.0,
+                brewDurationSeconds = 180,
+                rating = 9.0,
+                tags = listOf("Fruity", "Morning")
+            ),
+            BrewJournalEntry(
+                id = "log-2",
+                beanName = "Colombia Huila",
+                brewMethod = "Espresso",
+                doseGrams = 18.0,
+                waterGrams = 36.0,
+                brewDurationSeconds = 28,
+                rating = 7.0,
+                tags = listOf("Espresso")
+            ),
+            BrewJournalEntry(
+                id = "log-3",
+                beanName = "Kenya Nyeri",
+                brewMethod = "V60",
+                doseGrams = 20.0,
+                waterGrams = 300.0,
+                brewDurationSeconds = 210,
+                rating = 9.5,
+                tags = listOf("Bright", "Clean")
+            ),
+            BrewJournalEntry(
+                id = "log-4",
+                beanName = "Panama Geisha",
+                brewMethod = "AeroPress",
+                doseGrams = 14.0,
+                waterGrams = 200.0,
+                brewDurationSeconds = 120,
+                rating = 8.0,
+                tags = listOf("Floral")
+            )
         )
 
         // Filter: method V60 and rating >= 8.5
@@ -141,13 +190,16 @@ class ActiveBrewJournalAnalyticsTest {
             beverageMassGrams = 45.0,
             brewDurationSeconds = 16,
             espressoDetails = EspressoJournalDetails(
-                targetDoseGrams = 18.0, actualDoseGrams = 18.0,
-                targetYieldGrams = 36.0, actualYieldGrams = 45.0,
-                targetDurationSeconds = 28, actualDurationSeconds = 16
+                targetDoseGrams = 18.0,
+                actualDoseGrams = 18.0,
+                targetYieldGrams = 36.0,
+                actualYieldGrams = 45.0,
+                targetDurationSeconds = 28,
+                actualDurationSeconds = 16
             )
         )
 
-        val rec = BrewAnalyticsEngine.evaluateOvat(entry, listOf("SOUR", "ASTRINGENT"))
+        val rec = requireNotNull(BrewAnalyticsEngine.evaluateOvat(entry, listOf("SOUR", "ASTRINGENT")))
         assertEquals(OvatTargetVariable.PUCK_PREPARATION, rec.targetVariable)
         assertEquals(AdjustmentDirection.MODIFY_TECHNIQUE, rec.direction)
         assertTrue(rec.physicalReasoning.contains("channeling", ignoreCase = true))
@@ -165,7 +217,7 @@ class ActiveBrewJournalAnalyticsTest {
             brewDurationSeconds = 18
         )
 
-        val rec = BrewAnalyticsEngine.evaluateOvat(entry, listOf("SOUR", "ACIDIC"))
+        val rec = requireNotNull(BrewAnalyticsEngine.evaluateOvat(entry, listOf("SOUR", "ACIDIC")))
         assertEquals(OvatTargetVariable.GRIND_SIZE, rec.targetVariable)
         assertEquals(AdjustmentDirection.FINER, rec.direction)
         assertTrue(rec.expectedImpact.contains("Extraction Yield", ignoreCase = true))
@@ -179,11 +231,12 @@ class ActiveBrewJournalAnalyticsTest {
             doseGrams = 15.0,
             waterGrams = 250.0,
             beverageMassGrams = 220.0,
-            measuredTdsPercent = 1.60, // EY = 23.47% > 22%
+            // EY = 23.47% > 22%.
+            measuredTdsPercent = 1.60,
             brewDurationSeconds = 270
         )
 
-        val rec = BrewAnalyticsEngine.evaluateOvat(entry, listOf("BITTER", "DRY"))
+        val rec = requireNotNull(BrewAnalyticsEngine.evaluateOvat(entry, listOf("BITTER", "DRY")))
         assertEquals(OvatTargetVariable.GRIND_SIZE, rec.targetVariable)
         assertEquals(AdjustmentDirection.COARSER, rec.direction)
         assertTrue(rec.suggestedMagnitude.contains("coarser", ignoreCase = true))
@@ -223,9 +276,36 @@ class ActiveBrewJournalAnalyticsTest {
 
         val oct2026Millis = LocalDate.of(2026, 10, 15).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
         val entries = listOf(
-            BrewJournalEntry(id = "1", brewMethod = "V60", doseGrams = 15.0, waterGrams = 250.0, brewDurationSeconds = 180, rating = 9.0, extractionYieldPercent = 20.0, createdAt = oct2026Millis),
-            BrewJournalEntry(id = "2", brewMethod = "V60", doseGrams = 15.0, waterGrams = 250.0, brewDurationSeconds = 180, rating = 8.0, extractionYieldPercent = 19.0, createdAt = oct2026Millis + 3600_000L),
-            BrewJournalEntry(id = "3", brewMethod = "Espresso", doseGrams = 18.0, waterGrams = 36.0, brewDurationSeconds = 28, rating = 8.5, extractionYieldPercent = 20.5, createdAt = oct2026Millis + 7200_000L)
+            BrewJournalEntry(
+                id = "1",
+                brewMethod = "V60",
+                doseGrams = 15.0,
+                waterGrams = 250.0,
+                brewDurationSeconds = 180,
+                rating = 9.0,
+                extractionYieldPercent = 20.0,
+                createdAt = oct2026Millis
+            ),
+            BrewJournalEntry(
+                id = "2",
+                brewMethod = "V60",
+                doseGrams = 15.0,
+                waterGrams = 250.0,
+                brewDurationSeconds = 180,
+                rating = 8.0,
+                extractionYieldPercent = 19.0,
+                createdAt = oct2026Millis + 3600_000L
+            ),
+            BrewJournalEntry(
+                id = "3",
+                brewMethod = "Espresso",
+                doseGrams = 18.0,
+                waterGrams = 36.0,
+                brewDurationSeconds = 28,
+                rating = 8.5,
+                extractionYieldPercent = 20.5,
+                createdAt = oct2026Millis + 7200_000L
+            )
         )
 
         val stats = BrewAnalyticsEngine.calculateMonthlyStats(entries, 2026, 10)
@@ -240,8 +320,22 @@ class ActiveBrewJournalAnalyticsTest {
     @Test
     fun testRepeatLastBrewExtraction() {
         val entries = listOf(
-            BrewJournalEntry(id = "e1", brewMethod = "V60", doseGrams = 15.0, waterGrams = 250.0, brewDurationSeconds = 180, createdAt = 1000L),
-            BrewJournalEntry(id = "e2", brewMethod = "Espresso", doseGrams = 18.0, waterGrams = 36.0, brewDurationSeconds = 28, createdAt = 2000L)
+            BrewJournalEntry(
+                id = "e1",
+                brewMethod = "V60",
+                doseGrams = 15.0,
+                waterGrams = 250.0,
+                brewDurationSeconds = 180,
+                createdAt = 1000L
+            ),
+            BrewJournalEntry(
+                id = "e2",
+                brewMethod = "Espresso",
+                doseGrams = 18.0,
+                waterGrams = 36.0,
+                brewDurationSeconds = 28,
+                createdAt = 2000L
+            )
         )
 
         val last = entries.maxByOrNull { it.createdAt }

@@ -14,144 +14,43 @@ import com.coffeecreator.app.core.ai.NativeChatTurn
 import com.coffeecreator.app.core.ai.NativeGenerationOptions
 import com.coffeecreator.app.core.ai.NativeLlmStatus
 import com.coffeecreator.app.core.ai.RagSearchResult
-import com.coffeecreator.app.core.ai.personalization.AcidityTolerance
 import com.coffeecreator.app.core.ai.personalization.BaristaPersonaPreset
-import com.coffeecreator.app.core.ai.personalization.BeanInventoryCandidate
-import com.coffeecreator.app.core.ai.personalization.BitternessSensitivity
-import com.coffeecreator.app.core.ai.personalization.BodyPreference
 import com.coffeecreator.app.core.ai.personalization.ElevationUnit
 import com.coffeecreator.app.core.ai.personalization.FeedbackLoopEngine
 import com.coffeecreator.app.core.ai.personalization.IngredientSafetyValidator
-import com.coffeecreator.app.core.ai.personalization.OcrBeanParser
 import com.coffeecreator.app.core.ai.personalization.OvatAdjustmentProposal
 import com.coffeecreator.app.core.ai.personalization.PalateBayesianEngine
 import com.coffeecreator.app.core.ai.personalization.PalateProfile
 import com.coffeecreator.app.core.ai.personalization.PalateQuizAnswers
 import com.coffeecreator.app.core.ai.personalization.PalateQuizMapper
-import com.coffeecreator.app.core.ai.personalization.PalateVector
-import com.coffeecreator.app.core.ai.personalization.ParsedBeanDraft
 import com.coffeecreator.app.core.ai.personalization.PersonaSanitizer
 import com.coffeecreator.app.core.ai.personalization.PersonalSensoryEvidence
-import com.coffeecreator.app.core.ai.personalization.RecommendationEngine
 import com.coffeecreator.app.core.ai.personalization.RecommendationItem
-import com.coffeecreator.app.core.ai.personalization.RoastPreference
 import com.coffeecreator.app.core.ai.personalization.SafetyAuditResult
 import com.coffeecreator.app.core.ai.personalization.SensoryFeedbackDiagnosis
-import com.coffeecreator.app.core.ai.personalization.SweetnessPriority
 import com.coffeecreator.app.core.ai.personalization.WeatherAltitudeCalculator
 import com.coffeecreator.app.core.ai.personalization.WeatherParameters
-import com.coffeecreator.app.core.ble.BleScaleDevice
 import com.coffeecreator.app.core.ble.BleScaleDriver
 import com.coffeecreator.app.core.ble.ScaleConnectionState
-import com.coffeecreator.app.core.ble.ScaleProtocolType
 import com.coffeecreator.app.core.ble.ScaleWeightSample
 import com.coffeecreator.app.core.ble.SimulatedBleScaleDriver
 import com.coffeecreator.app.core.brew.AudioCueType
 import com.coffeecreator.app.core.brew.BrewExecutionStatus
 import com.coffeecreator.app.core.brew.BrewFilterEngine
-import com.coffeecreator.app.core.brew.BrewNotificationPayload
 import com.coffeecreator.app.core.brew.BrewSessionSnapshot
 import com.coffeecreator.app.core.brew.BrewSessionState
 import com.coffeecreator.app.core.brew.BrewStepProgress
 import com.coffeecreator.app.core.brew.HapticCueType
 import com.coffeecreator.app.core.brew.ProximityState
-import com.coffeecreator.app.core.data.BackupCodec
-import com.coffeecreator.app.core.data.CuratedCoffeeCatalog
-import com.coffeecreator.app.core.data.RecipeExportFormatter
-import com.coffeecreator.app.core.engine.CoffeeScienceEngine
-import com.coffeecreator.app.core.engine.DomainValidation
-import com.coffeecreator.app.core.engine.JsonInputPolicy
-import com.coffeecreator.app.core.engine.SensoryRulesEngine
-import com.coffeecreator.app.core.filesystem.BuiltInAssets
-import com.coffeecreator.app.core.filesystem.DocumentImporter.Companion.readBytesBounded
-import com.coffeecreator.app.core.model.AssistantPersona
-import com.coffeecreator.app.core.model.BrewStep
-import com.coffeecreator.app.core.model.CalculationResult
-import com.coffeecreator.app.core.model.ChatMessage
-import com.coffeecreator.app.core.model.CoffeeBean
-import com.coffeecreator.app.core.model.DocumentChunk
-import com.coffeecreator.app.core.model.RefractometerProfile
-import com.coffeecreator.app.core.model.Ingredient
-import com.coffeecreator.app.core.model.InputLimits
-import com.coffeecreator.app.core.model.KnowledgeDocument
-import com.coffeecreator.app.core.model.ModelAsset
-import com.coffeecreator.app.core.model.Recipe
-import com.coffeecreator.app.core.model.RecipeLine
-import com.coffeecreator.app.core.model.SensoryEstimate
-import com.coffeecreator.app.core.model.SensoryObservation
-import com.coffeecreator.app.core.model.StoredSensoryEstimate
-import com.coffeecreator.app.core.journal.AdjustmentDirection
-import com.coffeecreator.app.core.journal.BrewAnalyticsEngine
-import com.coffeecreator.app.core.journal.BrewFilterCriteria
-import com.coffeecreator.app.core.journal.BrewJournalEntry
-import com.coffeecreator.app.core.journal.BrewSessionComparison
-import com.coffeecreator.app.core.journal.BrewStreakResult
-import com.coffeecreator.app.core.journal.CafeCupEntry
-import com.coffeecreator.app.core.journal.CaffeineEstimate
-import com.coffeecreator.app.core.journal.EspressoJournalDetails
-import com.coffeecreator.app.core.journal.ImportConflictItem
-import com.coffeecreator.app.core.journal.ImportConflictPreview
-import com.coffeecreator.app.core.journal.ImportRecordStatus
-import com.coffeecreator.app.core.journal.MonthlyBrewStatistics
-import com.coffeecreator.app.core.journal.OvatRecommendation
-import com.coffeecreator.app.core.journal.OvatTargetVariable
-import com.coffeecreator.app.core.sensory.AttributeConsensus
-import com.coffeecreator.app.core.sensory.AuditEntry
-import com.coffeecreator.app.core.sensory.CalibrationReferenceExercise
-import com.coffeecreator.app.core.sensory.ConsensusAnalytics
-import com.coffeecreator.app.core.sensory.CuppingAnalyticsEngine
-import com.coffeecreator.app.core.sensory.CuppingSample
-import com.coffeecreator.app.core.sensory.CuppingSession
-import com.coffeecreator.app.core.sensory.CuppingTemplate
-import com.coffeecreator.app.core.sensory.CuppingTemplateType
-import com.coffeecreator.app.core.sensory.DefectRecord
-import com.coffeecreator.app.core.sensory.DegassingPhase
-import com.coffeecreator.app.core.sensory.EpistemologicalOrigin
-import com.coffeecreator.app.core.sensory.EvaluationSheet
-import com.coffeecreator.app.core.sensory.Evaluator
-import com.coffeecreator.app.core.sensory.EvaluatorRole
-import com.coffeecreator.app.core.sensory.FlavorDescriptor
-import com.coffeecreator.app.core.sensory.GreenCoffeeDefectEntry
-import com.coffeecreator.app.core.sensory.GreenDefectType
-import com.coffeecreator.app.core.sensory.MaskingMode
-import com.coffeecreator.app.core.sensory.PhysicalQcRecord
-import com.coffeecreator.app.core.sensory.QcReportReceipt
-import com.coffeecreator.app.core.sensory.RestCurvePrediction
-import com.coffeecreator.app.core.sensory.RoastRestObservation
-import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
-import com.coffeecreator.app.core.sensory.SessionStatus
-import com.coffeecreator.app.core.sensory.StandardCuppingTemplates
-import com.coffeecreator.app.core.reliability.AppLanguage
-import com.coffeecreator.app.core.reliability.DiagnosticLogBuffer
-import com.coffeecreator.app.core.reliability.DiagnosticLogEntry
-import com.coffeecreator.app.core.reliability.LogLevel
-import com.coffeecreator.app.core.reliability.MassUnit
-import com.coffeecreator.app.core.reliability.ModuleStatus
-import com.coffeecreator.app.core.reliability.OfflineHelpCatalog
-import com.coffeecreator.app.core.reliability.OfflineHelpTopic
-import com.coffeecreator.app.core.reliability.SystemDegradationState
-import com.coffeecreator.app.core.reliability.TemperatureUnit
-import com.coffeecreator.app.core.reliability.UnitConverter
-import com.coffeecreator.app.core.reliability.UserUnitPreferences
-import com.coffeecreator.app.core.reliability.VolumeUnit
 import com.coffeecreator.app.core.catalog.BagInventoryItem
 import com.coffeecreator.app.core.catalog.BagOcrParsedDraft
 import com.coffeecreator.app.core.catalog.BagStatus
-import com.coffeecreator.app.core.catalog.BlendComponentSpec
-import com.coffeecreator.app.core.catalog.BurrMaterial
-import com.coffeecreator.app.core.catalog.BurrProfile
-import com.coffeecreator.app.core.catalog.BurrType
-import com.coffeecreator.app.core.catalog.CalibrationUnit
 import com.coffeecreator.app.core.catalog.CatalogExportPayload
 import com.coffeecreator.app.core.catalog.CatalogImportExportEngine
 import com.coffeecreator.app.core.catalog.ConflictResolutionStrategy
 import com.coffeecreator.app.core.catalog.DetailedBeanRecord
-import com.coffeecreator.app.core.catalog.EquipmentCategory
 import com.coffeecreator.app.core.catalog.EquipmentItem
 import com.coffeecreator.app.core.catalog.FoodGradeIngredientItem
-import com.coffeecreator.app.core.catalog.FreezeEvent
-import com.coffeecreator.app.core.catalog.FreshnessAnalysis
-import com.coffeecreator.app.core.catalog.FreshnessState
 import com.coffeecreator.app.core.catalog.GreenCoffeeLot
 import com.coffeecreator.app.core.catalog.GrinderRecord
 import com.coffeecreator.app.core.catalog.ImportDryRunSummary
@@ -159,18 +58,68 @@ import com.coffeecreator.app.core.catalog.ImportExecutionReceipt
 import com.coffeecreator.app.core.catalog.InventoryDeductionEngine
 import com.coffeecreator.app.core.catalog.InventoryDeductionResult
 import com.coffeecreator.app.core.catalog.OfflineBagOcrParser
-import com.coffeecreator.app.core.catalog.ProcessMethod
 import com.coffeecreator.app.core.catalog.RoastBatchRecord
-import com.coffeecreator.app.core.catalog.RoastDataPoint
-import com.coffeecreator.app.core.catalog.RoastLevel
-import com.coffeecreator.app.core.catalog.RoastRestCalculator
-import com.coffeecreator.app.core.catalog.SampleLotStatus
-import com.coffeecreator.app.core.catalog.WaterChemistryCalculator
 import com.coffeecreator.app.core.catalog.WaterMineralProfile
-import com.coffeecreator.app.core.catalog.WaterRecipePreset
-import java.math.BigDecimal
+import com.coffeecreator.app.core.data.BackupCodec
+import com.coffeecreator.app.core.data.RecipeExportFormatter
+import com.coffeecreator.app.core.engine.CoffeeScienceEngine
+import com.coffeecreator.app.core.engine.DomainValidation
+import com.coffeecreator.app.core.engine.JsonInputPolicy
+import com.coffeecreator.app.core.engine.SensoryRulesEngine
+import com.coffeecreator.app.core.filesystem.BuiltInAssets
+import com.coffeecreator.app.core.filesystem.DocumentImporter.Companion.readBytesBounded
+import com.coffeecreator.app.core.journal.BrewAnalyticsEngine
+import com.coffeecreator.app.core.journal.BrewCompletionRecordFactory
+import com.coffeecreator.app.core.journal.BrewFilterCriteria
+import com.coffeecreator.app.core.journal.BrewJournalEntry
+import com.coffeecreator.app.core.journal.BrewSessionComparison
+import com.coffeecreator.app.core.journal.BrewStreakResult
+import com.coffeecreator.app.core.journal.CafeCupEntry
+import com.coffeecreator.app.core.journal.CaffeineEstimate
+import com.coffeecreator.app.core.journal.ImportConflictItem
+import com.coffeecreator.app.core.journal.ImportConflictPreview
+import com.coffeecreator.app.core.journal.ImportRecordStatus
+import com.coffeecreator.app.core.journal.MonthlyBrewStatistics
+import com.coffeecreator.app.core.journal.OvatRecommendation
+import com.coffeecreator.app.core.model.AssistantPersona
+import com.coffeecreator.app.core.model.BrewStep
+import com.coffeecreator.app.core.model.CalculationResult
+import com.coffeecreator.app.core.model.ChatMessage
+import com.coffeecreator.app.core.model.CoffeeBean
+import com.coffeecreator.app.core.model.DocumentChunk
+import com.coffeecreator.app.core.model.Ingredient
+import com.coffeecreator.app.core.model.InputLimits
+import com.coffeecreator.app.core.model.KnowledgeDocument
+import com.coffeecreator.app.core.model.ModelAsset
+import com.coffeecreator.app.core.model.Recipe
+import com.coffeecreator.app.core.model.RecipeLine
+import com.coffeecreator.app.core.model.RefractometerProfile
+import com.coffeecreator.app.core.model.SensoryEstimate
+import com.coffeecreator.app.core.model.SensoryObservation
+import com.coffeecreator.app.core.model.StoredSensoryEstimate
+import com.coffeecreator.app.core.reliability.AppLanguage
+import com.coffeecreator.app.core.reliability.DiagnosticLogBuffer
+import com.coffeecreator.app.core.reliability.DiagnosticLogEntry
+import com.coffeecreator.app.core.reliability.LogLevel
+import com.coffeecreator.app.core.reliability.ModuleStatus
+import com.coffeecreator.app.core.reliability.SystemDegradationState
+import com.coffeecreator.app.core.reliability.UserUnitPreferences
+import com.coffeecreator.app.core.sensory.AuditEntry
+import com.coffeecreator.app.core.sensory.CuppingAnalyticsEngine
+import com.coffeecreator.app.core.sensory.CuppingSession
+import com.coffeecreator.app.core.sensory.CuppingSessionFactory
+import com.coffeecreator.app.core.sensory.CuppingTemplateType
+import com.coffeecreator.app.core.sensory.DefectRecord
+import com.coffeecreator.app.core.sensory.EpistemologicalOrigin
+import com.coffeecreator.app.core.sensory.EvaluationSheet
+import com.coffeecreator.app.core.sensory.MaskingMode
+import com.coffeecreator.app.core.sensory.PhysicalQcRecord
+import com.coffeecreator.app.core.sensory.QcReportReceipt
+import com.coffeecreator.app.core.sensory.RoastRestObservation
+import com.coffeecreator.app.core.sensory.SessionStatus
 import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -252,7 +201,6 @@ data class CoffeeUiState(
     val roastRestObservations: List<RoastRestObservation> = emptyList(),
     val generatedQcReceipt: QcReportReceipt? = null,
     val palateProfile: PalateProfile = PalateProfile(),
-    val parsedBeanDraft: ParsedBeanDraft? = null,
     val weatherParams: WeatherParameters = WeatherParameters(),
     val ovatAdjustmentProposal: OvatAdjustmentProposal? = null,
     val inventoryRecommendations: List<RecommendationItem> = emptyList(),
@@ -328,8 +276,6 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
             }
             _state.update { it.copy(ready = true, canUndoDraft = undoDraft != null) }
             calculate()
-            seedInitialSensoryData()
-            seedInitialCatalogData()
         }
         viewModelScope.launch {
             graph.preferences.data.catch { failure ->
@@ -393,11 +339,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         viewModelScope.launch { repository.ingredients.collect { ingredients -> _state.update { it.copy(ingredients = ingredients) } } }
         viewModelScope.launch {
             repository.recipes.collect { recipes ->
-                _state.update { current ->
-                    val j = if (current.journalEntries.isEmpty()) CuratedCoffeeCatalog.curatedJournalEntries else current.journalEntries
-                    val c = if (current.cafeCupEntries.isEmpty()) CuratedCoffeeCatalog.curatedCafeCups else current.cafeCupEntries
-                    current.copy(recipes = recipes, journalEntries = j, cafeCupEntries = c)
-                }
+                _state.update { current -> current.copy(recipes = recipes) }
                 refreshStreakAndStats()
             }
         }
@@ -479,12 +421,21 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     }
 
     fun scaleDraft(factor: Double) {
-        val currentDose = _state.value.draft.fields["dose"]?.toDoubleOrNull() ?: 18.0
-        val currentWater = _state.value.draft.fields["water"]?.toDoubleOrNull() ?: 300.0
+        if (!factor.isFinite() || factor <= 0.0) return
+        val currentDose = _state.value.draft.fields["dose"]?.toDoubleOrNull()?.takeIf { it.isFinite() && it > 0.0 }
+        val currentWater = _state.value.draft.fields["water"]?.toDoubleOrNull()?.takeIf { it.isFinite() && it > 0.0 }
+        if (currentDose == null || currentWater == null) {
+            _state.update { it.copy(notice = "Enter a positive dose and water amount before scaling the recipe.") }
+            return
+        }
         val targetDose = "%.1f".format(java.util.Locale.US, currentDose * factor)
         val targetWater = "%.1f".format(java.util.Locale.US, currentWater * factor)
         val scaledSteps = if (_state.value.draft.steps.isNotEmpty()) {
-            CoffeeScienceEngine.scaleRecipeSteps(_state.value.draft.steps, currentWater, targetWater.toDouble()).getOrDefault(_state.value.draft.steps)
+            CoffeeScienceEngine.scaleRecipeSteps(
+                _state.value.draft.steps,
+                currentWater,
+                targetWater.toDouble()
+            ).getOrDefault(_state.value.draft.steps)
         } else {
             emptyList()
         }
@@ -661,17 +612,6 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     fun copyRecipe(recipe: Recipe) = task("Copying recipe") {
         val copy = graph.repository.duplicateRecipe(recipe)
         _state.update { it.copy(notice = "Copied ${copy.name}; new independent history.") }
-    }
-    fun importCuratedCatalog() = task("Loading curated specialty coffee catalog") {
-        graph.repository.importCuratedCatalog()
-        _state.update {
-            it.copy(
-                journalEntries = CuratedCoffeeCatalog.curatedJournalEntries,
-                cafeCupEntries = CuratedCoffeeCatalog.curatedCafeCups,
-                notice = "Imported 10 curated recipes, 8 single-origin beans, and sensory observation logs."
-            )
-        }
-        refreshStreakAndStats()
     }
     fun requestDeletion(kind: String, id: String) {
         _state.update { it.copy(deletion = kind to id) }
@@ -1094,7 +1034,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         val recipe = targetRecipe
             ?: runCatching { buildRecipe() }.getOrNull()
             ?: _state.value.recipes.firstOrNull()
-            ?: CuratedCoffeeCatalog.recipes.first()
+            ?: buildRecipe()
 
         val steps = recipe.brewSteps.ifEmpty {
             listOf(
@@ -1235,21 +1175,11 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         timer?.cancel()
         val session = _state.value.brewSession ?: return
         val elapsed = _state.value.timerSeconds
-        val actualWater = if (session.currentWeightGrams > 0.0) session.currentWeightGrams else session.recipe.waterGrams
-        val observation = SensoryObservation(
-            id = UUID.randomUUID().toString(),
-            recipeId = session.recipe.id,
-            aroma = 7, acidity = 7, sweetness = 7, bitterness = 3, body = 7, clarity = 8, finish = 7, balance = 7,
-            notes = "Auto-logged from active brew session: ${session.recipe.name} (${elapsed}s elapsed, ${actualWater}g water poured).",
-            assessor = "Barista",
-            timestamp = System.currentTimeMillis()
-        )
         viewModelScope.launch {
             runCatching {
                 if (graph.repository.findRecipeById(session.recipe.id) == null) {
                     graph.repository.saveRecipe(session.recipe)
                 }
-                graph.repository.saveSensoryObservation(observation)
             }
         }
 
@@ -1257,44 +1187,15 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         val actualPoints = session.liveSamples.map {
             Pair(((it.timestampMonoMs - session.liveSamples.first().timestampMonoMs) / 1000).toInt(), it.filteredWeightGrams)
         }
-        val rmse = if (actualPoints.isNotEmpty()) BrewFilterEngine.calculateCurveRmse(actualPoints, idealPoints) else null
-
-        val isEsp = session.recipe.brewMethod.contains("Espresso", true)
-        val journalEntry = BrewJournalEntry(
-            id = UUID.randomUUID().toString(),
-            recipeId = session.recipe.id,
-            beanId = session.recipe.beanId,
-            beanName = _state.value.beans.find { it.id == session.recipe.beanId }?.name ?: "House Blend",
-            brewMethod = session.recipe.brewMethod,
-            equipment = session.recipe.equipment,
-            doseGrams = session.recipe.doseGrams,
-            waterGrams = actualWater,
-            beverageMassGrams = if (isEsp) actualWater else (session.recipe.beverageMassGrams ?: (actualWater * 0.9)),
-            grinderModel = session.recipe.grinderModel ?: "Baratza Sette 270",
-            grindSetting = session.recipe.grinderSetting ?: session.recipe.grindSize,
-            waterTemperatureCelsius = session.recipe.temperatureCelsius,
-            brewDurationSeconds = elapsed,
-            drawdownSeconds = if (!isEsp) 40 else null,
-            measuredTdsPercent = session.recipe.measuredTdsPercent ?: if (isEsp) 9.5 else 1.35,
-            rating = 8.5,
-            tasteNotes = listOf("Clean", "Sweet", "Balanced"),
-            generalNotes = "Auto-logged from active brew session: ${session.recipe.name} (${elapsed}s elapsed, ${actualWater}g water poured).",
-            tags = listOf(session.recipe.brewMethod.substringBefore(" "), "ActiveTimer", if (isEsp) "DialIn" else "Filter"),
-            createdAt = System.currentTimeMillis(),
-            isEspresso = isEsp,
-            espressoDetails = if (isEsp) {
-                EspressoJournalDetails(
-                    targetDoseGrams = session.recipe.doseGrams,
-                    actualDoseGrams = session.recipe.doseGrams,
-                    targetYieldGrams = session.recipe.beverageMassGrams ?: 36.0,
-                    actualYieldGrams = actualWater,
-                    targetDurationSeconds = session.recipe.brewTimeSeconds,
-                    actualDurationSeconds = elapsed,
-                    puckPrepMethods = listOf("WDT", "Tamp"),
-                    firstDropSeconds = session.recipe.firstDropSeconds ?: 5
-                )
-            } else null,
-            dialInChainId = if (isEsp) "dialin-${session.recipe.beanId ?: "default"}" else null
+        val rmse = if (scaleDriver !is SimulatedBleScaleDriver && actualPoints.isNotEmpty()) {
+            BrewFilterEngine.calculateCurveRmse(actualPoints, idealPoints)
+        } else {
+            null
+        }
+        val journalEntry = BrewCompletionRecordFactory.fromTimerCompletion(
+            recipe = session.recipe,
+            elapsedSeconds = elapsed,
+            beanName = _state.value.beans.find { it.id == session.recipe.beanId }?.name
         )
 
         _state.update {
@@ -1304,7 +1205,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                 brewCurveRmse = rmse,
                 brewSession = session.copy(status = BrewExecutionStatus.COMPLETED),
                 journalEntries = updatedJournal,
-                notice = "Brew session completed and auto-logged to Journal!"
+                notice = "Timer completed. Recipe and elapsed time were logged; measurements and sensory notes remain blank."
             )
         }
         refreshStreakAndStats()
@@ -1530,7 +1431,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     fun restoreBrewSession(snapshot: BrewSessionSnapshot) {
         val recipe = _state.value.recipes.find { it.id == snapshot.recipeId }
             ?: runCatching { buildRecipe() }.getOrNull()
-            ?: CuratedCoffeeCatalog.recipes.first()
+            ?: buildRecipe()
         initBrewSession(recipe)
         _state.update {
             it.copy(
@@ -1545,7 +1446,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     }
 
     private fun createDefaultSession(): BrewSessionState {
-        val recipe = CuratedCoffeeCatalog.recipes.first()
+        val recipe = buildRecipe()
         return BrewSessionState(
             sessionId = UUID.randomUUID().toString(),
             recipe = recipe
@@ -1582,7 +1483,9 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                     daysAgo = 0.0
                 )
                 PalateBayesianEngine.updateProfile(current.palateProfile, evidence)
-            } else current.palateProfile
+            } else {
+                current.palateProfile
+            }
             diagnosticBuffer.log(LogLevel.INFO, "Journal", "Saved journal entry for ${entry.beanName} (rating: ${entry.rating})")
             current.copy(journalEntries = list, palateProfile = updatedPalate, notice = "Saved journal entry for ${entry.beanName}.")
         }
@@ -1616,7 +1519,9 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
             val newB = if (slot == "B") entry else current.selectedComparisonB
             val comparison = if (newA != null && newB != null) {
                 BrewAnalyticsEngine.compareSessions(newA, newB)
-            } else null
+            } else {
+                null
+            }
             current.copy(selectedComparisonA = newA, selectedComparisonB = newB, activeComparison = comparison)
         }
     }
@@ -1627,7 +1532,16 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
 
     fun evaluateOvatForEntry(entry: BrewJournalEntry, tasteFlags: List<String> = emptyList()) {
         val rec = BrewAnalyticsEngine.evaluateOvat(entry, tasteFlags)
-        _state.update { it.copy(activeOvatRecommendation = rec) }
+        _state.update {
+            it.copy(
+                activeOvatRecommendation = rec,
+                notice = if (rec == null) {
+                    "OVAT needs measured extraction data or recorded sensory notes. Timer-only entries are not enough."
+                } else {
+                    "Generated an OVAT suggestion from recorded brew evidence."
+                }
+            )
+        }
     }
 
     fun estimateCaffeineForDose(doseGrams: Double, arabicaFraction: Double = 1.0) {
@@ -1728,7 +1642,14 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                     local == incoming -> ImportRecordStatus.IDENTICAL
                     else -> ImportRecordStatus.MODIFIED_REMOTE_NEWER
                 }
-                ImportConflictItem(incoming.id, local, incoming, status, local?.let { it.hashCode().toString() }, incoming.hashCode().toString())
+                ImportConflictItem(
+                    incoming.id,
+                    local,
+                    incoming,
+                    status,
+                    local?.let { it.hashCode().toString() },
+                    incoming.hashCode().toString()
+                )
             }
             ImportConflictPreview(
                 newRecordsCount = items.count { it.status == ImportRecordStatus.NEW },
@@ -1779,77 +1700,27 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         evaluatorNames: List<String>,
         sampleBeanNames: List<String>
     ) {
-        val sessionId = UUID.randomUUID().toString()
-        val template = StandardCuppingTemplates.getTemplate(templateType)
-        val evaluators = evaluatorNames.mapIndexed { idx, name ->
-            Evaluator(
-                id = "eval_${idx + 1}_${UUID.randomUUID().toString().take(4)}",
-                name = name.ifBlank { "Evaluator ${idx + 1}" },
-                role = if (idx == 0) EvaluatorRole.LEAD_CUPPER else EvaluatorRole.Q_GRADER
+        val session = runCatching {
+            CuppingSessionFactory.create(
+                title = title,
+                location = location,
+                templateType = templateType,
+                maskingMode = maskingMode,
+                evaluatorNames = evaluatorNames,
+                sampleBeanNames = sampleBeanNames,
+                createdAtEpochMs = System.currentTimeMillis()
             )
-        }.ifEmpty {
-            listOf(Evaluator("eval_lead", "Lead Evaluator", EvaluatorRole.LEAD_CUPPER))
+        }.getOrElse { error ->
+            _state.update { it.copy(notice = error.message ?: "Complete the cupping session details first.") }
+            return
         }
-
-        val samples = sampleBeanNames.mapIndexed { idx, beanName ->
-            val codeLetter = ('A' + idx).toString()
-            CuppingSample(
-                sampleId = "sample_${idx + 1}_${UUID.randomUUID().toString().take(4)}",
-                blindCode = "Sample #$codeLetter${idx + 1}",
-                actualBeanId = "bean_$idx",
-                beanName = beanName.ifBlank { "Sample $codeLetter" },
-                roaster = "Local Artisan Roaster",
-                origin = "Specialty Origin",
-                process = "Washed",
-                roastDateEpoch = System.currentTimeMillis() - 86400000L * 10,
-                tablePosition = idx + 1,
-                isRevealed = maskingMode == MaskingMode.OPEN_LABEL
-            )
-        }.ifEmpty {
-            listOf(
-                CuppingSample(
-                    sampleId = "sample_default",
-                    blindCode = "Sample #A1",
-                    actualBeanId = "bean_def",
-                    beanName = "House Single Origin",
-                    roaster = "Roastery",
-                    origin = "Origin",
-                    process = "Washed",
-                    roastDateEpoch = System.currentTimeMillis() - 86400000L * 7,
-                    tablePosition = 1,
-                    isRevealed = maskingMode == MaskingMode.OPEN_LABEL
-                )
-            )
-        }
-
-        val session = CuppingSession(
-            id = sessionId,
-            title = title.ifBlank { "New Cupping Session" },
-            location = location.ifBlank { "Cupping Lab" },
-            template = template,
-            maskingMode = maskingMode,
-            status = SessionStatus.OPEN,
-            evaluators = evaluators,
-            samples = samples,
-            sheets = emptyList(),
-            auditTrail = listOf(
-                AuditEntry(
-                    timestamp = System.currentTimeMillis(),
-                    editorId = evaluators.first().id,
-                    action = "CREATE_SESSION",
-                    previousStateSummary = "NONE",
-                    newStateSummary = "OPEN",
-                    reason = "Session initialized by ${evaluators.first().name}"
-                )
-            ),
-            createdAt = System.currentTimeMillis()
-        )
+        val sessionId = session.id
 
         _state.update {
             it.copy(
                 cuppingSessions = listOf(session) + it.cuppingSessions,
                 activeCuppingSessionId = sessionId,
-                selectedCuppingSampleId = samples.first().sampleId,
+                selectedCuppingSampleId = session.samples.first().sampleId,
                 notice = "Created cupping session '${session.title}'."
             )
         }
@@ -1871,7 +1742,9 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                         reason = "Controlled blind reveal for sample $sampleId"
                     )
                     s.copy(samples = updatedSamples, auditTrail = audit)
-                } else s
+                } else {
+                    s
+                }
             }
             current.copy(cuppingSessions = updated, notice = "Revealed true identity for sample.")
         }
@@ -1888,10 +1761,28 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         defectDesc: String = "",
         notes: String = ""
     ) {
-        val session = _state.value.cuppingSessions.find { it.id == sessionId } ?: return
-        require(session.status == SessionStatus.OPEN || session.status == SessionStatus.REOPENED) {
-            "Cannot submit evaluation to a ${session.status.name} session."
+        val session = _state.value.cuppingSessions.find { it.id == sessionId }
+        if (session == null || session.samples.none { it.sampleId == sampleId }) {
+            _state.update { it.copy(notice = "Choose a sample in an existing cupping session.") }
+            return
         }
+        if (session.status != SessionStatus.OPEN && session.status != SessionStatus.REOPENED) {
+            _state.update { it.copy(notice = "This cupping session is ${session.status.name.lowercase()}.") }
+            return
+        }
+        if (session.evaluators.none { it.id == evaluatorId }) {
+            _state.update { it.copy(notice = "Choose an evaluator before submitting scores.") }
+            return
+        }
+        if (taintCups < 0 || faultCups < 0) {
+            _state.update { it.copy(notice = "Defect counts cannot be negative.") }
+            return
+        }
+        runCatching { CuppingAnalyticsEngine.validateAttributeScores(session.template, attributeScores) }
+            .onFailure { error ->
+                _state.update { it.copy(notice = error.message ?: "Enter all protocol scores.") }
+                return
+            }
         val defects = DefectRecord(taintCups, faultCups, defectDesc)
         val totalScore = CuppingAnalyticsEngine.calculateTotalCuppingScore(
             session.template.type,
@@ -1917,26 +1808,11 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                 if (s.id == sessionId) {
                     val newSheets = s.sheets.filter { it.sampleId != sampleId || it.evaluatorId != evaluatorId } + sheet
                     s.copy(sheets = newSheets)
-                } else s
+                } else {
+                    s
+                }
             }
-            val updatedPalate = if (totalScore.toDouble() >= 80.0) {
-                val acidity = attributeScores["acidity"]?.toDouble() ?: 7.5
-                val sweetness = attributeScores["sweetness"]?.toDouble() ?: 7.5
-                val bitterness = attributeScores["bitterness"]?.toDouble() ?: 7.5
-                val body = attributeScores["body"]?.toDouble() ?: 7.5
-                val norm = { v: Double -> ((v - 6.0) / 4.0).coerceIn(0.0, 1.0) }
-                val evidence = PersonalSensoryEvidence(
-                    roast = 0.3,
-                    acidity = norm(acidity),
-                    sweetness = norm(sweetness),
-                    bitterness = norm(bitterness),
-                    body = norm(body),
-                    rating = (totalScore.toDouble() / 10.0).coerceIn(7.5, 10.0),
-                    daysAgo = 0.0
-                )
-                PalateBayesianEngine.updateProfile(current.palateProfile, evidence)
-            } else current.palateProfile
-            current.copy(cuppingSessions = updated, palateProfile = updatedPalate, notice = "Submitted score: $totalScore.")
+            current.copy(cuppingSessions = updated, notice = "Submitted score: $totalScore.")
         }
     }
 
@@ -1953,7 +1829,9 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                         reason = "Formal evaluation closed; scores locked for consensus"
                     )
                     s.copy(status = SessionStatus.CLOSED, closedAt = System.currentTimeMillis(), auditTrail = audit)
-                } else s
+                } else {
+                    s
+                }
             }
             current.copy(cuppingSessions = updated, notice = "Cupping session closed and locked.")
         }
@@ -1972,7 +1850,9 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                         reason = reason.ifBlank { "Administrative score correction requested" }
                     )
                     s.copy(status = SessionStatus.REOPENED, auditTrail = audit)
-                } else s
+                } else {
+                    s
+                }
             }
             current.copy(cuppingSessions = updated, notice = "Cupping session reopened with immutable audit trail.")
         }
@@ -1995,168 +1875,16 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     fun exportSessionQcReport(sessionId: String) {
         val session = _state.value.cuppingSessions.find { it.id == sessionId } ?: return
         val receipt = CuppingAnalyticsEngine.generateOfflineReport(session, _state.value.physicalQcRecords)
-        _state.update { it.copy(generatedQcReceipt = receipt, notice = "Generated QC Report (SHA-256: ${receipt.sha256Fingerprint.take(12)}...)") }
+        _state.update {
+            it.copy(
+                generatedQcReceipt = receipt,
+                notice = "Generated QC Report (SHA-256: ${receipt.sha256Fingerprint.take(12)}...)"
+            )
+        }
     }
 
     fun clearQcReceipt() {
         _state.update { it.copy(generatedQcReceipt = null) }
-    }
-
-    private fun seedInitialSensoryData() {
-        if (_state.value.cuppingSessions.isNotEmpty()) return
-
-        val lead = Evaluator("eval_marcus", "Marcus Vance (Lead Q-Grader)", EvaluatorRole.LEAD_CUPPER)
-        val guest = Evaluator("eval_sarah", "Sarah Chen (Roast Master)", EvaluatorRole.Q_GRADER)
-        val barista = Evaluator("eval_diego", "Diego Silva (Head Barista)", EvaluatorRole.BARISTA)
-
-        val sample1 = CuppingSample(
-            sampleId = "sample_geisha_01",
-            blindCode = "Sample #A1",
-            actualBeanId = "bean_panama_geisha",
-            beanName = "Panama Boquete Geisha Washed",
-            roaster = "Hacienda La Esmeralda",
-            origin = "Panama (1,650m)",
-            process = "Washed",
-            roastDateEpoch = System.currentTimeMillis() - 86400000L * 14,
-            tablePosition = 1,
-            isRevealed = true
-        )
-        val sample2 = CuppingSample(
-            sampleId = "sample_ethiopia_02",
-            blindCode = "Sample #B2",
-            actualBeanId = "bean_ethiopia_natural",
-            beanName = "Ethiopia Yirgacheffe Banko Gotiti",
-            roaster = "Onyx Coffee Lab",
-            origin = "Ethiopia (2,050m)",
-            process = "Natural Anaerobic",
-            roastDateEpoch = System.currentTimeMillis() - 86400000L * 8,
-            tablePosition = 2,
-            isRevealed = false
-        )
-
-        val sheet1 = EvaluationSheet(
-            id = "sheet_01",
-            sessionId = "session_s2_seed",
-            sampleId = "sample_geisha_01",
-            evaluatorId = "eval_marcus",
-            attributeScores = mapOf(
-                "fragrance_aroma" to BigDecimal("9.25"),
-                "flavor" to BigDecimal("9.25"),
-                "aftertaste" to BigDecimal("9.00"),
-                "acidity" to BigDecimal("9.25"),
-                "body" to BigDecimal("8.75"),
-                "balance" to BigDecimal("9.00"),
-                "uniformity" to BigDecimal("10.00"),
-                "clean_cup" to BigDecimal("10.00"),
-                "sweetness" to BigDecimal("10.00"),
-                "overall" to BigDecimal("9.25")
-            ),
-            descriptors = listOf("Jasmine", "Bergamot", "Peach"),
-            totalScore = BigDecimal("93.75"),
-            notes = "Ethereal floral aroma, sparkling bergamot citric acidity, long sweet peach finish.",
-            submittedAt = System.currentTimeMillis() - 3600000L
-        )
-
-        val sheet2 = EvaluationSheet(
-            id = "sheet_02",
-            sessionId = "session_s2_seed",
-            sampleId = "sample_geisha_01",
-            evaluatorId = "eval_sarah",
-            attributeScores = mapOf(
-                "fragrance_aroma" to BigDecimal("9.00"),
-                "flavor" to BigDecimal("9.00"),
-                "aftertaste" to BigDecimal("8.75"),
-                "acidity" to BigDecimal("9.25"),
-                "body" to BigDecimal("8.75"),
-                "balance" to BigDecimal("8.75"),
-                "uniformity" to BigDecimal("10.00"),
-                "clean_cup" to BigDecimal("10.00"),
-                "sweetness" to BigDecimal("10.00"),
-                "overall" to BigDecimal("9.00")
-            ),
-            descriptors = listOf("Jasmine", "Peach", "Honey"),
-            totalScore = BigDecimal("92.50"),
-            notes = "Super clean cup with delicate white flowers and sweet nectar.",
-            submittedAt = System.currentTimeMillis() - 3000000L
-        )
-
-        val seedSession = CuppingSession(
-            id = "session_s2_seed",
-            title = "Specialty Origin Calibration & Blind QC",
-            location = "Main Roastery Lab",
-            template = StandardCuppingTemplates.SPECIALTY_STANDARD,
-            maskingMode = MaskingMode.SINGLE_BLIND_EVALUATOR,
-            status = SessionStatus.OPEN,
-            evaluators = listOf(lead, guest, barista),
-            samples = listOf(sample1, sample2),
-            sheets = listOf(sheet1, sheet2),
-            auditTrail = listOf(
-                AuditEntry(
-                    timestamp = System.currentTimeMillis() - 7200000L,
-                    editorId = lead.id,
-                    action = "CREATE_SESSION",
-                    previousStateSummary = "NONE",
-                    newStateSummary = "OPEN",
-                    reason = "Specialty calibration session initialized"
-                )
-            ),
-            createdAt = System.currentTimeMillis() - 7200000L
-        )
-
-        val physicalQc = PhysicalQcRecord(
-            id = "phys_geisha_01",
-            sampleId = "sample_geisha_01",
-            sampleMassGrams = BigDecimal("350.0"),
-            moisturePercentage = BigDecimal("10.8"),
-            waterActivityAw = BigDecimal("0.58"),
-            bulkDensityGPerL = BigDecimal("715.0"),
-            totalPrimaryDefects = 0,
-            totalSecondaryDefects = 2,
-            calculatedGrade = "Specialty Grade 1 (Strict)",
-            roastedAgtronWholeBean = BigDecimal("68.0"),
-            roastedAgtronGround = BigDecimal("76.5"),
-            roastDeltaAgtron = BigDecimal("8.5")
-        )
-
-        val obs1 = RoastRestObservation(
-            id = "obs_01",
-            bagId = "bag_geisha_lot1",
-            roastDateEpoch = System.currentTimeMillis() - 86400000L * 14,
-            observationDateEpoch = System.currentTimeMillis() - 86400000L * 11,
-            daysPostRoast = 3,
-            cuppingScore = BigDecimal("86.5"),
-            observedAroma = BigDecimal("8.0"),
-            observedAcidity = BigDecimal("8.5"),
-            observedSweetness = BigDecimal("7.5"),
-            perceivedCarbonicAcid = true,
-            qualitativeNotes = "Carbonic sharpness masking subtle florals, rapid bubbling on crust.",
-            observedPhase = DegassingPhase.TOO_FRESH_CO2_INTERFERENCE
-        )
-
-        val obs2 = RoastRestObservation(
-            id = "obs_02",
-            bagId = "bag_geisha_lot1",
-            roastDateEpoch = System.currentTimeMillis() - 86400000L * 14,
-            observationDateEpoch = System.currentTimeMillis(),
-            daysPostRoast = 14,
-            cuppingScore = BigDecimal("93.5"),
-            observedAroma = BigDecimal("9.5"),
-            observedAcidity = BigDecimal("9.2"),
-            observedSweetness = BigDecimal("9.0"),
-            perceivedCarbonicAcid = false,
-            qualitativeNotes = "Peak sensory expression. Jasmine and bergamot fully open, silky lingering sweetness.",
-            observedPhase = DegassingPhase.PEAK_FLAVOR_WINDOW
-        )
-
-        _state.update {
-            it.copy(
-                cuppingSessions = listOf(seedSession),
-                activeCuppingSessionId = seedSession.id,
-                selectedCuppingSampleId = sample1.sampleId,
-                physicalQcRecords = mapOf(sample1.sampleId to physicalQc),
-                roastRestObservations = listOf(obs2, obs1)
-            )
-        }
     }
 
     // ========================================================================
@@ -2194,116 +1922,69 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         }
     }
 
-    fun parseBeanOcrText(lines: List<String>) {
-        val draft = OcrBeanParser.parseLines(lines)
-        _state.update {
-            it.copy(
-                parsedBeanDraft = draft,
-                notice = "Parsed coffee bag OCR: ${draft.originCountry ?: "Origin"} / ${draft.variety ?: "Variety"}. Review below."
-            )
-        }
-    }
-
-    fun commitParsedBeanDraft(
-        name: String,
-        roaster: String,
-        country: String,
-        region: String,
-        variety: String,
-        process: String,
-        roastLevel: String,
-        elevation: String
-    ) {
-        val bean = CoffeeBean(
-            id = UUID.randomUUID().toString(),
-            name = name.ifBlank { "$country $variety" },
-            producer = roaster,
-            country = country,
-            region = region,
-            variety = variety,
-            process = process,
-            roastLevel = roastLevel,
-            altitudeMeters = elevation.toIntOrNull()
-        )
-        task("Saving scanned bean") {
-            graph.repository.addBean(bean)
-            _state.update {
-                it.copy(
-                    parsedBeanDraft = null,
-                    notice = "Saved scanned bean '${bean.name}' to inventory."
-                )
-            }
-        }
-    }
-
-    fun dismissParsedBeanDraft() {
-        _state.update { it.copy(parsedBeanDraft = null) }
-    }
-
-    fun updateWeatherParameters(elevationMeters: Double, ambientTemp: Double = 22.0, humidity: Double = 50.0) {
+    fun updateWeatherParameters(elevationMeters: Double) {
         val tBoil = WeatherAltitudeCalculator.calculateBoilingPointCelsius(elevationMeters, ElevationUnit.METERS)
         val params = WeatherParameters(
             elevationMeters = elevationMeters,
-            ambientTempCelsius = ambientTemp,
-            relativeHumidityPercent = humidity,
             calculatedBoilingPointCelsius = tBoil
         )
         _state.update {
             it.copy(
                 weatherParams = params,
-                notice = "Elevation set to ${elevationMeters.toInt()}m. Water boiling point is ${tBoil}°C."
+                notice = "Elevation entered as ${elevationMeters.toInt()}m. Approximate boiling-point estimate: $tBoil°C."
             )
         }
     }
 
     fun generateInventoryRecommendations(brewMethod: String = "Pour Over (V60)") {
-        val candidates = _state.value.beans.map { b ->
-            val acidityScore = if (b.process.contains("wash", true)) 0.85 else 0.60
-            val sweetnessScore = if (b.process.contains("nat", true)) 0.85 else 0.70
-            BeanInventoryCandidate(
-                beanId = b.id,
-                beanName = b.name,
-                sensoryProfile = PalateVector(0.30, acidityScore, sweetnessScore, 0.20, 0.50),
-                roastDate = LocalDate.now().minusDays(14),
-                availableMassGrams = 250.0
-            )
-        }
-        val recommendations = RecommendationEngine.rankInventory(
-            palate = _state.value.palateProfile,
-            candidates = candidates,
-            availableGearMethods = setOf("Pour Over (V60)", "Espresso", "AeroPress", "French Press"),
-            brewMethod = brewMethod
-        )
         _state.update {
             it.copy(
-                inventoryRecommendations = recommendations,
-                notice = "Generated ${recommendations.size} recommendations for $brewMethod."
+                inventoryRecommendations = emptyList(),
+                notice = "No bean recommendation for $brewMethod: verified available mass, roast date, linked sensory observations, and compatible gear are required."
             )
         }
     }
 
-    fun proposeSingleVariableAdjustment(
-        diagnosis: SensoryFeedbackDiagnosis,
-        actualSec: Int,
-        targetSec: Int
-    ) {
-        val currentRecipeMap = mapOf(
-            "grindClicks" to 18,
-            "waterTempCelsius" to (_state.value.draft.fields["temperature"]?.toDoubleOrNull() ?: 93.0),
-            "doseGrams" to (_state.value.draft.fields["dose"]?.toDoubleOrNull() ?: 15.0),
-            "waterGrams" to (_state.value.draft.fields["water"]?.toDoubleOrNull() ?: 250.0)
-        )
-        val proposal = FeedbackLoopEngine.proposeAdjustment(
-            previousRecipe = currentRecipeMap,
-            actualDurationSeconds = actualSec,
-            targetDurationSeconds = targetSec,
-            diagnosis = diagnosis,
-            boilingPointCelsius = _state.value.weatherParams.calculatedBoilingPointCelsius
-        )
+    fun proposeSingleVariableAdjustment(diagnosis: SensoryFeedbackDiagnosis, actualSec: Int, targetSec: Int) {
+        val current = _state.value
+        val recipe = try {
+            current.draft.build(current.ingredients)
+        } catch (invalid: IllegalArgumentException) {
+            _state.update {
+                it.copy(ovatAdjustmentProposal = null, notice = "Save valid recipe values before requesting an adjustment.")
+            }
+            return
+        }
+        val grinderSetting = recipe.grinderSetting ?: recipe.grindSize
+        val clicks = Regex("(\\d+)\\s*clicks?", RegexOption.IGNORE_CASE)
+            .find(grinderSetting)
+            ?.groupValues
+            ?.get(1)
+            ?.toIntOrNull()
+        val recipeInputs = buildMap<String, Any> {
+            put("doseGrams", recipe.doseGrams)
+            put("waterGrams", recipe.waterGrams)
+            put("waterTempCelsius", recipe.temperatureCelsius)
+            clicks?.let { put("grindClicks", it) }
+        }
+        val proposal = try {
+            FeedbackLoopEngine.proposeAdjustment(
+                previousRecipe = recipeInputs,
+                actualDurationSeconds = actualSec,
+                targetDurationSeconds = targetSec,
+                diagnosis = diagnosis,
+                boilingPointCelsius = current.weatherParams.calculatedBoilingPointCelsius
+            )
+        } catch (invalid: IllegalArgumentException) {
+            _state.update {
+                it.copy(ovatAdjustmentProposal = null, notice = invalid.message ?: "Required recipe evidence is missing.")
+            }
+            return
+        }
         _state.update {
             it.copy(
                 ovatAdjustmentProposal = proposal,
-                notice = "Proposed adjustment: ${proposal.variableAdjusted} -> ${proposal.proposedValue}"
+                notice = "Proposed adjustment from the current recipe: ${proposal.variableAdjusted} -> ${proposal.proposedValue}"
             )
         }
     }
@@ -2314,20 +1995,20 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         val newFields = currentDraft.fields.toMutableMap()
         when (proposal.variableAdjusted) {
             "Grind Size" -> {
-                val newClicks = proposal.modifiedRecipePayload["grindClicks"] as? Int
+                val newClicks = proposal.modifiedRecipePayload["grindClicks"] as? Int ?: return
                 newFields["grind"] = "$newClicks clicks (${proposal.proposedValue})"
             }
             "Water Temperature" -> {
-                val newTemp = proposal.modifiedRecipePayload["waterTempCelsius"] as? Double
-                newFields["temperature"] = (newTemp ?: 93.0).toString()
+                val newTemp = proposal.modifiedRecipePayload["waterTempCelsius"] as? Double ?: return
+                newFields["temperature"] = newTemp.toString()
             }
             "Coffee Dose" -> {
-                val newDose = proposal.modifiedRecipePayload["doseGrams"] as? Double
-                newFields["dose"] = (newDose ?: 15.0).toString()
+                val newDose = proposal.modifiedRecipePayload["doseGrams"] as? Double ?: return
+                newFields["dose"] = newDose.toString()
             }
             "Water Volume" -> {
-                val newWater = proposal.modifiedRecipePayload["waterGrams"] as? Double
-                newFields["water"] = (newWater ?: 250.0).toString()
+                val newWater = proposal.modifiedRecipePayload["waterGrams"] as? Double ?: return
+                newFields["water"] = newWater.toString()
             }
         }
         val updatedDraft = currentDraft.copy(fields = newFields)
@@ -2371,18 +2052,24 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         }
     }
 
-    fun auditIngredientSafety(
-        name: String,
-        foodGrade: Boolean?,
-        allergens: List<String>,
-        massFractionPercent: Double,
-        supplierMaxPercent: Double? = null
-    ) {
-        val audit = IngredientSafetyValidator.auditIngredient(name, foodGrade, allergens, massFractionPercent, supplierMaxPercent)
+    fun auditIngredientSafety(name: String, massFractionPercent: Double) {
+        val matches = _state.value.ingredients.filter { it.name.contains(name.trim(), ignoreCase = true) }
+        val audit = when (matches.size) {
+            1 -> matches.single().let { ingredient ->
+                IngredientSafetyValidator.auditIngredient(
+                    ingredient.name,
+                    ingredient.foodGrade,
+                    ingredient.allergens,
+                    massFractionPercent,
+                    ingredient.supplierMaxPercent
+                )
+            }
+            else -> IngredientSafetyValidator.auditIngredient(name, null, emptyList(), massFractionPercent, null)
+        }
         _state.update {
             it.copy(
                 safetyAuditResult = audit,
-                notice = if (audit.permitsBeverageConsumption) "Ingredient audit passed." else "CRITICAL: Ingestion hazard detected!"
+                notice = if (audit.permitsBeverageConsumption) "Ingredient audit passed using local catalog evidence." else "Ingredient not approved: verified local food-grade evidence is missing or unsafe."
             )
         }
     }
@@ -2405,7 +2092,11 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     fun setUnitPreferences(prefs: UserUnitPreferences) = task("Saving unit preferences") {
         graph.repository.saveSetting("user_units", gson.toJson(prefs))
         _state.update { it.copy(unitPreferences = prefs, notice = "Unit preferences updated.") }
-        diagnosticBuffer.log(LogLevel.INFO, "Settings", "Unit preferences updated: ${prefs.temperatureUnit.symbol}, ${prefs.massUnit.symbol}")
+        diagnosticBuffer.log(
+            LogLevel.INFO,
+            "Settings",
+            "Unit preferences updated: ${prefs.temperatureUnit.symbol}, ${prefs.massUnit.symbol}"
+        )
     }
 
     fun selectHelpTopic(topicId: String?) {
@@ -2434,11 +2125,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         diagnosticBuffer.log(LogLevel.INFO, "Diagnostics", "User exported diagnostic logs via Sharesheet")
     }
 
-    fun updateDegradationState(
-        llm: ModuleStatus? = null,
-        ocr: ModuleStatus? = null,
-        ble: ModuleStatus? = null
-    ) {
+    fun updateDegradationState(llm: ModuleStatus? = null, ocr: ModuleStatus? = null, ble: ModuleStatus? = null) {
         _state.update {
             val current = it.degradationState
             val newState = current.copy(
@@ -2453,286 +2140,6 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
     // ========================================================================
     // Epic S2-E01: Coffee Bean, Ingredient & Equipment Foundation
     // ========================================================================
-
-    private fun seedInitialCatalogData() {
-        if (_state.value.detailedBeans.isNotEmpty()) return
-
-        val roast1 = LocalDate.now().minusDays(14)
-        val roast2 = LocalDate.now().minusDays(10)
-        val roast3 = LocalDate.now().minusDays(21)
-        val roast4 = LocalDate.now().minusDays(18)
-
-        val bean1 = DetailedBeanRecord(
-            id = "detailed-bean-sey-worka",
-            roaster = "Sey Coffee",
-            name = "Worka Sakaro",
-            originCountry = "Ethiopia",
-            region = "Gedeb, Yirgacheffe",
-            farm = "Halo Hartume",
-            producer = "Mijane Woresa",
-            varietal = "Kurume, Dega",
-            process = ProcessMethod.WASHED,
-            altitudeMeters = 2100,
-            harvestDate = "2026-02-15",
-            roastDate = roast1,
-            roastLevel = RoastLevel.LIGHT,
-            tastingNotes = listOf("Peach", "Jasmine", "Bergamot", "Meyer Lemon"),
-            tags = listOf("Floral", "High-Altitude", "African", "Ethiopian"),
-            isFavorite = true,
-            bags = listOf(
-                BagInventoryItem(
-                    id = "bag-sey-01",
-                    beanId = "detailed-bean-sey-worka",
-                    packageMassGrams = BigDecimal("250.00"),
-                    remainingMassGrams = BigDecimal("214.00"),
-                    status = BagStatus.ACTIVE,
-                    openedAtEpochMs = System.currentTimeMillis() - 86400000L * 7,
-                    pricePaid = BigDecimal("24.00")
-                )
-            )
-        )
-
-        val bean2 = DetailedBeanRecord(
-            id = "detailed-bean-tw-caballero",
-            roaster = "Tim Wendelboe",
-            name = "Caballero Geisha",
-            originCountry = "Honduras",
-            region = "Marcala",
-            farm = "Finca El Puente",
-            producer = "Marysabel Caballero",
-            varietal = "Geisha",
-            process = ProcessMethod.WASHED,
-            altitudeMeters = 1600,
-            harvestDate = "2026-03-01",
-            roastDate = roast2,
-            roastLevel = RoastLevel.LIGHT,
-            tastingNotes = listOf("Floral", "White Tea", "Papaya", "Jasmine"),
-            tags = listOf("Geisha", "Central American", "Light Roast"),
-            isFavorite = true,
-            bags = listOf(
-                BagInventoryItem(
-                    id = "bag-tw-01",
-                    beanId = "detailed-bean-tw-caballero",
-                    packageMassGrams = BigDecimal("250.00"),
-                    remainingMassGrams = BigDecimal("185.00"),
-                    status = BagStatus.ACTIVE,
-                    openedAtEpochMs = System.currentTimeMillis() - 86400000L * 4,
-                    pricePaid = BigDecimal("32.00")
-                )
-            )
-        )
-
-        val bean3 = DetailedBeanRecord(
-            id = "detailed-bean-kawa-elparaiso",
-            roaster = "Kawa Coffee",
-            name = "El Paraiso Lychee",
-            originCountry = "Colombia",
-            region = "Piendamo, Cauca",
-            farm = "El Paraiso",
-            producer = "Diego Samuel Bermudez",
-            varietal = "Castillo",
-            process = ProcessMethod.ANAEROBIC_NATURAL,
-            altitudeMeters = 1950,
-            harvestDate = "2026-01-20",
-            roastDate = roast4,
-            roastLevel = RoastLevel.LIGHT,
-            tastingNotes = listOf("Lychee", "Rose Water", "Raspberry Jam"),
-            tags = listOf("Anaerobic", "Experimental", "Fruit Bomb"),
-            isFavorite = false,
-            bags = listOf(
-                BagInventoryItem(
-                    id = "bag-kawa-01",
-                    beanId = "detailed-bean-kawa-elparaiso",
-                    packageMassGrams = BigDecimal("200.00"),
-                    remainingMassGrams = BigDecimal("200.00"),
-                    status = BagStatus.FROZEN,
-                    freezeHistory = listOf(
-                        FreezeEvent(
-                            frozenAtEpochMs = System.currentTimeMillis() - 86400000L * 12,
-                            thawedAtEpochMs = null
-                        )
-                    ),
-                    pricePaid = BigDecimal("28.00")
-                )
-            )
-        )
-
-        val grinder1 = GrinderRecord(
-            id = "grinder-comandante-c40",
-            brand = "Comandante",
-            model = "C40 MK4 Nitro Blade",
-            calibrationUnit = CalibrationUnit.CLICKS,
-            burrProfile = BurrProfile(
-                burrType = BurrType.CONICAL,
-                diameterMm = BigDecimal("39.00"),
-                material = BurrMaterial.STAINLESS_STEEL,
-                burrModelName = "High-Nitrogen Nitro Blade"
-            ),
-            zeroPointOffset = BigDecimal.ZERO,
-            clicksPerRotation = 12,
-            typicalRpm = null,
-            notes = "World benchmark manual hand grinder. Standard 1 click ~ 30 microns.",
-            isFavorite = true
-        )
-
-        val grinder2 = GrinderRecord(
-            id = "grinder-mahlkonig-ek43",
-            brand = "Mahlkönig",
-            model = "EK43S",
-            calibrationUnit = CalibrationUnit.MICRONS,
-            burrProfile = BurrProfile(
-                burrType = BurrType.FLAT,
-                diameterMm = BigDecimal("98.00"),
-                material = BurrMaterial.TITANIUM_COATED,
-                burrModelName = "Titus Pre-Breaker"
-            ),
-            zeroPointOffset = BigDecimal("20.00"),
-            clicksPerRotation = null,
-            typicalRpm = 1450,
-            notes = "Laboratory commercial grinder aligned with dial indicator within 5 microns.",
-            isFavorite = true
-        )
-
-        val grinder3 = GrinderRecord(
-            id = "grinder-fellow-ode",
-            brand = "Fellow",
-            model = "Ode Gen 2",
-            calibrationUnit = CalibrationUnit.STEPLESS_DEGREES,
-            burrProfile = BurrProfile(
-                burrType = BurrType.FLAT,
-                diameterMm = BigDecimal("64.00"),
-                material = BurrMaterial.STAINLESS_STEEL,
-                burrModelName = "Gen 2 Brew Burrs"
-            ),
-            zeroPointOffset = BigDecimal.ZERO,
-            clicksPerRotation = 31,
-            typicalRpm = 1400,
-            notes = "Domestic filter-focused single doser with anti-static ionizer.",
-            isFavorite = false
-        )
-
-        val eq1 = EquipmentItem(
-            id = "eq-hario-v60",
-            category = EquipmentCategory.DRIPPER,
-            brand = "Hario",
-            model = "V60 Ceramic 02",
-            parameters = mapOf("Material" to "Arita Porcelain", "Angle" to "60deg", "Ribs" to "Spiral"),
-            isFavorite = true,
-            tags = listOf("Conical", "Pour-Over")
-        )
-
-        val eq2 = EquipmentItem(
-            id = "eq-kalita-185",
-            category = EquipmentCategory.DRIPPER,
-            brand = "Kalita",
-            model = "Wave 185 Stainless Steel",
-            parameters = mapOf("Material" to "Stainless Steel", "Bed" to "Flat bottom 3-hole"),
-            isFavorite = false,
-            tags = listOf("Flat-Bed", "Immersion-Drip")
-        )
-
-        val eq3 = EquipmentItem(
-            id = "eq-fellow-stagg",
-            category = EquipmentCategory.KETTLE,
-            brand = "Fellow",
-            model = "Stagg EKG Gooseneck",
-            parameters = mapOf("Capacity" to "900mL", "Spout" to "Precision Gooseneck", "TempControl" to "PID 1°F"),
-            isFavorite = true,
-            tags = listOf("Gooseneck", "PID")
-        )
-
-        val eq4 = EquipmentItem(
-            id = "eq-acaia-pearl",
-            category = EquipmentCategory.SCALE,
-            brand = "Acaia",
-            model = "Pearl 2021",
-            parameters = mapOf("Resolution" to "0.1g", "FlowIndicator" to "Visual LED Flow Rate", "Bluetooth" to "BLE 4.0"),
-            isFavorite = true,
-            tags = listOf("Smart Scale", "BLE")
-        )
-
-        val eq5 = EquipmentItem(
-            id = "eq-vst-basket",
-            category = EquipmentCategory.PORTAFILTER_BASKET,
-            brand = "VST",
-            model = "18g Precision Ridgeless Basket",
-            parameters = mapOf("Diameter" to "58.5mm", "Holes" to "660 laser-measured", "Variance" to "< 2%"),
-            isFavorite = true,
-            tags = listOf("Espresso", "Precision")
-        )
-
-        val ing1 = FoodGradeIngredientItem(
-            id = "food-ing-citric",
-            name = "Citric Acid (Food Grade 10% w/w)",
-            densityGramsPerMl = BigDecimal("1.04"),
-            allergens = emptyList(),
-            supplierMaxPercent = BigDecimal("2.50"),
-            isFoodGradeVerified = true,
-            casNumber = "77-92-9",
-            provenance = "USP Food Chemicals Codex Standard Solution"
-        )
-
-        val ing2 = FoodGradeIngredientItem(
-            id = "food-ing-malic",
-            name = "Malic Acid (Food Grade 5% w/w)",
-            densityGramsPerMl = BigDecimal("1.02"),
-            allergens = emptyList(),
-            supplierMaxPercent = BigDecimal("2.00"),
-            isFoodGradeVerified = true,
-            casNumber = "6915-15-7",
-            provenance = "Food grade organic acid standard"
-        )
-
-        val greenLot1 = GreenCoffeeLot(
-            id = "green-eth-004",
-            lotNumber = "LOT-2026-ETH-004",
-            originCountry = "Ethiopia",
-            producer = "Mijane Woresa",
-            harvestYear = "2026",
-            moisturePercent = BigDecimal("10.80"),
-            bulkDensityGramsPerLiter = BigDecimal("695.00"),
-            waterActivityAw = BigDecimal("0.54"),
-            category1DefectCount = 0,
-            category2DefectCount = 2,
-            screenDistributionPercent = mapOf(17 to BigDecimal("70.00"), 18 to BigDecimal("30.00")),
-            sampleStatus = SampleLotStatus.PRODUCTION_LOT,
-            notes = "High-density micro-lot. Screen 17/18 uniform."
-        )
-
-        val roastBatch1 = RoastBatchRecord(
-            id = "roast-b101",
-            batchNumber = "B-2026-101",
-            greenLotId = "green-eth-004",
-            chargeTemperatureCelsius = BigDecimal("200.00"),
-            dropTemperatureCelsius = BigDecimal("211.50"),
-            totalRoastDurationSeconds = 590,
-            firstCrackTimeSeconds = 475,
-            developmentTimeRatioPercent = RoastBatchRecord.calculateDtr(590, 475),
-            curvePoints = listOf(
-                RoastDataPoint(0, BigDecimal("200.00"), null),
-                RoastDataPoint(60, BigDecimal("115.00"), null),
-                RoastDataPoint(180, BigDecimal("145.00"), BigDecimal("15.00")),
-                RoastDataPoint(300, BigDecimal("170.00"), BigDecimal("12.50")),
-                RoastDataPoint(475, BigDecimal("202.00"), BigDecimal("11.00")),
-                RoastDataPoint(590, BigDecimal("211.50"), BigDecimal("5.00"))
-            ),
-            blendComponents = listOf(
-                BlendComponentSpec("detailed-bean-sey-worka", BigDecimal("100.00"))
-            )
-        )
-
-        _state.update {
-            it.copy(
-                detailedBeans = listOf(bean1, bean2, bean3),
-                grinders = listOf(grinder1, grinder2, grinder3),
-                equipmentCatalog = listOf(eq1, eq2, eq3, eq4, eq5),
-                waterProfiles = WaterChemistryCalculator.ALL_PRESETS,
-                foodGradeIngredients = listOf(ing1, ing2),
-                greenCoffeeLots = listOf(greenLot1),
-                roastBatches = listOf(roastBatch1)
-            )
-        }
-    }
 
     fun addDetailedBean(bean: DetailedBeanRecord) {
         _state.update { it.copy(detailedBeans = it.detailedBeans + bean) }
@@ -2757,53 +2164,73 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         }
     }
 
-    fun addBagToBean(beanId: String, packageMassGrams: BigDecimal, price: BigDecimal? = null) {
+    fun addBagToBean(beanId: String, packageMassGrams: BigDecimal, remainingMassGrams: BigDecimal, price: BigDecimal? = null) {
+        require(packageMassGrams > BigDecimal.ZERO) { "Package mass must be positive." }
+        require(remainingMassGrams >= BigDecimal.ZERO && remainingMassGrams <= packageMassGrams) {
+            "Remaining mass must be between zero and package mass."
+        }
         val newBag = BagInventoryItem(
             id = UUID.randomUUID().toString(),
             beanId = beanId,
             packageMassGrams = packageMassGrams,
-            remainingMassGrams = packageMassGrams,
-            status = BagStatus.PURCHASED,
+            remainingMassGrams = remainingMassGrams,
+            status = when {
+                remainingMassGrams == BigDecimal.ZERO -> BagStatus.FINISHED
+                remainingMassGrams < packageMassGrams -> BagStatus.ACTIVE
+                else -> BagStatus.PURCHASED
+            },
             pricePaid = price
         )
         _state.update {
-            it.copy(detailedBeans = it.detailedBeans.map { b ->
-                if (b.id == beanId) b.copy(bags = b.bags + newBag) else b
-            })
+            it.copy(
+                detailedBeans = it.detailedBeans.map { b ->
+                    if (b.id == beanId) b.copy(bags = b.bags + newBag) else b
+                }
+            )
         }
     }
 
     fun deductDoseFromBag(bagId: String, doseGrams: BigDecimal): Boolean {
         var success = false
         _state.update {
-            it.copy(detailedBeans = it.detailedBeans.map { b ->
-                val bag = b.bags.find { bag -> bag.id == bagId }
-                if (bag != null) {
-                    val result = InventoryDeductionEngine.deductDose(bag, doseGrams)
-                    if (result is InventoryDeductionResult.Success) {
-                        success = true
-                        diagnosticBuffer.log(LogLevel.INFO, "INVENTORY", "Deducted ${doseGrams}g from bag $bagId on bean '${b.name}'")
-                        b.copy(bags = b.bags.map { bg -> if (bg.id == bagId) result.updatedBag else bg })
-                    } else b
-                } else b
-            })
+            it.copy(
+                detailedBeans = it.detailedBeans.map { b ->
+                    val bag = b.bags.find { bag -> bag.id == bagId }
+                    if (bag != null) {
+                        val result = InventoryDeductionEngine.deductDose(bag, doseGrams)
+                        if (result is InventoryDeductionResult.Success) {
+                            success = true
+                            diagnosticBuffer.log(LogLevel.INFO, "INVENTORY", "Deducted ${doseGrams}g from bag $bagId on bean '${b.name}'")
+                            b.copy(bags = b.bags.map { bg -> if (bg.id == bagId) result.updatedBag else bg })
+                        } else {
+                            b
+                        }
+                    } else {
+                        b
+                    }
+                }
+            )
         }
         return success
     }
 
     fun toggleFreezeBag(bagId: String) {
         _state.update {
-            it.copy(detailedBeans = it.detailedBeans.map { b ->
-                val bag = b.bags.find { bag -> bag.id == bagId }
-                if (bag != null) {
-                    val updated = if (bag.status == BagStatus.FROZEN) {
-                        InventoryDeductionEngine.thawBag(bag)
+            it.copy(
+                detailedBeans = it.detailedBeans.map { b ->
+                    val bag = b.bags.find { bag -> bag.id == bagId }
+                    if (bag != null) {
+                        val updated = if (bag.status == BagStatus.FROZEN) {
+                            InventoryDeductionEngine.thawBag(bag)
+                        } else {
+                            InventoryDeductionEngine.freezeBag(bag)
+                        }
+                        b.copy(bags = b.bags.map { bg -> if (bg.id == bagId) updated else bg })
                     } else {
-                        InventoryDeductionEngine.freezeBag(bag)
+                        b
                     }
-                    b.copy(bags = b.bags.map { bg -> if (bg.id == bagId) updated else bg })
-                } else b
-            })
+                }
+            )
         }
     }
 
@@ -2867,7 +2294,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
         _state.update { it.copy(roastBatches = it.roastBatches.filterNot { r -> r.id == id }) }
     }
 
-    fun parseBagOcr(photoUri: String, text: String) {
+    fun parseBagOcr(photoUri: String?, text: String) {
         val draft = OfflineBagOcrParser.parseBagText(photoUri, text)
         _state.update { it.copy(pendingOcrDraft = draft) }
     }
@@ -2905,7 +2332,11 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, private val saved
                 catalogImportPreview = null
             )
         }
-        diagnosticBuffer.log(LogLevel.INFO, "IMPORT", "Catalog import completed: created=${receipt.createdCount}, updated=${receipt.updatedCount}, renamed=${receipt.renamedCount}, skipped=${receipt.skippedCount}")
+        diagnosticBuffer.log(
+            LogLevel.INFO,
+            "IMPORT",
+            "Catalog import completed: created=${receipt.createdCount}, updated=${receipt.updatedCount}, renamed=${receipt.renamedCount}, skipped=${receipt.skippedCount}"
+        )
         return receipt
     }
 

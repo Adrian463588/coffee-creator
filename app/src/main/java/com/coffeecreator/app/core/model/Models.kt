@@ -122,7 +122,14 @@ data class RefractometerProfile(
         val STANDARD = RefractometerProfile("standard", "Standard Coffee (0.85)", 0.8500, 0.0, "Universal Coffee Refractometry Standard")
         val ATAGO = RefractometerProfile("atago", "Atago PAL-COFFEE (0.84)", 0.8400, 0.0, "Atago Official Coffee Scale Specification")
         val VST = RefractometerProfile("vst", "VST LAB Coffee III (0.857)", 0.8570, 0.0, "VST Universal Coffee Solids Refractive Equation")
-        val GENERIC_SUCROSE = RefractometerProfile("sucrose", "Generic Sucrose Equivalent (0.85)", 0.8500, 0.0, "ICUMSA standard sucrose equivalent conversion")
+        val GENERIC_SUCROSE =
+            RefractometerProfile(
+                "sucrose",
+                "Generic Sucrose Equivalent (0.85)",
+                0.8500,
+                0.0,
+                "ICUMSA standard sucrose equivalent conversion"
+            )
 
         val ALL_PROFILES = listOf(STANDARD, ATAGO, VST, GENERIC_SUCROSE)
 

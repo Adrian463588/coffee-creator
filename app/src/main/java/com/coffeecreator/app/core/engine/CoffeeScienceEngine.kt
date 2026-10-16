@@ -297,21 +297,19 @@ object CoffeeScienceEngine {
         )
     }
 
-    fun celsiusToFahrenheit(celsius: Double): Double =
-        BigDecimal.valueOf(celsius)
-            .multiply(BigDecimal("9"))
-            .divide(BigDecimal("5"), 4, RoundingMode.HALF_UP)
-            .add(BigDecimal("32"))
-            .setScale(1, RoundingMode.HALF_UP)
-            .toDouble()
+    fun celsiusToFahrenheit(celsius: Double): Double = BigDecimal.valueOf(celsius)
+        .multiply(BigDecimal("9"))
+        .divide(BigDecimal("5"), 4, RoundingMode.HALF_UP)
+        .add(BigDecimal("32"))
+        .setScale(1, RoundingMode.HALF_UP)
+        .toDouble()
 
-    fun fahrenheitToCelsius(fahrenheit: Double): Double =
-        BigDecimal.valueOf(fahrenheit)
-            .subtract(BigDecimal("32"))
-            .multiply(BigDecimal("5"))
-            .divide(BigDecimal("9"), 4, RoundingMode.HALF_UP)
-            .setScale(1, RoundingMode.HALF_UP)
-            .toDouble()
+    fun fahrenheitToCelsius(fahrenheit: Double): Double = BigDecimal.valueOf(fahrenheit)
+        .subtract(BigDecimal("32"))
+        .multiply(BigDecimal("5"))
+        .divide(BigDecimal("9"), 4, RoundingMode.HALF_UP)
+        .setScale(1, RoundingMode.HALF_UP)
+        .toDouble()
 
     private fun metadata(
         inputs: Map<String, BigDecimal>,

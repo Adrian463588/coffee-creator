@@ -1,19 +1,15 @@
 package com.coffeecreator.app.core.brew
 
-import com.coffeecreator.app.core.ble.BleScaleDevice
 import com.coffeecreator.app.core.ble.DiscontinuityType
 import com.coffeecreator.app.core.ble.ScaleConnectionState
 import com.coffeecreator.app.core.ble.SimulatedBleScaleDriver
-import com.coffeecreator.app.core.data.CuratedCoffeeCatalog
+import com.coffeecreator.app.core.data.BrewScenarioFixtures
 import com.coffeecreator.app.core.model.BrewStep
-import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.SensoryObservation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -58,9 +54,30 @@ class ActiveBrewTimerBleTest {
     @Test
     fun `S2-028 Step progression tracks active step, next step preview, and remaining water`() {
         val steps = listOf(
-            BrewStep(stepNumber = 1, description = "Bloom", targetWaterGrams = 50.0, cumulativeMassGrams = 50.0, durationSeconds = 45, action = "Bloom"),
-            BrewStep(stepNumber = 2, description = "First pour", targetWaterGrams = 100.0, cumulativeMassGrams = 150.0, durationSeconds = 30, action = "Pour 1"),
-            BrewStep(stepNumber = 3, description = "Second pour", targetWaterGrams = 100.0, cumulativeMassGrams = 250.0, durationSeconds = 45, action = "Pour 2")
+            BrewStep(
+                stepNumber = 1,
+                description = "Bloom",
+                targetWaterGrams = 50.0,
+                cumulativeMassGrams = 50.0,
+                durationSeconds = 45,
+                action = "Bloom"
+            ),
+            BrewStep(
+                stepNumber = 2,
+                description = "First pour",
+                targetWaterGrams = 100.0,
+                cumulativeMassGrams = 150.0,
+                durationSeconds = 30,
+                action = "Pour 1"
+            ),
+            BrewStep(
+                stepNumber = 3,
+                description = "Second pour",
+                targetWaterGrams = 100.0,
+                cumulativeMassGrams = 250.0,
+                durationSeconds = 45,
+                action = "Pour 2"
+            )
         )
 
         // At t = 20s (inside Bloom)
@@ -102,7 +119,7 @@ class ActiveBrewTimerBleTest {
 
     @Test
     fun `S2-029 Brew session snapshot serializes and restores without state loss`() {
-        val recipe = CuratedCoffeeCatalog.recipes.first()
+        val recipe = BrewScenarioFixtures.recipes.first()
         val snapshot = BrewSessionSnapshot(
             sessionId = "session-snap-01",
             recipeId = recipe.id,
@@ -126,7 +143,7 @@ class ActiveBrewTimerBleTest {
 
     @Test
     fun `S2-031 Auto-logging creates valid SensoryObservation linked to recipe and actual metrics`() {
-        val recipe = CuratedCoffeeCatalog.recipes.first()
+        val recipe = BrewScenarioFixtures.recipes.first()
         val elapsedSeconds = 215
         val actualWaterGrams = 498.2
 

@@ -1,7 +1,5 @@
 package com.coffeecreator.app.core.ai.personalization
 
-import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
 
 // ============================================================================
@@ -140,33 +138,16 @@ data class OvatAdjustmentProposal(
 )
 
 // ============================================================================
-// 5. OCR Coffee Bag Metadata Line Parser (S2-067)
-// ============================================================================
-
-data class ParsedBeanDraft(
-    val roaster: String?,
-    val originCountry: String?,
-    val region: String?,
-    val variety: String?,
-    val process: String?,
-    val roastDateIso: String?,
-    val elevationMasl: Int?,
-    val packageWeightGrams: Int?,
-    val fieldConfidences: Map<String, Double>,
-    val requiresExplicitUserReview: Boolean
-)
-
-// ============================================================================
 // 6. Offline Weather & Altitude Boiling Point Calculator (S2-073)
 // ============================================================================
 
 enum class ElevationUnit { METERS, FEET }
 
 data class WeatherParameters(
-    val elevationMeters: Double = 0.0,
-    val ambientTempCelsius: Double = 22.0,
-    val relativeHumidityPercent: Double = 50.0,
-    val calculatedBoilingPointCelsius: Double = 100.0
+    val elevationMeters: Double? = null,
+    val ambientTempCelsius: Double? = null,
+    val relativeHumidityPercent: Double? = null,
+    val calculatedBoilingPointCelsius: Double? = null
 )
 
 // ============================================================================

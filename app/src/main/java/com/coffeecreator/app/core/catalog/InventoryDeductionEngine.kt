@@ -64,10 +64,7 @@ object InventoryDeductionEngine {
         )
     }
 
-    fun freezeBag(
-        bag: BagInventoryItem,
-        freezeTimestampEpochMs: Long = System.currentTimeMillis()
-    ): BagInventoryItem {
+    fun freezeBag(bag: BagInventoryItem, freezeTimestampEpochMs: Long = System.currentTimeMillis()): BagInventoryItem {
         require(bag.status != BagStatus.FINISHED) { "Finished bags cannot be frozen." }
         if (bag.status == BagStatus.FROZEN) return bag
 
@@ -78,10 +75,7 @@ object InventoryDeductionEngine {
         )
     }
 
-    fun thawBag(
-        bag: BagInventoryItem,
-        thawTimestampEpochMs: Long = System.currentTimeMillis()
-    ): BagInventoryItem {
+    fun thawBag(bag: BagInventoryItem, thawTimestampEpochMs: Long = System.currentTimeMillis()): BagInventoryItem {
         if (bag.status != BagStatus.FROZEN) return bag
 
         val updatedHistory = bag.freezeHistory.mapIndexed { index, event ->

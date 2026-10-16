@@ -1,6 +1,5 @@
 package com.coffeecreator.app.core.reliability
 
-import com.coffeecreator.app.core.ai.personalization.ElevationUnit
 import com.coffeecreator.app.core.data.BackupCodec
 import com.coffeecreator.app.core.data.BackupPayload
 import com.coffeecreator.app.core.filesystem.TransferPolicy
@@ -14,8 +13,6 @@ import com.coffeecreator.app.core.model.RecipeLine
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test

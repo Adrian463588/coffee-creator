@@ -1,11 +1,6 @@
 package com.coffeecreator.app.ui.screens
 
 import android.graphics.Color as AndroidColor
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -60,11 +54,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -74,7 +66,6 @@ import androidx.compose.ui.unit.sp
 import com.coffeecreator.app.core.sensory.FlavorCategory
 import com.coffeecreator.app.core.sensory.FlavorDescriptor
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
-import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -308,10 +299,7 @@ fun SensoryWheelVisualizer(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun OptInFlowRow(
-    descriptors: List<FlavorDescriptor>,
-    onDescriptorTapped: ((FlavorDescriptor) -> Unit)?
-) {
+private fun OptInFlowRow(descriptors: List<FlavorDescriptor>, onDescriptorTapped: ((FlavorDescriptor) -> Unit)?) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -367,11 +355,7 @@ private fun OptInFlowRow(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun FlavorWheelPickerDialog(
-    initialSelected: List<String>,
-    onDismissRequest: () -> Unit,
-    onConfirm: (List<String>) -> Unit
-) {
+fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () -> Unit, onConfirm: (List<String>) -> Unit) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedCategoryFilter by rememberSaveable { mutableStateOf("All") }
     val selectedList = remember { mutableStateListOf<String>().apply { addAll(initialSelected) } }
@@ -386,7 +370,9 @@ fun FlavorWheelPickerDialog(
         }
     } else {
         SensoryTaxonomyRegistry.searchDescriptors(searchQuery).let { list ->
-            if (selectedCategoryFilter == "All") list else {
+            if (selectedCategoryFilter == "All") {
+                list
+            } else {
                 list.filter { desc ->
                     val cat = SensoryTaxonomyRegistry.DEFAULT_CATEGORIES.find { it.id == desc.categoryId }
                     cat?.name.equals(selectedCategoryFilter, ignoreCase = true)

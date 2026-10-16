@@ -9,11 +9,11 @@ import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.SensoryObservation
 
 /**
- * Validated, real-world specialty coffee dataset compiled from verified brewing standards,
- * competition recipes, authentic botanical origins, and calibrated extraction mass balances.
- * All extraction yields satisfy: EY% = (Beverage Mass * Measured TDS%) / Dose Mass.
+ * Isolated synthetic inputs for deterministic engine tests.
+ *
+ * Never include these fixtures in app state, seed data, recommendations, backups, or release claims.
  */
-object CuratedCoffeeCatalog {
+object BrewScenarioFixtures {
     const val VERSION = 1
 
     val recipes: List<Recipe> = listOf(
@@ -28,19 +28,29 @@ object CuratedCoffeeCatalog {
             waterGrams = 500.0,
             beverageMassGrams = 442.0,
             bypassGrams = 0.0,
-            agitation = "Initial swirl during bloom; gentle clockwise/counter-clockwise spoon stir at final pour, final bed flattening swirl",
+            agitation = "Synthetic agitation setting for regression tests.",
             measuredTdsPercent = 1.40,
             targetRatio = "1:16.67",
             temperatureCelsius = 100.0,
             pressureBars = null,
             brewTimeSeconds = 210,
             grindSize = "Medium-Fine (~600-700 µm / Comandante 18-20 clicks)",
-            notes = "Classic two-cup Hoffmann technique. Boiling water maintains high slurry temperature for light roasts. Bloom ratio is 2x dry coffee mass (60g). Stirring breaks surface tension and washes side grounds down to eliminate high-and-dry channeling.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
                 BrewStep(1, "Pour 60g bloom water in circular motion. Swirl brewer gently until grounds are evenly wet.", 60.0, 45),
                 BrewStep(2, "Pour up to 300g total in continuous concentric circles within 30 seconds (60% total water mass).", 300.0, 30),
-                BrewStep(3, "Pour remaining water up to 500g total gently to keep slurry level high and thermal mass consistent.", 500.0, 30),
-                BrewStep(4, "Stir once clockwise and once counter-clockwise with spoon. Give one gentle swirl to flatten coffee bed.", 500.0, 15),
+                BrewStep(
+                    3,
+                    "Pour remaining water up to 500g total gently to keep slurry level high and thermal mass consistent.",
+                    500.0,
+                    30
+                ),
+                BrewStep(
+                    4,
+                    "Stir once clockwise and once counter-clockwise with spoon. Give one gentle swirl to flatten coffee bed.",
+                    500.0,
+                    15
+                ),
                 BrewStep(5, "Allow undisturbed drawdown. Bed should finish flat and uniform.", 500.0, 90)
             )
         ),
@@ -63,7 +73,7 @@ object CuratedCoffeeCatalog {
             pressureBars = null,
             brewTimeSeconds = 210,
             grindSize = "Coarse (~1000-1100 µm / French press consistency / Comandante 28-30 clicks)",
-            notes = "World Brewers Cup 2016 winning routine. 40% (120g) modulates acidity vs sweetness balance in 2 pours; 60% (180g) modulates body and concentration in 3 equal 60g pulses. Water drains through the bed before each subsequent pour.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
                 BrewStep(1, "1st Pour (Acidity): Pour 60g in circular motion. Let water drain through grounds completely.", 60.0, 45),
                 BrewStep(2, "2nd Pour (Sweetness): Pour 60g (to 120g total). Let drain completely.", 120.0, 45),
@@ -91,12 +101,27 @@ object CuratedCoffeeCatalog {
             pressureBars = null,
             brewTimeSeconds = 60,
             grindSize = "Coarse (~800-900 µm / table sugar to coarse sea salt / EK43 ~7.5)",
-            notes = "World AeroPress Championship 2019 winning recipe. High-dose short immersion with vigorous turbulence creates a dense, clean concentrate (~60g liquid out), followed by 120g hot bypass dilution at 92°C to open cup vibrancy.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
-                BrewStep(1, "Pour 100g of 92°C water directly onto 30g coarse ground coffee in inverted AeroPress within 10 seconds.", 100.0, 10),
+                BrewStep(
+                    1,
+                    "Pour 100g of 92°C water directly onto 30g coarse ground coffee in inverted AeroPress within 10 seconds.",
+                    100.0,
+                    10
+                ),
                 BrewStep(2, "Agitate slurry vigorously with paddle stirrer 20 times in 10 seconds (0:10 - 0:20).", 100.0, 10),
-                BrewStep(3, "Attach pre-rinsed filter cap, carefully expel residual headspace air until coffee touches filter (0:20 - 0:40).", 100.0, 20),
-                BrewStep(4, "Flip AeroPress onto server and press gently for 20 seconds. Stop immediately upon hearing hiss at 1:00.", 100.0, 20),
+                BrewStep(
+                    3,
+                    "Attach pre-rinsed filter cap, carefully expel residual headspace air until coffee touches filter (0:20 - 0:40).",
+                    100.0,
+                    20
+                ),
+                BrewStep(
+                    4,
+                    "Flip AeroPress onto server and press gently for 20 seconds. Stop immediately upon hearing hiss at 1:00.",
+                    100.0,
+                    20
+                ),
                 BrewStep(5, "Add 120g hot water (92°C) bypass directly into server concentrate. Swirl thoroughly and serve.", 220.0, 10)
             )
         ),
@@ -119,11 +144,16 @@ object CuratedCoffeeCatalog {
             pressureBars = null,
             brewTimeSeconds = 240,
             grindSize = "Medium-Coarse (~800 µm / Comandante 24-26 clicks)",
-            notes = "Maximizes extraction uniformity in conical thick-walled Chemex brewers. The spoon excavation during bloom ensures no dry pockets remain. Single continuous pour minimizes temperature loss in large Chemex slurry.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
                 BrewStep(1, "Pour 60g bloom water evenly. Immediately dig spoon into bed to wet all grounds thoroughly.", 60.0, 40),
                 BrewStep(2, "At 0:40, begin single continuous concentric pour up to 510g total, finishing stream by 1:15.", 510.0, 35),
-                BrewStep(3, "Stir once around outer perimeter, then execute gentle rotational Rao spin to wash walls and level bed.", 510.0, 15),
+                BrewStep(
+                    3,
+                    "Stir once around outer perimeter, then execute gentle rotational Rao spin to wash walls and level bed.",
+                    510.0,
+                    15
+                ),
                 BrewStep(4, "Allow uninterrupted gravitational drawdown through bonded Chemex filter. Finishes by 3:45 - 4:00.", 510.0, 150)
             )
         ),
@@ -146,13 +176,23 @@ object CuratedCoffeeCatalog {
             pressureBars = null,
             brewTimeSeconds = 600,
             grindSize = "Medium (~700-800 µm / standard filter drip grind, NOT coarse)",
-            notes = "Hoffmann's cupping-style French press method. Medium grind allows complete dissolution. Fines naturally sink after crust break; plunging is omitted to prevent churning sediment back into the cup. Filter screen serves only as a pour strainer.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
                 BrewStep(1, "Pour 500g rolling boiling water vigorously onto coffee grounds to ensure full saturation.", 500.0, 30),
                 BrewStep(2, "Leave immersion steep completely undisturbed for 4 minutes. Do not insert plunger.", 500.0, 210),
-                BrewStep(3, "At 4:00, gently stir crust on surface with spoon until coffee grounds sink. Skim residual white foam and floating fines with two spoons.", 500.0, 60),
+                BrewStep(
+                    3,
+                    "At 4:00, stir the crust until grounds sink; skim foam and floating fines.",
+                    500.0,
+                    60
+                ),
                 BrewStep(4, "Wait 5 to 7 additional minutes untouched. Micro-fines settle naturally to the bottom of carafe.", 500.0, 300),
-                BrewStep(5, "Place plunger lid gently on top with mesh just below spout (do not plunge!). Decant gently into cup.", 500.0, 30)
+                BrewStep(
+                    5,
+                    "Place plunger lid gently on top with mesh just below spout (do not plunge!). Decant gently into cup.",
+                    500.0,
+                    30
+                )
             )
         ),
 
@@ -174,7 +214,7 @@ object CuratedCoffeeCatalog {
             pressureBars = null,
             brewTimeSeconds = 210,
             grindSize = "Medium (~700 µm / Comandante 21-23 clicks)",
-            notes = "Flat-bottom geometry produces consistent contact time across the bed. Multi-pulse pouring keeps water column low and temperature stable, enhancing sweetness and body while preventing bypass.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
                 BrewStep(1, "Bloom: Pour 50g water evenly over bed. Gentle swirl to saturate grounds.", 50.0, 45),
                 BrewStep(2, "Pulse 2: Pour in gentle spirals up to 150g total (+100g).", 150.0, 30),
@@ -190,7 +230,7 @@ object CuratedCoffeeCatalog {
             name = "SCA Standard Modern 9-Bar Double Espresso",
             beanId = "bean-kenya-nyeri-sl28",
             brewMethod = "Espresso",
-            equipment = "Commercial/Prosumer Espresso Machine, 58mm Portafilter, 18g Precision Basket, WDT Needle Tool, Calibrated Tamper, Precision Scale",
+            equipment = "Espresso machine, 58mm portafilter, precision basket, WDT tool, tamper, scale",
             doseGrams = 18.0,
             waterGrams = 45.0,
             beverageMassGrams = 36.0,
@@ -202,7 +242,7 @@ object CuratedCoffeeCatalog {
             pressureBars = 9.0,
             brewTimeSeconds = 28,
             grindSize = "Fine (~200-250 µm / Espresso calibration)",
-            notes = "Modern SCA double espresso standard. 1:2.0 brew ratio (18g dry dose to 36g liquid espresso) extracted at 9.0 bar flat pump pressure at 93°C. Yields ~20.4% extraction yield with balanced malic/citric acidity, rich sweetness, and tactile crema.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
                 BrewStep(1, "Dose 18.0g freshly ground coffee into 18g precision basket. Perform deep WDT distribution.", 0.0, 10),
                 BrewStep(2, "Vertical tamp with 15kg force until bed is fully compacted. Flush group head 2 seconds.", 0.0, 5),
@@ -229,7 +269,7 @@ object CuratedCoffeeCatalog {
             pressureBars = null,
             brewTimeSeconds = 18000,
             grindSize = "Medium-Coarse (~850 µm / Drip coarse)",
-            notes = "Authentic Japanese slow drip Dutch/Kyoto coffee. Grounds are pre-wet with 50g cold water, covered with paper disc for laminar droplet dispersion. Needle valve calibrated to 1 drop per 1.2 seconds (~40-45 drops/min) over 5 hours.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
                 BrewStep(1, "Place 60g grounds into column. Pre-wet evenly with 50g cold water. Place paper disc on top.", 50.0, 60),
                 BrewStep(2, "Fill upper glass reservoir with 550g mixture of pure water and ice (4°C).", 600.0, 60),
@@ -256,12 +296,22 @@ object CuratedCoffeeCatalog {
             pressureBars = 1.5,
             brewTimeSeconds = 150,
             grindSize = "Medium-Fine (~400-500 µm / finer than pour-over, coarser than espresso)",
-            notes = "Specialty Bialetti technique: Pre-boiled water (90°C) is added to boiler to avoid baking dry grounds on stove. Ground bed is leveled with finger and left uncompressed. Base is quenched immediately in cold water at first sputtering to halt extraction before bitter phenols extract.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
                 BrewStep(1, "Pour pre-heated water (90°C, 150g) into lower boiler up to bottom of safety pressure valve.", 150.0, 30),
-                BrewStep(2, "Fill funnel filter with 15g coffee. Level flat with finger without tamping. Screw upper chamber tightly.", 150.0, 20),
+                BrewStep(
+                    2,
+                    "Fill funnel filter with 15g coffee. Level flat with finger without tamping. Screw upper chamber tightly.",
+                    150.0,
+                    20
+                ),
                 BrewStep(3, "Place on low-medium heat with lid open. Coffee stream starts emerging steadily at ~1:30.", 150.0, 70),
-                BrewStep(4, "At first sign of bubbling/blonding (~2:30), immediately remove from heat and quench base on cold damp towel.", 150.0, 30)
+                BrewStep(
+                    4,
+                    "At first sign of bubbling/blonding (~2:30), immediately remove from heat and quench base on cold damp towel.",
+                    150.0,
+                    30
+                )
             )
         ),
 
@@ -283,12 +333,22 @@ object CuratedCoffeeCatalog {
             pressureBars = null,
             brewTimeSeconds = 140,
             grindSize = "Medium-Coarse (~800 µm / Comandante 24-26 clicks)",
-            notes = "Hedrick 'One and Done' high-extraction routine. Uses a double bloom (3x + 3x coffee weight) with zero swirling to prevent fines migration and clogging. High-energy single center pour (10-12 ml/s) suspends grounds and extracts evenly without channeling.",
+            notes = "Synthetic scenario note for regression tests.",
             brewSteps = listOf(
                 BrewStep(1, "1st Bloom: Pour 45g (3x dose) gently in spiral. Do not swirl or agitate.", 45.0, 30),
                 BrewStep(2, "2nd Bloom: Pour 45g (to 90g total) gently in spiral. Allow grounds to degas undisturbed.", 90.0, 30),
-                BrewStep(3, "Main Pour: At 1:00, pour remaining 135g (to 225g total) with high flow (~10-12 ml/s) directly into small center circle.", 225.0, 30),
-                BrewStep(4, "Drawdown: Allow uninterrupted gravitational drainage. Total brew time lands between 2:15 and 2:30 (140s).", 225.0, 50)
+                BrewStep(
+                    3,
+                    "Main pour at 1:00: add 135g to 225g total in the center.",
+                    225.0,
+                    30
+                ),
+                BrewStep(
+                    4,
+                    "Drawdown: Allow uninterrupted gravitational drainage. Total brew time lands between 2:15 and 2:30 (140s).",
+                    225.0,
+                    50
+                )
             )
         )
     )
@@ -460,7 +520,7 @@ object CuratedCoffeeCatalog {
                 "White Peach" to 7,
                 "Earl Grey" to 8
             ),
-            notes = "Drawdown finished cleanly at 3:28 with uniform flat bed. High extraction yield (20.63%) delivered sparkling bergamot and crisp lemon acidity balanced by honeysuckle sweetness and delicate silk tea body. No astringency.",
+            notes = "Synthetic scenario note for regression tests.",
             assessor = "Q-Grader Sensory Lab Panel",
             panel = "Calibration Cupping Panel #1",
             timestamp = 1729002000000L
@@ -484,7 +544,7 @@ object CuratedCoffeeCatalog {
                 "Raspberry" to 7,
                 "White Florals" to 7
             ),
-            notes = "Coarse grind prevented channeling during the five 45-second pulses. 4:6 division pushed remarkable honeyed tropical sweetness (score 9) and round juicy body (19.24% EY). Long lingering aftertaste of fresh papaya and white florals.",
+            notes = "Synthetic scenario note for regression tests.",
             assessor = "Q-Grader Sensory Lab Panel",
             panel = "Calibration Cupping Panel #1",
             timestamp = 1729005600000L
@@ -508,7 +568,7 @@ object CuratedCoffeeCatalog {
                 "Cane Sugar" to 8,
                 "Red Apple" to 7
             ),
-            notes = "Pulled in 28 seconds with dense crema. High concentration (10.20% TDS, 20.40% EY). Vibrant malic and phosphoric Kenya acidity carries intense blackcurrant cordial flavors, buffered by deep cane sugar caramel and bittersweet dark cocoa.",
+            notes = "Synthetic scenario note for regression tests.",
             assessor = "Head Barista & Certified Sensory Judge",
             panel = "Espresso Quality Control",
             timestamp = 1729009200000L
@@ -532,7 +592,7 @@ object CuratedCoffeeCatalog {
                 "Orange Zest" to 6,
                 "Brown Sugar" to 8
             ),
-            notes = "Flat-bottom Wave filter maintained stable thermal bed across 5 pulses. Brewed to 19.78% EY. Rich volcanic chocolate and almond marzipan notes supported by gentle spiced plum acidity and heavy velvet mouthfeel.",
+            notes = "Synthetic scenario note for regression tests.",
             assessor = "Senior Roaster & Cupper",
             panel = "Calibration Cupping Panel #2",
             timestamp = 1729012800000L
@@ -556,7 +616,7 @@ object CuratedCoffeeCatalog {
                 "White Peach" to 8,
                 "Lemongrass" to 7
             ),
-            notes = "Double unagitated bloom followed by high-energy center pour achieved complete extraction (21.84% EY) with crystalline clarity (score 10). Stunning floral intensity of fresh jasmine and orange blossoms with sweet white peach finish and zero astringency.",
+            notes = "Synthetic scenario note for regression tests.",
             assessor = "World Brewers Cup Competitor",
             panel = "Competition Preparation Panel",
             timestamp = 1729016400000L
@@ -578,7 +638,9 @@ object CuratedCoffeeCatalog {
                     puckPrepMethods = listOf("WDT", "Leveler", "Puck Screen"),
                     firstDropSeconds = r.firstDropSeconds ?: 5
                 )
-            } else null
+            } else {
+                null
+            }
 
             BrewJournalEntry(
                 id = "journal-entry-${r.id}",

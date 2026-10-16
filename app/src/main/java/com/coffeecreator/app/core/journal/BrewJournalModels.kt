@@ -23,7 +23,9 @@ data class BrewJournalEntry(
         BigDecimal.valueOf(waterGrams)
             .divide(BigDecimal.valueOf(doseGrams), 2, RoundingMode.HALF_UP)
             .toDouble()
-    } else 0.0,
+    } else {
+        0.0
+    },
     val grinderModel: String = "",
     val grindSetting: String = "",
     val waterTemperatureCelsius: Double = 93.0,
@@ -35,11 +37,15 @@ data class BrewJournalEntry(
             .multiply(BigDecimal.valueOf(measuredTdsPercent))
             .divide(BigDecimal.valueOf(doseGrams), 2, RoundingMode.HALF_UP)
             .toDouble()
-    } else null,
+    } else {
+        null
+    },
     val rating: Double? = null, // Scale 1.0 to 10.0
     val tasteNotes: List<String> = emptyList(),
     val sensoryScores: Map<String, Int> = emptyMap(), // Aroma, Acidity, Sweetness, Body, Bitterness (1-10)
     val generalNotes: String = "",
+    /** The water value is a recipe target and the timer duration is the only observed event fact. */
+    val timerOnly: Boolean = false,
     val photoUris: List<String> = emptyList(), // Preserved as standard URI strings
     val tags: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
@@ -60,12 +66,16 @@ data class EspressoJournalDetails(
         BigDecimal.valueOf(actualYieldGrams)
             .divide(BigDecimal.valueOf(actualDurationSeconds.toLong()), 2, RoundingMode.HALF_UP)
             .toDouble()
-    } else 0.0,
+    } else {
+        0.0
+    },
     val targetFlowRateGps: Double = if (targetDurationSeconds > 0) {
         BigDecimal.valueOf(targetYieldGrams)
             .divide(BigDecimal.valueOf(targetDurationSeconds.toLong()), 2, RoundingMode.HALF_UP)
             .toDouble()
-    } else 0.0,
+    } else {
+        0.0
+    },
     val basketSizeGrams: Double? = null,
     val puckPrepMethods: List<String> = emptyList(), // e.g. "WDT", "RDT", "Screen", "Puck Paper"
     val firstDropSeconds: Int? = null,

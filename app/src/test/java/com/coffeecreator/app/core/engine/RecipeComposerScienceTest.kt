@@ -1,6 +1,6 @@
 package com.coffeecreator.app.core.engine
 
-import com.coffeecreator.app.core.data.CuratedCoffeeCatalog
+import com.coffeecreator.app.core.data.BrewScenarioFixtures
 import com.coffeecreator.app.core.data.RecipeExportFormatter
 import com.coffeecreator.app.core.model.BrewStep
 import com.coffeecreator.app.core.model.CoffeeBean
@@ -225,7 +225,8 @@ class RecipeComposerScienceTest {
             beverageMassGrams = 100.0,
             stockAdditionGrams = 2.0,
             activeStockPercent = 1.0,
-            supplierMaxPercent = 1.0 // 2.0 / 102.0 = ~1.96% > 1.0%
+            // 2.0 / 102.0 = ~1.96% > 1.0%.
+            supplierMaxPercent = 1.0
         )
         assertTrue(result.isSuccess)
         val dosage = result.getOrThrow()
@@ -265,8 +266,23 @@ class RecipeComposerScienceTest {
             temperatureCelsius = 93.0,
             brewTimeSeconds = 180,
             brewSteps = listOf(
-                BrewStep(stepNumber = 1, description = "Bloom pour", action = "Bloom", targetWaterGrams = 50.0, cumulativeMassGrams = 50.0, durationSeconds = 45),
-                BrewStep(stepNumber = 2, description = "First pour", action = "Pour 1", targetWaterGrams = 100.0, cumulativeMassGrams = 40.0, durationSeconds = 30) // Error: drops to 40g
+                // Error: cumulative water drops to 40g.
+                BrewStep(
+                    stepNumber = 1,
+                    description = "Bloom pour",
+                    action = "Bloom",
+                    targetWaterGrams = 50.0,
+                    cumulativeMassGrams = 50.0,
+                    durationSeconds = 45
+                ),
+                BrewStep(
+                    stepNumber = 2,
+                    description = "First pour",
+                    action = "Pour 1",
+                    targetWaterGrams = 100.0,
+                    cumulativeMassGrams = 40.0,
+                    durationSeconds = 30
+                )
             )
         )
 
@@ -279,7 +295,7 @@ class RecipeComposerScienceTest {
 
     @Test
     fun `S2-024 Curated starter recipes catalog has source-attributed recipes with steps`() {
-        val recipes = CuratedCoffeeCatalog.recipes
+        val recipes = BrewScenarioFixtures.recipes
         assertTrue(recipes.size >= 10)
 
         recipes.forEach { recipe ->
@@ -327,7 +343,7 @@ class RecipeComposerScienceTest {
 
     @Test
     fun `S2-026 Recipe exports to structured offline JSON`() {
-        val recipe = CuratedCoffeeCatalog.recipes.first()
+        val recipe = BrewScenarioFixtures.recipes.first()
         val json = RecipeExportFormatter.exportToJson(recipe)
 
         assertTrue(json.contains("\"name\": \"${recipe.name}\""))
@@ -349,7 +365,7 @@ class RecipeComposerScienceTest {
             process = "Washed",
             roastLevel = "Light"
         )
-        val recipe = CuratedCoffeeCatalog.recipes.first()
+        val recipe = BrewScenarioFixtures.recipes.first()
         val card = RecipeExportFormatter.exportToBaristaCard(recipe, bean)
 
         assertTrue(card.contains("COFFEE CREATOR — RECIPE SPECIFICATION"))

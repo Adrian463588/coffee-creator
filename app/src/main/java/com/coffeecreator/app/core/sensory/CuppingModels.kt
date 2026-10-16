@@ -7,9 +7,9 @@ import java.math.BigDecimal
 // ============================================================================
 
 enum class EpistemologicalOrigin {
-    HUMAN_OBSERVATION,      // Empirical score directly logged by human evaluator
-    AI_HEURISTIC_HYPOTHESIS,// Rule-based inference from origins/roast parameters
-    CALIBRATED_PREDICTION   // Statistical/ML prediction with confidence intervals
+    HUMAN_OBSERVATION, // Empirical score directly logged by human evaluator
+    AI_HEURISTIC_HYPOTHESIS, // Rule-based inference from origins/roast parameters
+    CALIBRATED_PREDICTION // Statistical/ML prediction with confidence intervals
 }
 
 data class ProvenanceBadge(
@@ -27,10 +27,10 @@ data class ProvenanceBadge(
 // ============================================================================
 
 enum class SensoryScaleType {
-    Q_SCALE_6_TO_10,        // 6.00 to 10.00 in 0.25 increments
-    ORDINAL_1_TO_10,        // 1.0 to 10.0 continuous
-    INTENSITY_0_TO_5,       // 0 to 5 perceived intensity
-    CHECKLIST_5_CUPS        // 5 bowls (0 to 5 checked)
+    Q_SCALE_6_TO_10, // 6.00 to 10.00 in 0.25 increments
+    ORDINAL_1_TO_10, // 1.0 to 10.0 continuous
+    INTENSITY_0_TO_5, // 0 to 5 perceived intensity
+    CHECKLIST_5_CUPS // 5 bowls (0 to 5 checked)
 }
 
 data class AttributeDefinition(
@@ -65,16 +65,86 @@ object StandardCuppingTemplates {
         title = "Specialty 100-Point Protocol",
         description = "Standard 10-attribute specialty evaluation protocol with 6.00-10.00 scale and defect deductions.",
         attributes = listOf(
-            AttributeDefinition("fragrance_aroma", "Fragrance / Aroma", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25")),
-            AttributeDefinition("flavor", "Flavor", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25")),
-            AttributeDefinition("aftertaste", "Aftertaste", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25")),
-            AttributeDefinition("acidity", "Acidity", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25")),
-            AttributeDefinition("body", "Body", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25")),
-            AttributeDefinition("balance", "Balance", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25")),
-            AttributeDefinition("uniformity", "Uniformity (5 Cups)", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25")),
-            AttributeDefinition("clean_cup", "Clean Cup (5 Cups)", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25")),
-            AttributeDefinition("sweetness", "Sweetness (5 Cups)", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25")),
-            AttributeDefinition("overall", "Overall Cupper Score", SensoryScaleType.Q_SCALE_6_TO_10, BigDecimal("6.00"), BigDecimal("10.00"), BigDecimal("0.25"))
+            AttributeDefinition(
+                "fragrance_aroma",
+                "Fragrance / Aroma",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            ),
+            AttributeDefinition(
+                "flavor",
+                "Flavor",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            ),
+            AttributeDefinition(
+                "aftertaste",
+                "Aftertaste",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            ),
+            AttributeDefinition(
+                "acidity",
+                "Acidity",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            ),
+            AttributeDefinition(
+                "body",
+                "Body",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            ),
+            AttributeDefinition(
+                "balance",
+                "Balance",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            ),
+            AttributeDefinition(
+                "uniformity",
+                "Uniformity (5 Cups)",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            ),
+            AttributeDefinition(
+                "clean_cup",
+                "Clean Cup (5 Cups)",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            ),
+            AttributeDefinition(
+                "sweetness",
+                "Sweetness (5 Cups)",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            ),
+            AttributeDefinition(
+                "overall",
+                "Overall Cupper Score",
+                SensoryScaleType.Q_SCALE_6_TO_10,
+                BigDecimal("6.00"),
+                BigDecimal("10.00"),
+                BigDecimal("0.25")
+            )
         )
     )
 
@@ -83,12 +153,54 @@ object StandardCuppingTemplates {
         title = "Barista Dial-In Fast Cupping",
         description = "Fast 6-parameter dial-in sensory sheet on a 1-10 continuous scale for cafe baristas.",
         attributes = listOf(
-            AttributeDefinition("sweetness", "Sweetness", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("acidity", "Acidity Clarity", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("bitterness", "Bitterness Balance", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("body", "Body & Mouthfeel", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("balance", "Extraction Balance", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("aftertaste", "Finish & Length", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5"))
+            AttributeDefinition(
+                "sweetness",
+                "Sweetness",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "acidity",
+                "Acidity Clarity",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "bitterness",
+                "Bitterness Balance",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "body",
+                "Body & Mouthfeel",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "balance",
+                "Extraction Balance",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "aftertaste",
+                "Finish & Length",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            )
         )
     )
 
@@ -97,10 +209,38 @@ object StandardCuppingTemplates {
         title = "Roastery Production QC",
         description = "Production batch release protocol checking consistency, flavor profile, and taints.",
         attributes = listOf(
-            AttributeDefinition("profile_match", "Profile Fidelity", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("clean_cup", "Cleanliness & Defects", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("roast_development", "Roast Development", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("overall_commercial", "Release Approval Score", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5"))
+            AttributeDefinition(
+                "profile_match",
+                "Profile Fidelity",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "clean_cup",
+                "Cleanliness & Defects",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "roast_development",
+                "Roast Development",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "overall_commercial",
+                "Release Approval Score",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            )
         )
     )
 
@@ -109,12 +249,54 @@ object StandardCuppingTemplates {
         title = "Espresso Extraction Sensory",
         description = "Specialized tactile and aromatic evaluation for straight espresso shots.",
         attributes = listOf(
-            AttributeDefinition("crema_texture", "Crema Persistence & Tactile", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("aroma_intensity", "Aroma Intensity", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("acidity_structure", "Acidity Structure", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("sweetness_core", "Sweetness Core", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("viscosity_mouthfeel", "Viscosity & Weight", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5")),
-            AttributeDefinition("finish_lingering", "Aftertaste & Lingering", SensoryScaleType.ORDINAL_1_TO_10, BigDecimal("1.0"), BigDecimal("10.0"), BigDecimal("0.5"))
+            AttributeDefinition(
+                "crema_texture",
+                "Crema Persistence & Tactile",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "aroma_intensity",
+                "Aroma Intensity",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "acidity_structure",
+                "Acidity Structure",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "sweetness_core",
+                "Sweetness Core",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "viscosity_mouthfeel",
+                "Viscosity & Weight",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "finish_lingering",
+                "Aftertaste & Lingering",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            )
         )
     )
 
@@ -144,20 +326,20 @@ data class Evaluator(
 )
 
 enum class MaskingMode {
-    OPEN_LABEL,             // Roaster, bean, process visible
+    OPEN_LABEL, // Roaster, bean, process visible
     SINGLE_BLIND_EVALUATOR, // Evaluators see code; Lead sees true identity
-    DOUBLE_BLIND_PANEL      // All parties see code until controlled reveal
+    DOUBLE_BLIND_PANEL // All parties see code until controlled reveal
 }
 
 data class CuppingSample(
     val sampleId: String,
-    val blindCode: String,     // e.g. "Sample #A1", "Bowl #03"
-    val actualBeanId: String,
+    val blindCode: String, // e.g. "Sample #A1", "Bowl #03"
+    val actualBeanId: String?,
     val beanName: String,
-    val roaster: String,
-    val origin: String,
-    val process: String,
-    val roastDateEpoch: Long,
+    val roaster: String?,
+    val origin: String?,
+    val process: String?,
+    val roastDateEpoch: Long?,
     val tablePosition: Int,
     val isRevealed: Boolean = false
 )
@@ -302,8 +484,14 @@ data class PhysicalQcRecord(
 // ============================================================================
 
 enum class DegassingPhase(val label: String, val sensoryCharacteristics: String) {
-    TOO_FRESH_CO2_INTERFERENCE("Fresh / Degassing", "High CO2 concentration, turbulent extraction, sharp carbonic acidity, muted aromatic nuances"),
-    PEAK_FLAVOR_WINDOW("Peak Maturity", "Optimal degassing balance, maximum aromatic clarity, fully developed sweetness, velvety mouthfeel"),
+    TOO_FRESH_CO2_INTERFERENCE(
+        "Fresh / Degassing",
+        "High CO2 concentration, turbulent extraction, sharp carbonic acidity, muted aromatic nuances"
+    ),
+    PEAK_FLAVOR_WINDOW(
+        "Peak Maturity",
+        "Optimal degassing balance, maximum aromatic clarity, fully developed sweetness, velvety mouthfeel"
+    ),
     STABLE_POST_PEAK("Post-Peak Stable", "Balanced and clean, gentle softening of high-tone volatile floral/fruity notes"),
     STALE_OXIDIZED("Stale / Oxidized", "Loss of aromatic vibrancy, dry cardboard, papery finish, oxidized lipid character")
 }

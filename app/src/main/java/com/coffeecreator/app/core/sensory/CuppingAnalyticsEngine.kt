@@ -203,6 +203,23 @@ object CuppingAnalyticsEngine {
     // 2. Score Calculation & Defect Deductions (S2-053, S2-055)
     // ========================================================================
 
+    fun validateAttributeScores(template: CuppingTemplate, attributeScores: Map<String, BigDecimal>) {
+        val expectedKeys = template.attributes.map { it.key }.toSet()
+        require(attributeScores.keys == expectedKeys) {
+            "Record a score for every protocol attribute before submitting."
+        }
+        template.attributes.forEach { attribute ->
+            val score = requireNotNull(attributeScores[attribute.key])
+            require(score >= attribute.minValue && score <= attribute.maxValue) {
+                "${attribute.label} must be between ${attribute.minValue} and ${attribute.maxValue}."
+            }
+            val offset = score.subtract(attribute.minValue)
+            require(attribute.stepSize > BigDecimal.ZERO && offset.remainder(attribute.stepSize).compareTo(BigDecimal.ZERO) == 0) {
+                "${attribute.label} must follow the protocol increment of ${attribute.stepSize}."
+            }
+        }
+    }
+
     fun calculateTotalCuppingScore(
         templateType: CuppingTemplateType,
         attributeScores: Map<String, BigDecimal>,
@@ -275,7 +292,7 @@ object CuppingAnalyticsEngine {
     fun predictRoastRestCurve(
         bagId: String,
         roastLevel: String = "LIGHT", // LIGHT, MEDIUM, DARK
-        process: String = "WASHED"     // WASHED, NATURAL, ANAEROBIC
+        process: String = "WASHED" // WASHED, NATURAL, ANAEROBIC
     ): RestCurvePrediction {
         val cleanRoast = roastLevel.uppercase()
         val cleanProcess = process.uppercase()
@@ -315,10 +332,7 @@ object CuppingAnalyticsEngine {
         )
     }
 
-    fun classifyObservationPhase(
-        daysPostRoast: Int,
-        prediction: RestCurvePrediction
-    ): DegassingPhase {
+    fun classifyObservationPhase(daysPostRoast: Int, prediction: RestCurvePrediction): DegassingPhase {
         return when {
             daysPostRoast < prediction.estimatedPeakWindowStartDay -> DegassingPhase.TOO_FRESH_CO2_INTERFERENCE
             daysPostRoast <= prediction.estimatedPeakWindowEndDay -> DegassingPhase.PEAK_FLAVOR_WINDOW
@@ -331,10 +345,7 @@ object CuppingAnalyticsEngine {
     // 5. Offline QC Report & Cryptographic Receipt (S2-060)
     // ========================================================================
 
-    fun generateOfflineReport(
-        session: CuppingSession,
-        physicalQcBySample: Map<String, PhysicalQcRecord> = emptyMap()
-    ): QcReportReceipt {
+    fun generateOfflineReport(session: CuppingSession, physicalQcBySample: Map<String, PhysicalQcRecord> = emptyMap()): QcReportReceipt {
         val now = System.currentTimeMillis()
         val sb = StringBuilder()
 
@@ -356,13 +367,19 @@ object CuppingAnalyticsEngine {
 
         sb.append("## Sample Evaluation Results\n\n")
         val csv = StringBuilder()
-        csv.append("sample_id,blind_code,bean_name,origin,consensus_score,panel_agreement_index,primary_descriptors,green_grade,agtron_delta\n")
+        csv.append(
+            "sample_id,blind_code,bean_name,origin,consensus_score,panel_agreement_index,primary_descriptors,green_grade,agtron_delta\n"
+        )
 
         session.samples.forEach { sample ->
             val consensus = computeConsensus(session, sample.sampleId)
             val phys = physicalQcBySample[sample.sampleId]
 
-            val displayName = if (sample.isRevealed) "${sample.beanName} (${sample.origin})" else "HIDDEN (Masked)"
+            val displayName = if (sample.isRevealed) {
+                "${sample.beanName} (${sample.origin ?: "origin not recorded"})"
+            } else {
+                "HIDDEN (Masked)"
+            }
             sb.append("### Sample: ${sample.blindCode} — $displayName\n")
             sb.append("- **Consensus Cupping Score:** ${consensus.finalConsensusScore} / 100\n")
             sb.append("- **Panel Agreement Index (IRAI):** ${consensus.overallPanelAgreementIndex}\n")
@@ -373,11 +390,15 @@ object CuppingAnalyticsEngine {
                 sb.append("  - `$k`: Mean ${c.mean}, Median ${c.median}, SD ${c.stdDev}, Agreement ${c.agreementIndex}$outlierTag\n")
             }
 
-            val topDescriptors = consensus.descriptorCloud.take(5).joinToString(", ") { "${it.descriptor} (${(it.selectionFrequency * BigDecimal(100)).toInt()}%)" }
+            val topDescriptors = consensus.descriptorCloud.take(5).joinToString(", ") {
+                "${it.descriptor} (${(it.selectionFrequency * BigDecimal(100)).toInt()}%)"
+            }
             sb.append("- **Consensus Descriptors:** ${if (topDescriptors.isEmpty()) "None recorded" else topDescriptors}\n")
 
             if (phys != null) {
-                sb.append("- **Physical QC:** Grade: ${phys.calculatedGrade}, Moisture: ${phys.moisturePercentage}%, aw: ${phys.waterActivityAw}, Agtron Roast Delta: ${phys.roastDeltaAgtron}\n")
+                sb.append(
+                    "- **Physical QC:** Grade: ${phys.calculatedGrade}, Moisture: ${phys.moisturePercentage}%, aw: ${phys.waterActivityAw}, Agtron Roast Delta: ${phys.roastDeltaAgtron}\n"
+                )
             }
             sb.append("\n")
 
@@ -385,7 +406,9 @@ object CuppingAnalyticsEngine {
             val descCsv = consensus.descriptorCloud.take(3).joinToString(";") { it.descriptor }
             val gradeCsv = phys?.calculatedGrade ?: "N/A"
             val agtronCsv = phys?.roastDeltaAgtron?.toString() ?: "N/A"
-            csv.append("${sample.sampleId},\"${sample.blindCode}\",\"${if (sample.isRevealed) sample.beanName else "MASKED"}\",\"${if (sample.isRevealed) sample.origin else "MASKED"}\",${consensus.finalConsensusScore},${consensus.overallPanelAgreementIndex},\"$descCsv\",\"$gradeCsv\",$agtronCsv\n")
+            csv.append(
+                "${sample.sampleId},\"${sample.blindCode}\",\"${if (sample.isRevealed) sample.beanName else "MASKED"}\",\"${if (sample.isRevealed) sample.origin.orEmpty() else "MASKED"}\",${consensus.finalConsensusScore},${consensus.overallPanelAgreementIndex},\"$descCsv\",\"$gradeCsv\",$agtronCsv\n"
+            )
         }
 
         sb.append("## Audit Trail Log\n")
@@ -393,7 +416,11 @@ object CuppingAnalyticsEngine {
             sb.append("_No administrative state mutations recorded._\n")
         } else {
             session.auditTrail.forEach { entry ->
-                sb.append("- [${java.util.Date(entry.timestamp)}] User `${entry.editorId}`: **${entry.action}** — ${entry.reason} (State: ${entry.previousStateSummary} -> ${entry.newStateSummary})\n")
+                sb.append(
+                    "- [${java.util.Date(
+                        entry.timestamp
+                    )}] User `${entry.editorId}`: **${entry.action}** — ${entry.reason} (State: ${entry.previousStateSummary} -> ${entry.newStateSummary})\n"
+                )
             }
         }
 

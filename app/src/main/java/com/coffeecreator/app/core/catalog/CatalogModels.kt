@@ -9,16 +9,33 @@ import java.time.LocalDate
 // ============================================================================
 
 enum class RoastLevel {
-    CINNAMON, LIGHT, MEDIUM_LIGHT, MEDIUM, MEDIUM_DARK, DARK, VERY_DARK, UNKNOWN
+    CINNAMON,
+    LIGHT,
+    MEDIUM_LIGHT,
+    MEDIUM,
+    MEDIUM_DARK,
+    DARK,
+    VERY_DARK,
+    UNKNOWN
 }
 
 enum class ProcessMethod {
-    WASHED, NATURAL, HONEY, ANAEROBIC_NATURAL, ANAEROBIC_WASHED,
-    CARBONIC_MACERATION, WET_HULLED, EXPERIMENTAL, UNKNOWN
+    WASHED,
+    NATURAL,
+    HONEY,
+    ANAEROBIC_NATURAL,
+    ANAEROBIC_WASHED,
+    CARBONIC_MACERATION,
+    WET_HULLED,
+    EXPERIMENTAL,
+    UNKNOWN
 }
 
 enum class BagStatus {
-    PURCHASED, ACTIVE, FINISHED, FROZEN
+    PURCHASED,
+    ACTIVE,
+    FINISHED,
+    FROZEN
 }
 
 data class FreezeEvent(
@@ -64,7 +81,7 @@ data class DetailedBeanRecord(
     val process: ProcessMethod = ProcessMethod.UNKNOWN,
     val altitudeMeters: Int? = null,
     val harvestDate: String? = null,
-    val roastDate: LocalDate,
+    val roastDate: LocalDate? = null,
     val roastLevel: RoastLevel = RoastLevel.UNKNOWN,
     val tastingNotes: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
@@ -105,7 +122,7 @@ object RoastRestCalculator {
         isCurrentlyFrozen: Boolean = false
     ): FreshnessAnalysis {
         val totalCalendarDays = maxOf(0L, java.time.temporal.ChronoUnit.DAYS.between(roastDate, evaluationDate))
-        
+
         // Sum total frozen days
         val totalFrozenDays = freezeHistory.sumOf { it.durationDays() }
         val effectiveRestDays = if (isCurrentlyFrozen) {
@@ -165,15 +182,25 @@ object RoastRestCalculator {
 // ============================================================================
 
 enum class CalibrationUnit {
-    CLICKS, MICRONS, STEPLESS_DEGREES, NUMERICAL_MARKS
+    CLICKS,
+    MICRONS,
+    STEPLESS_DEGREES,
+    NUMERICAL_MARKS
 }
 
 enum class BurrType {
-    CONICAL, FLAT, GHOST_TOOTH, HYBRID
+    CONICAL,
+    FLAT,
+    GHOST_TOOTH,
+    HYBRID
 }
 
 enum class BurrMaterial {
-    STAINLESS_STEEL, TITANIUM_COATED, DLC_COATED, CERAMIC, CARBON_STEEL
+    STAINLESS_STEEL,
+    TITANIUM_COATED,
+    DLC_COATED,
+    CERAMIC,
+    CARBON_STEEL
 }
 
 data class BurrProfile(
@@ -197,8 +224,14 @@ data class GrinderRecord(
 )
 
 enum class EquipmentCategory {
-    DRIPPER, FILTER_PAPER, KETTLE, SCALE, ESPRESSO_MACHINE,
-    PORTAFILTER_BASKET, PUCK_PREP_TOOL, OTHER
+    DRIPPER,
+    FILTER_PAPER,
+    KETTLE,
+    SCALE,
+    ESPRESSO_MACHINE,
+    PORTAFILTER_BASKET,
+    PUCK_PREP_TOOL,
+    OTHER
 }
 
 data class EquipmentItem(
@@ -225,11 +258,11 @@ enum class WaterRecipePreset {
 data class WaterMineralProfile(
     val id: String,
     val name: String,
-    val calciumPpm: BigDecimal,       // mg/L Ca2+
-    val magnesiumPpm: BigDecimal,     // mg/L Mg2+
-    val sodiumPpm: BigDecimal,        // mg/L Na+
+    val calciumPpm: BigDecimal, // mg/L Ca2+
+    val magnesiumPpm: BigDecimal, // mg/L Mg2+
+    val sodiumPpm: BigDecimal, // mg/L Na+
     val potassiumPpm: BigDecimal = BigDecimal.ZERO,
-    val bicarbonatePpm: BigDecimal,   // mg/L HCO3-
+    val bicarbonatePpm: BigDecimal, // mg/L HCO3-
     val totalHardnessPpmCaCO3: BigDecimal,
     val totalAlkalinityPpmCaCO3: BigDecimal,
     val calculatedTdsPpm: BigDecimal,
@@ -354,12 +387,13 @@ data class FoodGradeIngredientItem(
 
 data class ExtractedOcrField<T>(
     val value: T?,
-    val confidence: Double,
+    /** Null until a calibrated OCR model can provide a validated probability. */
+    val confidence: Double? = null,
     val rawSnippet: String = ""
 )
 
 data class BagOcrParsedDraft(
-    val photoUri: String,
+    val photoUri: String?,
     val rawExtractedText: String,
     val roaster: ExtractedOcrField<String>,
     val beanName: ExtractedOcrField<String>,
@@ -372,9 +406,9 @@ data class BagOcrParsedDraft(
 )
 
 object OfflineBagOcrParser {
-    fun parseBagText(photoUri: String, text: String): BagOcrParsedDraft {
+    fun parseBagText(photoUri: String?, text: String): BagOcrParsedDraft {
         val lines = text.lines().map { it.trim() }.filter { it.isNotBlank() }
-        
+
         var roaster: String? = null
         var beanName: String? = null
         var origin: String? = null
@@ -422,10 +456,12 @@ object OfflineBagOcrParser {
             // Package mass (e.g., 250g, 250 g, 500g, 1kg)
             val weightRegex = Regex("(\\d+(?:\\.\\d+)?)\\s*(G|KG)", RegexOption.IGNORE_CASE)
             weightRegex.find(line)?.let { match ->
-                val num = match.groupValues[1].toDoubleOrNull() ?: 250.0
                 val unit = match.groupValues[2].uppercase()
-                val massG = if (unit == "KG") num * 1000.0 else num
-                packageMass = BigDecimal.valueOf(massG).setScale(2, RoundingMode.HALF_UP)
+                val number = match.groupValues[1].toBigDecimalOrNull()
+                if (number != null && number > BigDecimal.ZERO) {
+                    val massGrams = if (unit == "KG") number.multiply(BigDecimal("1000")) else number
+                    packageMass = massGrams.setScale(2, RoundingMode.HALF_UP)
+                }
             }
         }
 
@@ -438,14 +474,20 @@ object OfflineBagOcrParser {
         return BagOcrParsedDraft(
             photoUri = photoUri,
             rawExtractedText = text,
-            roaster = ExtractedOcrField(roaster, if (roaster != null) 0.90 else 0.0, roaster ?: ""),
-            beanName = ExtractedOcrField(beanName, if (beanName != null) 0.85 else 0.0, beanName ?: ""),
-            origin = ExtractedOcrField(origin, if (origin != null) 0.95 else 0.0, origin ?: ""),
-            process = ExtractedOcrField(process, if (process != ProcessMethod.UNKNOWN) 0.95 else 0.0, process.name),
-            varietal = ExtractedOcrField(varietal, if (varietal != null) 0.80 else 0.0, varietal ?: ""),
-            altitudeMeters = ExtractedOcrField(altitude, if (altitude != null) 0.90 else 0.0, altitude?.toString() ?: ""),
-            roastDate = ExtractedOcrField(roastDate, if (roastDate != null) 0.95 else 0.0, roastDate?.toString() ?: ""),
-            packageMassGrams = ExtractedOcrField(packageMass ?: BigDecimal("250.00"), 0.90, packageMass?.toString() ?: "250")
+            roaster = ExtractedOcrField(roaster, rawSnippet = roaster ?: ""),
+            beanName = ExtractedOcrField(beanName, rawSnippet = beanName ?: ""),
+            origin = ExtractedOcrField(origin, rawSnippet = origin ?: ""),
+            process = ExtractedOcrField(
+                process.takeUnless { it == ProcessMethod.UNKNOWN },
+                rawSnippet = lines.firstOrNull {
+                    listOf("WASHED", "NATURAL", "HONEY", "ANAEROBIC", "WET HULLED", "GILING BASAH")
+                        .any { token -> it.contains(token, ignoreCase = true) }
+                }.orEmpty()
+            ),
+            varietal = ExtractedOcrField(varietal, rawSnippet = varietal ?: ""),
+            altitudeMeters = ExtractedOcrField(altitude, rawSnippet = altitude?.toString() ?: ""),
+            roastDate = ExtractedOcrField(roastDate, rawSnippet = roastDate?.toString() ?: ""),
+            packageMassGrams = ExtractedOcrField(packageMass, rawSnippet = packageMass?.toPlainString() ?: "")
         )
     }
 }
@@ -490,7 +532,11 @@ data class ImportExecutionReceipt(
 // ============================================================================
 
 enum class SampleLotStatus {
-    OFFER_SAMPLE, PRE_SHIPMENT, LANDED_SAMPLE, PRODUCTION_LOT, ARCHIVED
+    OFFER_SAMPLE,
+    PRE_SHIPMENT,
+    LANDED_SAMPLE,
+    PRODUCTION_LOT,
+    ARCHIVED
 }
 
 data class GreenCoffeeLot(
@@ -515,8 +561,8 @@ data class GreenCoffeeLot(
 
     val isSpecialtyGradeEligible: Boolean get() =
         category1DefectCount == 0 && totalDefectPoints <= BigDecimal("5.00") &&
-        moisturePercent in BigDecimal("10.00")..BigDecimal("12.00") &&
-        waterActivityAw < BigDecimal("0.65")
+            moisturePercent in BigDecimal("10.00")..BigDecimal("12.00") &&
+            waterActivityAw < BigDecimal("0.65")
 }
 
 // ============================================================================
@@ -574,10 +620,14 @@ data class RoastBatchRecord(
             for (i in rawPoints.indices) {
                 val current = rawPoints[i]
                 val tempBd = BigDecimal.valueOf(current.second).setScale(2, RoundingMode.HALF_UP)
-                val ror = if (i == 0) null else {
+                val ror = if (i == 0) {
+                    null
+                } else {
                     val prev = rawPoints[i - 1]
                     val dt = current.first - prev.first
-                    if (dt <= 0) null else {
+                    if (dt <= 0) {
+                        null
+                    } else {
                         val dTemp = current.second - prev.second
                         val rorVal = (dTemp / dt.toDouble()) * 60.0
                         BigDecimal.valueOf(rorVal).setScale(2, RoundingMode.HALF_UP)

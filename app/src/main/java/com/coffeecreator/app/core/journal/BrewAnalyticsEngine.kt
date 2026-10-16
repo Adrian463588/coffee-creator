@@ -3,7 +3,6 @@ package com.coffeecreator.app.core.journal
 import com.coffeecreator.app.core.data.RecordJson
 import com.coffeecreator.app.core.model.CalculationMetadata
 import com.coffeecreator.app.core.model.CoffeeBean
-import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -40,19 +39,25 @@ object BrewAnalyticsEngine {
             BigDecimal.valueOf(comparison.measuredTdsPercent)
                 .subtract(BigDecimal.valueOf(baseline.measuredTdsPercent))
                 .setScale(2, RoundingMode.HALF_UP).toDouble()
-        } else null
+        } else {
+            null
+        }
 
         val eyDelta = if (comparison.extractionYieldPercent != null && baseline.extractionYieldPercent != null) {
             BigDecimal.valueOf(comparison.extractionYieldPercent)
                 .subtract(BigDecimal.valueOf(baseline.extractionYieldPercent))
                 .setScale(2, RoundingMode.HALF_UP).toDouble()
-        } else null
+        } else {
+            null
+        }
 
         val ratingDelta = if (comparison.rating != null && baseline.rating != null) {
             BigDecimal.valueOf(comparison.rating)
                 .subtract(BigDecimal.valueOf(baseline.rating))
                 .setScale(2, RoundingMode.HALF_UP).toDouble()
-        } else null
+        } else {
+            null
+        }
 
         val tempDelta = BigDecimal.valueOf(comparison.waterTemperatureCelsius)
             .subtract(BigDecimal.valueOf(baseline.waterTemperatureCelsius))
@@ -86,12 +91,13 @@ object BrewAnalyticsEngine {
      * Evaluates extraction yield, flow rate, and sensory taste flags to recommend
      * strictly ONE modification at a time.
      */
-    fun evaluateOvat(entry: BrewJournalEntry, tasteFlags: List<String> = emptyList()): OvatRecommendation {
+    fun evaluateOvat(entry: BrewJournalEntry, tasteFlags: List<String> = emptyList()): OvatRecommendation? {
         val combinedTaste = (tasteFlags + entry.tasteNotes).map { it.uppercase().trim() }
         val isEspresso = entry.isEspresso || entry.brewMethod.contains("Espresso", ignoreCase = true)
         val meanFlow = entry.espressoDetails?.meanFlowRateGps ?: 0.0
         val ey = entry.extractionYieldPercent
         val tds = entry.measuredTdsPercent
+        if (entry.timerOnly || (ey == null && tds == null && combinedTaste.isEmpty())) return null
 
         // 1. Channeling / Fracture Detection
         val hasChannelingFlags = ("SOUR" in combinedTaste && "ASTRINGENT" in combinedTaste) ||
@@ -266,12 +272,16 @@ object BrewAnalyticsEngine {
         val ratedEntries = monthlyEntries.mapNotNull { it.rating }
         val avgRating = if (ratedEntries.isNotEmpty()) {
             BigDecimal.valueOf(ratedEntries.average()).setScale(1, RoundingMode.HALF_UP).toDouble()
-        } else null
+        } else {
+            null
+        }
 
         val eyEntries = monthlyEntries.mapNotNull { it.extractionYieldPercent }
         val avgEy = if (eyEntries.isNotEmpty()) {
             BigDecimal.valueOf(eyEntries.average()).setScale(2, RoundingMode.HALF_UP).toDouble()
-        } else null
+        } else {
+            null
+        }
 
         return MonthlyBrewStatistics(
             year = year,
@@ -330,7 +340,9 @@ object BrewAnalyticsEngine {
      */
     fun exportJournalToCsv(entries: List<BrewJournalEntry>): String {
         val sb = StringBuilder()
-        sb.append("id,createdAt,beanName,brewMethod,equipment,doseGrams,waterGrams,ratio,temperatureC,brewDurationSeconds,drawdownSeconds,tdsPercent,eyPercent,rating,grinderModel,grindSetting,tags,generalNotes\n")
+        sb.append(
+            "id,createdAt,beanName,brewMethod,equipment,doseGrams,waterGrams,ratio,temperatureC,brewDurationSeconds,drawdownSeconds,tdsPercent,eyPercent,rating,grinderModel,grindSetting,tags,generalNotes\n"
+        )
 
         for (e in entries) {
             val safeBean = e.beanName.replace("\"", "\"\"")
@@ -424,7 +436,9 @@ object BrewAnalyticsEngine {
                         // Beanconqueror rating is often 1-5, map to 1-10
                         val mappedRating = if (ratingRaw != null && ratingRaw <= 5.0) {
                             ratingRaw * 2.0
-                        } else ratingRaw
+                        } else {
+                            ratingRaw
+                        }
                         val note = obj.get("note")?.asString ?: ""
 
                         brews.add(

@@ -135,10 +135,7 @@ object BrewFilterEngine {
     /**
      * Computes the Root Mean Square Error (RMSE) between actual weight stream and ideal curve.
      */
-    fun calculateCurveRmse(
-        actualPoints: List<Pair<Int, Double>>,
-        idealPoints: List<Pair<Int, Double>>
-    ): Double {
+    fun calculateCurveRmse(actualPoints: List<Pair<Int, Double>>, idealPoints: List<Pair<Int, Double>>): Double {
         if (actualPoints.isEmpty() || idealPoints.isEmpty()) return 0.0
 
         val idealMap = idealPoints.toMap()
@@ -176,8 +173,7 @@ object BrewFilterEngine {
     /**
      * Detects weight-triggered auto-start condition: positive delta >= 0.5g within short window.
      */
-    fun checkAutoStart(rawWeightDelta: Double, timeDeltaMs: Long): Boolean =
-        rawWeightDelta >= 0.5 && timeDeltaMs in 1..600
+    fun checkAutoStart(rawWeightDelta: Double, timeDeltaMs: Long): Boolean = rawWeightDelta >= 0.5 && timeDeltaMs in 1..600
 
     /**
      * Detects espresso auto-stop condition: flow rate < 0.20 g/s sustained for >= 1.5s after reaching yield.

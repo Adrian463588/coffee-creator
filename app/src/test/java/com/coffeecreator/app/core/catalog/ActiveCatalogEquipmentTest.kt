@@ -1,12 +1,13 @@
 package com.coffeecreator.app.core.catalog
 
+import java.math.BigDecimal
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.math.BigDecimal
-import java.time.LocalDate
 
 class ActiveCatalogEquipmentTest {
 
@@ -279,7 +280,25 @@ class ActiveCatalogEquipmentTest {
         assertEquals(2100, draft.altitudeMeters.value)
         assertEquals(LocalDate.of(2026, 10, 1), draft.roastDate.value)
         assertEquals(BigDecimal("250.00"), draft.packageMassGrams.value)
-        assertTrue(draft.origin.confidence >= 0.90)
+        assertNull("Heuristic text parsing is not calibrated OCR confidence.", draft.origin.confidence)
+    }
+
+    @Test
+    fun givenBagTextWithoutMassOrRoastDate_whenParsed_thenUnknownFieldsStayUnknown() {
+        val draft = OfflineBagOcrParser.parseBagText("content://user/bag.jpg", "ETHIOPIA\nWASHED")
+
+        assertNull(draft.packageMassGrams.value)
+        assertNull(draft.roastDate.value)
+        assertNull(draft.packageMassGrams.confidence)
+        assertNull(draft.process.confidence)
+    }
+
+    @Test
+    fun givenNonPositiveBagMass_whenParsed_thenNoDefaultInventoryMassIsInvented() {
+        val draft = OfflineBagOcrParser.parseBagText("content://user/bag.jpg", "NET WT: 0G")
+
+        assertNull(draft.packageMassGrams.value)
+        assertNull(draft.packageMassGrams.confidence)
     }
 
     // ========================================================================

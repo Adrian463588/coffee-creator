@@ -1,9 +1,9 @@
 package com.coffeecreator.app.core.reliability
 
+import com.coffeecreator.app.core.ai.personalization.ElevationUnit
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.security.MessageDigest
-import com.coffeecreator.app.core.ai.personalization.ElevationUnit
 
 // ============================================================================
 // 1. Localization & Unit Conversion Models (S2-078)
@@ -14,8 +14,7 @@ enum class AppLanguage(val code: String, val displayName: String) {
     INDONESIAN("id", "Bahasa Indonesia");
 
     companion object {
-        fun fromCode(code: String): AppLanguage =
-            entries.find { it.code.equals(code, ignoreCase = true) } ?: ENGLISH
+        fun fromCode(code: String): AppLanguage = entries.find { it.code.equals(code, ignoreCase = true) } ?: ENGLISH
     }
 }
 

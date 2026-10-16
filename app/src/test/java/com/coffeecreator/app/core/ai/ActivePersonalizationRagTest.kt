@@ -9,7 +9,6 @@ import com.coffeecreator.app.core.ai.personalization.ElevationUnit
 import com.coffeecreator.app.core.ai.personalization.FeedbackLoopEngine
 import com.coffeecreator.app.core.ai.personalization.IngredientSafetyLevel
 import com.coffeecreator.app.core.ai.personalization.IngredientSafetyValidator
-import com.coffeecreator.app.core.ai.personalization.OcrBeanParser
 import com.coffeecreator.app.core.ai.personalization.PalateBayesianEngine
 import com.coffeecreator.app.core.ai.personalization.PalateProfile
 import com.coffeecreator.app.core.ai.personalization.PalateQuizAnswers
@@ -24,7 +23,6 @@ import com.coffeecreator.app.core.ai.personalization.SweetnessPriority
 import com.coffeecreator.app.core.ai.personalization.WeatherAltitudeCalculator
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.Ingredient
-import com.coffeecreator.app.core.model.Recipe
 import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -78,7 +76,8 @@ class ActivePersonalizationRagTest {
             sweetness = 0.85,
             bitterness = 0.15,
             body = 0.30,
-            rating = 9.0, // Qualified >= 7.5
+            // Qualified >= 7.5.
+            rating = 9.0,
             daysAgo = 0.0
         )
         val updated = PalateBayesianEngine.updateProfile(initial, qualifiedObs)
@@ -97,7 +96,8 @@ class ActivePersonalizationRagTest {
             sweetness = 0.50,
             bitterness = 0.50,
             body = 0.50,
-            rating = 6.8, // Under 7.5 threshold
+            // Under the 7.5 threshold.
+            rating = 6.8,
             daysAgo = 0.0
         )
     }
@@ -115,21 +115,24 @@ class ActivePersonalizationRagTest {
                 beanId = "eth-01",
                 beanName = "Ethiopia Yirgacheffe Washed",
                 sensoryProfile = PalateVector(0.20, 0.95, 0.85, 0.10, 0.30),
-                roastDate = LocalDate.now().minusDays(14), // Peak window (5-28 days)
+                // Peak window (5-28 days).
+                roastDate = LocalDate.now().minusDays(14),
                 availableMassGrams = 250.0
             ),
             BeanInventoryCandidate(
                 beanId = "col-02",
                 beanName = "Colombia Dark Roast",
                 sensoryProfile = PalateVector(0.85, 0.20, 0.40, 0.80, 0.85),
-                roastDate = LocalDate.now().minusDays(50), // Staled
+                // Staled.
+                roastDate = LocalDate.now().minusDays(50),
                 availableMassGrams = 250.0
             ),
             BeanInventoryCandidate(
                 beanId = "ken-03",
                 beanName = "Kenya Nyeri Ultra Fresh",
                 sensoryProfile = PalateVector(0.25, 0.90, 0.70, 0.20, 0.40),
-                roastDate = LocalDate.now().minusDays(2), // Too fresh (< 5 days)
+                // Too fresh (< 5 days).
+                roastDate = LocalDate.now().minusDays(2),
                 availableMassGrams = 250.0
             )
         )
@@ -176,7 +179,8 @@ class ActivePersonalizationRagTest {
             previousRecipe = baseRecipe,
             actualDurationSeconds = 150,
             targetDurationSeconds = 155,
-            diagnosis = SensoryFeedbackDiagnosis.SOUR_UNDER_EXTRACTED
+            diagnosis = SensoryFeedbackDiagnosis.SOUR_UNDER_EXTRACTED,
+            boilingPointCelsius = 99.0
         )
         assertEquals("Water Temperature", normalSourProp.variableAdjusted)
         assertEquals(95.0, normalSourProp.modifiedRecipePayload["waterTempCelsius"])
@@ -203,36 +207,21 @@ class ActivePersonalizationRagTest {
     }
 
     // ========================================================================
-    // S2-067: Camera / OCR Coffee Bag Metadata Line Parser
-    // ========================================================================
-    @Test
-    fun testOcrBeanLabelParsing() {
-        val lines = listOf(
-            "ONYX COFFEE LAB",
-            "ETHIOPIA SOUTHERN NATIONS",
-            "VARIETY: HEIRLOOM",
-            "PROCESS: WASHED",
-            "ROAST DATE: 2026-10-10",
-            "ELEVATION: 2000 MASL",
-            "NET WT: 250G"
-        )
-        val draft = OcrBeanParser.parseLines(lines)
-
-        assertEquals("Ethiopia", draft.originCountry)
-        assertEquals("Heirloom", draft.variety)
-        assertEquals("Washed", draft.process)
-        assertEquals("2026-10-10", draft.roastDateIso)
-        assertEquals(2000, draft.elevationMasl)
-        assertEquals(250, draft.packageWeightGrams)
-        assertFalse(draft.requiresExplicitUserReview)
-    }
-
-    // ========================================================================
     // S2-068 & S2-070: Local AI Barista Chat & Schema Validation Tools
     // ========================================================================
     @Test
     fun testToolExecutorIntegrationAndSchemaValidation() = runBlocking {
-        val testBean = CoffeeBean(id = "bean-1", name = "Ethiopia Yirgacheffe", producer = "Roaster", country = "Ethiopia", region = "Gedeo", variety = "Heirloom", process = "Washed", roastLevel = "Light")
+        val testBean =
+            CoffeeBean(
+                id = "bean-1",
+                name = "Ethiopia Yirgacheffe",
+                producer = "Roaster",
+                country = "Ethiopia",
+                region = "Gedeo",
+                variety = "Heirloom",
+                process = "Washed",
+                roastLevel = "Light"
+            )
         val testIngredient = Ingredient("ing-1", "Citric Acid Solution", 1.0, emptyList(), true, 20.0, "Food Chemical")
         val toolExecutor = ToolExecutor(
             beans = { listOf(testBean) },
@@ -242,16 +231,25 @@ class ActivePersonalizationRagTest {
         )
 
         // S2-070: Schema validation on invalid parameters
-        val invalidResult = toolExecutor.execute("calculate_extraction_yield", mapOf("doseGrams" to -15.0, "beverageMassGrams" to 250.0, "measuredTdsPercent" to 1.35))
+        val invalidResult = toolExecutor.execute(
+            "calculate_extraction_yield",
+            mapOf("doseGrams" to -15.0, "beverageMassGrams" to 250.0, "measuredTdsPercent" to 1.35)
+        )
         assertFalse(invalidResult.isSuccess)
 
         // S2-068: Valid domain calculation execution
-        val validResult = toolExecutor.execute("calculate_extraction_yield", mapOf("doseGrams" to 15.0, "beverageMassGrams" to 250.0, "measuredTdsPercent" to 1.35))
+        val validResult = toolExecutor.execute(
+            "calculate_extraction_yield",
+            mapOf("doseGrams" to 15.0, "beverageMassGrams" to 250.0, "measuredTdsPercent" to 1.35)
+        )
         assertTrue(validResult.isSuccess)
         assertTrue(validResult.output.contains("extractionYieldPercent"))
 
         // S2-070: Write operation mandates user confirmation
-        val saveRecipeResult = toolExecutor.execute("save_recipe", mapOf("name" to "New V60", "doseGrams" to 15.0, "waterGrams" to 250.0, "brewMethod" to "V60"))
+        val saveRecipeResult = toolExecutor.execute(
+            "save_recipe",
+            mapOf("name" to "New V60", "doseGrams" to 15.0, "waterGrams" to 250.0, "brewMethod" to "V60")
+        )
         assertTrue(saveRecipeResult.isSuccess)
         assertTrue(saveRecipeResult.requiresUserConfirmation)
     }

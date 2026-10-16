@@ -37,6 +37,34 @@ class ToolExecutorTest {
         assertFalse(executor.executeJson("{\"tool\":\"calculate_brew_ratio\",\"arguments\":{}}").isSuccess)
     }
 
+    @Test fun givenUnknownIngredient_whenSafetyAudited_thenFailClosedWithoutLocalEvidence() = runTest {
+        val result = executor.execute(
+            "audit_ingredient_safety",
+            mapOf("ingredientName" to "unlisted aroma", "massFractionPercent" to 0.1)
+        )
+
+        assertFalse(result.isSuccess)
+    }
+
+    @Test fun givenFeedbackRequestWithoutRecipeFacts_whenExecuted_thenRejectInsteadOfUsingSampleRecipe() = runTest {
+        val result = executor.execute(
+            "propose_feedback_adjustment",
+            mapOf(
+                "actualDurationSeconds" to 200,
+                "targetDurationSeconds" to 180,
+                "diagnosis" to "BITTER_OVER_EXTRACTED"
+            )
+        )
+
+        assertFalse(result.isSuccess)
+    }
+
+    @Test fun givenNoInventoryRecords_whenRecommendationRequested_thenAbstain() = runTest {
+        val result = executor.execute("recommend_inventory_bean", mapOf("brewMethod" to "Pour Over"))
+
+        assertFalse(result.isSuccess)
+    }
+
     @Test fun givenSaveTool_whenValidated_thenReturnDraftAndRequireConfirmation() = runTest {
         val result = executor.execute(
             "save_recipe",

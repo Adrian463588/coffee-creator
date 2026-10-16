@@ -162,17 +162,36 @@ object FeedbackLoopEngine {
         actualDurationSeconds: Int,
         targetDurationSeconds: Int,
         diagnosis: SensoryFeedbackDiagnosis,
-        boilingPointCelsius: Double = 100.0
+        boilingPointCelsius: Double? = null
     ): OvatAdjustmentProposal {
         val deltaSec = actualDurationSeconds - targetDurationSeconds
-        val currentGrind = (previousRecipe["grindClicks"] as? Number)?.toInt() ?: 18
-        val currentTemp = (previousRecipe["waterTempCelsius"] as? Number)?.toDouble() ?: 93.0
-        val currentDose = (previousRecipe["doseGrams"] as? Number)?.toDouble() ?: 15.0
-        val currentWater = (previousRecipe["waterGrams"] as? Number)?.toDouble() ?: 250.0
+        require(actualDurationSeconds > 0 && targetDurationSeconds > 0) { "Brew durations must be positive." }
+        fun numericSetting(name: String): Double {
+            val value = (previousRecipe[name] as? Number)?.toDouble()
+                ?: throw IllegalArgumentException("A recorded $name value is required for this adjustment.")
+            require(value.isFinite() && value > 0.0) { "Recorded $name must be positive." }
+            return value
+        }
+        fun grindClicks(): Int {
+            val value = numericSetting("grindClicks")
+            require(value % 1.0 == 0.0) { "Grinder clicks must be a whole number." }
+            return value.toInt()
+        }
+        fun temperature(): Double {
+            val value = numericSetting("waterTempCelsius")
+            val boilingPoint = boilingPointCelsius
+                ?.takeIf { it.isFinite() && it > 0.0 }
+                ?: throw IllegalArgumentException("A confirmed local boiling point is required for a temperature adjustment.")
+            require(value <= boilingPoint) {
+                "Recorded water temperature cannot exceed the measured boiling point."
+            }
+            return value
+        }
 
         return when (diagnosis) {
             SensoryFeedbackDiagnosis.SOUR_UNDER_EXTRACTED -> {
                 if (deltaSec < -15) {
+                    val currentGrind = grindClicks()
                     val newGrind = Math.max(1, currentGrind - 1)
                     OvatAdjustmentProposal(
                         variableAdjusted = "Grind Size",
@@ -183,12 +202,13 @@ object FeedbackLoopEngine {
                         modifiedRecipePayload = previousRecipe + ("grindClicks" to newGrind)
                     )
                 } else {
-                    val maxSafeTemp = boilingPointCelsius - 0.5
+                    val currentTemp = temperature()
+                    val maxSafeTemp = requireNotNull(boilingPointCelsius) - 0.5
                     val newTemp = Math.min(maxSafeTemp, currentTemp + 2.0)
                     OvatAdjustmentProposal(
                         variableAdjusted = "Water Temperature",
-                        previousValue = "${currentTemp}°C",
-                        proposedValue = "${newTemp}°C",
+                        previousValue = "$currentTemp°C",
+                        proposedValue = "$newTemp°C",
                         diagnosticReason = "Normal drawdown timing but sour cup indicates thermodynamic under-extraction. Increase temperature by 2.0°C.",
                         expectedDrawdownDeltaSeconds = 0,
                         modifiedRecipePayload = previousRecipe + ("waterTempCelsius" to newTemp)
@@ -197,6 +217,7 @@ object FeedbackLoopEngine {
             }
             SensoryFeedbackDiagnosis.BITTER_OVER_EXTRACTED -> {
                 if (deltaSec > 15) {
+                    val currentGrind = grindClicks()
                     val newGrind = currentGrind + 1
                     OvatAdjustmentProposal(
                         variableAdjusted = "Grind Size",
@@ -207,11 +228,12 @@ object FeedbackLoopEngine {
                         modifiedRecipePayload = previousRecipe + ("grindClicks" to newGrind)
                     )
                 } else {
+                    val currentTemp = temperature()
                     val newTemp = Math.max(85.0, currentTemp - 2.0)
                     OvatAdjustmentProposal(
                         variableAdjusted = "Water Temperature",
-                        previousValue = "${currentTemp}°C",
-                        proposedValue = "${newTemp}°C",
+                        previousValue = "$currentTemp°C",
+                        proposedValue = "$newTemp°C",
                         diagnosticReason = "Normal drawdown but astringent/bitter finish indicates excessive thermal extraction. Decrease temperature by 2.0°C.",
                         expectedDrawdownDeltaSeconds = 0,
                         modifiedRecipePayload = previousRecipe + ("waterTempCelsius" to newTemp)
@@ -219,6 +241,7 @@ object FeedbackLoopEngine {
                 }
             }
             SensoryFeedbackDiagnosis.WEAK_WATERY -> {
+                val currentDose = numericSetting("doseGrams")
                 val newDose = BigDecimal.valueOf(currentDose + 1.0).setScale(1, RoundingMode.HALF_UP).toDouble()
                 OvatAdjustmentProposal(
                     variableAdjusted = "Coffee Dose",
@@ -230,6 +253,7 @@ object FeedbackLoopEngine {
                 )
             }
             SensoryFeedbackDiagnosis.HARSH_CONCENTRATED -> {
+                val currentWater = numericSetting("waterGrams")
                 val newWater = currentWater + 20.0
                 OvatAdjustmentProposal(
                     variableAdjusted = "Water Volume",
@@ -255,103 +279,17 @@ object FeedbackLoopEngine {
 }
 
 // ============================================================================
-// 5. OCR Coffee Bag Metadata Line Parser (S2-067)
-// ============================================================================
-
-object OcrBeanParser {
-    private val COUNTRY_REGEX = Regex("\\b(Ethiopia|Colombia|Kenya|Guatemala|Panama|Costa Rica|Indonesia|Brazil|Rwanda|Burundi|Honduras)\\b", RegexOption.IGNORE_CASE)
-    private val VARIETY_REGEX = Regex("\\b(Geisha|Gesha|SL28|SL34|Bourbon|Typica|Castillo|Caturra|Pacamara|Heirloom|Pink Bourbon)\\b", RegexOption.IGNORE_CASE)
-    private val PROCESS_REGEX = Regex("\\b(Washed|Wet|Natural|Dry|Honey|Anaerobic|Thermal Shock|Carbonic Maceration)\\b", RegexOption.IGNORE_CASE)
-    private val ELEVATION_REGEX = Regex("\\b(\\d{3,4})\\s*(?:-|to)?\\s*(\\d{3,4})?\\s*(?:m|masl|meters)\\b", RegexOption.IGNORE_CASE)
-    private val WEIGHT_REGEX = Regex("\\b(\\d{2,4})\\s*(g|grams|kg|oz)\\b", RegexOption.IGNORE_CASE)
-    private val DATE_REGEX = Regex("\\b(20\\d{2}[-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\\d|3[01]))\\b")
-
-    fun parseLines(lines: List<String>): ParsedBeanDraft {
-        val confidences = mutableMapOf<String, Double>()
-        var roaster: String? = null
-        var country: String? = null
-        var region: String? = null
-        var variety: String? = null
-        var process: String? = null
-        var roastDate: String? = null
-        var elevation: Int? = null
-        var weight: Int? = null
-        val fullText = lines.joinToString(" ")
-
-        fun toTitleCase(s: String): String =
-            s.split(" ").joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } }
-
-        COUNTRY_REGEX.find(fullText)?.let {
-            country = toTitleCase(it.groupValues[1])
-            confidences["originCountry"] = 0.95
-        }
-        VARIETY_REGEX.find(fullText)?.let {
-            variety = toTitleCase(it.groupValues[1])
-            confidences["variety"] = 0.95
-        }
-        PROCESS_REGEX.find(fullText)?.let {
-            process = toTitleCase(it.groupValues[1])
-            confidences["process"] = 0.95
-        }
-        ELEVATION_REGEX.find(fullText)?.let {
-            elevation = it.groupValues[1].toIntOrNull()
-            confidences["elevationMasl"] = 0.90
-        }
-        WEIGHT_REGEX.find(fullText)?.let {
-            val amount = it.groupValues[1].toInt()
-            val unit = it.groupValues[2].lowercase()
-            weight = when (unit) {
-                "kg" -> amount * 1000
-                "oz" -> (amount * 28.3495).toInt()
-                else -> amount
-            }
-            confidences["packageWeightGrams"] = 0.95
-        }
-        DATE_REGEX.find(fullText)?.let {
-            roastDate = it.groupValues[1].replace("/", "-").replace(".", "-")
-            confidences["roastDateIso"] = 0.90
-        }
-
-        val candidateRoaster = lines.firstOrNull {
-            it.trim().length >= 4 &&
-                !COUNTRY_REGEX.containsMatchIn(it) &&
-                !PROCESS_REGEX.containsMatchIn(it) &&
-                !VARIETY_REGEX.containsMatchIn(it)
-        }
-        if (candidateRoaster != null) {
-            roaster = candidateRoaster.trim()
-            confidences["roaster"] = 0.80
-        } else {
-            confidences["roaster"] = 0.00
-        }
-
-        val requiresReview = confidences.values.any { it < 0.80 } || listOf(country, variety, process).any { it == null }
-
-        return ParsedBeanDraft(
-            roaster = roaster,
-            originCountry = country,
-            region = region,
-            variety = variety,
-            process = process,
-            roastDateIso = roastDate,
-            elevationMasl = elevation,
-            packageWeightGrams = weight,
-            fieldConfidences = confidences,
-            requiresExplicitUserReview = requiresReview
-        )
-    }
-}
-
-// ============================================================================
 // 6. Offline Weather & Altitude Boiling Point Calculator (S2-073)
 // ============================================================================
 
 object WeatherAltitudeCalculator {
     fun calculateBoilingPointCelsius(elevationValue: Double, unit: ElevationUnit = ElevationUnit.METERS): Double {
+        require(elevationValue.isFinite()) { "Elevation must be finite." }
         val elevationMeters = when (unit) {
             ElevationUnit.METERS -> elevationValue
             ElevationUnit.FEET -> elevationValue * 0.3048
         }
+        require(elevationMeters in -500.0..9000.0) { "Elevation must be between -500m and 9000m." }
         val tBoil = 100.0 - (elevationMeters / 300.0)
         return BigDecimal.valueOf(tBoil).setScale(2, RoundingMode.HALF_UP).toDouble()
     }
@@ -369,7 +307,12 @@ object WeatherAltitudeCalculator {
 
 object IngredientSafetyValidator {
     private val BANNED_COSMETIC_COMPOUNDS = setOf(
-        "dipropylene glycol", "dpg", "diethyl phthalate", "dep", "synthetic musk", "denatured alcohol"
+        "dipropylene glycol",
+        "dpg",
+        "diethyl phthalate",
+        "dep",
+        "synthetic musk",
+        "denatured alcohol"
     )
 
     fun auditIngredient(
@@ -379,10 +322,16 @@ object IngredientSafetyValidator {
         massFractionPercent: Double,
         supplierMaxPercent: Double?
     ): SafetyAuditResult {
+        require(name.isNotBlank()) { "Ingredient name is required." }
+        require(massFractionPercent.isFinite() && massFractionPercent in 0.0..100.0) {
+            "Ingredient mass fraction must be within 0% and 100%."
+        }
         val flags = mutableListOf<String>()
 
         if (foodGrade != true) {
-            flags.add("CRITICAL: Substance '$name' lacks verified Food Chemicals Codex (FCC) food-grade certification. Perfumery and cosmetic aroma compounds are prohibited from coffee beverages.")
+            flags.add(
+                "CRITICAL: Substance '$name' lacks verified Food Chemicals Codex (FCC) food-grade certification. Perfumery and cosmetic aroma compounds are prohibited from coffee beverages."
+            )
             return SafetyAuditResult(IngredientSafetyLevel.CRITICAL_NON_FOOD_PROHIBITED, flags, false)
         }
 
@@ -392,7 +341,7 @@ object IngredientSafetyValidator {
         }
 
         if (supplierMaxPercent != null && massFractionPercent > supplierMaxPercent) {
-            flags.add("WARNING: Dosage ${massFractionPercent}% exceeds supplier safe food dosage limit (${supplierMaxPercent}%).")
+            flags.add("WARNING: Dosage $massFractionPercent% exceeds supplier safe food dosage limit ($supplierMaxPercent%).")
         }
 
         if (allergens.isNotEmpty()) {

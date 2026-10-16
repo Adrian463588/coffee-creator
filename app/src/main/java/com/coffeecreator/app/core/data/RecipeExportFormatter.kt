@@ -28,8 +28,20 @@ object RecipeExportFormatter {
         appendLine("─".repeat(44))
         appendLine("FORMULATION PARAMETERS:")
         appendLine("  • Dose:        ${recipe.doseGrams} g")
-        appendLine("  • Water:       ${recipe.waterGrams} g (Ratio ${recipe.targetRatio.ifBlank { "1:%.2f".format(java.util.Locale.US, recipe.waterGrams / recipe.doseGrams) }})")
-        appendLine("  • Temperature: ${recipe.temperatureCelsius} °C (${"%.1f".format(java.util.Locale.US, (recipe.temperatureCelsius * 9.0 / 5.0) + 32.0)} °F)")
+        appendLine(
+            "  • Water:       ${recipe.waterGrams} g (Ratio ${recipe.targetRatio.ifBlank {
+                "1:%.2f".format(
+                    java.util.Locale.US,
+                    recipe.waterGrams / recipe.doseGrams
+                )
+            }})"
+        )
+        appendLine(
+            "  • Temperature: ${recipe.temperatureCelsius} °C (${"%.1f".format(
+                java.util.Locale.US,
+                (recipe.temperatureCelsius * 9.0 / 5.0) + 32.0
+            )} °F)"
+        )
         if (recipe.pressureBars != null) appendLine("  • Pressure:    ${recipe.pressureBars} bar")
         if (recipe.grindSize.isNotBlank()) appendLine("  • Grind Setup: ${recipe.grindSize}")
         if (recipe.grinderModel != null) appendLine("  • Grinder:     ${recipe.grinderModel} (${recipe.grinderSetting.orEmpty()})")
@@ -42,7 +54,9 @@ object RecipeExportFormatter {
             recipe.brewSteps.forEach { step ->
                 val valve = if (!step.valveStatus.isNullOrBlank()) " [Valve: ${step.valveStatus}]" else ""
                 val temp = if (step.temperatureCelsius != null) " @ ${step.temperatureCelsius}°C" else ""
-                appendLine("  [Step ${step.stepNumber}] ${step.action}: +${step.targetWaterGrams}g (Cum: ${step.cumulativeMassGrams}g) · ${step.durationSeconds}s$temp$valve")
+                appendLine(
+                    "  [Step ${step.stepNumber}] ${step.action}: +${step.targetWaterGrams}g (Cum: ${step.cumulativeMassGrams}g) · ${step.durationSeconds}s$temp$valve"
+                )
                 if (step.description.isNotBlank()) {
                     appendLine("    → ${step.description}")
                 }
