@@ -116,6 +116,7 @@ internal object CoffeeDurableSnapshotCodec {
         FreezeEvent::class.java to setOf("thawedAtEpochMs"),
         BagInventoryItem::class.java to setOf("openedAtEpochMs", "finishedAtEpochMs", "pricePaid"),
         DetailedBeanRecord::class.java to setOf("altitudeMeters", "harvestDate", "roastDate", "photoUri"),
+        EquipmentItem::class.java to setOf("photoUri"),
         GrinderRecord::class.java to setOf("clicksPerRotation", "typicalRpm"),
         WaterMineralProfile::class.java to setOf("ph"),
         FoodGradeIngredientItem::class.java to setOf("supplierMaxPercent", "casNumber"),

@@ -9,7 +9,9 @@ import com.coffeecreator.app.core.ai.OnnxEmbeddingEngine
 import com.coffeecreator.app.core.ai.ToolExecutor
 import com.coffeecreator.app.core.data.DataRepository
 import com.coffeecreator.app.core.filesystem.AssetManager
+import com.coffeecreator.app.core.filesystem.BundledTesseractOcr
 import com.coffeecreator.app.core.filesystem.DocumentImporter
+import com.coffeecreator.app.core.filesystem.OfflineImageOcr
 import com.coffeecreator.app.core.filesystem.PreferenceStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -26,7 +28,9 @@ class AppGraph @Inject constructor(@ApplicationContext private val context: Cont
     val native = NativeLlmEngine(context)
     val preferences = PreferenceStore(context)
     val assets by lazy { AssetManager(context, repository) }
-    val importer by lazy { DocumentImporter(context, repository) }
+    private val tesseract by lazy { BundledTesseractOcr(context) }
+    val importer by lazy { DocumentImporter(context, repository, tesseract) }
+    val bagPhotoOcr by lazy { OfflineImageOcr(context, tesseract) }
     private var embeddingEngine: OnnxEmbeddingEngine? = null
     private val embeddingMutex = Mutex()
     val rag = HybridRagEngine(repository, ::embed, ObjectBoxVectorStore(context))

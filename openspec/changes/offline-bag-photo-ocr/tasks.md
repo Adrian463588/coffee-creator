@@ -1,10 +1,13 @@
 # Implementation tasks
 
-- [ ] Add failing tests for MIME/byte/dimension bounds, URI errors, cancellation cleanup, and parser preservation of unknown facts.
-- [ ] Extract or reuse the bundled Tesseract OCR adapter behind a bounded Android service without exposing filesystem paths.
-- [ ] Add system camera capture and SAF image selection with lifecycle-aware ViewModel loading/error/retry state.
-- [ ] Add bean and equipment draft parsers; require explicit equipment category and preserve unknown measurements/safety fields.
-- [ ] Attach the granted photo URI to confirmed records and preserve the manual correction gate.
-- [ ] Add Android coverage for OCR state transitions and verify lint, Detekt, KtLint, and all JVM tests.
-- [ ] Run airplane-mode device acceptance with a real locally selected bag image; preserve app data and unrelated SAF files.
+- [x] Add JVM tests for MIME/byte/dimension bounds, parser preservation of unknown facts, and explicit equipment-label fields.
+- [x] Reuse bundled Tesseract through a bounded Android service without exposing filesystem paths.
+- [x] Add system camera capture and SAF image selection with ViewModel loading/error/retry state.
+- [x] Add bean and equipment draft parsers; require explicit equipment category and preserve unknown measurements/safety fields.
+- [x] Attach readable granted photo URIs to confirmed records and preserve the manual correction gate.
+- [x] Add instrumented source coverage for local OCR, invalid/revoked inputs, oversize rejection, bitmap cancellation cleanup, and canceled camera-row cleanup.
+- [ ] Run lint, Detekt, KtLint, and all JVM tests. Not run in this isolated slice; integrator owns Gradle verification.
+- [ ] Run airplane-mode device acceptance with real locally selected bean and equipment label photos; preserve app data and unrelated SAF files.
 - [ ] Update the requirement checklist and release notes from observed evidence only.
+
+Source implementation and test cases are present. No Gradle or device command was run in this worktree, so no execution result is claimed.

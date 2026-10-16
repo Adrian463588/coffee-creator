@@ -361,7 +361,8 @@ class BrewLocalTest {
             category = EquipmentCategory.DRIPPER,
             brand = "QA brand",
             model = "QA dripper",
-            parameters = mapOf("brewMethod" to "Pour Over (V60)")
+            parameters = mapOf("brewMethod" to "Pour Over (V60)"),
+            photoUri = "content://media/external/images/qa-equipment-label.jpg"
         )
         val water = WaterChemistryCalculator.formulateWater(
             name = "QA water",
@@ -463,7 +464,7 @@ class BrewLocalTest {
             assertTrue(reopened.state.value.roastRestObservations.any { it.id == roastRest.id })
             assertTrue(reopened.state.value.detailedBeans.any { it.id == bean.id })
             assertTrue(reopened.state.value.grinders.any { it.id == grinder.id })
-            assertTrue(reopened.state.value.equipmentCatalog.any { it.id == equipment.id })
+            assertTrue(reopened.state.value.equipmentCatalog.any { it == equipment })
             assertTrue(reopened.state.value.waterProfiles.any { it.id == water.id })
             assertTrue(reopened.state.value.foodGradeIngredients.any { it.id == ingredient.id })
             assertTrue(reopened.state.value.greenCoffeeLots.any { it.id == lot.id })

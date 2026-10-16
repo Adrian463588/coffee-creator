@@ -285,7 +285,8 @@ data class EquipmentItem(
     val model: String,
     val parameters: Map<String, String> = emptyMap(),
     val isFavorite: Boolean = false,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val photoUri: String? = null
 )
 
 // ============================================================================
@@ -433,6 +434,11 @@ data class FoodGradeIngredientItem(
 // S2-008: Bag Offline OCR Models
 // ============================================================================
 
+enum class CatalogPhotoTarget {
+    BEAN,
+    EQUIPMENT
+}
+
 data class ExtractedOcrField<T>(
     val value: T?,
     /** Null until a calibrated OCR model can provide a validated probability. */
@@ -453,98 +459,122 @@ data class BagOcrParsedDraft(
     val packageMassGrams: ExtractedOcrField<BigDecimal>
 )
 
+data class EquipmentOcrParsedDraft(
+    val photoUri: String?,
+    val rawExtractedText: String,
+    val brand: ExtractedOcrField<String>,
+    val model: ExtractedOcrField<String>,
+    val category: EquipmentCategory? = null,
+    val parameters: Map<String, String> = emptyMap()
+)
+
+private data class LabeledOcrText(val value: String, val snippet: String)
+
+private fun findLabeledOcrText(lines: List<String>, vararg labels: String): LabeledOcrText? {
+    val alternatives = labels.sortedByDescending(String::length).joinToString("|") { Regex.escape(it) }
+    val pattern = Regex("^\\s*(?:$alternatives)\\b(?:\\s*[:#-]\\s*|\\s+)(.+?)\\s*$", RegexOption.IGNORE_CASE)
+    return lines.firstNotNullOfOrNull { line ->
+        pattern.find(line)?.groupValues?.get(1)?.trim()?.takeIf(String::isNotEmpty)?.let { value ->
+            LabeledOcrText(value, line)
+        }
+    }
+}
+
 object OfflineBagOcrParser {
-    private val countries = listOf(
+    private val countries = setOf(
         "ETHIOPIA", "COLOMBIA", "KENYA", "GUATEMALA", "PANAMA", "INDONESIA",
         "COSTA RICA", "BRAZIL", "RWANDA", "BURUNDI", "YEMEN", "HONDURAS"
     )
-    private val altitudeRegex = Regex("(\\d{3,4})\\s*(?:-|–)?\\s*(\\d{3,4})?\\s*(?:M|MASL|MTR)", RegexOption.IGNORE_CASE)
-    private val roastDateRegex = Regex("(\\d{4})[-/](\\d{2})[-/](\\d{2})")
-    private val packageMassRegex = Regex("(\\d+(?:\\.\\d+)?)\\s*(G|KG)", RegexOption.IGNORE_CASE)
+    private val altitudePattern = Regex("^(\\d{3,4})\\s*(?:MASL|MTR|M)$", RegexOption.IGNORE_CASE)
+    private val datePattern = Regex("\\d{4}[-/]\\d{2}[-/]\\d{2}")
+    private val packageMassPattern = Regex("(\\d+(?:\\.\\d+)?)\\s*(G|KG)\\b", RegexOption.IGNORE_CASE)
+    private val processSuffixPattern = Regex("^(.+?)\\s+PROCESS$", RegexOption.IGNORE_CASE)
 
     fun parseBagText(photoUri: String?, text: String): BagOcrParsedDraft {
         val lines = text.lines().map(String::trim).filter(String::isNotBlank)
-        val fields = BagFields()
-        lines.forEach { fields.read(it) }
-        val roaster = lines.firstOrNull { !it.contains("ROAST", ignoreCase = true) && !it.contains("WEIGHT", ignoreCase = true) }
-        val beanName = lines.drop(1).firstOrNull { it != fields.origin && !it.contains("PROCESS", ignoreCase = true) }
+        val roaster = findLabeledOcrText(lines, "ROASTER", "ROASTERY", "PRODUCER")
+        val beanName = findLabeledOcrText(lines, "BEAN", "COFFEE", "LOT")
+        val origin = findLabeledOcrText(lines, "COUNTRY OF ORIGIN", "ORIGIN COUNTRY", "ORIGIN", "COUNTRY")
+            ?: lines.firstOrNull { it.uppercase() in countries }?.let { LabeledOcrText(it, it) }
+        val processText = findLabeledOcrText(lines, "PROCESS") ?: lines.firstNotNullOfOrNull { line ->
+            processSuffixPattern.find(line)?.groupValues?.get(1)?.trim()?.let { LabeledOcrText(it, line) }
+        }
+        val process = processText?.let { parseProcess(it.value) }
+        val varietal = findLabeledOcrText(lines, "VARIETY", "VARIETAL", "CULTIVAR")
+        val altitude = findLabeledOcrText(lines, "ALTITUDE", "ELEVATION")
+            ?.value
+            ?.let { altitudePattern.matchEntire(it)?.groupValues?.get(1)?.toIntOrNull() }
+        val roastDate = findLabeledOcrText(lines, "ROAST DATE", "ROASTED ON", "DATE ROASTED")
+            ?.value
+            ?.let(datePattern::find)
+            ?.value
+            ?.replace('/', '-')
+            ?.let { value -> runCatching { LocalDate.parse(value) }.getOrNull() }
+        val packageMass = findLabeledOcrText(
+            lines,
+            "NET WEIGHT",
+            "NET WT",
+            "PACKAGE SIZE",
+            "PACKAGE MASS",
+            "PACK SIZE",
+            "WEIGHT"
+        )?.value?.let(::parsePackageMass)
+
         return BagOcrParsedDraft(
             photoUri = photoUri,
             rawExtractedText = text,
-            roaster = ExtractedOcrField(roaster, rawSnippet = roaster ?: ""),
-            beanName = ExtractedOcrField(beanName, rawSnippet = beanName ?: ""),
-            origin = ExtractedOcrField(fields.origin, rawSnippet = fields.origin ?: ""),
-            process = ExtractedOcrField(
-                fields.process.takeUnless { it == ProcessMethod.UNKNOWN },
-                rawSnippet = processSnippet(lines)
-            ),
-            varietal = ExtractedOcrField(null, rawSnippet = ""),
-            altitudeMeters = ExtractedOcrField(fields.altitude, rawSnippet = fields.altitude?.toString() ?: ""),
-            roastDate = ExtractedOcrField(fields.roastDate, rawSnippet = fields.roastDate?.toString() ?: ""),
-            packageMassGrams = ExtractedOcrField(fields.packageMass, rawSnippet = fields.packageMass?.toPlainString() ?: "")
+            roaster = roaster.toExtractedField(),
+            beanName = beanName.toExtractedField(),
+            origin = origin.toExtractedField(),
+            process = ExtractedOcrField(process, rawSnippet = processText?.snippet.orEmpty()),
+            varietal = varietal.toExtractedField(),
+            altitudeMeters = ExtractedOcrField(altitude, rawSnippet = altitude?.toString().orEmpty()),
+            roastDate = ExtractedOcrField(roastDate, rawSnippet = roastDate?.toString().orEmpty()),
+            packageMassGrams = ExtractedOcrField(packageMass, rawSnippet = packageMass?.toPlainString().orEmpty())
         )
     }
 
-    private fun processSnippet(lines: List<String>): String = lines.firstOrNull { line ->
-        PROCESS_LABELS.any { label -> line.contains(label, ignoreCase = true) }
-    }.orEmpty()
+    private fun LabeledOcrText?.toExtractedField(): ExtractedOcrField<String> =
+        ExtractedOcrField(value = this?.value, rawSnippet = this?.snippet.orEmpty())
 
-    private data class BagFields(
-        var origin: String? = null,
-        var process: ProcessMethod = ProcessMethod.UNKNOWN,
-        var altitude: Int? = null,
-        var roastDate: LocalDate? = null,
-        var packageMass: BigDecimal? = null
-    ) {
-        fun read(line: String) {
-            val upper = line.uppercase()
-            detectOrigin(upper)
-            detectProcess(upper)
-            detectAltitude(line)
-            detectRoastDate(line)
-            detectPackageMass(line)
-        }
-
-        private fun detectOrigin(upper: String) {
-            if (origin == null) origin = countries.firstOrNull(upper::contains)
-        }
-
-        private fun detectProcess(upper: String) {
-            process = detectedProcess(upper) ?: process
-        }
-
-        private fun detectAltitude(line: String) {
-            altitudeRegex.find(line)?.let { altitude = it.groupValues[1].toIntOrNull() }
-        }
-
-        private fun detectRoastDate(line: String) {
-            roastDateRegex.find(line)?.let { match ->
-                runCatching { roastDate = LocalDate.parse(match.value.replace('/', '-')) }
-            }
-        }
-
-        private fun detectPackageMass(line: String) {
-            packageMassRegex.find(line)?.let { match ->
-                val amount = match.groupValues[1].toBigDecimalOrNull() ?: return
-                if (amount > BigDecimal.ZERO) {
-                    val unit = match.groupValues[2].uppercase()
-                    val grams = if (unit == "KG") amount.multiply(BigDecimal("1000")) else amount
-                    packageMass = grams.setScale(2, RoundingMode.HALF_UP)
-                }
-            }
-        }
-
-        private fun detectedProcess(upper: String): ProcessMethod? = when {
-            upper.contains("WASHED") -> ProcessMethod.WASHED
-            upper.contains("NATURAL") -> ProcessMethod.NATURAL
-            upper.contains("HONEY") -> ProcessMethod.HONEY
-            upper.contains("ANAEROBIC") -> ProcessMethod.ANAEROBIC_NATURAL
-            upper.contains("WET HULLED") || upper.contains("GILING BASAH") -> ProcessMethod.WET_HULLED
+    private fun parseProcess(value: String): ProcessMethod? {
+        val normalized = value.uppercase()
+        return when {
+            "ANAEROBIC" in normalized && "WASHED" in normalized -> ProcessMethod.ANAEROBIC_WASHED
+            "ANAEROBIC" in normalized && "NATURAL" in normalized -> ProcessMethod.ANAEROBIC_NATURAL
+            "CARBONIC" in normalized -> ProcessMethod.CARBONIC_MACERATION
+            "WET HULLED" in normalized || "GILING BASAH" in normalized -> ProcessMethod.WET_HULLED
+            "WASHED" in normalized -> ProcessMethod.WASHED
+            "NATURAL" in normalized -> ProcessMethod.NATURAL
+            "HONEY" in normalized -> ProcessMethod.HONEY
             else -> null
         }
     }
 
-    private val PROCESS_LABELS = listOf("WASHED", "NATURAL", "HONEY", "ANAEROBIC", "WET HULLED", "GILING BASAH")
+    private fun parsePackageMass(value: String): BigDecimal? {
+        val match = packageMassPattern.find(value) ?: return null
+        val amount = match.groupValues[1].toBigDecimalOrNull()?.takeIf { it > BigDecimal.ZERO } ?: return null
+        val grams = if (match.groupValues[2].equals("KG", ignoreCase = true)) {
+            amount.multiply(BigDecimal("1000"))
+        } else {
+            amount
+        }
+        return grams.setScale(2, RoundingMode.HALF_UP)
+    }
+}
+
+object OfflineEquipmentOcrParser {
+    fun parseEquipmentText(photoUri: String?, text: String): EquipmentOcrParsedDraft {
+        val lines = text.lines().map(String::trim).filter(String::isNotBlank)
+        val brand = findLabeledOcrText(lines, "MANUFACTURER", "BRAND")
+        val model = findLabeledOcrText(lines, "PRODUCT MODEL", "MODEL")
+        return EquipmentOcrParsedDraft(
+            photoUri = photoUri,
+            rawExtractedText = text,
+            brand = ExtractedOcrField(brand?.value, rawSnippet = brand?.snippet.orEmpty()),
+            model = ExtractedOcrField(model?.value, rawSnippet = model?.snippet.orEmpty())
+        )
+    }
 }
 
 // ============================================================================

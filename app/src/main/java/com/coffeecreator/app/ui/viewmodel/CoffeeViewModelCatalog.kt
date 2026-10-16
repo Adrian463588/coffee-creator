@@ -1,7 +1,10 @@
 package com.coffeecreator.app.ui.viewmodel
 
+import android.net.Uri
+import androidx.lifecycle.viewModelScope
 import com.coffeecreator.app.core.catalog.BagInventoryItem
 import com.coffeecreator.app.core.catalog.BagStatus
+import com.coffeecreator.app.core.catalog.CatalogPhotoTarget
 import com.coffeecreator.app.core.catalog.CatalogExportPayload
 import com.coffeecreator.app.core.catalog.CatalogImportExportEngine
 import com.coffeecreator.app.core.catalog.ConflictResolutionStrategy
@@ -15,13 +18,21 @@ import com.coffeecreator.app.core.catalog.ImportExecutionReceipt
 import com.coffeecreator.app.core.catalog.InventoryDeductionEngine
 import com.coffeecreator.app.core.catalog.InventoryDeductionResult
 import com.coffeecreator.app.core.catalog.OfflineBagOcrParser
+import com.coffeecreator.app.core.catalog.OfflineEquipmentOcrParser
 import com.coffeecreator.app.core.catalog.RoastBatchRecord
 import com.coffeecreator.app.core.catalog.WaterMineralProfile
 import com.coffeecreator.app.core.reliability.LogLevel
 import java.math.BigDecimal
 import java.util.UUID
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 fun CoffeeViewModel.addDetailedBean(bean: DetailedBeanRecord) {
@@ -179,16 +190,137 @@ fun CoffeeViewModel.deleteRoastBatch(id: String) {
 
 fun CoffeeViewModel.parseBagOcr(photoUri: String?, text: String) {
     val draft = OfflineBagOcrParser.parseBagText(photoUri, text)
-    _state.update { it.copy(pendingOcrDraft = draft) }
+    _state.update {
+        it.copy(
+            pendingOcrDraft = draft,
+            pendingEquipmentOcrDraft = null,
+            photoOcrError = null,
+            photoOcrNotice = "Review the manually entered label facts before saving."
+        )
+    }
 }
 
-fun CoffeeViewModel.confirmOcrDraft(confirmedBean: DetailedBeanRecord) {
-    addDetailedBean(confirmedBean)
-    _state.update { it.copy(pendingOcrDraft = null) }
+fun CoffeeViewModel.parseEquipmentOcr(photoUri: String?, text: String) {
+    val draft = OfflineEquipmentOcrParser.parseEquipmentText(photoUri, text)
+    _state.update {
+        it.copy(
+            pendingEquipmentOcrDraft = draft,
+            pendingOcrDraft = null,
+            photoOcrError = null,
+            photoOcrNotice = "Review the manually entered label facts before saving."
+        )
+    }
+}
+
+fun CoffeeViewModel.scanCatalogPhoto(uri: Uri, target: CatalogPhotoTarget, capturedByCamera: Boolean = false) {
+    if (_state.value.busy) return
+    val job = viewModelScope.launch {
+        _state.update {
+            it.copy(
+                busy = true,
+                progress = "Recognizing label locally",
+                error = null,
+                notice = null,
+                photoOcrError = null,
+                photoOcrNotice = null
+            )
+        }
+        try {
+            require(uri.scheme == "content") { "Choose a local image through the photo picker or system camera." }
+            val retainedPhotoUri = if (capturedByCamera) {
+                uri.toString()
+            } else {
+                withContext(Dispatchers.IO) { graph.bagPhotoOcr.retainReadGrant(uri) }
+                    .takeIf { it }
+                    ?.let { uri.toString() }
+            }
+            val text = graph.bagPhotoOcr.recognize(uri)
+            currentCoroutineContext().ensureActive()
+            require(text.isNotBlank()) {
+                "No readable label text was found. Retake the photo or enter the label text manually."
+            }
+            val notice = if (retainedPhotoUri == null) {
+                "Text recognized offline. This provider did not allow durable photo access, so the image was not attached."
+            } else {
+                "Label recognized offline. Review every field before saving."
+            }
+            _state.update { state ->
+                when (target) {
+                    CatalogPhotoTarget.BEAN -> state.copy(
+                        pendingOcrDraft = OfflineBagOcrParser.parseBagText(retainedPhotoUri, text),
+                        pendingEquipmentOcrDraft = null,
+                        photoOcrNotice = notice
+                    )
+                    CatalogPhotoTarget.EQUIPMENT -> state.copy(
+                        pendingOcrDraft = null,
+                        pendingEquipmentOcrDraft = OfflineEquipmentOcrParser.parseEquipmentText(retainedPhotoUri, text),
+                        photoOcrNotice = notice
+                    )
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            _state.update { it.copy(photoOcrNotice = "Photo scan canceled. No catalog record was saved.") }
+            throw cancelled
+        } catch (failure: Exception) {
+            _state.update {
+                it.copy(photoOcrError = failure.message ?: "Photo could not be read. Select it again or enter text manually.")
+            }
+        } finally {
+            _state.update { it.copy(busy = false, progress = "") }
+            if (photoOcrJob === currentCoroutineContext()[Job]) photoOcrJob = null
+        }
+    }
+    photoOcrJob = job
+}
+
+fun CoffeeViewModel.cancelCatalogPhotoOcr() {
+    photoOcrJob?.cancel()
+}
+
+fun CoffeeViewModel.reportCatalogPhotoError(message: String) {
+    _state.update { it.copy(photoOcrError = message) }
+}
+
+fun CoffeeViewModel.confirmOcrDraft(confirmedBean: DetailedBeanRecord) = task("Saving reviewed bean label") {
+    val photoAvailable = confirmedBean.photoUri?.let { photo ->
+        withContext(Dispatchers.IO) { graph.bagPhotoOcr.isReadable(Uri.parse(photo)) }
+    } ?: false
+    addDetailedBean(confirmedBean.copy(photoUri = confirmedBean.photoUri.takeIf { photoAvailable }))
+    _state.update {
+        it.copy(
+            pendingOcrDraft = null,
+            photoOcrNotice = if (confirmedBean.photoUri != null && !photoAvailable) {
+                "The label image grant expired. Your corrected bean was saved without the attachment; scan or select the image again to attach it."
+            } else {
+                it.photoOcrNotice
+            }
+        )
+    }
+}
+
+fun CoffeeViewModel.confirmEquipmentOcrDraft(confirmedEquipment: EquipmentItem) = task("Saving reviewed equipment label") {
+    val photoAvailable = confirmedEquipment.photoUri?.let { photo ->
+        withContext(Dispatchers.IO) { graph.bagPhotoOcr.isReadable(Uri.parse(photo)) }
+    } ?: false
+    addEquipmentItem(confirmedEquipment.copy(photoUri = confirmedEquipment.photoUri.takeIf { photoAvailable }))
+    _state.update {
+        it.copy(
+            pendingEquipmentOcrDraft = null,
+            photoOcrNotice = if (confirmedEquipment.photoUri != null && !photoAvailable) {
+                "The label image grant expired. Your corrected equipment was saved without the attachment; scan or select the image again to attach it."
+            } else {
+                it.photoOcrNotice
+            }
+        )
+    }
 }
 
 fun CoffeeViewModel.dismissOcrDraft() {
     _state.update { it.copy(pendingOcrDraft = null) }
+}
+
+fun CoffeeViewModel.dismissEquipmentOcrDraft() {
+    _state.update { it.copy(pendingEquipmentOcrDraft = null) }
 }
 
 fun CoffeeViewModel.previewCatalogImport(jsonContent: String): ImportDryRunSummary {

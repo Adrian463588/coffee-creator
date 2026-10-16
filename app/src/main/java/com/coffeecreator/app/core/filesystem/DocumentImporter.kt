@@ -11,7 +11,6 @@ import android.provider.OpenableColumns
 import com.coffeecreator.app.core.data.DataRepository
 import com.coffeecreator.app.core.model.DocumentChunk
 import com.coffeecreator.app.core.model.KnowledgeDocument
-import com.googlecode.tesseract.android.TessBaseAPI
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
@@ -28,7 +27,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-class DocumentImporter(private val context: Context, private val repository: DataRepository) {
+class DocumentImporter(
+    private val context: Context,
+    private val repository: DataRepository,
+    private val tesseract: BundledTesseractOcr = BundledTesseractOcr(context)
+) {
     private val mutex = Mutex()
 
     suspend fun import(uri: Uri, onProgress: (String) -> Unit = {}): KnowledgeDocument = mutex.withLock {
@@ -172,7 +175,7 @@ class DocumentImporter(private val context: Context, private val repository: Dat
         }
     }
 
-    private fun renderOcr(renderer: PdfRenderer, index: Int): String = renderer.openPage(index).use { page ->
+    private suspend fun renderOcr(renderer: PdfRenderer, index: Int): String = renderer.openPage(index).use { page ->
         val scale = OCR_EDGE.toFloat() / maxOf(page.width, page.height)
         val bitmap = Bitmap.createBitmap(
             (page.width * scale).toInt().coerceAtLeast(1),
@@ -182,26 +185,9 @@ class DocumentImporter(private val context: Context, private val repository: Dat
         try {
             bitmap.eraseColor(Color.WHITE)
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-            recognize(bitmap)
+            tesseract.recognize(bitmap)
         } finally {
             bitmap.recycle()
-        }
-    }
-
-    private fun recognize(bitmap: Bitmap): String {
-        val root = File(context.filesDir, "tesseract")
-        val weights = File(root, "tessdata/eng.traineddata")
-        if (!weights.exists()) {
-            weights.parentFile?.mkdirs()
-            context.assets.open("ocr/eng.traineddata").use { input -> weights.outputStream().use { input.copyTo(it) } }
-        }
-        val engine = TessBaseAPI()
-        return try {
-            check(engine.init(root.absolutePath, "eng")) { "Bundled English OCR initialization failed." }
-            engine.setImage(bitmap)
-            engine.utF8Text.orEmpty()
-        } finally {
-            engine.recycle()
         }
     }
 

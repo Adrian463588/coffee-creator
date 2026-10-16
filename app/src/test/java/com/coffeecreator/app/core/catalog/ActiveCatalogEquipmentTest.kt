@@ -263,8 +263,8 @@ class ActiveCatalogEquipmentTest {
     @Test
     fun testOfflineBagOcrParser() {
         val ocrText = """
-            SEY COFFEE
-            WORKA SAKARO
+            ROASTER: SEY COFFEE
+            BEAN: WORKA SAKARO
             ETHIOPIA
             VARIETY: KURUME
             WASHED PROCESS
@@ -275,6 +275,8 @@ class ActiveCatalogEquipmentTest {
 
         val draft = OfflineBagOcrParser.parseBagText("content://mock/bag.jpg", ocrText)
 
+        assertEquals("SEY COFFEE", draft.roaster.value)
+        assertEquals("WORKA SAKARO", draft.beanName.value)
         assertEquals("ETHIOPIA", draft.origin.value)
         assertEquals(ProcessMethod.WASHED, draft.process.value)
         assertEquals(2100, draft.altitudeMeters.value)
@@ -287,10 +289,24 @@ class ActiveCatalogEquipmentTest {
     fun givenBagTextWithoutMassOrRoastDate_whenParsed_thenUnknownFieldsStayUnknown() {
         val draft = OfflineBagOcrParser.parseBagText("content://user/bag.jpg", "ETHIOPIA\nWASHED")
 
+        assertNull(draft.roaster.value)
+        assertNull(draft.beanName.value)
         assertNull(draft.packageMassGrams.value)
         assertNull(draft.roastDate.value)
         assertNull(draft.packageMassGrams.confidence)
         assertNull(draft.process.confidence)
+    }
+
+    @Test
+    fun givenUnlabeledMassAndDate_whenParsed_thenTheyRemainUnknown() {
+        val draft = OfflineBagOcrParser.parseBagText("content://user/bag.jpg", "Worka Sakaro 250g\n2026-10-01")
+        val unrelatedRoasterDate = OfflineBagOcrParser.parseBagText(null, "ROASTER: Sample Coffee 2026-10-01")
+
+        assertNull(draft.packageMassGrams.value)
+        assertNull(draft.roastDate.value)
+        assertNull(draft.roaster.value)
+        assertNull(draft.beanName.value)
+        assertNull(unrelatedRoasterDate.roastDate.value)
     }
 
     @Test
@@ -299,6 +315,34 @@ class ActiveCatalogEquipmentTest {
 
         assertNull(draft.packageMassGrams.value)
         assertNull(draft.packageMassGrams.confidence)
+    }
+
+    @Test
+    fun givenEquipmentLabel_whenParsed_thenOnlyExplicitBrandAndModelAreDrafted() {
+        val draft = OfflineEquipmentOcrParser.parseEquipmentText(
+            "content://user/equipment.jpg",
+            "Brand: Fellow\nModel: Stagg EKG\nCapacity: 0.9L\nMaterial: steel"
+        )
+
+        assertEquals("Fellow", draft.brand.value)
+        assertEquals("Stagg EKG", draft.model.value)
+        assertNull(draft.category)
+        assertTrue(draft.parameters.isEmpty())
+        assertNull(draft.brand.confidence)
+        assertNull(draft.model.confidence)
+    }
+
+    @Test
+    fun givenUnlabeledEquipmentText_whenParsed_thenBrandModelAndCategoryStayUnknown() {
+        val draft = OfflineEquipmentOcrParser.parseEquipmentText(
+            "content://user/equipment.jpg",
+            "Fellow Stagg EKG 0.9L stainless steel"
+        )
+
+        assertNull(draft.brand.value)
+        assertNull(draft.model.value)
+        assertNull(draft.category)
+        assertTrue(draft.parameters.isEmpty())
     }
 
     // ========================================================================

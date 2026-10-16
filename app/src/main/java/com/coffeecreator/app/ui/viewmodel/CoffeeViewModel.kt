@@ -21,6 +21,7 @@ import com.coffeecreator.app.core.brew.AudioCueType
 import com.coffeecreator.app.core.brew.BrewSessionState
 import com.coffeecreator.app.core.brew.HapticCueType
 import com.coffeecreator.app.core.catalog.BagOcrParsedDraft
+import com.coffeecreator.app.core.catalog.EquipmentOcrParsedDraft
 import com.coffeecreator.app.core.catalog.DetailedBeanRecord
 import com.coffeecreator.app.core.catalog.EquipmentItem
 import com.coffeecreator.app.core.catalog.FoodGradeIngredientItem
@@ -163,6 +164,9 @@ data class CoffeeUiState(
     val roastBatches: List<RoastBatchRecord> = emptyList(),
     val selectedBagId: String? = null,
     val pendingOcrDraft: BagOcrParsedDraft? = null,
+    val pendingEquipmentOcrDraft: EquipmentOcrParsedDraft? = null,
+    val photoOcrError: String? = null,
+    val photoOcrNotice: String? = null,
     val catalogImportPreview: ImportDryRunSummary? = null
 )
 
@@ -188,6 +192,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
     val state: StateFlow<CoffeeUiState> = _state.asStateFlow()
     internal val draftWrites = MutableStateFlow<RecipeDraft?>(null)
     internal var generation: Job? = null
+    internal var photoOcrJob: Job? = null
     internal var timer: Job? = null
     internal var timerOrigin = 0L
     internal var undoDraft: RecipeDraft? = null
@@ -625,6 +630,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
         graph.native.cancel()
         timer?.cancel()
         scaleJob?.cancel()
+        photoOcrJob?.cancel()
         super.onCleared()
     }
 }

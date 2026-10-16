@@ -5,6 +5,7 @@ package com.coffeecreator.app.ui.screens
 import android.content.Intent
 import android.graphics.Color as AndroidColor
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -116,6 +117,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -160,12 +162,16 @@ import com.coffeecreator.app.core.brew.BrewExecutionStatus
 import com.coffeecreator.app.core.brew.ProximityState
 import com.coffeecreator.app.core.catalog.BagInventoryItem
 import com.coffeecreator.app.core.catalog.BagStatus
+import com.coffeecreator.app.core.catalog.CatalogPhotoTarget
 import com.coffeecreator.app.core.catalog.ConflictResolutionStrategy
 import com.coffeecreator.app.core.catalog.DetailedBeanRecord
+import com.coffeecreator.app.core.catalog.EquipmentCategory
+import com.coffeecreator.app.core.catalog.EquipmentItem
 import com.coffeecreator.app.core.catalog.ProcessMethod
 import com.coffeecreator.app.core.catalog.RoastLevel
 import com.coffeecreator.app.core.catalog.RoastRestCalculator
 import com.coffeecreator.app.core.filesystem.BuiltInAssets
+import com.coffeecreator.app.core.filesystem.CatalogPhotoCapture
 import com.coffeecreator.app.core.journal.CafeCupEntry
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.Ingredient
@@ -208,6 +214,8 @@ import com.coffeecreator.app.ui.viewmodel.closeCuppingSession
 import com.coffeecreator.app.ui.viewmodel.confirmAiRecipe
 import com.coffeecreator.app.ui.viewmodel.confirmDeletion
 import com.coffeecreator.app.ui.viewmodel.confirmOcrDraft
+import com.coffeecreator.app.ui.viewmodel.confirmEquipmentOcrDraft
+import com.coffeecreator.app.ui.viewmodel.cancelCatalogPhotoOcr
 import com.coffeecreator.app.ui.viewmodel.confirmToolInputs
 import com.coffeecreator.app.ui.viewmodel.connectMockScale
 import com.coffeecreator.app.ui.viewmodel.createCuppingSession
@@ -220,6 +228,7 @@ import com.coffeecreator.app.ui.viewmodel.deleteJournalEntry
 import com.coffeecreator.app.ui.viewmodel.dismissAiRecipe
 import com.coffeecreator.app.ui.viewmodel.dismissOvatAdjustment
 import com.coffeecreator.app.ui.viewmodel.dismissOcrDraft
+import com.coffeecreator.app.ui.viewmodel.dismissEquipmentOcrDraft
 import com.coffeecreator.app.ui.viewmodel.dismissToolInputs
 import com.coffeecreator.app.ui.viewmodel.disconnectScale
 import com.coffeecreator.app.ui.viewmodel.editRecipe
@@ -238,6 +247,7 @@ import com.coffeecreator.app.ui.viewmodel.importBeanconquerorJson
 import com.coffeecreator.app.ui.viewmodel.isSupportedByNativeRuntime
 import com.coffeecreator.app.ui.viewmodel.newRecipe
 import com.coffeecreator.app.ui.viewmodel.parseBagOcr
+import com.coffeecreator.app.ui.viewmodel.parseEquipmentOcr
 import com.coffeecreator.app.ui.viewmodel.pauseBrewSession
 import com.coffeecreator.app.ui.viewmodel.previewBackup
 import com.coffeecreator.app.ui.viewmodel.previewCatalogImport
@@ -256,6 +266,8 @@ import com.coffeecreator.app.ui.viewmodel.requestDeletion
 import com.coffeecreator.app.ui.viewmodel.revealCuppingSample
 import com.coffeecreator.app.ui.viewmodel.runManualCalculation
 import com.coffeecreator.app.ui.viewmodel.saveBean
+import com.coffeecreator.app.ui.viewmodel.scanCatalogPhoto
+import com.coffeecreator.app.ui.viewmodel.reportCatalogPhotoError
 import com.coffeecreator.app.ui.viewmodel.saveCafeCup
 import com.coffeecreator.app.ui.viewmodel.saveEntryAsTemplate
 import com.coffeecreator.app.ui.viewmodel.saveIngredient
@@ -294,11 +306,17 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
 private const val DECIMAL_GIGABYTE_BYTES = 1_000_000_000.0
 private const val LICENSE_SUMMARY_CHARS = 120
+private const val PULSE_ANIMATION_DURATION_MILLIS = 1200
+private const val PULSE_INNER_RADIUS_DIVISOR = 3.2f
+private const val LABEL_INPUT_HEIGHT_DP = 120
 private const val HALF_RECIPE_SCALE = 0.5
 private const val ONE_AND_HALF_RECIPE_SCALE = 1.5
 private const val CAFFEINE_BLEND_ARABICA_FRACTION = 0.5
@@ -563,7 +581,7 @@ private fun LivePulseIndicator(isActive: Boolean, modifier: Modifier = Modifier,
             initialValue = 1f,
             targetValue = 1.6f,
             animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
+                animation = tween(PULSE_ANIMATION_DURATION_MILLIS, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Restart
             ),
             label = "pulseScale"
@@ -572,7 +590,7 @@ private fun LivePulseIndicator(isActive: Boolean, modifier: Modifier = Modifier,
             initialValue = 0.8f,
             targetValue = 0.0f,
             animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
+                animation = tween(PULSE_ANIMATION_DURATION_MILLIS, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Restart
             ),
             label = "pulseAlpha"
@@ -588,7 +606,7 @@ private fun LivePulseIndicator(isActive: Boolean, modifier: Modifier = Modifier,
                 )
                 drawCircle(
                     color = color,
-                    radius = size.minDimension / 3.2f
+                    radius = size.minDimension / PULSE_INNER_RADIUS_DIVISOR
                 )
             }
         }
@@ -600,7 +618,7 @@ private fun LivePulseIndicator(isActive: Boolean, modifier: Modifier = Modifier,
             Canvas(modifier = Modifier.fillMaxSize()) {
                 drawCircle(
                     color = color.copy(alpha = 0.35f),
-                    radius = size.minDimension / 3.2f
+                    radius = size.minDimension / PULSE_INNER_RADIUS_DIVISOR
                 )
             }
         }
@@ -1453,7 +1471,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                             },
                                                             style = MaterialTheme.typography.labelMedium,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = if (state.timerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                            color = if (state.timerRunning) {
+                                                                MaterialTheme.colorScheme.primary
+                                                            } else {
+                                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                                            }
                                                         )
                                                     }
                                                     Surface(
@@ -1465,7 +1487,9 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                         }
                                                     ) {
                                                         Text(
-                                                            text = session?.scaleDevice?.name ?: (session?.scaleConnectionState?.name ?: "DISCONNECTED"),
+                                                                text = session?.scaleDevice?.name
+                                                                    ?: session?.scaleConnectionState?.name
+                                                                    ?: "DISCONNECTED",
                                                             style = MaterialTheme.typography.labelSmall,
                                                             fontWeight = FontWeight.Medium,
                                                             color = if (session?.scaleConnectionState == ScaleConnectionState.READY) {
@@ -1553,7 +1577,8 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                         horizontalArrangement = Arrangement.SpaceBetween
                                                     ) {
                                                         Text(
-                                                            text = "Step ${currentProgress.stepIndex + 1} of ${currentProgress.totalSteps}: ${currentProgress.currentStep.action}",
+                                                            text = "Step ${currentProgress.stepIndex + 1} of " +
+                                                                "${currentProgress.totalSteps}: ${currentProgress.currentStep.action}",
                                                             style = MaterialTheme.typography.titleMedium,
                                                             fontWeight = FontWeight.SemiBold
                                                         )
@@ -1581,7 +1606,9 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                     }
                                                     if (currentProgress.nextStep != null) {
                                                         Text(
-                                                            text = "Next: ${currentProgress.nextStep.action} (+${currentProgress.nextStep.targetWaterGrams}g in ${currentProgress.nextStep.durationSeconds}s)",
+                                                            text = "Next: ${currentProgress.nextStep.action} " +
+                                                                "(+${currentProgress.nextStep.targetWaterGrams}g in " +
+                                                                "${currentProgress.nextStep.durationSeconds}s)",
                                                             style = MaterialTheme.typography.bodySmall,
                                                             color = MaterialTheme.colorScheme.outline
                                                         )
@@ -1590,12 +1617,29 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             }
 
                                             val prox = currentProgress.proximityState
+                                            val remainingGrams = "%.1f".format(
+                                                java.util.Locale.US,
+                                                currentProgress.remainingToCumulativeTargetGrams
+                                            )
+                                            val targetGrams = "%.1f".format(
+                                                java.util.Locale.US,
+                                                currentProgress.cumulativeTargetWaterGrams
+                                            )
+                                            val overshootGrams = "%.1f".format(
+                                                java.util.Locale.US,
+                                                (session?.currentWeightGrams ?: 0.0) -
+                                                    currentProgress.cumulativeTargetWaterGrams
+                                            )
                                             val (proxText, proxColor) = when (prox) {
-                                                ProximityState.NORMAL -> "Pouring: ${"%.1f".format(java.util.Locale.US, currentProgress.remainingToCumulativeTargetGrams)}g remaining" to MaterialTheme.colorScheme.onSurface
-                                                ProximityState.APPROACHING_10G -> "Within 10g (${"%.1f".format(java.util.Locale.US, currentProgress.remainingToCumulativeTargetGrams)}g left)" to MaterialTheme.colorScheme.tertiary
+                                                ProximityState.NORMAL -> "Pouring: ${remainingGrams}g remaining" to
+                                                    MaterialTheme.colorScheme.onSurface
+                                                ProximityState.APPROACHING_10G -> "Within 10g (${remainingGrams}g left)" to
+                                                    MaterialTheme.colorScheme.tertiary
                                                 ProximityState.IMMINENT_2G -> "Within 2g! Prepare cutoff" to MaterialTheme.colorScheme.error
-                                                ProximityState.TARGET_MATCHED -> "Target Matched (${"%.1f".format(java.util.Locale.US, currentProgress.cumulativeTargetWaterGrams)}g)" to MaterialTheme.colorScheme.primary
-                                                ProximityState.OVERSHOOT -> "Target Overshoot (+${"%.1f".format(java.util.Locale.US, (session?.currentWeightGrams ?: 0.0) - currentProgress.cumulativeTargetWaterGrams)}g)" to MaterialTheme.colorScheme.error
+                                                ProximityState.TARGET_MATCHED -> "Target Matched (${targetGrams}g)" to
+                                                    MaterialTheme.colorScheme.primary
+                                                ProximityState.OVERSHOOT -> "Target Overshoot (+${overshootGrams}g)" to
+                                                    MaterialTheme.colorScheme.error
                                             }
                                             Surface(
                                                 modifier = Modifier.fillMaxWidth().testTag("timer:proximity_badge"),
@@ -1687,7 +1731,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 .height(54.dp)
                                                 .testTag("timer:toggle"),
                                             colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (state.timerRunning) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                                                containerColor = if (state.timerRunning) {
+                                                    MaterialTheme.colorScheme.tertiary
+                                                } else {
+                                                    MaterialTheme.colorScheme.primary
+                                                }
                                             ),
                                             shape = RoundedCornerShape(14.dp)
                                         ) {
@@ -1697,7 +1745,13 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 modifier = Modifier.padding(end = 8.dp)
                                             )
                                             Text(
-                                                text = if (state.timerRunning) "Pause Session" else if (session?.status == BrewExecutionStatus.PAUSED) "Resume Session" else "Start Session",
+                                            text = if (state.timerRunning) {
+                                                "Pause Session"
+                                            } else if (session?.status == BrewExecutionStatus.PAUSED) {
+                                                "Resume Session"
+                                            } else {
+                                                "Start Session"
+                                            },
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -1720,7 +1774,10 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 onClick = model::restartBrewStep,
                                                 enabled = session != null,
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier.weight(TIMER_RESTART_ACTION_WEIGHT).heightIn(min = 44.dp).testTag("timer:restart_step")
+                                                modifier = Modifier
+                                                    .weight(TIMER_RESTART_ACTION_WEIGHT)
+                                                    .heightIn(min = 44.dp)
+                                                    .testTag("timer:restart_step")
                                             ) {
                                                 Text("Restart", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                             }
@@ -1735,7 +1792,10 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 onClick = model::finishBrewSession,
                                                 enabled = session != null && (state.timerSeconds > 0 || session.currentWeightGrams > 0.0),
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier.weight(TIMER_FINISH_ACTION_WEIGHT).heightIn(min = 44.dp).testTag("timer:finish_and_log")
+                                                modifier = Modifier
+                                                    .weight(TIMER_FINISH_ACTION_WEIGHT)
+                                                    .heightIn(min = 44.dp)
+                                                    .testTag("timer:finish_and_log")
                                             ) {
                                                 Text("Finish & Log", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                             }
@@ -1892,6 +1952,12 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
     var gearFilter by rememberSaveable { mutableStateOf("All") }
     var ocrDialogVisible by rememberSaveable { mutableStateOf(false) }
     var ocrSampleText by rememberSaveable { mutableStateOf("") }
+    var ocrTargetName by rememberSaveable { mutableStateOf(CatalogPhotoTarget.BEAN.name) }
+    var lastPhotoUri by rememberSaveable { mutableStateOf<String?>(null) }
+    var lastPhotoTargetName by rememberSaveable { mutableStateOf(CatalogPhotoTarget.BEAN.name) }
+    var lastPhotoIsCameraOwned by rememberSaveable { mutableStateOf(false) }
+    var cameraOutputUri by rememberSaveable { mutableStateOf<String?>(null) }
+    val photoScope = rememberCoroutineScope()
     var importJsonText by rememberSaveable { mutableStateOf("") }
     var selectedStrategy by rememberSaveable { mutableStateOf(ConflictResolutionStrategy.KEEP_BOTH_RENAME) }
     var addingBagBeanId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -1901,13 +1967,97 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
     var deductingBagId by rememberSaveable { mutableStateOf<String?>(null) }
     var doseDeductionText by rememberSaveable { mutableStateOf("") }
 
+    fun openSourcePhoto(photoUri: String) {
+        runCatching {
+            val uri = Uri.parse(photoUri)
+            require(uri.scheme == "content") { "Saved photo URI is invalid." }
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW).setDataAndType(uri, "image/*")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            )
+        }.onFailure {
+            model.reportCatalogPhotoError("Saved photo is unavailable. Select it again to attach a readable copy.")
+        }
+    }
+
+    suspend fun discardCameraOutput(uri: Uri) {
+        withContext(Dispatchers.IO) {
+            runCatching { CatalogPhotoCapture.discard(context.contentResolver, uri) }
+        }
+    }
+
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val target = CatalogPhotoTarget.valueOf(ocrTargetName)
+            lastPhotoUri = uri.toString()
+            lastPhotoTargetName = target.name
+            lastPhotoIsCameraOwned = false
+            ocrDialogVisible = false
+            model.scanCatalogPhoto(uri, target)
+        }
+    }
+    val cameraCapture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
+        val uri = cameraOutputUri?.let(Uri::parse)
+        cameraOutputUri = null
+        if (uri != null) {
+            photoScope.launch {
+                if (saved) {
+                    val publishResult = runCatching {
+                        withContext(Dispatchers.IO) { CatalogPhotoCapture.publish(context.contentResolver, uri) }
+                    }
+                    if (publishResult.isSuccess) {
+                        val target = CatalogPhotoTarget.valueOf(ocrTargetName)
+                        lastPhotoUri = uri.toString()
+                        lastPhotoTargetName = target.name
+                        lastPhotoIsCameraOwned = true
+                        ocrDialogVisible = false
+                        model.scanCatalogPhoto(uri, target, capturedByCamera = true)
+                    } else {
+                        discardCameraOutput(uri)
+                        model.reportCatalogPhotoError(
+                            publishResult.exceptionOrNull()?.message ?: "Camera photo could not be saved. Choose an existing photo."
+                        )
+                    }
+                } else {
+                    discardCameraOutput(uri)
+                }
+            }
+        }
+    }
+
+    fun startCameraCapture() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            model.reportCatalogPhotoError("System camera capture requires Android 10 or later. Choose a photo instead.")
+            return
+        }
+        photoScope.launch {
+            runCatching { withContext(Dispatchers.IO) { CatalogPhotoCapture.createPendingImage(context.contentResolver) } }
+                .onSuccess { uri ->
+                    cameraOutputUri = uri.toString()
+                    runCatching { cameraCapture.launch(uri) }.onFailure { failure ->
+                        cameraOutputUri = null
+                        photoScope.launch {
+                            discardCameraOutput(uri)
+                        }
+                        model.reportCatalogPhotoError(
+                            failure.message ?: "No camera app could open. Choose an existing photo instead."
+                        )
+                    }
+                }
+                .onFailure { failure ->
+                    model.reportCatalogPhotoError(failure.message ?: "Camera output could not be prepared. Choose a photo instead.")
+                }
+        }
+    }
+
     val libraryTabs = listOf("Beans & Bags", "Grinders & Gear", "Water Chemistry", "Ingredients", "Green & Roast QC", "Import / Export")
 
     Page("Library") {
         item {
             Heading(
                 "Beans, Gear & Formulation Catalog",
-                "Verified agricultural origins, bag inventory with rest aging heuristics, precision grinder geometry, water mineral chemistry and conflict-resolving import/export."
+                "Verified agricultural origins, bag inventory with rest aging heuristics, precision grinder geometry, " +
+                    "water mineral chemistry and conflict-resolving import/export."
             )
         }
         item {
@@ -1965,22 +2115,70 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                             editingId = null
                             form = emptyMap()
                         },
-                        modifier = Modifier.testTag("library:add")
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("library:add")
                     ) {
                         Text("+ Add Bean Record")
                     }
                     OutlinedButton(
                         onClick = {
                             ocrDialogVisible = true
-                        }
+                        },
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("library:photo_scan")
                     ) {
-                        Text("Review bag label text")
+                        Text("Scan a label")
                     }
                     FilterChip(
                         selected = favoritesOnly,
                         onClick = { favoritesOnly = !favoritesOnly },
                         label = { Text(if (favoritesOnly) "★ Favorites Only" else "☆ All Beans") }
                     )
+                }
+            }
+            if (state.busy && state.progress == "Recognizing label locally") {
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            stateDescription = "Recognizing the selected label on this device"
+                        },
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Text("Recognizing the label on this device. Your photo stays local.")
+                        TextButton(
+                            onClick = model::cancelCatalogPhotoOcr,
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("library:cancel_photo_scan")
+                        ) { Text("Cancel scan") }
+                    }
+                }
+            }
+            state.photoOcrNotice?.let { notice ->
+                item { InfoCard("Label scan", notice) }
+            }
+            state.photoOcrError?.let { error ->
+                item {
+                    InfoCard("Photo scan needs attention", error) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (lastPhotoUri != null) {
+                                TextButton(
+                                    onClick = {
+                                        lastPhotoUri?.let { photoUri ->
+                                            model.scanCatalogPhoto(
+                                                Uri.parse(photoUri),
+                                                CatalogPhotoTarget.valueOf(lastPhotoTargetName),
+                                                capturedByCamera = lastPhotoIsCameraOwned
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.heightIn(min = 48.dp).testTag("library:retry_photo_scan")
+                                ) { Text("Retry") }
+                            }
+                            TextButton(
+                                onClick = { ocrDialogVisible = true },
+                                modifier = Modifier.heightIn(min = 48.dp).testTag("library:reselect_photo")
+                            ) { Text("Choose another photo") }
+                        }
+                    }
                 }
             }
             item {
@@ -2010,15 +2208,25 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     listOf(
                         "Origin: ${bean.originCountry} · ${bean.region} (Farm: ${bean.farm}, Producer: ${bean.producer})",
                         "Variety: ${bean.varietal} · Process: ${bean.process.name} · Altitude: ${bean.altitudeMeters ?: "Unknown"}m",
-                        analysis?.let { "Roast: ${bean.roastLevel.name} on ${bean.roastDate} (${it.effectiveRestDays} effective rest days)" }
+                        analysis?.let {
+                            "Roast: ${bean.roastLevel.name} on ${bean.roastDate} " +
+                                "(${it.effectiveRestDays} effective rest days)"
+                        }
                             ?: "Roast date: Unknown · freshness is not estimated",
                         analysis?.let { "Freshness: ${it.state.name} (Peak: Days ${it.peakStartDay}–${it.peakEndDay})" }.orEmpty(),
                         analysis?.let { "Degas Rationale: ${it.heuristicRationale}" }.orEmpty(),
-                        if (bean.tastingNotes.isNotEmpty()) "Tasting Notes: ${bean.tastingNotes.joinToString(", ")}" else ""
+                        if (bean.tastingNotes.isNotEmpty()) "Tasting Notes: ${bean.tastingNotes.joinToString(", ")}" else "",
+                        if (bean.photoUri != null) "Source label photo attached" else ""
                     ).filter { it.isNotBlank() }.joinToString("\n")
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (bean.photoUri != null) {
+                                TextButton(
+                                    onClick = { openSourcePhoto(bean.photoUri) },
+                                    modifier = Modifier.heightIn(min = 48.dp).testTag("library:open_bean_photo")
+                                ) { Text("View label photo") }
+                            }
                             TextButton(onClick = { model.toggleBeanFavorite(bean.id) }) {
                                 Text(if (bean.isFavorite) "★ Favorited" else "☆ Add Favorite")
                             }
@@ -2065,12 +2273,20 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                             ) {
                                                 Surface(
                                                     shape = RoundedCornerShape(4.dp),
-                                                    color = if (bag.status == BagStatus.ACTIVE) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+                                                    color = if (bag.status == BagStatus.ACTIVE) {
+                                                        MaterialTheme.colorScheme.primaryContainer
+                                                    } else {
+                                                        MaterialTheme.colorScheme.secondaryContainer
+                                                    }
                                                 ) {
                                                     Text(
                                                         bag.status.name,
                                                         style = MaterialTheme.typography.labelSmall,
-                                                        color = if (bag.status == BagStatus.ACTIVE) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                                                        color = if (bag.status == BagStatus.ACTIVE) {
+                                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                                        } else {
+                                                            MaterialTheme.colorScheme.onSecondaryContainer
+                                                        },
                                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                                                         maxLines = 1,
                                                         softWrap = false
@@ -2110,7 +2326,9 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                                     deductingBagId = bag.id
                                                     doseDeductionText = ""
                                                 },
-                                                enabled = bag.status != BagStatus.FROZEN && bag.status != BagStatus.FINISHED && bag.remainingMassGrams > BigDecimal.ZERO,
+                                                enabled = bag.status != BagStatus.FROZEN &&
+                                                    bag.status != BagStatus.FINISHED &&
+                                                    bag.remainingMassGrams > BigDecimal.ZERO,
                                                 shape = RoundedCornerShape(8.dp),
                                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                                 modifier = Modifier.heightIn(min = 48.dp)
@@ -2171,6 +2389,15 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
         // ====================================================================
         if (tab == "Grinders & Gear") {
             item {
+                OutlinedButton(
+                    onClick = {
+                        ocrTargetName = CatalogPhotoTarget.EQUIPMENT.name
+                        ocrDialogVisible = true
+                    },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("library:scan_equipment_photo")
+                ) { Text("Add equipment from label photo") }
+            }
+            item {
                 val gearCategories =
                     listOf("All", "GRINDER", "DRIPPER", "KETTLE", "SCALE", "ESPRESSO_MACHINE", "PORTAFILTER_BASKET", "PUCK_PREP_TOOL")
                 Select("Category filter", gearFilter, gearCategories.map { it to it }, { gearFilter = it }, "library:gear_filter")
@@ -2188,7 +2415,8 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         "${grinder.brand} — ${grinder.model}",
                         listOf(
                             "Calibration Unit: ${grinder.calibrationUnit.name}",
-                            "Burrs: ${grinder.burrProfile.diameterMm}mm ${grinder.burrProfile.burrType.name} (${grinder.burrProfile.material.name})",
+                            "Burrs: ${grinder.burrProfile.diameterMm}mm " +
+                                "${grinder.burrProfile.burrType.name} (${grinder.burrProfile.material.name})",
                             "Burr Model: ${grinder.burrProfile.burrModelName}",
                             "Zero Point Offset: ${grinder.zeroPointOffset} ${grinder.calibrationUnit.name.lowercase()}",
                             if (grinder.clicksPerRotation != null) "Clicks/Rotation: ${grinder.clicksPerRotation}" else "",
@@ -2219,9 +2447,18 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 items(filteredEquip, key = { "equip-${it.id}" }) { item ->
                     InfoCard(
                         "[${item.category.name}] ${item.brand} ${item.model}",
-                        item.parameters.entries.joinToString("\n") { "${it.key}: ${it.value}" }.ifBlank { "No special parameters" }
+                        listOf(
+                            item.parameters.entries.joinToString("\n") { "${it.key}: ${it.value}" }.ifBlank { "No special parameters" },
+                            if (item.photoUri != null) "Source label photo attached" else ""
+                        ).filter(String::isNotBlank).joinToString("\n")
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (item.photoUri != null) {
+                                TextButton(
+                                    onClick = { openSourcePhoto(item.photoUri) },
+                                    modifier = Modifier.heightIn(min = 48.dp).testTag("library:open_equipment_photo")
+                                ) { Text("View label photo") }
+                            }
                             TextButton(onClick = { model.toggleEquipmentFavorite(item.id) }) {
                                 Text(if (item.isFavorite) "★ Favorited" else "☆ Add Favorite")
                             }
@@ -2259,7 +2496,10 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                             putExtra(Intent.EXTRA_SUBJECT, water.name)
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                "Water Profile: ${water.name}\nHardness: ${water.totalHardnessPpmCaCO3} ppm CaCO3\nAlkalinity: ${water.totalAlkalinityPpmCaCO3} ppm CaCO3\nTDS: ${water.calculatedTdsPpm} ppm"
+                                "Water Profile: ${water.name}\n" +
+                                    "Hardness: ${water.totalHardnessPpmCaCO3} ppm CaCO3\n" +
+                                    "Alkalinity: ${water.totalAlkalinityPpmCaCO3} ppm CaCO3\n" +
+                                    "TDS: ${water.calculatedTdsPpm} ppm"
                             )
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Share Water Profile"))
@@ -2317,7 +2557,8 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     listOf(
                         "Moisture: ${lot.moisturePercent}% (Target: 10.0-12.0%) · Water Activity: ${lot.waterActivityAw} aw",
                         "Bulk Density: ${lot.bulkDensityGramsPerLiter} g/L",
-                        "Defects: Cat 1 = ${lot.category1DefectCount}, Cat 2 = ${lot.category2DefectCount} (Total Points = ${lot.totalDefectPoints})",
+                        "Defects: Cat 1 = ${lot.category1DefectCount}, Cat 2 = ${lot.category2DefectCount} " +
+                            "(Total Points = ${lot.totalDefectPoints})",
                         "Grade Status: ${if (lot.isSpecialtyGradeEligible) "★ Specialty Grade 1 Eligible" else "Commercial / Off-Grade"}",
                         "Status: ${lot.sampleStatus.name} (Harvest: ${lot.harvestYear})"
                     ).joinToString("\n")
@@ -2488,29 +2729,67 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
         )
     }
 
-    // OCR Modal Dialog
+    // Offline label source: local system camera, SAF picker, or manual text.
     if (ocrDialogVisible) {
         AlertDialog(
             onDismissRequest = { ocrDialogVisible = false },
-            title = { Text("Offline Bag Label Text Review") },
+            title = { Text("Add from a label") },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Paste text recognized by an offline OCR tool, or type label facts. This screen does not capture images or assign confidence scores.",
+                        "Choose what the label belongs to. Bundled English OCR runs on this device; " +
+                            "verify every draft. Missing facts stay unknown.",
                         style = MaterialTheme.typography.bodySmall
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = ocrTargetName == CatalogPhotoTarget.BEAN.name,
+                            onClick = { ocrTargetName = CatalogPhotoTarget.BEAN.name },
+                            label = { Text("Coffee bag") },
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("ocr:target_bean")
+                        )
+                        FilterChip(
+                            selected = ocrTargetName == CatalogPhotoTarget.EQUIPMENT.name,
+                            onClick = { ocrTargetName = CatalogPhotoTarget.EQUIPMENT.name },
+                            label = { Text("Equipment") },
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("ocr:target_equipment")
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = ::startCameraCapture,
+                            enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !state.busy,
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("ocr:take_photo")
+                        ) { Text("Take photo") }
+                        OutlinedButton(
+                            onClick = { imagePicker.launch(arrayOf("image/jpeg", "image/png", "image/webp")) },
+                            enabled = !state.busy,
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("ocr:choose_photo")
+                        ) { Text("Choose photo") }
+                    }
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        Text("System camera capture is available on Android 10 and later. Photo selection works on this device.")
+                    }
+                    HorizontalDivider()
+                    Text("Or enter the label text manually.", style = MaterialTheme.typography.bodySmall)
                     OutlinedTextField(
                         value = ocrSampleText,
                         onValueChange = { ocrSampleText = it },
-                        modifier = Modifier.fillMaxWidth().height(120.dp)
+                        label = { Text("Label text") },
+                        modifier = Modifier.fillMaxWidth().height(LABEL_INPUT_HEIGHT_DP.dp).testTag("ocr:manual_text")
                     )
                     Button(
                         onClick = {
-                            model.parseBagOcr(null, ocrSampleText)
+                            when (CatalogPhotoTarget.valueOf(ocrTargetName)) {
+                                CatalogPhotoTarget.BEAN -> model.parseBagOcr(null, ocrSampleText)
+                                CatalogPhotoTarget.EQUIPMENT -> model.parseEquipmentOcr(null, ocrSampleText)
+                            }
                             ocrDialogVisible = false
-                        }
+                        },
+                        enabled = ocrSampleText.isNotBlank(),
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("ocr:review_manual_text")
                     ) {
-                        Text("Review label facts")
+                        Text("Review entered text")
                     }
                 }
             },
@@ -2526,6 +2805,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
         var editRoaster by rememberSaveable(draft.photoUri, draft.rawExtractedText) { mutableStateOf(draft.roaster.value ?: "") }
         var editName by rememberSaveable(draft.photoUri, draft.rawExtractedText) { mutableStateOf(draft.beanName.value ?: "") }
         var editOrigin by rememberSaveable(draft.photoUri, draft.rawExtractedText) { mutableStateOf(draft.origin.value ?: "") }
+        var editVarietal by rememberSaveable(draft.photoUri, draft.rawExtractedText) { mutableStateOf(draft.varietal.value ?: "") }
         var editAltitude by rememberSaveable(draft.photoUri, draft.rawExtractedText) {
             mutableStateOf(draft.altitudeMeters.value?.toString().orEmpty())
         }
@@ -2555,12 +2835,17 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Verify extracted fields. AI drafts require explicit human review before saving.",
+                        "Verify extracted fields before saving. Blank facts remain unknown; OCR does not provide a confidence score.",
                         style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        if (draft.photoUri == null) "No photo is attached to this draft."
+                        else "The selected label photo will be attached to the saved bean."
                     )
                     Field("Roaster", editRoaster, { editRoaster = it }, "ocr:roaster")
                     Field("Bean Name", editName, { editName = it }, "ocr:name")
                     Field("Origin Country", editOrigin, { editOrigin = it }, "ocr:origin")
+                    Field("Variety", editVarietal, { editVarietal = it }, "ocr:varietal")
                     Select(
                         "Process",
                         editProcess,
@@ -2604,20 +2889,82 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                             roaster = editRoaster.ifBlank { "Unknown" },
                             name = editName.trim(),
                             originCountry = editOrigin.ifBlank { "Unknown" },
+                            varietal = editVarietal.ifBlank { "Unknown" },
                             altitudeMeters = altitude,
                             roastDate = roastDate,
                             process = runCatching { ProcessMethod.valueOf(editProcess) }.getOrDefault(ProcessMethod.UNKNOWN),
-                            bags = bags
+                            bags = bags,
+                            photoUri = draft.photoUri
                         )
                         model.confirmOcrDraft(confirmed)
                     },
-                    enabled = editName.isNotBlank() && validAltitude && validRoastDate && validInventory
+                    enabled = editName.isNotBlank() && validAltitude && validRoastDate && validInventory && !state.busy
                 ) {
                     Text("Confirm & Save Bean")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { model.dismissOcrDraft() }) { Text("Discard Draft") }
+            }
+        )
+    }
+
+    state.pendingEquipmentOcrDraft?.let { draft ->
+        var editBrand by rememberSaveable(draft.photoUri, draft.rawExtractedText) { mutableStateOf(draft.brand.value.orEmpty()) }
+        var editModel by rememberSaveable(draft.photoUri, draft.rawExtractedText) { mutableStateOf(draft.model.value.orEmpty()) }
+        var selectedCategory by rememberSaveable(draft.photoUri, draft.rawExtractedText) { mutableStateOf("") }
+        val categoryOptions = listOf("" to "Choose category") + EquipmentCategory.values().map {
+            it.name to it.name.replace('_', ' ')
+        }
+        AlertDialog(
+            onDismissRequest = model::dismissEquipmentOcrDraft,
+            title = { Text("Review equipment label") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Only explicitly labeled brand and model are drafted. Select the category yourself; " +
+                            "unobserved properties remain unknown."
+                    )
+                    Text(
+                        if (draft.photoUri == null) "No photo is attached to this draft."
+                        else "The selected label photo will be attached to this equipment record."
+                    )
+                    Field("Brand (leave blank if unknown)", editBrand, { editBrand = it }, "ocr:equipment_brand")
+                    Field("Model (leave blank if unknown)", editModel, { editModel = it }, "ocr:equipment_model")
+                    Select(
+                        "Equipment category",
+                        selectedCategory,
+                        categoryOptions,
+                        { selectedCategory = it },
+                        "ocr:equipment_category"
+                    )
+                    Text(
+                        "Capacity, material, calibration, and food-safety details are not inferred from this photo.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        model.confirmEquipmentOcrDraft(
+                            EquipmentItem(
+                                id = UUID.randomUUID().toString(),
+                                category = EquipmentCategory.valueOf(selectedCategory),
+                                brand = editBrand.trim().ifBlank { "Unknown" },
+                                model = editModel.trim().ifBlank { "Unknown" },
+                                photoUri = draft.photoUri
+                            )
+                        )
+                    },
+                    enabled = selectedCategory.isNotBlank() && !state.busy,
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("ocr:equipment_confirm")
+                ) { Text("Confirm & Save Equipment") }
+            },
+            dismissButton = {
+                TextButton(onClick = model::dismissEquipmentOcrDraft, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Discard Draft")
+                }
             }
         )
     }
@@ -2938,7 +3285,9 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 (if (entry.timerOnly) "recipe target " else "") +
                                 "${entry.waterGrams}g water (1:${entry.ratioDenominator}) · " +
                                 "${entry.brewDurationSeconds}s · ${entry.waterTemperatureCelsius}°C",
-                            "Grind: ${entry.grinderModel.ifBlank { "Burr Grinder" }} [${entry.grindSetting}] · TDS: ${entry.measuredTdsPercent?.let { "$it%" } ?: "—"} · Approx EY: ${entry.extractionYieldPercent?.let { "$it%" } ?: "—"}",
+                    "Grind: ${entry.grinderModel.ifBlank { "Burr Grinder" }} [${entry.grindSetting}] · " +
+                        "TDS: ${entry.measuredTdsPercent?.let { "$it%" } ?: "—"} · " +
+                        "Approx EY: ${entry.extractionYieldPercent?.let { "$it%" } ?: "—"}",
                             "Rating: ⭐ ${entry.rating ?: "—"}/10 · Tags: ${entry.tags.joinToString(", ")}",
                             if (entry.tasteNotes.isNotEmpty()) "Notes: ${entry.tasteNotes.joinToString(", ")}" else "",
                             if (entry.generalNotes.isNotBlank()) "\"${entry.generalNotes}\"" else ""
@@ -2990,7 +3339,8 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             "${recipe.name} · v${recipe.version}",
                             listOf(
                                 "${recipe.doseGrams}g dose / ${recipe.waterGrams}g water ($ratioStr) · ${recipe.temperatureCelsius}°C",
-                                "TDS: ${recipe.measuredTdsPercent?.let { "$it%" } ?: "not measured"} · Beverage: ${recipe.beverageMassGrams?.let { "${it}g" } ?: "not measured"}",
+                                "TDS: ${recipe.measuredTdsPercent?.let { "$it%" } ?: "not measured"} · " +
+                                    "Beverage: ${recipe.beverageMassGrams?.let { "${it}g" } ?: "not measured"}",
                                 "Method: ${recipe.brewMethod} · Time: ${recipe.brewTimeSeconds}s"
                             ).joinToString("\n")
                         ) {
@@ -3016,7 +3366,8 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                 item {
                     InfoCard(
                         "Espresso Dial-In Progression",
-                        "Evaluate target vs actual extraction parameters, track flow rate dynamics, and receive single-variable adjustment advice."
+                        "Evaluate target vs actual extraction parameters, track flow rate dynamics, " +
+                            "and receive single-variable adjustment advice."
                     )
                 }
 
@@ -3047,12 +3398,27 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
 
                 items(espressoEntries, key = { it.id }) { shot ->
                     val esp = shot.espressoDetails
+                    val doseTarget = esp?.let {
+                        val delta = (shot.doseGrams - it.targetDoseGrams)
+                            .let { value -> if (value >= 0) "+$value" else "$value" }
+                        " (Target: ${it.targetDoseGrams}g, Δ: ${delta}g)"
+                    }.orEmpty()
+                    val liquidYield = shot.beverageMassGrams ?: shot.waterGrams
+                    val yieldTarget = esp?.let {
+                        val delta = (liquidYield - it.targetYieldGrams)
+                            .let { value -> if (value >= 0) "+$value" else "$value" }
+                        " (Target: ${it.targetYieldGrams}g, Δ: ${delta}g)"
+                    }.orEmpty()
+                    val timeTarget = esp?.let {
+                        val delta = shot.brewDurationSeconds - it.targetDurationSeconds
+                        " (Target: ${it.targetDurationSeconds}s, Δ: ${delta}s)"
+                    }.orEmpty()
                     InfoCard(
                         "Espresso Shot: ${shot.beanName}",
                         listOf(
-                            "Dose: ${shot.doseGrams}g ${if (esp != null) "(Target: ${esp.targetDoseGrams}g, Δ: ${(shot.doseGrams - esp.targetDoseGrams).let { if (it >= 0) "+$it" else "$it" }}g)" else ""}",
-                            "Liquid Yield: ${shot.beverageMassGrams ?: shot.waterGrams}g ${if (esp != null) "(Target: ${esp.targetYieldGrams}g, Δ: ${((shot.beverageMassGrams ?: shot.waterGrams) - esp.targetYieldGrams).let { if (it >= 0) "+$it" else "$it" }}g)" else ""}",
-                            "Shot Time: ${shot.brewDurationSeconds}s ${if (esp != null) "(Target: ${esp.targetDurationSeconds}s, Δ: ${shot.brewDurationSeconds - esp.targetDurationSeconds}s)" else ""}",
+                            "Dose: ${shot.doseGrams}g$doseTarget",
+                            "Liquid Yield: ${liquidYield}g$yieldTarget",
+                            "Shot Time: ${shot.brewDurationSeconds}s$timeTarget",
                             "Mean Flow Rate: ${esp?.meanFlowRateGps ?: "—"} g/s · TDS: ${shot.measuredTdsPercent ?: "—"}%",
                             "Puck Prep: ${esp?.puckPrepMethods?.joinToString(", ") ?: "Standard Tamp"}",
                             "Grind Setting: ${shot.grinderModel} [${shot.grindSetting}]"
@@ -3082,7 +3448,10 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             Column(Modifier.padding(12.dp)) {
                                 Text("Slot A (Baseline)", style = MaterialTheme.typography.titleSmall)
                                 Text(
-                                    state.selectedComparisonA?.let { "${it.beanName}\n${it.brewMethod} (${it.doseGrams}g/${it.waterGrams}g)" } ?: "No brew selected",
+                                    state.selectedComparisonA?.let {
+                                        "${it.beanName}\n${it.brewMethod} " +
+                                            "(${it.doseGrams}g/${it.waterGrams}g)"
+                                    } ?: "No brew selected",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -3091,7 +3460,10 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             Column(Modifier.padding(12.dp)) {
                                 Text("Slot B (Target)", style = MaterialTheme.typography.titleSmall)
                                 Text(
-                                    state.selectedComparisonB?.let { "${it.beanName}\n${it.brewMethod} (${it.doseGrams}g/${it.waterGrams}g)" } ?: "No brew selected",
+                                    state.selectedComparisonB?.let {
+                                        "${it.beanName}\n${it.brewMethod} " +
+                                            "(${it.doseGrams}g/${it.waterGrams}g)"
+                                    } ?: "No brew selected",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -3116,11 +3488,13 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text("📊 Deterministic Numeric Deltas (B minus A)", style = MaterialTheme.typography.titleMedium)
                                 Text(
-                                    "• Coffee Dose Δ: ${if (comp.doseDeltaGrams >= 0) "+${comp.doseDeltaGrams}" else "${comp.doseDeltaGrams}"} g",
+                                    "• Coffee Dose Δ: " +
+                                        "${if (comp.doseDeltaGrams >= 0) "+${comp.doseDeltaGrams}" else comp.doseDeltaGrams} g",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "• Water Mass Δ: ${if (comp.waterDeltaGrams >= 0) "+${comp.waterDeltaGrams}" else "${comp.waterDeltaGrams}"} g",
+                                    "• Water Mass Δ: " +
+                                        "${if (comp.waterDeltaGrams >= 0) "+${comp.waterDeltaGrams}" else comp.waterDeltaGrams} g",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
@@ -3128,7 +3502,9 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "• Duration Δ: ${if (comp.durationDeltaSeconds >= 0) "+${comp.durationDeltaSeconds}" else "${comp.durationDeltaSeconds}"} s",
+                                    "• Duration Δ: " +
+                                        (if (comp.durationDeltaSeconds >= 0) "+${comp.durationDeltaSeconds}"
+                                        else "${comp.durationDeltaSeconds}") + " s",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
@@ -3144,7 +3520,9 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "• Water Temp Δ: ${if (comp.temperatureDeltaCelsius >= 0) "+${comp.temperatureDeltaCelsius}" else "${comp.temperatureDeltaCelsius}"} °C",
+                                    "• Water Temp Δ: " +
+                                        (if (comp.temperatureDeltaCelsius >= 0) "+${comp.temperatureDeltaCelsius}"
+                                        else "${comp.temperatureDeltaCelsius}") + " °C",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -3448,7 +3826,8 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
 
                             state.importConflictPreview?.let { preview ->
                                 Text(
-                                    "New Records: ${preview.newRecordsCount} · Identical: ${preview.identicalCount} · Conflicting: ${preview.conflictCount}",
+                                    "New Records: ${preview.newRecordsCount} · " +
+                                        "Identical: ${preview.identicalCount} · Conflicting: ${preview.conflictCount}",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 preview.items.take(5).forEach { item ->
@@ -3758,7 +4137,15 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                 ) {
                                     Text(
                                         " ${desc.name} ",
-                                        color = if (desc.colorHex == "#FFF9C4" || desc.colorHex == "#FDD835" || desc.colorHex == "#FFF59D") Color.Black else Color.White,
+                                        color = if (
+                                            desc.colorHex == "#FFF9C4" ||
+                                            desc.colorHex == "#FDD835" ||
+                                            desc.colorHex == "#FFF59D"
+                                        ) {
+                                            Color.Black
+                                        } else {
+                                            Color.White
+                                        },
                                         style = MaterialTheme.typography.labelMedium,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
@@ -3785,7 +4172,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 item {
                     InfoCard(
                         "Accessible Flavor Table Alternative (S2-051)",
-                        "Meets TalkBack screen reader standards with clear semantic roles, high-contrast color names, and touch targets >= 48dp. No interactive features rely solely on visual color hue."
+                        "Meets TalkBack screen reader standards with clear semantic roles, high-contrast color names, " +
+                            "and touch targets >= 48dp. No interactive features rely solely on visual color hue."
                     )
                 }
 
@@ -3990,7 +4378,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                                 scoringSample = sample.sampleId
                                                 evaluatorIdInput = activeSession.evaluators.firstOrNull()?.id ?: ""
                                             },
-                                            enabled = activeSession.status == SessionStatus.OPEN || activeSession.status == SessionStatus.REOPENED
+                                        enabled = activeSession.status == SessionStatus.OPEN ||
+                                            activeSession.status == SessionStatus.REOPENED
                                         ) {
                                             Text("Score Sample", maxLines = 1, softWrap = false)
                                         }
@@ -4051,7 +4440,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
                                     Text(
-                                        " [HUMAN OBSERVATION] Empirical Cupper Panel. No uncalibrated AI predictions in official consensus score. ",
+                        " [HUMAN OBSERVATION] Empirical Cupper Panel. " +
+                            "No uncalibrated AI predictions in official consensus score. ",
                                         style = MaterialTheme.typography.labelSmall,
                                         modifier = Modifier.padding(6.dp)
                                     )
@@ -4114,7 +4504,11 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                 consensus.descriptorCloud.forEach { desc ->
                                     Card(
                                         colors = CardDefaults.cardColors(
-                                            containerColor = if (desc.isConsensus) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                                            containerColor = if (desc.isConsensus) {
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.surfaceVariant
+                                            }
                                         )
                                     ) {
                                         Text(
@@ -4138,7 +4532,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
 
                     items(consensus.overlapMatrix) { pair ->
                         Text(
-                            "${pair.evaluatorAId} ↔ ${pair.evaluatorBId}: Jaccard Similarity ${(pair.jaccardSimilarity * BigDecimal(100)).toInt()}%	",
+                            "${pair.evaluatorAId} ↔ ${pair.evaluatorBId}: " +
+                                "Jaccard Similarity ${(pair.jaccardSimilarity * BigDecimal(100)).toInt()}%\t",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -4157,7 +4552,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 item {
                     InfoCard(
                         "Physical Green & Roasted QC (S2-061)",
-                        "Enter measured moisture, water activity, and defect counts to calculate a grade. Agtron delta appears after both readings are entered."
+                        "Enter measured moisture, water activity, and defect counts to calculate a grade. " +
+                            "Agtron delta appears after both readings are entered."
                     )
                 }
 
@@ -4230,7 +4626,10 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             if (gradeResult == null) {
-                                Text("Enter valid measurements and defect counts to calculate a grade.", style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        "Enter valid measurements and defect counts to calculate a grade.",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
                             } else {
                                 Text("Calculated Grade: ${gradeResult.first}", style = MaterialTheme.typography.titleMedium)
                                 Text(
@@ -4311,7 +4710,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text("Light Washed Kinetic Curve Prediction", style = MaterialTheme.typography.titleSmall)
                             Text(
-                                "Peak Flavor Window: Day ${prediction.estimatedPeakWindowStartDay} to Day ${prediction.estimatedPeakWindowEndDay} post-roast",
+                                "Peak Flavor Window: Day ${prediction.estimatedPeakWindowStartDay} to " +
+                                    "Day ${prediction.estimatedPeakWindowEndDay} post-roast",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
@@ -4360,7 +4760,9 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                 }
                             }
                             Text(
-                                "Aroma: ${obs.observedAroma} · Acidity: ${obs.observedAcidity} · Sweetness: ${obs.observedSweetness} | Carbonic Sharpness: ${if (obs.perceivedCarbonicAcid) "Yes" else "No"}",
+                                    "Aroma: ${obs.observedAroma} · Acidity: ${obs.observedAcidity} · " +
+                                        "Sweetness: ${obs.observedSweetness} | Carbonic Sharpness: " +
+                                        "${if (obs.perceivedCarbonicAcid) "Yes" else "No"}",
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(obs.qualitativeNotes, style = MaterialTheme.typography.bodySmall)
@@ -4373,7 +4775,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 item {
                     InfoCard(
                         "Safe Food-Grade Calibration Reference Lab (S2-052)",
-                        "Standard sensory training exercises for palate calibration with rigorous food-grade purity standards and chemical safety boundaries."
+                "Standard sensory training exercises for palate calibration with rigorous food-grade purity " +
+                    "standards and chemical safety boundaries."
                     )
                 }
 
@@ -5358,7 +5761,8 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                         }
                     } else {
                         Text(
-                            "Recommendations need recorded bag mass, roast date, human sensory notes linked to each bean, and compatible equipment. Unknown values are not estimated.",
+                            "Recommendations need recorded bag mass, roast date, human sensory notes linked to each bean, " +
+                                "and compatible equipment. Unknown values are not estimated.",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -5481,7 +5885,9 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     }
                     Text(
                         state.weatherParams.calculatedBoilingPointCelsius?.let { boilingPoint ->
-                            "Elevation: ${state.weatherParams.elevationMeters?.toInt()}m · Boiling Point: $boilingPoint°C · Safe Brew Max: ${boilingPoint - SAFE_BREW_TEMPERATURE_MARGIN_CELSIUS}°C"
+                            "Elevation: ${state.weatherParams.elevationMeters?.toInt()}m · " +
+                                "Boiling Point: $boilingPoint°C · Safe Brew Max: " +
+                                "${boilingPoint - SAFE_BREW_TEMPERATURE_MARGIN_CELSIUS}°C"
                         } ?: "Elevation and boiling point are unknown until you enter an elevation.",
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -5515,7 +5921,8 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                         )
                     }
                     Text(
-                        "Food-grade status, allergens, and supplier limits come from the local ingredient record. Missing evidence blocks approval.",
+                            "Food-grade status, allergens, and supplier limits come from the local ingredient record. " +
+                                "Missing evidence blocks approval.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     val ingredientDosePercent = auditIngPct.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..100.0 }
@@ -5957,9 +6364,11 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                     }
                     Text(
                         if (isIndonesian) {
-                            "Aplikasi dirancang agar tetap 100% fungsional pada mode manual saat model AI, OCR, atau timbangan BLE tidak tersedia."
+                            "Aplikasi dirancang agar tetap 100% fungsional pada mode manual saat model AI, " +
+                                "OCR, atau timbangan BLE tidak tersedia."
                         } else {
-                            "Core coffee tools remain 100% operational in manual mode even when local LLM, OCR vision, or BLE scale are offline."
+                            "Core coffee tools remain 100% operational in manual mode even when local LLM, " +
+                                "OCR vision, or BLE scale are offline."
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -6008,7 +6417,11 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { model.refreshDiagnostics() }, modifier = Modifier.testTag("settings:refresh_diag")) {
                             Text(
-                                if (isIndonesian) "Segarkan Log (${state.diagnosticLogSnapshot.size})" else "Refresh Logs (${state.diagnosticLogSnapshot.size})"
+                                if (isIndonesian) {
+                                    "Segarkan Log (${state.diagnosticLogSnapshot.size})"
+                                } else {
+                                    "Refresh Logs (${state.diagnosticLogSnapshot.size})"
+                                }
                             )
                         }
                         Button(onClick = { model.exportDiagnosticLogs(context) }, modifier = Modifier.testTag("settings:export_diag")) {
