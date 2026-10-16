@@ -306,7 +306,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
         }
     }
 
-    private suspend fun <T> withDraftWritesPaused(block: suspend () -> T): T {
+    internal suspend fun <T> withDraftWritesPaused(block: suspend () -> T): T {
         // Serialize closing the gate with lifecycle flush check-through-enqueue.
         withContext(Dispatchers.Main.immediate) { replacingDraft = true }
         try {

@@ -77,6 +77,42 @@ class ToolExecutorTest {
         assertFalse(result.isSuccess)
     }
 
+    @Test fun givenUnrepresentableFeedbackInteger_whenCalled_thenRejectWithoutWraparound() = runTest {
+        val result = executor.execute(
+            "propose_feedback_adjustment",
+            mapOf(
+                "actualDurationSeconds" to 180,
+                "targetDurationSeconds" to 155,
+                "diagnosis" to "BITTER_OVER_EXTRACTED",
+                "grindClicks" to Int.MAX_VALUE,
+                "waterTempCelsius" to 93.0,
+                "doseGrams" to 15.0,
+                "waterGrams" to 250.0,
+                "boilingPointCelsius" to 100.0
+            )
+        )
+
+        assertFalse(result.isSuccess)
+    }
+
+    @Test fun givenFeedbackDurationOutsideIntegerRange_whenCalled_thenRejectBeforeConversion() = runTest {
+        val result = executor.execute(
+            "propose_feedback_adjustment",
+            mapOf(
+                "actualDurationSeconds" to Int.MAX_VALUE.toDouble() + 1.0,
+                "targetDurationSeconds" to 155,
+                "diagnosis" to "BITTER_OVER_EXTRACTED",
+                "grindClicks" to 18,
+                "waterTempCelsius" to 93.0,
+                "doseGrams" to 15.0,
+                "waterGrams" to 250.0,
+                "boilingPointCelsius" to 100.0
+            )
+        )
+
+        assertFalse(result.isSuccess)
+    }
+
     @Test fun givenNoInventoryRecords_whenRecommendationRequested_thenAbstain() = runTest {
         val result = executor.execute("recommend_inventory_bean", mapOf("brewMethod" to "Pour Over"))
 

@@ -24,6 +24,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private const val AUTO_START_WEIGHT_THRESHOLD_GRAMS = 0.5
+private const val ESPRESSO_AUTO_STOP_MINIMUM_YIELD_GRAMS = 5.0
+private const val ESPRESSO_AUTO_STOP_FLOW_RATE_GRAMS_PER_SECOND = 0.20
+private const val ESPRESSO_AUTO_STOP_SUSTAINED_DURATION_MS = 1_500L
+
 
 fun CoffeeViewModel.initBrewSession(targetRecipe: Recipe? = null) {
     val recipe = targetRecipe
@@ -344,7 +349,7 @@ private fun CoffeeViewModel.onScaleSampleReceived(sample: ScaleWeightSample) {
 
     // Auto-start check
     if (currentSession.status == BrewExecutionStatus.READY_ARMED && currentSession.autoStartArmed) {
-        if (sample.rawWeightGrams >= 0.5) {
+        if (sample.rawWeightGrams >= AUTO_START_WEIGHT_THRESHOLD_GRAMS) {
             startBrewSession()
         }
     }
@@ -358,11 +363,12 @@ private fun CoffeeViewModel.onScaleSampleReceived(sample: ScaleWeightSample) {
     var autoStopped = false
     if (currentSession.status == BrewExecutionStatus.RUNNING &&
         currentSession.recipe.brewMethod.contains("Espresso", ignoreCase = true) &&
-        sample.filteredWeightGrams >= 5.0 && sample.flowRateGramsPerSec < 0.20
+        sample.filteredWeightGrams >= ESPRESSO_AUTO_STOP_MINIMUM_YIELD_GRAMS &&
+        sample.flowRateGramsPerSec < ESPRESSO_AUTO_STOP_FLOW_RATE_GRAMS_PER_SECOND
     ) {
         if (lowFlowStartMonoMs == 0L) {
             lowFlowStartMonoMs = sample.timestampMonoMs
-        } else if (sample.timestampMonoMs - lowFlowStartMonoMs >= 1500L) {
+        } else if (sample.timestampMonoMs - lowFlowStartMonoMs >= ESPRESSO_AUTO_STOP_SUSTAINED_DURATION_MS) {
             autoStopped = true
             finishBrewSession()
         }

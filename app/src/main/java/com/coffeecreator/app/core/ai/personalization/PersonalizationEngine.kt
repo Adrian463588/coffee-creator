@@ -174,6 +174,7 @@ object FeedbackLoopEngine {
     private const val FAST_DRAW_DOWN_THRESHOLD_SECONDS = 15
     private const val GRIND_ADJUSTMENT_CLICKS = 1
     private const val MINIMUM_GRINDER_SETTING = 1
+    private const val MAXIMUM_GRINDER_SETTING = Int.MAX_VALUE
     private const val TEMPERATURE_ADJUSTMENT_CELSIUS = 2.0
     private const val BOILING_POINT_MARGIN_CELSIUS = 0.5
     private const val MINIMUM_BREW_TEMPERATURE_CELSIUS = 85.0
@@ -245,9 +246,15 @@ object FeedbackLoopEngine {
     ): OvatAdjustmentProposal {
         val current = numericSetting(previousRecipe, "grindClicks")
         require(current % 1.0 == 0.0) { "Grinder clicks must be a whole number." }
+        require(current in MINIMUM_GRINDER_SETTING.toDouble()..MAXIMUM_GRINDER_SETTING.toDouble()) {
+            "Grinder clicks must fit the supported positive integer range."
+        }
         val currentClicks = current.toInt()
+        require(if (finer) currentClicks > MINIMUM_GRINDER_SETTING else currentClicks < MAXIMUM_GRINDER_SETTING) {
+            "The requested grind adjustment is outside the supported click range."
+        }
         val adjustedClicks = if (finer) {
-            maxOf(MINIMUM_GRINDER_SETTING, currentClicks - GRIND_ADJUSTMENT_CLICKS)
+            currentClicks - GRIND_ADJUSTMENT_CLICKS
         } else {
             currentClicks + GRIND_ADJUSTMENT_CLICKS
         }

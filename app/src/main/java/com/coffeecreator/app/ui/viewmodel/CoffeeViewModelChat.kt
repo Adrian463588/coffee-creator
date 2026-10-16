@@ -117,7 +117,12 @@ private fun CoffeeViewModel.addToolCard(result: com.coffeecreator.app.core.ai.To
         _state.update { it.copy(pendingRecipe = result.structuredData as? Recipe) }
     }
 }
-private fun CoffeeViewModel.replaceReply(id: String, content: String, citations: List<String> = emptyList(), sourceIds: List<String> = emptyList()) {
+private fun CoffeeViewModel.replaceReply(
+    id: String,
+    content: String,
+    citations: List<String> = emptyList(),
+    sourceIds: List<String> = emptyList()
+) {
     _state.update {
         it.copy(
             messages = it.messages.map { message ->

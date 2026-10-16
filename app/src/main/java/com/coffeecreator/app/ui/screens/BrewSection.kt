@@ -118,7 +118,8 @@ internal fun BrewSectionTabs(selected: BrewSection, modifier: Modifier = Modifie
                         AnimatedContent(
                             targetState = (section == selected),
                             transitionSpec = {
-                                fadeIn(animationSpec = tween(SELECTED_CHIP_FADE_IN_MS)) togetherWith fadeOut(animationSpec = tween(SELECTED_CHIP_FADE_OUT_MS))
+                                fadeIn(animationSpec = tween(SELECTED_CHIP_FADE_IN_MS)) togetherWith
+                                    fadeOut(animationSpec = tween(SELECTED_CHIP_FADE_OUT_MS))
                             },
                             label = "chipIcon:${section.name}"
                         ) { isSelected ->

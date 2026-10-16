@@ -332,7 +332,10 @@ fun CoffeeViewModel.generateInventoryRecommendations(brewMethod: String = "Pour 
     val hasPersonalEvidence = current.palateProfile.isQuizCompleted || current.palateProfile.qualifiedSessionCount > 0
     if (!hasPersonalEvidence) {
         _state.update {
-            it.copy(inventoryRecommendations = emptyList(), notice = "Complete the palate quiz or record a qualified sensory session before requesting recommendations.")
+            it.copy(
+                inventoryRecommendations = emptyList(),
+                notice = "Complete the palate quiz or record a qualified sensory session before requesting recommendations."
+            )
         }
         return
     }
@@ -342,7 +345,10 @@ fun CoffeeViewModel.generateInventoryRecommendations(brewMethod: String = "Pour 
         .filterTo(mutableSetOf()) { it.equals(brewMethod, ignoreCase = true) }
     if (compatibleGear.isEmpty()) {
         _state.update {
-            it.copy(inventoryRecommendations = emptyList(), notice = "No recommendation for $brewMethod: add equipment with an explicit matching brew method.")
+            it.copy(
+                inventoryRecommendations = emptyList(),
+                notice = "No recommendation for $brewMethod: add equipment with an explicit matching brew method."
+            )
         }
         return
     }
@@ -354,7 +360,8 @@ fun CoffeeViewModel.generateInventoryRecommendations(brewMethod: String = "Pour 
         _state.update {
             it.copy(
                 inventoryRecommendations = emptyList(),
-                notice = "No recommendation: inventory needs a roast date, positive remaining bag mass, and linked qualified sensory scores."
+                notice = "No recommendation: inventory needs a roast date, positive remaining bag mass, " +
+                    "and linked qualified sensory scores."
             )
         }
         return
@@ -407,7 +414,7 @@ private fun DetailedBeanRecord.toInventoryCandidate(
         .maxByOrNull { (entry, _) -> entry.createdAt }
         ?.second
         ?: return null
-    val profile = runCatching {
+    return runCatching {
         PalateVector(
             // The roast axis encodes the explicitly selected inventory roast category.
             roast = roastIndex.toDouble() / (SUPPORTED_ROAST_LEVELS.size - 1),
@@ -416,8 +423,9 @@ private fun DetailedBeanRecord.toInventoryCandidate(
             bitterness = latestQualifiedScores.getValue("bitterness") / 10.0,
             body = latestQualifiedScores.getValue("body") / 10.0
         )
-    }.getOrNull() ?: return null
-    return BeanInventoryCandidate(id, name, profile, roastDate, availableMass)
+    }.getOrNull()?.let { profile ->
+        BeanInventoryCandidate(id, name, profile, roastDate, availableMass)
+    }
 }
 
 fun CoffeeViewModel.proposeSingleVariableAdjustment(diagnosis: SensoryFeedbackDiagnosis, actualSec: Int, targetSec: Int) {
@@ -426,7 +434,10 @@ fun CoffeeViewModel.proposeSingleVariableAdjustment(diagnosis: SensoryFeedbackDi
         current.draft.build(current.ingredients)
     } catch (invalid: IllegalArgumentException) {
         _state.update {
-            it.copy(ovatAdjustmentProposal = null, notice = "Save valid recipe values before requesting an adjustment.")
+            it.copy(
+                ovatAdjustmentProposal = null,
+                notice = invalid.message ?: "Save valid recipe values before requesting an adjustment."
+            )
         }
         return
     }
@@ -544,7 +555,11 @@ fun CoffeeViewModel.auditIngredientSafety(name: String, massFractionPercent: Dou
     _state.update {
         it.copy(
             safetyAuditResult = audit,
-            notice = if (audit.permitsBeverageConsumption) "Ingredient audit passed using local catalog evidence." else "Ingredient not approved: verified local food-grade evidence is missing or unsafe."
+            notice = if (audit.permitsBeverageConsumption) {
+                "Ingredient audit passed using local catalog evidence."
+            } else {
+                "Ingredient not approved: verified local food-grade evidence is missing or unsafe."
+            }
         )
     }
 }

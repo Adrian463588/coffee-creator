@@ -269,13 +269,9 @@ class ToolExecutor(
     }
 
     private fun proposeFeedbackAdjustment(arguments: ToolArguments): Any {
-        val actualDuration = arguments.number("actualDurationSeconds")
-        val targetDuration = arguments.number("targetDurationSeconds")
-        require(actualDuration % 1.0 == 0.0 && targetDuration % 1.0 == 0.0) {
-            "Brew durations must be whole seconds."
-        }
-        val grinderClicks = arguments.number("grindClicks")
-        require(grinderClicks % 1.0 == 0.0) { "Grinder clicks must be a whole number." }
+        val actualDuration = arguments.positiveWholeInt("actualDurationSeconds")
+        val targetDuration = arguments.positiveWholeInt("targetDurationSeconds")
+        val grinderClicks = arguments.positiveWholeInt("grindClicks")
         val recipeInputs = mapOf(
             "grindClicks" to grinderClicks,
             "waterTempCelsius" to arguments.number("waterTempCelsius"),
@@ -288,8 +284,8 @@ class ToolExecutor(
         }
         return FeedbackLoopEngine.proposeAdjustment(
             recipeInputs,
-            actualDuration.toInt(),
-            targetDuration.toInt(),
+            actualDuration,
+            targetDuration,
             diagnosis,
             arguments.number("boilingPointCelsius")
         )
@@ -319,6 +315,14 @@ class ToolExecutor(
         fun number(name: String): Double = (values.getValue(name) as Number).toDouble()
 
         fun string(name: String): String = values.getValue(name) as String
+
+        fun positiveWholeInt(name: String): Int {
+            val value = number(name)
+            require(value % 1.0 == 0.0 && value in 1.0..Int.MAX_VALUE.toDouble()) {
+                "$name must be a positive whole number in the supported integer range."
+            }
+            return value.toInt()
+        }
     }
 
     private companion object {

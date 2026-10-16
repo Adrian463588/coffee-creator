@@ -336,6 +336,63 @@ class ActivePersonalizationRagTest {
         }
     }
 
+    @Test
+    fun grindAdjustmentAbstainsWhenFinerRequestWouldNotChangeTheMinimumSetting() {
+        val minimumGrindRecipe = mapOf(
+            "grindClicks" to 1,
+            "waterTempCelsius" to 93.0,
+            "doseGrams" to 15.0,
+            "waterGrams" to 250.0
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedbackLoopEngine.proposeAdjustment(
+                previousRecipe = minimumGrindRecipe,
+                actualDurationSeconds = 130,
+                targetDurationSeconds = 155,
+                diagnosis = SensoryFeedbackDiagnosis.SOUR_UNDER_EXTRACTED
+            )
+        }
+    }
+
+    @Test
+    fun grindAdjustmentRejectsOverflowAndAllowsLastRepresentableCoarserStep() {
+        val maximumClicks = mapOf(
+            "grindClicks" to Int.MAX_VALUE,
+            "waterTempCelsius" to 93.0,
+            "doseGrams" to 15.0,
+            "waterGrams" to 250.0
+        )
+        val lastSafeStep = maximumClicks + ("grindClicks" to (Int.MAX_VALUE - 1))
+        val overIntRange = maximumClicks + ("grindClicks" to Int.MAX_VALUE.toDouble() + 1.0)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedbackLoopEngine.proposeAdjustment(
+                previousRecipe = maximumClicks,
+                actualDurationSeconds = 180,
+                targetDurationSeconds = 155,
+                diagnosis = SensoryFeedbackDiagnosis.BITTER_OVER_EXTRACTED
+            )
+        }
+        assertEquals(
+            Int.MAX_VALUE,
+            FeedbackLoopEngine.proposeAdjustment(
+                previousRecipe = lastSafeStep,
+                actualDurationSeconds = 180,
+                targetDurationSeconds = 155,
+                diagnosis = SensoryFeedbackDiagnosis.BITTER_OVER_EXTRACTED
+            ).modifiedRecipePayload["grindClicks"]
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedbackLoopEngine.proposeAdjustment(
+                previousRecipe = overIntRange,
+                actualDurationSeconds = 180,
+                targetDurationSeconds = 155,
+                diagnosis = SensoryFeedbackDiagnosis.BITTER_OVER_EXTRACTED
+            )
+        }
+    }
+
     // ========================================================================
     // S2-068 & S2-070: Local AI Barista Chat & Schema Validation Tools
     // ========================================================================
