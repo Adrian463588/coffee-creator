@@ -1794,291 +1794,595 @@ fun SensoryCvaCuppingSection(
 fun SensoryTrainingLabSection(
     modifier: Modifier = Modifier
 ) {
+    var selectedTrainSubTab by rememberSaveable { mutableStateOf("triangle") }
+
+    // Triangle Drill State
     var drillPermutation by rememberSaveable { mutableStateOf(TriangleSampleOrder.ABA) }
     var cup1Code by rememberSaveable { mutableStateOf("Cup 1 (#381)") }
     var cup2Code by rememberSaveable { mutableStateOf("Cup 2 (#920)") }
     var cup3Code by rememberSaveable { mutableStateOf("Cup 3 (#415)") }
     var selectedCupIndex by rememberSaveable { mutableStateOf<Int?>(null) }
+    var selectedConfidence by rememberSaveable { mutableStateOf(3) }
     var drillSubmitted by rememberSaveable { mutableStateOf(false) }
+    var sessionSeedInput by rememberSaveable { mutableStateOf("987654") }
+    var trainerNameInput by rememberSaveable { mutableStateOf("Q-Instructor Maya") }
+    var assessorNameInput by rememberSaveable { mutableStateOf("Apprentice Barista") }
+    var washoutSecondsInput by rememberSaveable { mutableStateOf("45") }
 
     // Binomial stats inputs
     var trialsCountInput by rememberSaveable { mutableStateOf("18") }
     var correctCountInput by rememberSaveable { mutableStateOf("10") }
-
     val totalTrials = trialsCountInput.toIntOrNull()?.coerceAtLeast(1) ?: 18
     val correctTrials = (correctCountInput.toIntOrNull() ?: 10).coerceIn(0, totalTrials)
     val binomialStat = remember(totalTrials, correctTrials) {
         TriangleStatisticsEngine.calculateBinomialPValue(totalTrials, correctTrials)
     }
 
+    // 5 Tastes & Thresholds State
+    var tasteStep1Water by rememberSaveable { mutableStateOf(false) }
+    var tasteStep2Water by rememberSaveable { mutableStateOf(true) }
+    var tasteStep3Taste by rememberSaveable { mutableStateOf(true) }
+    var tasteStep4Taste by rememberSaveable { mutableStateOf(true) }
+
+    val ascendingSteps = remember(tasteStep1Water, tasteStep2Water, tasteStep3Taste, tasteStep4Taste) {
+        listOf(
+            AscendingConcentrationStep(1, 0.05, "101", isDistinguishableFromWater = tasteStep1Water, identifiedTaste = null, isCorrectIdentification = false),
+            AscendingConcentrationStep(2, 0.10, "102", isDistinguishableFromWater = tasteStep2Water, identifiedTaste = null, isCorrectIdentification = false),
+            AscendingConcentrationStep(3, 0.20, "103", isDistinguishableFromWater = true, identifiedTaste = BasicTaste.SOUR, isCorrectIdentification = tasteStep3Taste),
+            AscendingConcentrationStep(4, 0.40, "104", isDistinguishableFromWater = true, identifiedTaste = BasicTaste.SOUR, isCorrectIdentification = tasteStep4Taste)
+        )
+    }
+    val thresholdCalc = remember(ascendingSteps) {
+        TriangleStatisticsEngine.calculateBestEstimateThreshold(ascendingSteps, BasicTaste.SOUR)
+    }
+
+    // Olfactory & Spaced Repetition State
+    var selectedVialIndex by rememberSaveable { mutableStateOf(0) }
+    var chosenAromaFamily by rememberSaveable { mutableStateOf<AromaFamily?>(null) }
+    var olfactorySubmitted by rememberSaveable { mutableStateOf(false) }
+    var sm2RepCount by rememberSaveable { mutableStateOf(1) }
+    var sm2IntervalDays by rememberSaveable { mutableStateOf(1.0) }
+    var sm2EaseFactor by rememberSaveable { mutableStateOf(2.5) }
+    var customVialLabelInput by rememberSaveable { mutableStateOf("") }
+
+    // Organic Acids State
+    var acidCup301Identification by rememberSaveable { mutableStateOf<OrganicAcidType?>(null) }
+    var acidFoodGradeVerified by rememberSaveable { mutableStateOf(true) }
+    var acidSupervisorCoSign by rememberSaveable { mutableStateOf("Instructor Sarah") }
+
+    // Tactile & Serving Control State
+    var servingTempInput by rememberSaveable { mutableStateOf("58.0") }
+    var waterTdsInput by rememberSaveable { mutableStateOf("110") }
+    var selectedMouthfeelChoice by rememberSaveable { mutableStateOf("B") }
+
+    // Paired 2-AFC State
+    var pairedChoiceIndex by rememberSaveable { mutableStateOf<Int?>(null) }
+    var pairedSubmitted by rememberSaveable { mutableStateOf(false) }
+
+    // Human Observation Verification (S4-040)
+    var humanVerificationResult by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    var humanVerificationNote by rememberSaveable { mutableStateOf("") }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Triangle Test Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        // Sub-navigation Horizontal Scroll Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Triangle Discrimination Drill", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("Balanced 6 permutations (AAB, ABA, BAA, BBA, BAB, ABB)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-
-                    Button(
-                        onClick = {
-                            val allPerms = TriangleSampleOrder.values()
-                            val nextPerm = allPerms[(drillPermutation.ordinal + 1) % allPerms.size]
-                            drillPermutation = nextPerm
-                            cup1Code = "Cup 1 (#${(100..999).random()})"
-                            cup2Code = "Cup 2 (#${(100..999).random()})"
-                            cup3Code = "Cup 3 (#${(100..999).random()})"
-                            selectedCupIndex = null
-                            drillSubmitted = false
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-                        modifier = Modifier.testTag("sensory:btn_new_triangle")
-                    ) {
-                        Icon(Icons.Default.Refresh, null, modifier = Modifier.size(14.dp).padding(end = 4.dp))
-                        Text("New Drill", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-
-                Text(
-                    "Identify the odd cup among the 3 coded samples. Two are identical baseline (A), one is target (B):",
-                    style = MaterialTheme.typography.bodySmall
+            val tabs = listOf(
+                Pair("triangle", "Triangle Drills"),
+                Pair("tastes", "5 Tastes & Thresholds"),
+                Pair("olfactory", "Olfactory & Memory"),
+                Pair("acids", "Organic Acids"),
+                Pair("roast_tactile", "Roast & Tactile"),
+                Pair("comparative", "Paired & Ranking"),
+                Pair("readiness", "Readiness Radar")
+            )
+            tabs.forEach { (key, label) ->
+                val isSelected = selectedTrainSubTab == key
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { selectedTrainSubTab = key },
+                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = isSelected,
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)
+                    ),
+                    modifier = Modifier.testTag("sensory:train_tab_$key")
                 )
+            }
+        }
 
-                // 3 Cup Cards
-                val oddCupIdx = drillPermutation.oddCupIndex // 0, 1, or 2
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(Pair(0, cup1Code), Pair(1, cup2Code), Pair(2, cup3Code)).forEach { (idx, label) ->
-                        val isSelected = selectedCupIndex == idx
-                        val isOddCup = idx == oddCupIdx
-                        val sampleLabel = if (isOddCup) "B (Target)" else "A (Baseline)"
-
-                        val cardBg = when {
-                            !drillSubmitted && isSelected -> MaterialTheme.colorScheme.primaryContainer
-                            !drillSubmitted -> MaterialTheme.colorScheme.surfaceContainer
-                            drillSubmitted && isOddCup -> MaterialTheme.colorScheme.primaryContainer
-                            drillSubmitted && isSelected && !isOddCup -> MaterialTheme.colorScheme.errorContainer
-                            else -> MaterialTheme.colorScheme.surfaceContainer
+        // =====================================================================
+        // TAB 1: TRIANGLE DISCRIMINATION DRILLS (S4-027 to S4-030)
+        // =====================================================================
+        if (selectedTrainSubTab == "triangle") {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Triangle Discrimination Drill", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("6-permutation balanced presentation (AAB, ABA, BAA, BBA, BAB, ABB)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
 
-                        Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable(enabled = !drillSubmitted) { selectedCupIndex = idx }
-                                .testTag("sensory:triangle_cup_$idx"),
+                        Button(
+                            onClick = {
+                                val allPerms = TriangleSampleOrder.values()
+                                val nextPerm = allPerms[(drillPermutation.ordinal + 1) % allPerms.size]
+                                drillPermutation = nextPerm
+                                cup1Code = "Cup 1 (#${(100..999).random()})"
+                                cup2Code = "Cup 2 (#${(100..999).random()})"
+                                cup3Code = "Cup 3 (#${(100..999).random()})"
+                                selectedCupIndex = null
+                                drillSubmitted = false
+                            },
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(
-                                1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)
-                            ),
-                            colors = CardDefaults.cardColors(containerColor = cardBg)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                            modifier = Modifier.testTag("sensory:btn_new_triangle")
                         ) {
-                            Column(
-                                modifier = Modifier.padding(10.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            Icon(Icons.Default.Refresh, null, modifier = Modifier.size(14.dp).padding(end = 4.dp))
+                            Text("New Drill", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    // Session metadata summary
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = sessionSeedInput,
+                            onValueChange = { sessionSeedInput = it },
+                            label = { Text("Session Seed") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = washoutSecondsInput,
+                            onValueChange = { washoutSecondsInput = it },
+                            label = { Text("Washout (sec)") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+
+                    Text(
+                        "Identify the odd cup among the 3 coded samples. Two are identical baseline (A), one is target (B):",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+
+                    // 3 Cup Cards
+                    val oddCupIdx = drillPermutation.oddCupIndex
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(Pair(0, cup1Code), Pair(1, cup2Code), Pair(2, cup3Code)).forEach { (idx, label) ->
+                            val isSelected = selectedCupIndex == idx
+                            val isOddCup = idx == oddCupIdx
+                            val sampleLabel = if (isOddCup) "B (Target)" else "A (Baseline)"
+
+                            val cardBg = when {
+                                !drillSubmitted && isSelected -> MaterialTheme.colorScheme.primaryContainer
+                                !drillSubmitted -> MaterialTheme.colorScheme.surfaceContainer
+                                drillSubmitted && isOddCup -> MaterialTheme.colorScheme.primaryContainer
+                                drillSubmitted && isSelected && !isOddCup -> MaterialTheme.colorScheme.errorContainer
+                                else -> MaterialTheme.colorScheme.surfaceContainer
+                            }
+
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable(enabled = !drillSubmitted) { selectedCupIndex = idx }
+                                    .testTag("sensory:triangle_cup_$idx"),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)
+                                ),
+                                colors = CardDefaults.cardColors(containerColor = cardBg)
                             ) {
-                                Icon(Icons.Default.Coffee, null, modifier = Modifier.size(24.dp))
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                if (drillSubmitted) {
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (isOddCup) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.padding(top = 2.dp)
-                                    ) {
-                                        Text(
-                                            if (isOddCup) "ODD ($sampleLabel)" else sampleLabel,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (isOddCup) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
+                                Column(
+                                    modifier = Modifier.padding(10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.Coffee, null, modifier = Modifier.size(24.dp))
+                                    Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    if (drillSubmitted) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = if (isOddCup) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        ) {
+                                            Text(
+                                                if (isOddCup) "ODD ($sampleLabel)" else sampleLabel,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (isOddCup) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                // Submit Button
-                Button(
-                    onClick = { drillSubmitted = true },
-                    enabled = selectedCupIndex != null && !drillSubmitted,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).testTag("sensory:btn_submit_triangle"),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(if (drillSubmitted) "Result Evaluated" else "Submit Selection", style = MaterialTheme.typography.labelSmall)
-                }
-
-                if (drillSubmitted) {
-                    val correct = selectedCupIndex == oddCupIdx
-                    Card(
+                    // Confidence Slider / Selector (1 to 5)
+                    Text("Assessor Confidence Rating (1 = Pure Guess, 5 = Absolute Certainty):", style = MaterialTheme.typography.labelSmall)
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = if (correct) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                if (correct) "✓ Correct Identification!" else "✗ Incorrect Identification.",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                            )
-                            Text(
-                                "Permutation was: ${drillPermutation.name} (${drillPermutation.presentation}). The odd cup was Cup ${oddCupIdx + 1}.",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Binomial Statistics Engine Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-        ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Exact Cumulative Binomial Statistics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    "Calculates exact P(X >= k) with p0 = 1/3 according to ISO 4120 sensory analysis standards.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = trialsCountInput,
-                        onValueChange = { trialsCountInput = it },
-                        label = { Text("Total Trials (n)") },
-                        modifier = Modifier.weight(1f).testTag("sensory:stat_trials_n"),
-                        shape = RoundedCornerShape(8.dp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                    OutlinedTextField(
-                        value = correctCountInput,
-                        onValueChange = { correctCountInput = it },
-                        label = { Text("Correct (k)") },
-                        modifier = Modifier.weight(1f).testTag("sensory:stat_correct_k"),
-                        shape = RoundedCornerShape(8.dp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
-
-                // Probability Output Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (binomialStat.isSignificantAlpha05) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "Cumulative p-value:",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                String.format("p = %.4f", binomialStat.pValueCumulative),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = if (binomialStat.isSignificantAlpha05) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(vertical = 2.dp)
-                        ) {
-                            Text(
-                                if (binomialStat.isSignificantAlpha05) "✓ STATISTICALLY SIGNIFICANT (p < 0.05)"
-                                else "✗ NOT SIGNIFICANT (p >= 0.05)",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-
-                        Text(
-                            "Scientific Caveat: Assumes independent Bernoulli trials with zero carryover. Rapid serial cupping introduces sensory fatigue and cross-cup adaptation, which may violate independence assumptions.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-
-        // 5 Basic Tastes References
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-        ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Standard 5 Basic Taste Solutions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Rigorous reference preparations for sensory calibration (ISO 8586 / SCA standard).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                StandardTasteReferences.ALL_REFERENCES.forEach { tasteRef ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "${tasteRef.taste.labelEn}: ${tasteRef.chemicalName} (${tasteRef.chemicalFormula})",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text("Detection Threshold: ${tasteRef.detectionThresholdGramsPerLiter} g/L", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Safe Handling: ${tasteRef.safeHandlingWarning}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                            }
-                            Surface(
+                        (1..5).forEach { rating ->
+                            FilterChip(
+                                selected = selectedConfidence == rating,
+                                onClick = { selectedConfidence = rating },
+                                label = { Text("$rating★", style = MaterialTheme.typography.labelSmall) },
                                 shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.padding(4.dp)
-                            ) {
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // Submit Button
+                    Button(
+                        onClick = { drillSubmitted = true },
+                        enabled = selectedCupIndex != null && !drillSubmitted,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).testTag("sensory:btn_submit_triangle"),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(if (drillSubmitted) "Result Evaluated" else "Submit Selection", style = MaterialTheme.typography.labelSmall)
+                    }
+
+                    if (drillSubmitted) {
+                        val correct = selectedCupIndex == oddCupIdx
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = if (correct) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
-                                    " ${tasteRef.mediumIntensityGramsPerLiter} g/L ",
+                                    if (correct) "✓ Correct Identification!" else "✗ Incorrect Identification.",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(4.dp)
+                                    color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                                 )
+                                Text(
+                                    "Order: ${drillPermutation.name} (${drillPermutation.presentation}). Odd Cup: Cup ${oddCupIdx + 1}. Confidence: $selectedConfidence/5.",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Cumulative Binomial Statistics Engine Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Exact Cumulative Binomial Statistics (p0 = 1/3)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Calculates exact P(X >= k) with p0 = 1/3 according to ISO 4120 sensory analysis standards.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = trialsCountInput,
+                            onValueChange = { trialsCountInput = it },
+                            label = { Text("Total Trials (n)") },
+                            modifier = Modifier.weight(1f).testTag("sensory:stat_trials_n"),
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        OutlinedTextField(
+                            value = correctCountInput,
+                            onValueChange = { correctCountInput = it },
+                            label = { Text("Correct (k)") },
+                            modifier = Modifier.weight(1f).testTag("sensory:stat_correct_k"),
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (binomialStat.isSignificantAlpha05) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Cumulative p-value:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text(String.format(Locale.ROOT, "p = %.4f", binomialStat.pValueCumulative), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = if (binomialStat.isSignificantAlpha05) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            ) {
+                                Text(
+                                    if (binomialStat.isSignificantAlpha05) "✓ STATISTICALLY SIGNIFICANT (p < 0.05)"
+                                    else "✗ NOT SIGNIFICANT (p >= 0.05)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+
+                            Text(
+                                "Scientific Caveat: Assumes independent Bernoulli trials with zero carryover. Rapid serial cupping introduces sensory fatigue and cross-cup adaptation.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // TAB 2: 5 BASIC TASTES & THRESHOLDS (S4-031, S4-032)
+        // =====================================================================
+        if (selectedTrainSubTab == "tastes") {
+            // Reference Solutions
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Standard 5 Basic Taste Solutions (ISO 8586 / SCA)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Water solvent spec: Clean, demineralized filtered water (<30 ppm TDS). Food-grade FCC/USP only.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    StandardTasteReferences.ALL_REFERENCES.forEach { tasteRef ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "${tasteRef.taste.labelEn}: ${tasteRef.chemicalName}",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text("Detection: ${tasteRef.detectionThresholdGramsPerLiter} g/L | Low: ${tasteRef.lowIntensityGramsPerLiter} g/L | High: ${tasteRef.highIntensityGramsPerLiter} g/L", style = MaterialTheme.typography.labelSmall)
+                                    Text("Handling: ${tasteRef.safeHandlingWarning}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.padding(4.dp)
+                                ) {
+                                    Text(
+                                        " ${tasteRef.mediumIntensityGramsPerLiter} g/L ",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ASTM E679 3-AFC Ascending Concentration Series Calculator
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Ascending Concentration Series (ASTM E679)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Geometric dilution series testing detection and recognition threshold for Sour (Citric Acid).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    // Step 1
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Step 1 (0.05 g/L):", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilterChip(selected = tasteStep1Water, onClick = { tasteStep1Water = !tasteStep1Water }, label = { Text("Distinguishes from Water") })
+                        }
+                    }
+
+                    // Step 2
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Step 2 (0.10 g/L):", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilterChip(selected = tasteStep2Water, onClick = { tasteStep2Water = !tasteStep2Water }, label = { Text("Distinguishes from Water") })
+                        }
+                    }
+
+                    // Step 3
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Step 3 (0.20 g/L):", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilterChip(selected = tasteStep3Taste, onClick = { tasteStep3Taste = !tasteStep3Taste }, label = { Text("Identifies as SOUR") })
+                        }
+                    }
+
+                    // Step 4
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Step 4 (0.40 g/L):", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilterChip(selected = tasteStep4Taste, onClick = { tasteStep4Taste = !tasteStep4Taste }, label = { Text("Identifies as SOUR") })
+                        }
+                    }
+
+                    // Best Estimate Threshold (BET) Results
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Calculated Best-Estimate Thresholds (BET):", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Detection Threshold: ${thresholdCalc.detectionThresholdGramsPerLiter?.let { String.format(Locale.ROOT, "%.4f g/L", it) } ?: "Not detected"}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "Recognition Threshold: ${thresholdCalc.recognitionThresholdGramsPerLiter?.let { String.format(Locale.ROOT, "%.4f g/L", it) } ?: "Not recognized"}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "Disclaimer: ${thresholdCalc.nonClinicalDisclaimer}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // TAB 3: OLFACTORY & MEMORY (S4-033, S4-034)
+        // =====================================================================
+        if (selectedTrainSubTab == "olfactory") {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Olfactory Family Identification", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Blind evaluation using physical vials/natural food references with hidden answer key.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    val activeVial = StandardOlfactoryVials.ALL_VIALS[selectedVialIndex % StandardOlfactoryVials.ALL_VIALS.size]
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Active Physical Vial Code: #412", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = {
+                                selectedVialIndex = (selectedVialIndex + 1) % StandardOlfactoryVials.ALL_VIALS.size
+                                chosenAromaFamily = null
+                                olfactorySubmitted = false
+                            },
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text("Next Vial", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    Text("Select perceived Aroma Family:", style = MaterialTheme.typography.labelSmall)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        AromaFamily.values().forEach { family ->
+                            FilterChip(
+                                selected = chosenAromaFamily == family,
+                                onClick = { chosenAromaFamily = family },
+                                label = { Text(family.labelEn.take(12), style = MaterialTheme.typography.labelSmall) },
+                                shape = RoundedCornerShape(6.dp)
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = { olfactorySubmitted = true },
+                        enabled = chosenAromaFamily != null && !olfactorySubmitted,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(if (olfactorySubmitted) "Evaluated" else "Submit Olfactory Perception", style = MaterialTheme.typography.labelSmall)
+                    }
+
+                    if (olfactorySubmitted) {
+                        val isCorrect = chosenAromaFamily == activeVial.family
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = if (isCorrect) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    if (isCorrect) "✓ Correct Family Identification!" else "✗ Family Missed.",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isCorrect) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                )
+                                Text("Vial Descriptor: ${activeVial.descriptorNameEn} (${activeVial.descriptorNameId})", style = MaterialTheme.typography.bodySmall)
+                                Text("True Family: ${activeVial.family.labelEn}", style = MaterialTheme.typography.bodySmall)
+                                Text("Food References: ${activeVial.naturalFoodReferencesEn.joinToString(", ")}", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+
+                    // Spaced Repetition (Sensory SM-2) Card
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Text("Aroma Spaced Repetition (Sensory SM-2)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text("Current Ease Factor: ${String.format(Locale.ROOT, "%.2f", sm2EaseFactor)} | Interval: ${sm2IntervalDays.toInt()} day(s) | Reviews: $sm2RepCount", style = MaterialTheme.typography.bodySmall)
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(Pair(2, "Miss (q=2)"), Pair(4, "Good (q=4)"), Pair(5, "Perfect (q=5)")).forEach { (q, label) ->
+                            Button(
+                                onClick = {
+                                    val dummyCard = AromaSpacedRepetitionCard(
+                                        vialId = activeVial.vialId,
+                                        repetitionCount = sm2RepCount,
+                                        intervalDays = sm2IntervalDays,
+                                        easeFactor = sm2EaseFactor,
+                                        nextReviewEpochMs = System.currentTimeMillis()
+                                    )
+                                    val updated = TriangleStatisticsEngine.updateSpacedRepetition(dummyCard, q)
+                                    sm2RepCount = updated.repetitionCount
+                                    sm2IntervalDays = updated.intervalDays
+                                    sm2EaseFactor = updated.easeFactor
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(label, style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -2086,28 +2390,292 @@ fun SensoryTrainingLabSection(
             }
         }
 
-        // Roast Defects Atlas
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-        ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Roast Defect Sensory Recognition", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Physical and gustatory markers of common roasting defects.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // =====================================================================
+        // TAB 4: ORGANIC ACIDS (S4-035)
+        // =====================================================================
+        if (selectedTrainSubTab == "acids") {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Organic Acid Comparative Tastings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Safe food-grade preparations with source-controlled concentrations under trained supervision.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                StandardRoastDefects.ALL_DEFECTS.forEach { defect ->
+                    OrganicAcidType.values().forEach { acid ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("${acid.name} (${acid.chemicalFormula})", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                    Text("pKa1: ${acid.pKa1} | Ref: ${acid.referencePreparationGramsPerLiter} g/L", style = MaterialTheme.typography.labelSmall)
+                                    Text("Profile: ${acid.sensoryProfileEn}", style = MaterialTheme.typography.bodySmall)
+                                    Text("Occurrence: ${acid.typicalOccurrenceEn}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+
+                    // Flight validation & safety checklist
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Food-Grade FCC Ingredients Verified:", style = MaterialTheme.typography.bodySmall)
+                        Checkbox(checked = acidFoodGradeVerified, onCheckedChange = { acidFoodGradeVerified = it })
+                    }
+                    Text("Supervisor Co-Signer: $acidSupervisorCoSign", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Scientific Note: Acid chemistry vs perceived sourness: organic acids modulate multimodal mouthfeel and salivary stimulation; sourness cannot be predicted solely by pH.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // =====================================================================
+        // TAB 5: ROAST DEFECTS & TACTILE (S4-036, S4-037)
+        // =====================================================================
+        if (selectedTrainSubTab == "roast_tactile") {
+            // Roast Defects
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Roast Defect Sensory Recognition", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Always evaluated against a calibrated CONTROL (ideal roast) sample.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    StandardRoastDefects.ALL_DEFECTS.forEach { defect ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(defect.category.labelEn, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                Text("Visual Cues: ${defect.visualAttributesEn}", style = MaterialTheme.typography.bodySmall)
+                                Text("Root Cause: ${defect.roastingRootCauseEn}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Cup Profile: ${defect.sensoryAttributesEn}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+
+                    Text(
+                        "Causal Inference Caveat: Sensory profile reflects multi-variable roast dynamics; does not prove single roast flaw without roaster curves.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Tactile Mouthfeel
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Tactile & Mouthfeel Discrimination", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Controlled evaluation of body weight, texture smoothness, and astringency.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = servingTempInput,
+                            onValueChange = { servingTempInput = it },
+                            label = { Text("Serving Temp (°C)") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = waterTdsInput,
+                            onValueChange = { waterTdsInput = it },
+                            label = { Text("Water TDS (ppm)") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true
+                        )
+                    }
+
+                    val servingTemp = servingTempInput.toDoubleOrNull() ?: 58.0
+                    if (servingTemp < 40.0 || servingTemp > 65.0) {
+                        Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.errorContainer) {
+                            Text("Warning: Serving temperature outside 40°C–65°C causes gustatory numbness or thermal burn.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(6.dp))
+                        }
+                    } else {
+                        Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                            Text("✓ Serving temperature controlled (optimal oral tactile reception).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(6.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // TAB 6: PAIRED & RANKING (S4-038)
+        // =====================================================================
+        if (selectedTrainSubTab == "comparative") {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Paired Comparison (2-AFC, p0 = 1/2)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Strictly isolated from triangle tests: Evaluate which of 2 blind cups has higher sweetness intensity.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(Pair(0, "Cup #118"), Pair(1, "Cup #882")).forEach { (idx, label) ->
+                            val isSelected = pairedChoiceIndex == idx
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { pairedChoiceIndex = idx }
+                                    .padding(4.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                                colors = CardDefaults.cardColors(containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Default.Coffee, null, modifier = Modifier.size(24.dp))
+                                    Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = { pairedSubmitted = true },
+                        enabled = pairedChoiceIndex != null,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(if (pairedSubmitted) "Paired Comparison Recorded" else "Submit Paired Choice", style = MaterialTheme.typography.labelSmall)
+                    }
+
+                    if (pairedSubmitted) {
+                        Text("2-AFC statistical calculus: Null hypothesis p0 = 0.50. Evaluated under independent Bernoulli trial distribution.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // TAB 7: READINESS RADAR & HUMAN VERIFICATION (S4-039, S4-040)
+        // =====================================================================
+        if (selectedTrainSubTab == "readiness") {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Personalized Sensory Readiness Dashboard", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Longitudinal skill calibration tracking across 6 core sensory pillars.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    val pillars = listOf(
+                        Pair("Triangle Discrimination", "82.5%"),
+                        Pair("Basic Taste Thresholds", "90.0%"),
+                        Pair("Olfactory Recognition", "78.0%"),
+                        Pair("Organic Acid Analysis", "85.0%"),
+                        Pair("Roast Defect Detection", "75.0%"),
+                        Pair("Tactile & Mouthfeel", "80.0%")
+                    )
+
+                    pillars.forEach { (pillarName, score) ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(pillarName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                                Text(" $score ", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    // Invariant S4-040: Human Observation Verification Gate
+                    Text("Human Observation Verification Guard (S4-040)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text("Never auto-mark a practical sensory exercise PASS based solely on reading or virtual quizzes. Requires physical tasting verification.", style = MaterialTheme.typography.bodySmall)
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                val testAttempt = PracticalExerciseVerification(
+                                    exerciseId = "ex_01",
+                                    verificationType = PracticalVerificationType.PHYSICAL_TASTING_SELF_LOGGED,
+                                    physicalSamplePrepared = true,
+                                    verifierPseudonym = "Alex",
+                                    timestampEpochMs = System.currentTimeMillis(),
+                                    isAutoPassed = true // Simulation of auto-pass attempt
+                                )
+                                val passes = TriangleStatisticsEngine.verifyPracticalSensoryPassGuard(testAttempt)
+                                humanVerificationResult = passes
+                                humanVerificationNote = if (!passes) "BLOCKED: Automated pass without physical verification is strictly forbidden by S4-040." else "VERIFIED."
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Test Quiz Auto-Pass", style = MaterialTheme.typography.labelSmall)
+                        }
+
+                        Button(
+                            onClick = {
+                                val testAttempt = PracticalExerciseVerification(
+                                    exerciseId = "ex_02",
+                                    verificationType = PracticalVerificationType.TRAINER_SUPERVISED_CO_SIGNED,
+                                    physicalSamplePrepared = true,
+                                    verifierPseudonym = "Instructor Sarah",
+                                    timestampEpochMs = System.currentTimeMillis(),
+                                    isAutoPassed = false
+                                )
+                                val passes = TriangleStatisticsEngine.verifyPracticalSensoryPassGuard(testAttempt)
+                                humanVerificationResult = passes
+                                humanVerificationNote = if (passes) "PASSED: Verified physical tasting co-signed by Instructor Sarah." else "BLOCKED."
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Verify Physical Tasting", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    if (humanVerificationResult != null) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (humanVerificationResult == true) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Text(humanVerificationNote, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(8.dp))
+                        }
+                    }
+
+                    // Persistent Legal Non-Certification Disclaimer Banner
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                     ) {
                         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(defect.category.labelEn, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                            Text("Visual Cues: ${defect.visualAttributesEn}", style = MaterialTheme.typography.bodySmall)
-                            Text("Root Cause: ${defect.roastingRootCauseEn}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Cup Profile: ${defect.sensoryAttributesEn}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                            Text("Official Non-Certification Disclaimer:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                            Text(
+                                "Coffee Creator Sensory Lab provides self-directed practice and scientific training only. Does NOT confer official SCA or CQI Q-Grader/R-Grader certification.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
                         }
                     }
                 }

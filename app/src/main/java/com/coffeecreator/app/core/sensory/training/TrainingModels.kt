@@ -156,3 +156,252 @@ object StandardRoastDefects {
         )
     )
 }
+
+enum class TrainingSessionState { SETUP, IN_PROGRESS, SUBMITTED, EVALUATED, ARCHIVED }
+
+data class TriangleSession(
+    val sessionId: String,
+    val sessionSeed: Long,
+    val operatorPseudonym: String,
+    val assessorPseudonym: String,
+    val referenceCoffee: String,
+    val contrastCoffee: String,
+    val ambientTempCelsius: Double?,
+    val waterTdsPpm: Double?,
+    val washoutIntervalSeconds: Int,
+    val trials: List<TriangleTrial>,
+    val state: TrainingSessionState = TrainingSessionState.IN_PROGRESS,
+    val createdAtEpochMs: Long,
+    val completedAtEpochMs: Long? = null
+)
+
+data class AscendingConcentrationStep(
+    val stepIndex: Int,
+    val concentrationGramsPerLiter: Double,
+    val blindCode: String,
+    val isDistinguishableFromWater: Boolean? = null,
+    val identifiedTaste: BasicTaste? = null,
+    val isCorrectIdentification: Boolean? = null
+)
+
+data class TasteThresholdResult(
+    val taste: BasicTaste,
+    val detectionThresholdGramsPerLiter: Double?,
+    val recognitionThresholdGramsPerLiter: Double?,
+    val nonClinicalDisclaimer: String = "Educational threshold test only. Does not infer medical or clinical gustatory impairment."
+)
+
+enum class AromaFamily(val labelEn: String, val labelId: String) {
+    ENZYMATIC("Enzymatic (Floral/Fruity/Herbal)", "Enzimatik (Bunga/Buah/Herbal)"),
+    SUGAR_BROWNING("Sugar Browning (Nutty/Caramelly/Chocolaty)", "Sugar Browning (Kacang/Karamel/Cokelat)"),
+    DRY_DISTILLATION("Dry Distillation (Spicy/Resinous/Pyrolytic)", "Distilasi Kering (Rempah/Resin/Sangrai Gelap)"),
+    AROMATIC_TAINT("Aromatic Taints / Defects", "Cacat Aroma / Kontaminasi")
+}
+
+data class OlfactoryVialReference(
+    val vialId: String,
+    val family: AromaFamily,
+    val descriptorNameEn: String,
+    val descriptorNameId: String,
+    val naturalFoodReferencesEn: List<String>,
+    val naturalFoodReferencesId: List<String>,
+    val userCustomVialLabel: String? = null
+)
+
+object StandardOlfactoryVials {
+    val ALL_VIALS: List<OlfactoryVialReference> = listOf(
+        OlfactoryVialReference(
+            vialId = "enz_01",
+            family = AromaFamily.ENZYMATIC,
+            descriptorNameEn = "Coffee Blossom / Jasmine",
+            descriptorNameId = "Bunga Kopi / Melati",
+            naturalFoodReferencesEn = listOf("Fresh jasmine petals", "Orange blossom water", "Chamomile"),
+            naturalFoodReferencesId = listOf("Kelopak melati segar", "Air bunga jeruk", "Kamomil")
+        ),
+        OlfactoryVialReference(
+            vialId = "enz_02",
+            family = AromaFamily.ENZYMATIC,
+            descriptorNameEn = "Lemon / Citrus",
+            descriptorNameId = "Lemon / Jeruk Sitrus",
+            naturalFoodReferencesEn = listOf("Fresh lemon zest", "Lime leaf", "Citric peel"),
+            naturalFoodReferencesId = listOf("Parutan kulit lemon", "Daun jeruk purut", "Kulit sitrus")
+        ),
+        OlfactoryVialReference(
+            vialId = "enz_03",
+            family = AromaFamily.ENZYMATIC,
+            descriptorNameEn = "Stone Fruit / Peach",
+            descriptorNameId = "Buah Persik / Aprikot",
+            naturalFoodReferencesEn = listOf("Ripe yellow peach", "Apricot nectar", "Nectarine"),
+            naturalFoodReferencesId = listOf("Persik kuning matang", "Nektar aprikot", "Nektarin")
+        ),
+        OlfactoryVialReference(
+            vialId = "sb_01",
+            family = AromaFamily.SUGAR_BROWNING,
+            descriptorNameEn = "Roasted Hazelnut",
+            descriptorNameId = "Kacang Hazelnut Panggang",
+            naturalFoodReferencesEn = listOf("Roasted hazelnuts", "Praline paste", "Nut butter"),
+            naturalFoodReferencesId = listOf("Kacang hazelnut sangrai", "Pasta praline", "Selai kacang")
+        ),
+        OlfactoryVialReference(
+            vialId = "sb_02",
+            family = AromaFamily.SUGAR_BROWNING,
+            descriptorNameEn = "Dark Caramel / Toffee",
+            descriptorNameId = "Karamel Gelap / Gula Bakar",
+            naturalFoodReferencesEn = listOf("Browned butter caramel", "Toffee syrup", "Panela"),
+            naturalFoodReferencesId = listOf("Karamel mentega kecokelatan", "Sirup toffee", "Gula aren / Panela")
+        ),
+        OlfactoryVialReference(
+            vialId = "sb_03",
+            family = AromaFamily.SUGAR_BROWNING,
+            descriptorNameEn = "Dark Cocoa / Chocolate",
+            descriptorNameId = "Cokelat Hitam / Kakao",
+            naturalFoodReferencesEn = listOf("85% dark chocolate", "Roasted cacao nibs", "Dutch process cocoa"),
+            naturalFoodReferencesId = listOf("Cokelat hitam 85%", "Biji kakao sangrai", "Bubuk kakao pekat")
+        ),
+        OlfactoryVialReference(
+            vialId = "dd_01",
+            family = AromaFamily.DRY_DISTILLATION,
+            descriptorNameEn = "Clove / Warm Spice",
+            descriptorNameId = "Cengkeh / Rempah Hangat",
+            naturalFoodReferencesEn = listOf("Whole dried cloves", "Eugenol reference", "Allspice"),
+            naturalFoodReferencesId = listOf("Cengkeh kering utuh", "Larutan eugenol", "Bunga pala")
+        ),
+        OlfactoryVialReference(
+            vialId = "dd_02",
+            family = AromaFamily.DRY_DISTILLATION,
+            descriptorNameEn = "Cedar / Pipe Tobacco",
+            descriptorNameId = "Kayu Cedar / Tembakau Pipa",
+            naturalFoodReferencesEn = listOf("Fresh cedar wood shavings", "Aromatic cured tobacco leaf"),
+            naturalFoodReferencesId = listOf("Serutan kayu cedar segar", "Daun tembakau kering beraroma")
+        ),
+        OlfactoryVialReference(
+            vialId = "taint_01",
+            family = AromaFamily.AROMATIC_TAINT,
+            descriptorNameEn = "Earthy / Moldy / TCA",
+            descriptorNameId = "Bumi Basah / Jamur / TCA",
+            naturalFoodReferencesEn = listOf("Damp soil", "2,4,6-trichloroanisole reference", "Cellar must"),
+            naturalFoodReferencesId = listOf("Tanah basah berjamur", "Bau apek gudang lembap")
+        )
+    )
+}
+
+data class AromaConfusionEntry(
+    val targetVialId: String,
+    val selectedVialId: String,
+    val frequency: Int
+)
+
+data class AromaSpacedRepetitionCard(
+    val vialId: String,
+    val repetitionCount: Int = 0,
+    val intervalDays: Double = 1.0,
+    val easeFactor: Double = 2.5,
+    val nextReviewEpochMs: Long,
+    val totalAttempts: Int = 0,
+    val correctAttempts: Int = 0
+)
+
+enum class OrganicAcidType(
+    val chemicalFormula: String,
+    val pKa1: Double,
+    val sensoryProfileEn: String,
+    val typicalOccurrenceEn: String,
+    val referencePreparationGramsPerLiter: Double
+) {
+    CITRIC("C6H8O7", 3.13, "Bright, sharp, refreshing lemon-lime citrus", "Universal in fresh arabica; wet-processed lots", 0.50),
+    MALIC("C4H6O5", 3.40, "Crisp, tart, lingering green apple stone fruit", "High-altitude microclimates and cold fermentation", 0.40),
+    TARTARIC("C4H6O6", 2.98, "Hard, astringent, dry grape/winey sensation", "Natural process anaerobics, extended yeast ferment", 0.35),
+    ACETIC("C2H4O2", 4.76, "Pungent, vinegar, sharp lifting sourness", "Over-fermentation, delayed drying, fruit vinegar taint", 0.25),
+    PHOSPHORIC("H3PO4", 2.15, "Inorganic sparkling, tingling cola-like sensation", "East African volcanic soils (Kenya, Rwanda)", 0.20),
+    QUINIC("C7H12O6", 3.46, "Dark, bitter-astringent, tonic sensation", "Roast degradation of chlorogenic acids", 0.30),
+    LACTIC("C3H6O3", 3.86, "Milky, creamy, round velvety acidity", "Lactic anaerobic and yeast-inoculated fermentations", 0.45)
+}
+
+data class OrganicAcidTrial(
+    val trialId: String,
+    val acidTarget: OrganicAcidType,
+    val baseBrewDescription: String,
+    val doseGramsPerLiter: Double,
+    val blindCode: String,
+    val submittedPerceptionIndex: OrganicAcidType? = null,
+    val supervisorPseudonym: String,
+    val foodGradeVerified: Boolean
+)
+
+data class RoastDefectTrial(
+    val trialId: String,
+    val targetDefect: RoastDefectCategory,
+    val controlCoffeeName: String,
+    val defectiveCoffeeName: String,
+    val blindCupCodes: List<String>,
+    val submittedDefect: RoastDefectCategory? = null,
+    val causalInferenceCaveat: String = "Sensory profile reflects multi-variable roast dynamics; does not prove single roast flaw without roaster curves."
+)
+
+enum class MouthfeelAttribute(val labelEn: String, val labelId: String) {
+    BODY_WEIGHT("Body / Weight", "Bobot / Densitas"),
+    TEXTURE_TYPE("Texture Smoothness", "Kehalusan Tekstur"),
+    ASTRINGENCY("Astringency / Dryness", "Kelat / Kesat Kering")
+}
+
+data class TactileTrial(
+    val trialId: String,
+    val sampleABlindCode: String,
+    val sampleBBlindCode: String,
+    val targetAttribute: MouthfeelAttribute,
+    val servingTempCelsius: Double,
+    val waterSpecTdsPpm: Double,
+    val submittedChoice: String? = null
+)
+
+enum class ComparativeDrillKind { PAIRED_COMPARISON_2AFC, RANKING_SERIES }
+
+data class ComparativeTrial(
+    val trialId: String,
+    val drillKind: ComparativeDrillKind,
+    val attributeUnderTest: String, // e.g. "Acidity Intensity" or "Sweetness"
+    val blindSampleCodes: List<String>,
+    val submittedOrder: List<String>? = null,
+    val correctOrder: List<String>,
+    val isEvaluated: Boolean = false,
+    val isCorrect: Boolean = false
+)
+
+enum class SensorySkillPillar(val labelEn: String, val labelId: String) {
+    TRIANGLE_DISCRIMINATION("Triangle Discrimination", "Diskriminasi Segitiga"),
+    BASIC_TASTE_THRESHOLDS("Basic Taste Thresholds", "Ambang Rasa Dasar"),
+    OLFACTORY_IDENTIFICATION("Olfactory Recognition", "Pengenalan Olfaktori"),
+    ORGANIC_ACID_RECOGNITION("Organic Acid Analysis", "Analisis Asam Organik"),
+    ROAST_DEFECT_DETECTION("Roast Defect Detection", "Deteksi Cacat Sangrai"),
+    TACTILE_MOUTHFEEL("Tactile & Mouthfeel", "Taktil & Tekstur Mulut")
+}
+
+data class SkillReadinessMetric(
+    val pillar: SensorySkillPillar,
+    val completedPracticalTrials: Int,
+    val accuracyPercentage: Double,
+    val calibrationScore: Double, // 0.0 to 100.0
+    val lastPracticedEpochMs: Long?
+)
+
+data class SensoryReadinessDashboard(
+    val assessorPseudonym: String,
+    val metrics: Map<SensorySkillPillar, SkillReadinessMetric>,
+    val overallReadinessScore: Double,
+    val legalDisclaimer: String = "Coffee Creator Sensory Lab provides self-directed practice only. Does NOT confer official SCA or CQI Q-Grader certification."
+)
+
+enum class PracticalVerificationType {
+    PHYSICAL_TASTING_SELF_LOGGED,
+    TRAINER_SUPERVISED_CO_SIGNED,
+    PANEL_CALIBRATION_CROSS_CHECKED
+}
+
+data class PracticalExerciseVerification(
+    val exerciseId: String,
+    val verificationType: PracticalVerificationType,
+    val physicalSamplePrepared: Boolean,
+    val verifierPseudonym: String,
+    val timestampEpochMs: Long,
+    val isAutoPassed: Boolean = false // Invariant: Must ALWAYS be false
+)

@@ -112,4 +112,160 @@ object TriangleStatisticsEngine {
             isCorrect = isCorrect
         )
     }
+
+    /**
+     * Exact Binomial probability for 2-AFC Paired Comparison (p0 = 1/2).
+     */
+    fun calculatePairedComparisonPValue(n: Int, k: Int): BinomialProbabilityResult {
+        require(n > 0) { "Total trials n must be positive" }
+        require(k in 0..n) { "Correct count k must be between 0 and n" }
+
+        var pValue = 0.0
+        val p = 0.5
+        for (i in k..n) {
+            val comb = combinations(n, i)
+            val probI = comb * Math.pow(p, i.toDouble()) * Math.pow(1.0 - p, (n - i).toDouble())
+            pValue += probI
+        }
+        val clampedPValue = pValue.coerceIn(0.0, 1.0)
+
+        val caveats = mutableListOf<String>()
+        if (n < 6) {
+            caveats.add("Small sample size (n < 6): statistical power is severely constrained.")
+        }
+        caveats.add("Assumes independent 2-AFC trials. Null hypothesis p0 = 0.50 (chance guess between 2 options).")
+        caveats.add("Practice drill only: does NOT confer official SCA or CQI Q-Grader credential.")
+
+        return BinomialProbabilityResult(
+            totalTrialsN = n,
+            correctTrialsK = k,
+            nullHypothesisP = p,
+            pValueCumulative = clampedPValue,
+            isSignificantAlpha05 = clampedPValue <= 0.05,
+            isSignificantAlpha01 = clampedPValue <= 0.01,
+            methodologicalCaveats = caveats
+        )
+    }
+
+    /**
+     * ASTM E679 Ascending Concentration Best-Estimate Threshold (BET) calculus.
+     */
+    fun calculateBestEstimateThreshold(
+        steps: List<AscendingConcentrationStep>,
+        taste: BasicTaste
+    ): TasteThresholdResult {
+        if (steps.isEmpty()) {
+            return TasteThresholdResult(taste, null, null)
+        }
+
+        val sortedSteps = steps.sortedBy { it.concentrationGramsPerLiter }
+
+        // Detection threshold: lowest concentration where distinguishable from water
+        val firstDetIdx = sortedSteps.indexOfFirst { it.isDistinguishableFromWater == true }
+        val detThreshold = when {
+            firstDetIdx == -1 -> null
+            firstDetIdx == 0 -> sortedSteps[0].concentrationGramsPerLiter
+            else -> {
+                val prevC = sortedSteps[firstDetIdx - 1].concentrationGramsPerLiter
+                val currC = sortedSteps[firstDetIdx].concentrationGramsPerLiter
+                Math.sqrt(prevC * currC)
+            }
+        }
+
+        // Recognition threshold: lowest concentration where specific taste correctly identified
+        val firstRecIdx = sortedSteps.indexOfFirst { it.isCorrectIdentification == true }
+        val recThreshold = when {
+            firstRecIdx == -1 -> null
+            firstRecIdx == 0 -> sortedSteps[0].concentrationGramsPerLiter
+            else -> {
+                val prevC = sortedSteps[firstRecIdx - 1].concentrationGramsPerLiter
+                val currC = sortedSteps[firstRecIdx].concentrationGramsPerLiter
+                Math.sqrt(prevC * currC)
+            }
+        }
+
+        return TasteThresholdResult(
+            taste = taste,
+            detectionThresholdGramsPerLiter = detThreshold,
+            recognitionThresholdGramsPerLiter = recThreshold,
+            nonClinicalDisclaimer = "Educational threshold test only. Does not infer medical or clinical gustatory impairment."
+        )
+    }
+
+    /**
+     * Olfactory Spaced Repetition (Sensory SM-2 algorithm).
+     * Quality rating q in 1..5.
+     */
+    fun updateSpacedRepetition(
+        card: AromaSpacedRepetitionCard,
+        qualityRating: Int,
+        nowEpochMs: Long = System.currentTimeMillis()
+    ): AromaSpacedRepetitionCard {
+        val q = qualityRating.coerceIn(1, 5)
+        val newEaseFactor = Math.max(1.3, card.easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)))
+
+        val (newRepCount, newIntervalDays) = if (q < 3) {
+            Pair(0, 1.0)
+        } else {
+            when (card.repetitionCount) {
+                0 -> Pair(1, 1.0)
+                1 -> Pair(2, 3.0)
+                else -> Pair(card.repetitionCount + 1, (card.intervalDays * newEaseFactor).coerceAtLeast(1.0))
+            }
+        }
+
+        val nextReviewMs = nowEpochMs + (newIntervalDays * 24.0 * 3600.0 * 1000.0).toLong()
+
+        return card.copy(
+            repetitionCount = newRepCount,
+            intervalDays = newIntervalDays,
+            easeFactor = newEaseFactor,
+            nextReviewEpochMs = nextReviewMs,
+            totalAttempts = card.totalAttempts + 1,
+            correctAttempts = card.correctAttempts + (if (q >= 3) 1 else 0)
+        )
+    }
+
+    /**
+     * Aggregates aroma identification trials into a Confusion Matrix frequency list.
+     */
+    fun computeAromaConfusionMatrix(trials: List<Pair<String, String>>): List<AromaConfusionEntry> {
+        val counts = mutableMapOf<Pair<String, String>, Int>()
+        trials.forEach { (target, selected) ->
+            val key = Pair(target, selected)
+            counts[key] = (counts[key] ?: 0) + 1
+        }
+        return counts.map { (key, freq) ->
+            AromaConfusionEntry(targetVialId = key.first, selectedVialId = key.second, frequency = freq)
+        }.sortedByDescending { it.frequency }
+    }
+
+    /**
+     * Confidence calibration score using Brier score (lower is better calibrated).
+     * predictions: list of (confidence 1..5, isCorrect: Boolean).
+     */
+    fun calculateBrierScore(predictions: List<Pair<Int, Boolean>>): Double {
+        if (predictions.isEmpty()) return 0.0
+        var sumSquaredError = 0.0
+        for ((conf, isCorrect) in predictions) {
+            val prob = conf.coerceIn(1, 5) / 5.0
+            val outcome = if (isCorrect) 1.0 else 0.0
+            sumSquaredError += Math.pow(prob - outcome, 2.0)
+        }
+        return sumSquaredError / predictions.size.toDouble()
+    }
+
+    /**
+     * Human observation verification guard (S4-040).
+     * Strictly blocks virtual quizzes or reading-only completions from being marked as practical PASS.
+     */
+    fun verifyPracticalSensoryPassGuard(verification: PracticalExerciseVerification): Boolean {
+        // Invariant 1: Cannot be auto-passed
+        if (verification.isAutoPassed) return false
+        // Invariant 2: Physical sample MUST have been prepared
+        if (!verification.physicalSamplePrepared) return false
+        // Invariant 3: Verifier identity must be provided
+        if (verification.verifierPseudonym.trim().isBlank()) return false
+        return true
+    }
 }
