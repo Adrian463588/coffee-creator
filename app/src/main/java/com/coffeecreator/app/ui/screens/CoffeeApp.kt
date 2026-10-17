@@ -5537,7 +5537,11 @@ private enum class SensoryTab {
     SESSIONS,
     CONSENSUS,
     PHYSICAL_QC,
-    CALIBRATION
+    CALIBRATION,
+    ACADEMY,
+    CVA_CUPPING,
+    TRAINING_LAB,
+    GREEN_QC
 }
 
 @Composable
@@ -5682,6 +5686,54 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                     },
                     leadingIcon = { Icon(Icons.Default.Star, null, Modifier.padding(end = 4.dp)) },
                     modifier = Modifier.testTag("sensory:tab_calibration").heightIn(min = 48.dp)
+                )
+                TactileFilterChip(
+                    selected = activeTab == SensoryTab.ACADEMY,
+                    onClick = { activeTab = SensoryTab.ACADEMY },
+                    label = {
+                        Text(
+                            "Academy (22)",
+                            fontWeight = if (activeTab == SensoryTab.ACADEMY) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.MenuBook, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_academy").heightIn(min = 48.dp)
+                )
+                TactileFilterChip(
+                    selected = activeTab == SensoryTab.CVA_CUPPING,
+                    onClick = { activeTab = SensoryTab.CVA_CUPPING },
+                    label = {
+                        Text(
+                            "CVA Cupping",
+                            fontWeight = if (activeTab == SensoryTab.CVA_CUPPING) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.Science, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_cva").heightIn(min = 48.dp)
+                )
+                TactileFilterChip(
+                    selected = activeTab == SensoryTab.TRAINING_LAB,
+                    onClick = { activeTab = SensoryTab.TRAINING_LAB },
+                    label = {
+                        Text(
+                            "Training Lab",
+                            fontWeight = if (activeTab == SensoryTab.TRAINING_LAB) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.Tune, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_training").heightIn(min = 48.dp)
+                )
+                TactileFilterChip(
+                    selected = activeTab == SensoryTab.GREEN_QC,
+                    onClick = { activeTab = SensoryTab.GREEN_QC },
+                    label = {
+                        Text(
+                            "Green Grading QC",
+                            fontWeight = if (activeTab == SensoryTab.GREEN_QC) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.Spa, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_green_qc").heightIn(min = 48.dp)
                 )
             }
         }
@@ -6514,6 +6566,30 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                             }
                         }
                     }
+                }
+            }
+
+            SensoryTab.ACADEMY -> {
+                item {
+                    SensoryAcademySection()
+                }
+            }
+
+            SensoryTab.CVA_CUPPING -> {
+                item {
+                    SensoryCvaCuppingSection()
+                }
+            }
+
+            SensoryTab.TRAINING_LAB -> {
+                item {
+                    SensoryTrainingLabSection()
+                }
+            }
+
+            SensoryTab.GREEN_QC -> {
+                item {
+                    SensoryGreenGradingSection()
                 }
             }
         }
