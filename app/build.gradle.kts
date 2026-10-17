@@ -21,8 +21,8 @@ android {
         applicationId = "com.coffeecreator.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 25
-        versionName = "1.14.0"
+        versionCode = 26
+        versionName = "1.14.1"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         externalNativeBuild {
             cmake { arguments += listOf("-DCMAKE_BUILD_TYPE=Release", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON") }

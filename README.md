@@ -36,20 +36,20 @@
 
 ## 📦 Download & Installation
 
-### 🚀 Latest Release: v1.14.0 (Sprint 04: Professional Sensory Academy, Digital CVA Cupping & Green Grading QC)
+### 🚀 Latest Release: v1.14.1 (Sprint 04 Epic B: Digital CVA Cupping Lab & 221-Descriptor Wheel Integration)
 | Artifact | Size | SHA-256 Checksum |
 |---|---|---|
-| [**Download coffee-creator-v1.14.0.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.0/coffee-creator-v1.14.0.apk) | `117.0 MB` | `350fe44ffeb475a38d157e6fc8d1ce82a441260735a568536bcf89f607bb4470` |
+| [**Download coffee-creator-v1.14.1.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.1/coffee-creator-v1.14.1.apk) | `117.0 MB` | `f2415b498e4fb47cf88b7cd7039e34d13605c9a86323c3bc54d8c3d4257b38f0` |
 
-- 📄 [Release Notes for v1.14.0](docs/releases/v1.14.0.md)
-- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.0/SHA256SUMS.txt)
+- 📄 [Release Notes for v1.14.1](docs/releases/v1.14.1.md)
+- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.1/SHA256SUMS.txt)
 - 📱 **Compatibility**: Android 8.0+ (API level 26 to 35). Architectures: `arm64-v8a`, `x86_64`. Tested on Samsung Galaxy S20 Ultra (`SM-G988B`, serial `RRCN3008VYE`, Android 13/API 33).
 
 ### 🛠️ Zero-Data-Loss ADB Installation (Recommended for Development)
 To install or upgrade the APK without deleting existing recipes, journal logs, sensory sessions, or Room database state, execute with `-r -d` flags:
 
 ```powershell
-adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.0.apk
+adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.1.apk
 ```
 > [!IMPORTANT]
 > The `-r` flag reinstalls the package while **preserving all user data**. The `-d` flag allows sidegrade/downgrade version code safety. Always specify `-s RRCN3008VYE` to target the designated test device. **Never** run `adb uninstall` if you wish to retain local records, as Android purges private databases and revokes SAF folder grants upon uninstallation.
@@ -60,6 +60,7 @@ adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.0.apk
 
 | Version | Release Date | Download APK | Release Highlights | SHA-256 Checksum |
 |:---:|:---:|:---:|:---|:---:|
+| **v1.14.1** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.1/coffee-creator-v1.14.1.apk) | [Notes](docs/releases/v1.14.1.md) · **Sprint 04 Epic B: Digital CVA Cupping & 221-Wheel Integration (`S4-011..26`)**: Multi-sample sessions, protocol selector (`SCA_CVA_CURRENT`, `SCA_2004_LEGACY`, `CUSTOM_RESEARCH`), 4-perspective forms (`Physical`, `Descriptive`, `Affective`, `Extrinsic`), extrinsic blinding gate (`UNBLINDED_PREMATURELY_AUDITED`), 221-descriptor Sensory Wheel modal with bilingual search, 5-bowl multi-cup defect grid (Clean/Taint/Fault), 6-milestone cupping timer, A/B side-by-side comparison, cryptographic SHA-256 session lock, JSON/CSV exports, and 1-click "Log to Brew Journal as Graded Coffee". | `f2415b498e4fb...` |
 | **v1.14.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.0/coffee-creator-v1.14.0.apk) | [Notes](docs/releases/v1.14.0.md) · **Sprint 04 Professional Sensory, Cupping, CVA & Green Coffee Assessment**: 22-module bilingual Learning Academy (`EDU-01..22`) with quizzes and ASCII diagrams, 5 basic tastes (Sweet, Sour, Salty, Bitter, Umami), 7 organic acids atlas, generic 60-aroma taxonomy, 4-perspective Digital CVA (`Physical`, `Descriptive`, `Affective`, `Extrinsic`) with blind codes, SHA-256 session lock and JSON/CSV exports, 6-permutation balanced Triangle testing with exact cumulative Binomial probability $P(X \ge k)$, and 350g washed Arabica green coffee defect grading. | `350fe44ffeb47...` |
 | **v1.13.1** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.1/coffee-creator-v1.13.1.apk) | [Notes](docs/releases/v1.13.1.md) · **Tactile Microinteractions & Anti-AI-Slop Refinement**: Semantic `MicroBadgePill`s (Hand/Electric/Verified/Filter-only), 3-tile monospace grind range grid (`fontFeatureSettings = "tnum"`), animated segmented valve toggle (`InteractiveValveSwitch`), numbered step-by-step zero calibration accordion, and zero text-wrapping distortion. | `5b0a0f542cc2e...` |
 | **v1.13.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.0/coffee-creator-v1.13.0.apk) | [Notes](docs/releases/v1.13.0.md) · **Sprint 03 Manual Brewing & Grinder Intelligence (`GR-01..12`, `BR-01..18`)**: 44-model grinder catalog with variants, zero calibration wizard, typed grind settings, manufacturer evidence overlay, 26-dripper catalog with qualitative flow classes, filter paper compatibility engine, reversible dial-in assistant, and designated ADB device targeting (`RRCN3008VYE`). | `ba15137a41234...` |
