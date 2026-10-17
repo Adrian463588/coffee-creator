@@ -1119,12 +1119,29 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                 }
                                 item {
                                     BrewCard("Brew timer", "%02d:%02d".format(state.timerSeconds / 60, state.timerSeconds % 60)) {
-                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            Button(onClick = model::toggleTimer, modifier = Modifier.heightIn(min = 48.dp)) {
-                                                Text(if (state.timerRunning) "Pause timer" else "Start timer")
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            TactileButton(
+                                                onClick = model::toggleTimer,
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("recipe:toggle_timer")
+                                            ) {
+                                                Text(
+                                                    text = if (state.timerRunning) "Pause timer" else "Start timer",
+                                                    maxLines = 1,
+                                                    softWrap = false
+                                                )
                                             }
-                                            OutlinedButton(onClick = model::resetTimer, modifier = Modifier.heightIn(min = 48.dp)) {
-                                                Text("Reset timer")
+                                            TactileOutlinedButton(
+                                                onClick = model::resetTimer,
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("recipe:reset_timer")
+                                            ) {
+                                                Text(
+                                                    text = "Reset timer",
+                                                    maxLines = 1,
+                                                    softWrap = false
+                                                )
                                             }
                                         }
                                     }

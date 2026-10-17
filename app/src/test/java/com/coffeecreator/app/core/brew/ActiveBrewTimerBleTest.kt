@@ -4,12 +4,18 @@ import com.coffeecreator.app.core.ble.DiscontinuityType
 import com.coffeecreator.app.core.ble.ScaleConnectionState
 import com.coffeecreator.app.core.ble.SimulatedBleScaleDriver
 import com.coffeecreator.app.core.data.BrewScenarioFixtures
+import com.coffeecreator.app.core.engine.DomainValidation
 import com.coffeecreator.app.core.model.BrewStep
 import com.coffeecreator.app.core.model.SensoryObservation
+import com.coffeecreator.app.ui.viewmodel.RecipeDraft
+import com.coffeecreator.app.ui.viewmodel.createDefaultBrewSession
+import com.coffeecreator.app.ui.viewmodel.defaultFallbackRecipe
+import com.coffeecreator.app.ui.viewmodel.resolveActiveRecipe
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -171,7 +177,7 @@ class ActiveBrewTimerBleTest {
 
     // --- S2-032: BLE Device Abstraction & Simulated Scale Driver ---
 
-    @Test
+    @Test(timeout = 5000)
     fun `S2-032 Simulated BLE scale driver establishes connection and streams net samples`() = runBlocking {
         val driver = SimulatedBleScaleDriver()
         assertEquals(ScaleConnectionState.DISCONNECTED, driver.connectionState.value)
@@ -360,5 +366,105 @@ class ActiveBrewTimerBleTest {
         assertEquals(65, payload.elapsedSeconds)
         assertTrue(payload.isRunning)
         assertTrue(payload.canPause)
+    }
+
+    // --- Zero-Crash Resilience & Fallback Specification Tests ---
+
+    @Test
+    fun `Scenario 1 - Blank recipe draft synthesizes draft name and connects or initializes safely`() {
+        val draft = RecipeDraft(
+            fields = mapOf(
+                "name" to "",
+                "method" to "Pour Over (V60)",
+                "dose" to "18.0",
+                "water" to "300.0",
+                "ratio" to "1:16.7",
+                "temp" to "93.0",
+                "time" to "180"
+            )
+        )
+        val resolved = resolveActiveRecipe(draft = draft, savedRecipes = emptyList())
+        assertEquals("Draft Pour Over (V60)", resolved.name)
+        assertEquals(18.0, resolved.doseGrams, 0.001)
+        assertEquals(300.0, resolved.waterGrams, 0.001)
+        DomainValidation.validateRecipe(resolved)
+
+        val session = createDefaultBrewSession(resolved)
+        assertEquals(BrewExecutionStatus.READY_ARMED, session.status)
+        assertNotNull(session.stepProgress)
+        assertEquals(0.0, session.currentWeightGrams, 0.001)
+    }
+
+    @Test
+    fun `Scenario 2 - Blank draft with empty saved recipes library resolves default fallback V60`() {
+        val resolved = resolveActiveRecipe(draft = null, savedRecipes = emptyList())
+        assertTrue(resolved.name.isNotBlank())
+        assertEquals("Standard V60 Pour Over", resolved.name)
+        assertEquals(15.0, resolved.doseGrams, 0.001)
+        assertEquals(250.0, resolved.waterGrams, 0.001)
+        assertTrue(resolved.brewSteps.isNotEmpty())
+        DomainValidation.validateRecipe(resolved)
+    }
+
+    @Test
+    fun `Scenario 3 - Corrupt draft parameters gracefully fall back to verified default V60 recipe`() {
+        val corruptDraft = RecipeDraft(
+            fields = mapOf(
+                "name" to "",
+                "dose" to "-15.0",
+                "water" to "invalid_number",
+                "time" to "-10"
+            )
+        )
+        val resolved = resolveActiveRecipe(draft = corruptDraft, savedRecipes = emptyList())
+        assertTrue(resolved.name.isNotBlank())
+        assertEquals("Standard V60 Pour Over", resolved.name)
+        assertEquals(15.0, resolved.doseGrams, 0.001)
+        assertEquals(250.0, resolved.waterGrams, 0.001)
+        DomainValidation.validateRecipe(resolved)
+    }
+
+    @Test
+    fun `Scenario 4 - Custom method without name synthesizes Custom Draft name`() {
+        val customDraft = RecipeDraft(
+            fields = mapOf(
+                "name" to "",
+                "method" to "Custom",
+                "customMethod" to "Siphon Vac-Pot",
+                "dose" to "20.0",
+                "water" to "300.0",
+                "temp" to "94.0",
+                "time" to "120"
+            )
+        )
+        val resolved = resolveActiveRecipe(draft = customDraft, savedRecipes = emptyList())
+        assertEquals("Draft Siphon Vac-Pot", resolved.name)
+        assertEquals("Siphon Vac-Pot", resolved.brewMethod)
+        DomainValidation.validateRecipe(resolved)
+    }
+
+    @Test(timeout = 5000)
+    fun `Scenario 5 - Simulated BLE scale connects, streams samples, and tares to zero mass`() = runBlocking {
+        val driver = SimulatedBleScaleDriver()
+        driver.connect()
+        assertEquals(ScaleConnectionState.READY, driver.connectionState.value)
+
+        driver.feedWeight(120.0)
+        val firstSample = driver.weightStream.first()
+        assertTrue(firstSample.filteredWeightGrams > 0.0)
+
+        driver.tare()
+        val tareSample = driver.weightStream.first()
+        assertEquals(0.0, tareSample.filteredWeightGrams, 0.001)
+
+        val recipe = defaultFallbackRecipe()
+        val session = createDefaultBrewSession(
+            recipe = recipe,
+            scaleDevice = driver.device,
+            scaleConnectionState = ScaleConnectionState.READY
+        )
+        assertEquals(ScaleConnectionState.READY, session.scaleConnectionState)
+        assertEquals(0.0, session.currentWeightGrams, 0.001)
+        assertEquals(0.0, session.currentFlowRateGps, 0.001)
     }
 }

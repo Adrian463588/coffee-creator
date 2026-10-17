@@ -30,7 +30,7 @@ class SimulatedBleScaleDriver(
     private val _connectionState = MutableStateFlow(ScaleConnectionState.DISCONNECTED)
     override val connectionState: StateFlow<ScaleConnectionState> = _connectionState.asStateFlow()
 
-    private val _weightStream = MutableSharedFlow<ScaleWeightSample>(extraBufferCapacity = 64)
+    private val _weightStream = MutableSharedFlow<ScaleWeightSample>(replay = 1, extraBufferCapacity = 64)
     override val weightStream: Flow<ScaleWeightSample> = _weightStream.asSharedFlow()
 
     private var tareOffsetGrams = 0.0
