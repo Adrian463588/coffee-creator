@@ -2688,7 +2688,24 @@ fun SensoryTrainingLabSection(
 fun SensoryGreenGradingSection(
     modifier: Modifier = Modifier
 ) {
-    // Category 1 Primary Defects (1:1 full defect equivalent)
+    var selectedGreenTab by rememberSaveable { mutableStateOf(0) }
+    val greenTabs = listOf("Defect Tally", "Sieve (ISO 4150)", "Moisture & Physics", "Lot & Custody", "Contract & Export")
+
+    // S4-041: Lot & Custody State
+    var lotId by rememberSaveable { mutableStateOf("LOT-2026-ETH-YIRG-042") }
+    var lotName by rememberSaveable { mutableStateOf("Yirgacheffe Kochere Grade 1 Micro") }
+    var selectedSpecies by rememberSaveable { mutableStateOf(GreenCoffeeSpecies.COFFEA_ARABICA) }
+    var selectedProcess by rememberSaveable { mutableStateOf(GreenProcessingMethod.WASHED) }
+    var originCountry by rememberSaveable { mutableStateOf("Ethiopia") }
+    var originRegion by rememberSaveable { mutableStateOf("Gedeo Zone, Kochere") }
+    var producer by rememberSaveable { mutableStateOf("Boji Washing Station") }
+    var harvestYear by rememberSaveable { mutableStateOf("2025/2026") }
+    var sampleMassInput by rememberSaveable { mutableStateOf("350.0") }
+    var exporter by rememberSaveable { mutableStateOf("Bole Specialty Coffee Exporters") }
+    var importer by rememberSaveable { mutableStateOf("Nordic Coffee Importers Hamburg") }
+    var warehouse by rememberSaveable { mutableStateOf("Port of Hamburg Terminal Shed 4") }
+
+    // S4-042 & S4-043: Defect Counts (Category 1 & Category 2)
     var cat1FullBlack by rememberSaveable { mutableStateOf(0) }
     var cat1FullSour by rememberSaveable { mutableStateOf(0) }
     var cat1DriedCherry by rememberSaveable { mutableStateOf(0) }
@@ -2696,7 +2713,6 @@ fun SensoryGreenGradingSection(
     var cat1ForeignMatter by rememberSaveable { mutableStateOf(0) }
     var cat1SevereInsect by rememberSaveable { mutableStateOf(0) }
 
-    // Category 2 Secondary Defects (weighted ratio)
     var cat2PartialBlack by rememberSaveable { mutableStateOf(0) } // 3:1
     var cat2PartialSour by rememberSaveable { mutableStateOf(0) }  // 3:1
     var cat2Parchment by rememberSaveable { mutableStateOf(0) }    // 5:1
@@ -2708,26 +2724,58 @@ fun SensoryGreenGradingSection(
     var cat2Hull by rememberSaveable { mutableStateOf(0) }         // 5:1
     var cat2SlightInsect by rememberSaveable { mutableStateOf(0) } // 10:1
 
-    // Moisture & Sieve
-    var moistureInput by rememberSaveable { mutableStateOf("10.8") }
-    var sieve18Input by rememberSaveable { mutableStateOf("120") }
-    var sieve16Input by rememberSaveable { mutableStateOf("160") }
-    var sieve14Input by rememberSaveable { mutableStateOf("55") }
-    var sievePanInput by rememberSaveable { mutableStateOf("15") }
+    var evidencePhotosCount by rememberSaveable { mutableStateOf(1) }
 
-    val cat1Total = cat1FullBlack + cat1FullSour + cat1DriedCherry + cat1Fungus + cat1ForeignMatter + cat1SevereInsect
-    val cat2Equivalent = (cat2PartialBlack / 3) + (cat2PartialSour / 3) + (cat2Parchment / 5) + (cat2Floater / 5) +
-            (cat2Immature / 5) + (cat2Withered / 5) + (cat2Shell / 5) + (cat2Broken / 5) + (cat2Hull / 5) + (cat2SlightInsect / 10)
+    // S4-044: ISO 4150 Sieve Inputs
+    var sieve18Input by rememberSaveable { mutableStateOf("175.0") }
+    var sieve17Input by rememberSaveable { mutableStateOf("87.5") }
+    var sieve16Input by rememberSaveable { mutableStateOf("70.0") }
+    var sieve15Input by rememberSaveable { mutableStateOf("14.0") }
+    var sievePanInput by rememberSaveable { mutableStateOf("3.5") }
+
+    // S4-045 & S4-046: Moisture & Physics
+    var moistureInput by rememberSaveable { mutableStateOf("10.8") }
+    var isMoistureMeasured by rememberSaveable { mutableStateOf(true) }
+    var meterModel by rememberSaveable { mutableStateOf("Sinar AP 6060") }
+    var meterSerial by rememberSaveable { mutableStateOf("SIN-2024-8841") }
+    var sampleTempInput by rememberSaveable { mutableStateOf("21.5") }
+    var waterActivityInput by rememberSaveable { mutableStateOf("0.585") }
+    var isWaterActivityMeasured by rememberSaveable { mutableStateOf(true) }
+    var bulkDensityInput by rememberSaveable { mutableStateOf("710.0") }
+    var isBulkDensityMeasured by rememberSaveable { mutableStateOf(true) }
+    var selectedColor by rememberSaveable { mutableStateOf(GreenBeanColor.BLUISH_GREEN) }
+    var selectedOdor by rememberSaveable { mutableStateOf(GreenBeanOdor.CLEAN_FRESH_VEGETAL) }
+
+    // S4-048 & S4-049: Dual Decoupling & Buyer Spec
+    var sensoryScoreInput by rememberSaveable { mutableStateOf("86.5") }
+    var exportNotice by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // Calculations
+    val sampleMass = sampleMassInput.toDoubleOrNull() ?: 350.0
+    val cat1Total = cat1FullBlack + cat1FullSour + cat1DriedCherry + cat1Fungus + cat1ForeignMatter + (cat1SevereInsect / 5.0)
+    val cat2Equivalent = (cat2PartialBlack / 3.0) + (cat2PartialSour / 3.0) + (cat2Parchment / 5.0) + (cat2Floater / 5.0) +
+            (cat2Immature / 5.0) + (cat2Withered / 5.0) + (cat2Shell / 5.0) + (cat2Broken / 5.0) + (cat2Hull / 5.0) + (cat2SlightInsect / 10.0)
     val totalEquivalentDefects = cat1Total + cat2Equivalent
 
-    val moistureVal = moistureInput.toDoubleOrNull() ?: 10.8
-    val gradingEvaluation = remember(cat1Total, cat2Equivalent, moistureVal) {
-        val sample = GreenLotSample(
-            lotId = "sample_grading_001",
-            lotName = "350g Washed Arabica Sample",
-            species = GreenCoffeeSpecies.COFFEA_ARABICA,
-            processMethod = GreenProcessingMethod.WASHED,
-            sampleMassGrams = 350.0,
+    val moistureVal = if (isMoistureMeasured) moistureInput.toDoubleOrNull() else null
+    val awVal = if (isWaterActivityMeasured) waterActivityInput.toDoubleOrNull() else null
+    val densityVal = if (isBulkDensityMeasured) bulkDensityInput.toDoubleOrNull() else null
+
+    val currentSample = remember(
+        lotId, lotName, selectedSpecies, selectedProcess, originCountry, originRegion, producer, harvestYear,
+        sampleMass, cat1Total, cat2Equivalent, moistureVal, awVal, densityVal, selectedColor, selectedOdor
+    ) {
+        GreenLotSample(
+            lotId = lotId,
+            lotName = lotName,
+            species = selectedSpecies,
+            processMethod = selectedProcess,
+            originCountry = originCountry,
+            originRegion = originRegion,
+            producer = producer,
+            harvestCropYear = harvestYear,
+            sampleMassGrams = sampleMass,
+            chainOfCustody = ChainOfCustody(exporter = exporter, importer = importer, warehouseLocation = warehouse),
             defects = listOf(
                 DefectTallyRecord(GreenDefectType.FULL_BLACK, cat1FullBlack),
                 DefectTallyRecord(GreenDefectType.FULL_SOUR, cat1FullSour),
@@ -2746,16 +2794,47 @@ fun SensoryGreenGradingSection(
                 DefectTallyRecord(GreenDefectType.HULL_HUSK, cat2Hull),
                 DefectTallyRecord(GreenDefectType.SLIGHT_INSECT_DAMAGE, cat2SlightInsect)
             ),
-            moisture = MoistureAssessment(moistureVal)
+            moisture = MoistureAssessment(moisturePercent = moistureVal, meterDeviceModel = meterModel, meterSerialNumber = meterSerial),
+            waterActivity = WaterActivityAssessment(waterActivityAw = awVal),
+            bulkDensity = BulkDensityAssessment(bulkDensityGramsPerLiter = densityVal),
+            color = selectedColor,
+            odor = selectedOdor
         )
-        StandardGreenGradingEngine.evaluateWashedArabicaGrade(sample)
+    }
+
+    val gradingEvaluation = remember(currentSample) {
+        StandardGreenGradingEngine.evaluateWashedArabicaGrade(currentSample)
+    }
+
+    // Sieve Calculation
+    val sieveAnalysis = remember(sieve18Input, sieve17Input, sieve16Input, sieve15Input, sievePanInput, sampleMass) {
+        val masses = mapOf(
+            ScreenSieveNumber.SCREEN_18 to (sieve18Input.toDoubleOrNull() ?: 0.0),
+            ScreenSieveNumber.SCREEN_17 to (sieve17Input.toDoubleOrNull() ?: 0.0),
+            ScreenSieveNumber.SCREEN_16 to (sieve16Input.toDoubleOrNull() ?: 0.0),
+            ScreenSieveNumber.SCREEN_15 to (sieve15Input.toDoubleOrNull() ?: 0.0),
+            ScreenSieveNumber.BELOW_12 to (sievePanInput.toDoubleOrNull() ?: 0.0)
+        )
+        StandardGreenGradingEngine.calculateSieveAnalysis(sampleMass, masses)
+    }
+
+    // Buyer Contract Evaluation
+    val buyerSpec = remember { BuyerAcceptanceLimits() }
+    val contractResult = remember(currentSample, sieveAnalysis) {
+        StandardGreenGradingEngine.evaluateBuyerContract(currentSample, buyerSpec, sieveAnalysis)
+    }
+
+    // Dual Decoupling Evaluation
+    val sensoryScore = sensoryScoreInput.toDoubleOrNull()
+    val dualSpecialty = remember(gradingEvaluation, sensoryScore) {
+        StandardGreenGradingEngine.evaluateDualSpecialty(gradingEvaluation, sensoryScore)
     }
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Green QC Overview & Classification Card
+        // Master Green QC Overview Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -2769,8 +2848,8 @@ fun SensoryGreenGradingSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("350g Washed Arabica Physical QC", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("SCA 2004 Green Coffee Defect Standard", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${currentSample.sampleMassGrams}g Green Physical QC", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(currentSample.standardRef.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
                     Surface(
@@ -2779,6 +2858,7 @@ fun SensoryGreenGradingSection(
                             PhysicalGradeClassification.SPECIALTY_GRADE_1 -> MaterialTheme.colorScheme.primaryContainer
                             PhysicalGradeClassification.PREMIUM_GRADE_2 -> MaterialTheme.colorScheme.secondaryContainer
                             PhysicalGradeClassification.EXCHANGE_GRADE_3 -> MaterialTheme.colorScheme.tertiaryContainer
+                            PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE -> MaterialTheme.colorScheme.surfaceVariant
                             else -> MaterialTheme.colorScheme.errorContainer
                         },
                         modifier = Modifier.padding(4.dp)
@@ -2792,7 +2872,7 @@ fun SensoryGreenGradingSection(
                     }
                 }
 
-                // Tallies summary
+                // 3-Tile Metric Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -2801,10 +2881,15 @@ fun SensoryGreenGradingSection(
                         modifier = Modifier.weight(1f),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                     ) {
-                        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Cat 1 Defects", style = MaterialTheme.typography.labelSmall)
-                            Text("$cat1Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = if (cat1Total == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                            Text("(Max 0 for Specialty)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                String.format(Locale.US, "%.1f", cat1Total),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (cat1Total == 0.0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                            )
+                            Text("(0 for Specialty)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
@@ -2812,10 +2897,10 @@ fun SensoryGreenGradingSection(
                         modifier = Modifier.weight(1f),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                     ) {
-                        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Cat 2 Full Equiv", style = MaterialTheme.typography.labelSmall)
-                            Text("$cat2Equivalent", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text("(Max 5 for Specialty)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Cat 2 Equiv", style = MaterialTheme.typography.labelSmall)
+                            Text(String.format(Locale.US, "%.1f", cat2Equivalent), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("(<=5 for Spec)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
@@ -2823,168 +2908,481 @@ fun SensoryGreenGradingSection(
                         modifier = Modifier.weight(1f),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                     ) {
-                        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Total Equiv", style = MaterialTheme.typography.labelSmall)
-                            Text("$totalEquivalentDefects", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text("in 350g sample", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Moisture %", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                if (currentSample.moisture.isMeasured) "${currentSample.moisture.moisturePercent}%" else "NOT_MEASURED",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (gradingEvaluation.moistureWithinStandardRange) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                            Text("(9.0% - 13.0%)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
             }
         }
 
-        // Category 1 Primary Defects Counter
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.40f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        // Horizontal Sub-Tab Navigation
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Category 1: Primary Full Defects (1:1 Ratio)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                Text("A single Category 1 defect immediately disqualifies sample from Specialty Grade.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                listOf(
-                    Triple("Full Black", cat1FullBlack) { v: Int -> cat1FullBlack = v },
-                    Triple("Full Sour", cat1FullSour) { v: Int -> cat1FullSour = v },
-                    Triple("Dried Cherry / Pod", cat1DriedCherry) { v: Int -> cat1DriedCherry = v },
-                    Triple("Fungus Damaged", cat1Fungus) { v: Int -> cat1Fungus = v },
-                    Triple("Foreign Matter (Stone/Stick)", cat1ForeignMatter) { v: Int -> cat1ForeignMatter = v },
-                    Triple("Severe Insect Damage", cat1SevereInsect) { v: Int -> cat1SevereInsect = v }
-                ).forEach { (name, count, setter) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            IconButton(onClick = { if (count > 0) setter(count - 1) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.Clear, contentDescription = "Decrement", modifier = Modifier.size(16.dp))
-                            }
-                            Text("$count", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                            IconButton(onClick = { setter(count + 1) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.Add, contentDescription = "Increment", modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Category 2 Secondary Defects Counter
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-        ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Category 2: Secondary Defects (Weighted Equivalence)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text("Multiple beans required to equal 1 full defect equivalent.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                listOf(
-                    Pair("Partial Black (3:1)", cat2PartialBlack) to { v: Int -> cat2PartialBlack = v },
-                    Pair("Partial Sour (3:1)", cat2PartialSour) to { v: Int -> cat2PartialSour = v },
-                    Pair("Parchment (5:1)", cat2Parchment) to { v: Int -> cat2Parchment = v },
-                    Pair("Floater Bean (5:1)", cat2Floater) to { v: Int -> cat2Floater = v },
-                    Pair("Immature / Unripe (5:1)", cat2Immature) to { v: Int -> cat2Immature = v },
-                    Pair("Withered (5:1)", cat2Withered) to { v: Int -> cat2Withered = v },
-                    Pair("Shell Bean (5:1)", cat2Shell) to { v: Int -> cat2Shell = v },
-                    Pair("Broken / Chipped (5:1)", cat2Broken) to { v: Int -> cat2Broken = v },
-                    Pair("Hull / Husk (5:1)", cat2Hull) to { v: Int -> cat2Hull = v },
-                    Pair("Slight Insect Damage (10:1)", cat2SlightInsect) to { v: Int -> cat2SlightInsect = v }
-                ).forEach { (pair, setter) ->
-                    val (name, count) = pair
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            IconButton(onClick = { if (count > 0) setter(count - 1) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.Clear, contentDescription = "Decrement", modifier = Modifier.size(16.dp))
-                            }
-                            Text("$count", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                            IconButton(onClick = { setter(count + 1) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.Add, contentDescription = "Increment", modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Moisture Content & Sieve Size Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-        ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Moisture & Sieve Distribution", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-
-                OutlinedTextField(
-                    value = moistureInput,
-                    onValueChange = { moistureInput = it },
-                    label = { Text("Moisture % (SCA Standard: 9.0% – 13.0%)") },
-                    modifier = Modifier.fillMaxWidth().testTag("sensory:green_moisture_input"),
+            greenTabs.forEachIndexed { index, title ->
+                FilterChip(
+                    selected = selectedGreenTab == index,
+                    onClick = { selectedGreenTab = index },
+                    label = { Text(title, style = MaterialTheme.typography.bodySmall, fontWeight = if (selectedGreenTab == index) FontWeight.Bold else FontWeight.Normal) },
                     shape = RoundedCornerShape(8.dp),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                    modifier = Modifier.testTag("sensory:tab_green_$index")
                 )
-                Text(
-                    "Measurement uncertainty: ±0.3% (calibrated dielectric or loss-on-drying meter).",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            }
+        }
 
-                HorizontalDivider()
+        when (selectedGreenTab) {
+            0 -> {
+                // TAB 0: Defect Tally (Category 1 & Category 2)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column {
+                                Text("Category 1: Primary Full Defects (1:1 Ratio)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                Text("A single Cat 1 defect immediately disqualifies sample from Specialty Grade 1.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
 
-                Text("Screen Sieve Fractions (350g Sample):", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedTextField(
-                        value = sieve18Input,
-                        onValueChange = { sieve18Input = it },
-                        label = { Text("Scr 18 (g)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                    OutlinedTextField(
-                        value = sieve16Input,
-                        onValueChange = { sieve16Input = it },
-                        label = { Text("Scr 16 (g)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                    OutlinedTextField(
-                        value = sieve14Input,
-                        onValueChange = { sieve14Input = it },
-                        label = { Text("Scr 14 (g)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                    OutlinedTextField(
-                        value = sievePanInput,
-                        onValueChange = { sievePanInput = it },
-                        label = { Text("Pan (g)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
+                        listOf(
+                            Triple("Full Black (1:1)", cat1FullBlack) { v: Int -> cat1FullBlack = v },
+                            Triple("Full Sour (1:1)", cat1FullSour) { v: Int -> cat1FullSour = v },
+                            Triple("Dried Cherry / Pod (1:1)", cat1DriedCherry) { v: Int -> cat1DriedCherry = v },
+                            Triple("Fungus Damaged (1:1)", cat1Fungus) { v: Int -> cat1Fungus = v },
+                            Triple("Foreign Matter - Stone/Stick (1:1)", cat1ForeignMatter) { v: Int -> cat1ForeignMatter = v },
+                            Triple("Severe Insect Damage >=3 holes (5:1)", cat1SevereInsect) { v: Int -> cat1SevereInsect = v }
+                        ).forEach { (name, count, setter) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    IconButton(onClick = { if (count > 0) setter(count - 1) }, modifier = Modifier.size(28.dp)) {
+                                        Icon(Icons.Default.Clear, "Decrement", modifier = Modifier.size(16.dp))
+                                    }
+                                    Text("$count", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    IconButton(onClick = { setter(count + 1) }, modifier = Modifier.size(28.dp)) {
+                                        Icon(Icons.Default.Add, "Increment", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Category 2: Secondary Defects (Weighted Equivalence)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text("Multiple beans required to equal 1 full defect equivalent (Max 5 for Specialty).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                        listOf(
+                            Triple("Partial Black (3:1)", cat2PartialBlack) { v: Int -> cat2PartialBlack = v },
+                            Triple("Partial Sour (3:1)", cat2PartialSour) { v: Int -> cat2PartialSour = v },
+                            Triple("Parchment Bean (5:1)", cat2Parchment) { v: Int -> cat2Parchment = v },
+                            Triple("Floater Bean (5:1)", cat2Floater) { v: Int -> cat2Floater = v },
+                            Triple("Immature / Unripe (5:1)", cat2Immature) { v: Int -> cat2Immature = v },
+                            Triple("Withered Bean (5:1)", cat2Withered) { v: Int -> cat2Withered = v },
+                            Triple("Shell Bean (5:1)", cat2Shell) { v: Int -> cat2Shell = v },
+                            Triple("Broken / Chipped / Cut (5:1)", cat2Broken) { v: Int -> cat2Broken = v },
+                            Triple("Hull / Husk Piece (5:1)", cat2Hull) { v: Int -> cat2Hull = v },
+                            Triple("Slight Insect Damage <3 holes (10:1)", cat2SlightInsect) { v: Int -> cat2SlightInsect = v }
+                        ).forEach { (name, count, setter) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    IconButton(onClick = { if (count > 0) setter(count - 1) }, modifier = Modifier.size(28.dp)) {
+                                        Icon(Icons.Default.Clear, "Decrement", modifier = Modifier.size(16.dp))
+                                    }
+                                    Text("$count", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    IconButton(onClick = { setter(count + 1) }, modifier = Modifier.size(28.dp)) {
+                                        Icon(Icons.Default.Add, "Increment", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        }
+
+                        // Evidence Photo Attachment Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Evidence Photos: $evidencePhotosCount attached", style = MaterialTheme.typography.labelSmall)
+                            Button(
+                                onClick = { evidencePhotosCount++ },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Default.CameraAlt, "Attach Photo", modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Attach Defect Photo", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
+            1 -> {
+                // TAB 1: Sieve Distribution (ISO 4150)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("ISO 4150:2010 Screen Sieve Size Distribution", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text("Manual/mechanical stack: 3 min shaking duration for 350g sample.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedTextField(
+                                value = sieve18Input,
+                                onValueChange = { sieve18Input = it },
+                                label = { Text("Scr 18 (g)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                            OutlinedTextField(
+                                value = sieve17Input,
+                                onValueChange = { sieve17Input = it },
+                                label = { Text("Scr 17 (g)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                            OutlinedTextField(
+                                value = sieve16Input,
+                                onValueChange = { sieve16Input = it },
+                                label = { Text("Scr 16 (g)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedTextField(
+                                value = sieve15Input,
+                                onValueChange = { sieve15Input = it },
+                                label = { Text("Scr 15 (g)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                            OutlinedTextField(
+                                value = sievePanInput,
+                                onValueChange = { sievePanInput = it },
+                                label = { Text("Pan (g)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                        }
+
+                        // Sieve Analysis Metrics
+                        HorizontalDivider()
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Total Recovered:", style = MaterialTheme.typography.labelSmall)
+                            Text("${String.format(Locale.US, "%.1f", sieveAnalysis.totalRecoveredMassGrams)}g / ${sampleMass}g", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Mass Balance Mismatch:", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                "${String.format(Locale.US, "%.2f", sieveAnalysis.massBalanceMismatchGrams)}g (${if (sieveAnalysis.isMassBalanceValid) "PASS <=1.5g" else "FAIL >1.5g"})",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (sieveAnalysis.isMassBalanceValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                            )
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Screen 16+ Retention:", style = MaterialTheme.typography.labelSmall)
+                            Text("${String.format(Locale.US, "%.1f", sieveAnalysis.cumulativeRetentionScreen16Plus)}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
+            2 -> {
+                // TAB 2: Moisture & Physics
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Moisture, Water Activity & Density Lab", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Moisture Status: ${if (isMoistureMeasured) "MEASURED" else "NOT_MEASURED"}", style = MaterialTheme.typography.labelMedium)
+                            Switch(checked = isMoistureMeasured, onCheckedChange = { isMoistureMeasured = it })
+                        }
+
+                        if (isMoistureMeasured) {
+                            OutlinedTextField(
+                                value = moistureInput,
+                                onValueChange = { moistureInput = it },
+                                label = { Text("Moisture % (SCA Range: 9.0% – 13.0%)") },
+                                modifier = Modifier.fillMaxWidth().testTag("sensory:green_moisture_input"),
+                                shape = RoundedCornerShape(8.dp),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                OutlinedTextField(
+                                    value = meterModel,
+                                    onValueChange = { meterModel = it },
+                                    label = { Text("Meter Model") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = sampleTempInput,
+                                    onValueChange = { sampleTempInput = it },
+                                    label = { Text("Sample Temp (°C)") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                                )
+                            }
+                            Text("Calibration Uncertainty: ±0.2% | Serial: $meterSerial", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+
+                        HorizontalDivider()
+
+                        // Water Activity & Bulk Density
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedTextField(
+                                value = waterActivityInput,
+                                onValueChange = { waterActivityInput = it },
+                                label = { Text("Water Activity (aw)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                            OutlinedTextField(
+                                value = bulkDensityInput,
+                                onValueChange = { bulkDensityInput = it },
+                                label = { Text("Bulk Density (g/L)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                        }
+                        Text("Safe aw boundary: <= 0.700 (suppresses mold growth) | SHB density: >= 700 g/L", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                        HorizontalDivider()
+
+                        // Odor Organoleptic Inspection
+                        Text("Organoleptic Odor Inspection:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            GreenBeanOdor.values().forEach { odor ->
+                                FilterChip(
+                                    selected = selectedOdor == odor,
+                                    onClick = { selectedOdor = odor },
+                                    label = { Text(odor.label, style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                            }
+                        }
+                        if (!selectedOdor.isOrganolepticallyClean) {
+                            Text("⚠️ Unacceptable odor contamination! Disqualifies sample from Specialty Grade 1.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
+            3 -> {
+                // TAB 3: Lot & Custody
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Green Lot Provenance & Chain of Custody", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+
+                        OutlinedTextField(
+                            value = lotId,
+                            onValueChange = { lotId = it },
+                            label = { Text("Lot Identifier") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = lotName,
+                            onValueChange = { lotName = it },
+                            label = { Text("Lot Name") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        // Species and Process Selectors
+                        Text("Species & Processing Method:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            GreenCoffeeSpecies.values().forEach { sp ->
+                                FilterChip(
+                                    selected = selectedSpecies == sp,
+                                    onClick = { selectedSpecies = sp },
+                                    label = { Text(sp.label, style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                            }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            GreenProcessingMethod.values().forEach { proc ->
+                                FilterChip(
+                                    selected = selectedProcess == proc,
+                                    onClick = { selectedProcess = proc },
+                                    label = { Text(proc.label, style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                            }
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedTextField(value = originCountry, onValueChange = { originCountry = it }, label = { Text("Country") }, modifier = Modifier.weight(1f), singleLine = true)
+                            OutlinedTextField(value = originRegion, onValueChange = { originRegion = it }, label = { Text("Region") }, modifier = Modifier.weight(1f), singleLine = true)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedTextField(value = producer, onValueChange = { producer = it }, label = { Text("Producer") }, modifier = Modifier.weight(1f), singleLine = true)
+                            OutlinedTextField(value = harvestYear, onValueChange = { harvestYear = it }, label = { Text("Crop Year") }, modifier = Modifier.weight(1f), singleLine = true)
+                        }
+
+                        HorizontalDivider()
+
+                        Text("Chain of Custody:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(value = exporter, onValueChange = { exporter = it }, label = { Text("Exporter") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        OutlinedTextField(value = importer, onValueChange = { importer = it }, label = { Text("Importer") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        OutlinedTextField(value = warehouse, onValueChange = { warehouse = it }, label = { Text("Warehouse Location") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    }
+                }
+            }
+            4 -> {
+                // TAB 4: Contract & Export
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Buyer Contract Compliance & Decoupling", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+
+                        // Buyer contract result pill
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (contractResult.isAccepted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    "Contract Acceptance: ${if (contractResult.isAccepted) "ACCEPTED (PASS)" else "REJECTED (FAIL)"}",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                contractResult.notes.forEach { note ->
+                                    Text("• $note", style = MaterialTheme.typography.bodySmall)
+                                }
+                                contractResult.failureReasons.forEach { fail ->
+                                    Text("⚠️ $fail", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+
+                        HorizontalDivider()
+
+                        // S4-048: Epistemological Decoupling Banner
+                        Text("S4-048 Decoupled Physical vs Sensory Evaluation:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(
+                            value = sensoryScoreInput,
+                            onValueChange = { sensoryScoreInput = it },
+                            label = { Text("Sensory CVA Cupping Score (pts)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("Dual Specialty Status: ${if (dualSpecialty.isFullSpecialtyCertified) "CERTIFIED SPECIALTY" else "NOT DUAL CERTIFIED"}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Text(dualSpecialty.guidanceMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+
+                        HorizontalDivider()
+
+                        // Export Actions
+                        Text("S4-050 Audit Trail & Data Export:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    val audit = GreenQCAuditRecord(assessorName = "Q-Grader Marcus", assessorId = "ASSESSOR-4092", evaluationTimestampEpochMs = System.currentTimeMillis())
+                                    val json = StandardGreenGradingEngine.generateGreenQcJson(currentSample, gradingEvaluation, audit)
+                                    exportNotice = "Green QC JSON exported (SHA-256 seal generated)."
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f).testTag("sensory:green_export_json")
+                            ) {
+                                Icon(Icons.Default.Share, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Export JSON")
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    val audit = GreenQCAuditRecord(assessorName = "Q-Grader Marcus", assessorId = "ASSESSOR-4092", evaluationTimestampEpochMs = System.currentTimeMillis())
+                                    val csv = StandardGreenGradingEngine.generateGreenQcCsv(currentSample, gradingEvaluation, audit)
+                                    exportNotice = "Green QC CSV exported (ISO tabular format)."
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f).testTag("sensory:green_export_csv")
+                            ) {
+                                Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Export CSV")
+                            }
+                        }
+
+                        if (exportNotice != null) {
+                            Text("✓ $exportNotice", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                 }
             }
         }
@@ -3002,7 +3400,7 @@ fun SensoryGreenGradingSection(
             ) {
                 Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                 Text(
-                    "Out-of-scope guard: The SCA 2004 green grading protocol applies exclusively to Washed Coffea Arabica. Natural (dry-processed) or Coffea canephora (Robusta) lots require separate specialized grading matrices.",
+                    "Out-of-scope guard (S4-047 / S4-051): The SCA 2004 green grading protocol applies exclusively to Washed Coffea Arabica. Canephora (Robusta) or Natural lots evaluate as UNDETERMINED_OUT_OF_SCOPE. Missing parameters strictly stay NOT_MEASURED.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -3010,3 +3408,4 @@ fun SensoryGreenGradingSection(
         }
     }
 }
+
