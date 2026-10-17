@@ -167,13 +167,23 @@ import com.coffeecreator.app.core.brew.ProximityState
 import com.coffeecreator.app.core.catalog.BagInventoryItem
 import com.coffeecreator.app.core.catalog.BagStatus
 import com.coffeecreator.app.core.catalog.CatalogPhotoTarget
+import com.coffeecreator.app.core.catalog.BrewerGeometry
 import com.coffeecreator.app.core.catalog.ConflictResolutionStrategy
 import com.coffeecreator.app.core.catalog.DetailedBeanRecord
+import com.coffeecreator.app.core.catalog.DripperIntelligenceCatalog
+import com.coffeecreator.app.core.catalog.DripperModelRecord
 import com.coffeecreator.app.core.catalog.EquipmentCategory
 import com.coffeecreator.app.core.catalog.EquipmentItem
+import com.coffeecreator.app.core.catalog.EvidenceStatus
+import com.coffeecreator.app.core.catalog.FlowClass
+import com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog
+import com.coffeecreator.app.core.catalog.GrinderModelRecord
+import com.coffeecreator.app.core.catalog.GrinderType
 import com.coffeecreator.app.core.catalog.ProcessMethod
 import com.coffeecreator.app.core.catalog.RoastLevel
 import com.coffeecreator.app.core.catalog.RoastRestCalculator
+import com.coffeecreator.app.core.catalog.UserGrinderProfile
+import com.coffeecreator.app.core.catalog.ValveState
 import com.coffeecreator.app.core.filesystem.BuiltInAssets
 import com.coffeecreator.app.core.filesystem.CatalogPhotoCapture
 import com.coffeecreator.app.core.journal.CafeCupEntry
@@ -207,6 +217,15 @@ import com.coffeecreator.app.ui.viewmodel.RecipeDraft
 import com.coffeecreator.app.ui.viewmodel.addBagToBean
 import com.coffeecreator.app.ui.viewmodel.addDetailedBean
 import com.coffeecreator.app.ui.viewmodel.addDraftStep
+import com.coffeecreator.app.ui.viewmodel.addUserGrinderProfile
+import com.coffeecreator.app.ui.viewmodel.calculateDialInAdvice
+import com.coffeecreator.app.ui.viewmodel.deleteUserGrinderProfile
+import com.coffeecreator.app.ui.viewmodel.logBrewDiagnostic
+import com.coffeecreator.app.ui.viewmodel.selectDripperModel
+import com.coffeecreator.app.ui.viewmodel.selectGrinderModel
+import com.coffeecreator.app.ui.viewmodel.setDripperBottomVariant
+import com.coffeecreator.app.ui.viewmodel.setValveState
+import com.coffeecreator.app.ui.viewmodel.updateGrinderZeroOffset
 import com.coffeecreator.app.ui.viewmodel.addLine
 import com.coffeecreator.app.ui.viewmodel.applyOvatAdjustmentToDraft
 import com.coffeecreator.app.ui.viewmodel.auditIngredientSafety
@@ -1293,6 +1312,47 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                 }
                                 item {
                                     BrewCard("Equipment & notes", "Record the setup so another brew can repeat it.") {
+                                        Select(
+                                            "Grinder Model (44 Catalog)",
+                                            state.selectedGrinderModelId ?: "",
+                                            listOf("" to "Manual / Custom Grinder") + state.grinderCatalog.map { it.id to it.modelName },
+                                            { selectedId ->
+                                                if (selectedId.isNotBlank()) {
+                                                    model.selectGrinderModel(selectedId, fields.getValue("method"))
+                                                    val grinder = state.grinderCatalog.find { it.id == selectedId }
+                                                    if (grinder != null) {
+                                                        val guidance = GrinderIntelligenceCatalog.getStartingRange(grinder.id, fields.getValue("method"))
+                                                        model.updateField("equipment", grinder.modelName)
+                                                        model.updateField("grind", "${guidance.recommendedRange} (${grinder.adjustmentMechanism})")
+                                                    }
+                                                }
+                                            },
+                                            "form:select_grinder_model"
+                                        )
+                                        Select(
+                                            "Dripper / Brewer (26 Catalog)",
+                                            state.selectedDripperModelId ?: "",
+                                            listOf("" to "Manual / Custom Brewer") + state.dripperCatalog.map { it.id to it.name },
+                                            { selectedId ->
+                                                if (selectedId.isNotBlank()) {
+                                                    model.selectDripperModel(selectedId)
+                                                    val dripper = state.dripperCatalog.find { it.id == selectedId }
+                                                    if (dripper != null) {
+                                                        val existing = fields.getValue("equipment")
+                                                        val newEquip = if (existing.isNotBlank() && !existing.contains(dripper.name)) "$existing + ${dripper.name}" else dripper.name
+                                                        model.updateField("equipment", newEquip)
+                                                    }
+                                                }
+                                            },
+                                            "form:select_dripper_model"
+                                        )
+                                        state.currentDripperFlowAdvice?.let { advice ->
+                                            Text(
+                                                "Dripper Flow: [${advice.flowClass.name}] · Drain: ${advice.qualitativeDrainSpeed}\nBaseline: ${advice.relativeGrindAdjustmentNote}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                         Field("Equipment", fields.getValue("equipment"), {
                                             model.updateField("equipment", it)
                                         }, "form:equipment")
@@ -2164,6 +2224,18 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
     var bagPriceText by rememberSaveable { mutableStateOf("") }
     var deductingBagId by rememberSaveable { mutableStateOf<String?>(null) }
     var doseDeductionText by rememberSaveable { mutableStateOf("") }
+    var gearSubTab by rememberSaveable { mutableStateOf("44 Grinders Catalog") }
+    var grinderTypeFilter by rememberSaveable { mutableStateOf("All") }
+    var selectedZeroGrinderId by rememberSaveable { mutableStateOf<String?>(null) }
+    var calibrationOffsetInput by rememberSaveable { mutableStateOf("0.0") }
+    var calibrationNotesInput by rememberSaveable { mutableStateOf("") }
+    var dripperValveStateToggle by rememberSaveable { mutableStateOf(ValveState.CLOSED) }
+    var testFilterDripperId by rememberSaveable { mutableStateOf<String?>(null) }
+    var testFilterId by rememberSaveable { mutableStateOf("filter-v60-02") }
+    var exportProfileDialog by rememberSaveable { mutableStateOf(false) }
+    var exportProfileJson by rememberSaveable { mutableStateOf("") }
+    var importProfileDialog by rememberSaveable { mutableStateOf(false) }
+    var importProfileJson by rememberSaveable { mutableStateOf("") }
 
     fun openSourcePhoto(photoUri: String) {
         runCatching {
@@ -2598,47 +2670,193 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
         // TAB 2: Grinders & Gear Catalog (S2-004, S2-005)
         // ====================================================================
         if (tab == "Grinders & Gear") {
+            val gearSubTabs = listOf("44 Grinders Catalog", "26 Drippers Catalog", "My Gear & Inventory", "Grinder Profiles & Calibration")
+            val effectiveGearSubTab = if (gearSubTab in gearSubTabs) gearSubTab else "44 Grinders Catalog"
             item {
-                TactileOutlinedButton(
-                    onClick = {
-                        ocrTargetName = CatalogPhotoTarget.EQUIPMENT.name
-                        ocrDialogVisible = true
-                    },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("library:scan_equipment_photo")
-                ) { Text("Add equipment from label photo", maxLines = 1, softWrap = false) }
-            }
-            item {
-                val gearCategories =
-                    listOf("All", "GRINDER", "DRIPPER", "KETTLE", "SCALE", "ESPRESSO_MACHINE", "PORTAFILTER_BASKET", "PUCK_PREP_TOOL")
-                Select("Category filter", gearFilter, gearCategories.map { it to it }, { gearFilter = it }, "library:gear_filter")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    gearSubTabs.forEach { subTab ->
+                        TactileFilterChip(
+                            selected = effectiveGearSubTab == subTab,
+                            onClick = { gearSubTab = subTab },
+                            label = { Text(subTab, maxLines = 1, softWrap = false) },
+                            modifier = Modifier.heightIn(min = 48.dp)
+                        )
+                    }
+                }
             }
 
-            if (gearFilter == "All" || gearFilter == "GRINDER") {
+            // Sub-Tab 1: 44 Grinders Catalog (GR-01 .. GR-12)
+            if (effectiveGearSubTab == "44 Grinders Catalog") {
                 item {
-                    Text("Precision Grinders & Burr Geometry (S2-004)", style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("All", "HAND", "ELECTRIC").forEach { t ->
+                            TactileFilterChip(
+                                selected = grinderTypeFilter == t,
+                                onClick = { grinderTypeFilter = t },
+                                label = { Text(if (t == "All") "All (44)" else "$t Grinders", maxLines = 1, softWrap = false) },
+                                modifier = Modifier.heightIn(min = 48.dp)
+                            )
+                        }
+                    }
                 }
-                items(
-                    state.grinders.filter { listOf(it.brand, it.model).any { s -> s.contains(query, true) } },
-                    key = { "grinder-${it.id}" }
-                ) { grinder ->
+                val filteredGrinders = state.grinderCatalog.filter { g ->
+                    (grinderTypeFilter == "All" || g.type.name == grinderTypeFilter) &&
+                        (query.isBlank() || listOf(g.brand, g.modelName, g.adjustmentMechanism).any { it.contains(query, true) })
+                }
+                items(filteredGrinders, key = { "grinder-cat-${it.id}" }) { grinder ->
                     InfoCard(
-                        "${grinder.brand} — ${grinder.model}",
-                        listOf(
-                            "Calibration Unit: ${grinder.calibrationUnit.name}",
-                            "Burrs: ${grinder.burrProfile.diameterMm}mm " +
-                                "${grinder.burrProfile.burrType.name} (${grinder.burrProfile.material.name})",
-                            "Burr Model: ${grinder.burrProfile.burrModelName}",
-                            "Zero Point Offset: ${grinder.zeroPointOffset} ${grinder.calibrationUnit.name.lowercase()}",
-                            if (grinder.clicksPerRotation != null) "Clicks/Rotation: ${grinder.clicksPerRotation}" else "",
-                            if (grinder.typicalRpm != null) "Motor: ${grinder.typicalRpm} RPM" else "",
-                            if (grinder.notes.isNotBlank()) "Notes: ${grinder.notes}" else ""
-                        ).filter { it.isNotBlank() }.joinToString("\n")
+                        title = "${grinder.brand} — ${grinder.modelName}",
+                        detail = listOf(
+                            "[${grinder.type.name}] · [${grinder.adjustmentUnit.name}] · [${grinder.evidenceStatus.name}]",
+                            "Mechanism: ${grinder.adjustmentMechanism}",
+                            "Coarse (Tubruk/Cold Brew): ${grinder.rawCoarseRange}",
+                            "Medium (V60/Pour Over): ${grinder.rawMediumRange}",
+                            "Fine (Espresso): ${grinder.rawFineRange}" + if (!grinder.isEspressoCapable) " ⚠️ (Filter-only, not for espresso)" else "",
+                            if (grinder.verifiedRangeMedium != null) "Verified Range: ${grinder.verifiedRangeMedium}" else "",
+                            if (grinder.variants.isNotEmpty()) "Variants: " + grinder.variants.joinToString { it.name } else "",
+                            if (grinder.caveats.isNotEmpty()) "Notes: " + grinder.caveats.joinToString("; ") else "",
+                            if (selectedZeroGrinderId == grinder.id && grinder.safeZeroInstructions.isNotEmpty()) {
+                                "Zero Calibration Instructions:\n" + grinder.safeZeroInstructions.joinToString("\n• ", prefix = "• ")
+                            } else ""
+                        ).filter(String::isNotBlank).joinToString("\n")
+                    ) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (grinder.safeZeroInstructions.isNotEmpty()) {
+                                TactileTextButton(onClick = {
+                                    selectedZeroGrinderId = if (selectedZeroGrinderId == grinder.id) null else grinder.id
+                                }) {
+                                    Text(if (selectedZeroGrinderId == grinder.id) "Hide Zero Guide" else "Zero Calibration Guide", maxLines = 1, softWrap = false)
+                                }
+                            }
+                            TactileTextButton(onClick = {
+                                model.addUserGrinderProfile(grinder.id, grinder.modelName)
+                            }) {
+                                Text("+ Add to Owned", maxLines = 1, softWrap = false)
+                            }
+                            TactileTextButton(onClick = {
+                                model.selectGrinderModel(grinder.id)
+                            }) {
+                                Text("Select for Brew", maxLines = 1, softWrap = false)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sub-Tab 2: 26 Drippers Catalog (BR-01 .. BR-18)
+            if (effectiveGearSubTab == "26 Drippers Catalog") {
+                val filteredDrippers = state.dripperCatalog.filter { d ->
+                    query.isBlank() || listOf(d.name, d.flowBehaviorDescription, d.geometry.name).any { it.contains(query, true) }
+                }
+                items(filteredDrippers, key = { "dripper-cat-${it.id}" }) { dripper ->
+                    val isValve = dripper.isValveEquipped
+                    val flowAdvice = DripperIntelligenceCatalog.getDripperFlowAdvice(
+                        dripper.id,
+                        if (isValve) dripperValveStateToggle else ValveState.NOT_APPLICABLE
+                    )
+                    InfoCard(
+                        title = dripper.name,
+                        detail = listOf(
+                            "[${dripper.geometry.name}] · [Flow: ${dripper.flowClass.name}] · [${dripper.flowMode.name}] · [${dripper.evidenceStatus.name}]",
+                            "Flow behavior: ${dripper.flowBehaviorDescription}",
+                            "Drain speed expectation: ${flowAdvice.qualitativeDrainSpeed}",
+                            "Grind relative to V60: ${dripper.grindBaselineRelativeToV60}",
+                            "Starting suggestion: ${dripper.startingGrindText}",
+                            if (isValve) "Valve Status: $dripperValveStateToggle (Toggle below)" else "",
+                            if (flowAdvice.valveNotice != null) flowAdvice.valveNotice else "",
+                            if (dripper.supportedBottomVariants.isNotEmpty()) "Interchangeable bottoms: " + dripper.supportedBottomVariants.joinToString(", ") else "",
+                            if (testFilterDripperId == dripper.id) {
+                                val c = DripperIntelligenceCatalog.checkFilterCompatibility(dripper.id, testFilterId)
+                                "Filter Check (${testFilterId}): [${c.statusText}] ${c.recommendationNote}"
+                            } else ""
+                        ).filter(String::isNotBlank).joinToString("\n")
+                    ) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (isValve) {
+                                TactileTextButton(onClick = {
+                                    dripperValveStateToggle = if (dripperValveStateToggle == ValveState.OPEN) ValveState.CLOSED else ValveState.OPEN
+                                    model.setValveState(dripperValveStateToggle)
+                                }) {
+                                    Text(if (dripperValveStateToggle == ValveState.OPEN) "Valve: OPEN (Tap to CLOSE)" else "Valve: CLOSED (Tap to OPEN)", maxLines = 1, softWrap = false)
+                                }
+                            }
+                            TactileTextButton(onClick = {
+                                testFilterDripperId = if (testFilterDripperId == dripper.id) null else dripper.id
+                            }) {
+                                Text(if (testFilterDripperId == dripper.id) "Hide Filter Check" else "Check Filter Fit", maxLines = 1, softWrap = false)
+                            }
+                            TactileTextButton(onClick = {
+                                model.selectDripperModel(dripper.id, if (isValve) dripperValveStateToggle else ValveState.NOT_APPLICABLE)
+                            }) {
+                                Text("Select for Brew", maxLines = 1, softWrap = false)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sub-Tab 3: Grinder Profiles & Calibration (GR-06, GR-12)
+            if (effectiveGearSubTab == "Grinder Profiles & Calibration") {
+                item {
+                    Text("Owned Grinder Profiles & Zero Offset Calibration (GR-06, GR-12)", style = MaterialTheme.typography.titleMedium)
+                }
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TactileOutlinedButton(
+                            onClick = {
+                                exportProfileJson = state.userGrinderProfiles.joinToString("\n---\n") {
+                                    GrinderIntelligenceCatalog.exportProfileToJson(it)
+                                }.ifBlank { "No profiles saved yet." }
+                                exportProfileDialog = true
+                            },
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                        ) { Text("Export Profiles", maxLines = 1, softWrap = false) }
+                        TactileOutlinedButton(
+                            onClick = {
+                                importProfileJson = ""
+                                importProfileDialog = true
+                            },
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                        ) { Text("Import Profile", maxLines = 1, softWrap = false) }
+                    }
+                }
+                if (state.userGrinderProfiles.isEmpty()) {
+                    item {
+                        InfoCard("No Owned Grinders Registered", "Select any grinder from the '44 Grinders Catalog' tab and tap '+ Add to Owned' to track custom zero point calibration and burr wear.")
+                    }
+                }
+                items(state.userGrinderProfiles, key = { "profile-${it.id}" }) { profile ->
+                    InfoCard(
+                        title = profile.customName,
+                        detail = listOf(
+                            "Model ID: ${profile.grinderModelId}",
+                            "Zero Calibration Offset: ${profile.zeroCalibrationOffset}",
+                            "Burr Condition: ${profile.burrCondition}",
+                            if (profile.calibrationNotes.isNotBlank()) "Notes: ${profile.calibrationNotes}" else ""
+                        ).joinToString("\n")
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TactileTextButton(onClick = { model.toggleGrinderFavorite(grinder.id) }) {
-                                Text(if (grinder.isFavorite) "★ Favorited" else "☆ Add Favorite", maxLines = 1, softWrap = false)
+                            TactileTextButton(onClick = {
+                                val json = GrinderIntelligenceCatalog.exportProfileToJson(profile)
+                                exportProfileJson = json
+                                exportProfileDialog = true
+                            }) {
+                                Text("Export JSON", maxLines = 1, softWrap = false)
                             }
-                            TactileTextButton(onClick = { model.deleteGrinder(grinder.id) }) {
+                            TactileTextButton(onClick = {
+                                model.deleteUserGrinderProfile(profile.id)
+                            }) {
                                 Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
                             }
                         }
@@ -2646,34 +2864,85 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             }
 
-            if (gearFilter != "GRINDER") {
+            // Sub-Tab 4: My Gear & Inventory (Original S2-004 & S2-005)
+            if (effectiveGearSubTab == "My Gear & Inventory") {
                 item {
-                    Text("Brewing Gear & Equipment Catalog (S2-005)", style = MaterialTheme.typography.titleMedium)
+                    TactileOutlinedButton(
+                        onClick = {
+                            ocrTargetName = CatalogPhotoTarget.EQUIPMENT.name
+                            ocrDialogVisible = true
+                        },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("library:scan_equipment_photo")
+                    ) { Text("Add equipment from label photo", maxLines = 1, softWrap = false) }
                 }
-                val filteredEquip = state.equipmentCatalog.filter { eq ->
-                    (gearFilter == "All" || eq.category.name == gearFilter) &&
-                        listOf(eq.brand, eq.model, eq.category.name).any { it.contains(query, true) }
+                item {
+                    val gearCategories =
+                        listOf("All", "GRINDER", "DRIPPER", "KETTLE", "SCALE", "ESPRESSO_MACHINE", "PORTAFILTER_BASKET", "PUCK_PREP_TOOL")
+                    Select("Category filter", gearFilter, gearCategories.map { it to it }, { gearFilter = it }, "library:gear_filter")
                 }
-                items(filteredEquip, key = { "equip-${it.id}" }) { item ->
-                    InfoCard(
-                        "[${item.category.name}] ${item.brand} ${item.model}",
-                        listOf(
-                            item.parameters.entries.joinToString("\n") { "${it.key}: ${it.value}" }.ifBlank { "No special parameters" },
-                            if (item.photoUri != null) "Source label photo attached" else ""
-                        ).filter(String::isNotBlank).joinToString("\n")
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (item.photoUri != null) {
-                                TactileTextButton(
-                                    onClick = { openSourcePhoto(item.photoUri) },
-                                    modifier = Modifier.heightIn(min = 48.dp).testTag("library:open_equipment_photo")
-                                ) { Text("View label photo", maxLines = 1, softWrap = false) }
+
+                if (gearFilter == "All" || gearFilter == "GRINDER") {
+                    item {
+                        Text("Precision Grinders & Burr Geometry (S2-004)", style = MaterialTheme.typography.titleMedium)
+                    }
+                    items(
+                        state.grinders.filter { listOf(it.brand, it.model).any { s -> s.contains(query, true) } },
+                        key = { "grinder-${it.id}" }
+                    ) { grinder ->
+                        InfoCard(
+                            "${grinder.brand} — ${grinder.model}",
+                            listOf(
+                                "Calibration Unit: ${grinder.calibrationUnit.name}",
+                                "Burrs: ${grinder.burrProfile.diameterMm}mm " +
+                                    "${grinder.burrProfile.burrType.name} (${grinder.burrProfile.material.name})",
+                                "Burr Model: ${grinder.burrProfile.burrModelName}",
+                                "Zero Point Offset: ${grinder.zeroPointOffset} ${grinder.calibrationUnit.name.lowercase()}",
+                                if (grinder.clicksPerRotation != null) "Clicks/Rotation: ${grinder.clicksPerRotation}" else "",
+                                if (grinder.typicalRpm != null) "Motor: ${grinder.typicalRpm} RPM" else "",
+                                if (grinder.notes.isNotBlank()) "Notes: ${grinder.notes}" else ""
+                            ).filter { it.isNotBlank() }.joinToString("\n")
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TactileTextButton(onClick = { model.toggleGrinderFavorite(grinder.id) }) {
+                                    Text(if (grinder.isFavorite) "★ Favorited" else "☆ Add Favorite", maxLines = 1, softWrap = false)
+                                }
+                                TactileTextButton(onClick = { model.deleteGrinder(grinder.id) }) {
+                                    Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
+                                }
                             }
-                            TactileTextButton(onClick = { model.toggleEquipmentFavorite(item.id) }) {
-                                Text(if (item.isFavorite) "★ Favorited" else "☆ Add Favorite", maxLines = 1, softWrap = false)
-                            }
-                            TactileTextButton(onClick = { model.deleteEquipmentItem(item.id) }) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
+                        }
+                    }
+                }
+
+                if (gearFilter != "GRINDER") {
+                    item {
+                        Text("Brewing Gear & Equipment Catalog (S2-005)", style = MaterialTheme.typography.titleMedium)
+                    }
+                    val filteredEquip = state.equipmentCatalog.filter { eq ->
+                        (gearFilter == "All" || eq.category.name == gearFilter) &&
+                            listOf(eq.brand, eq.model, eq.category.name).any { it.contains(query, true) }
+                    }
+                    items(filteredEquip, key = { "equip-${it.id}" }) { item ->
+                        InfoCard(
+                            "[${item.category.name}] ${item.brand} ${item.model}",
+                            listOf(
+                                item.parameters.entries.joinToString("\n") { "${it.key}: ${it.value}" }.ifBlank { "No special parameters" },
+                                if (item.photoUri != null) "Source label photo attached" else ""
+                            ).filter(String::isNotBlank).joinToString("\n")
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (item.photoUri != null) {
+                                    TactileTextButton(
+                                        onClick = { openSourcePhoto(item.photoUri) },
+                                        modifier = Modifier.heightIn(min = 48.dp).testTag("library:open_equipment_photo")
+                                    ) { Text("View label photo", maxLines = 1, softWrap = false) }
+                                }
+                                TactileTextButton(onClick = { model.toggleEquipmentFavorite(item.id) }) {
+                                    Text(if (item.isFavorite) "★ Favorited" else "☆ Add Favorite", maxLines = 1, softWrap = false)
+                                }
+                                TactileTextButton(onClick = { model.deleteEquipmentItem(item.id) }) {
+                                    Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
+                                }
                             }
                         }
                     }
@@ -2936,6 +3205,75 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 ) { Text("Record dose", maxLines = 1, softWrap = false) }
             },
             dismissButton = { TactileTextButton(onClick = { deductingBagId = null }) { Text("Cancel", maxLines = 1, softWrap = false) } }
+        )
+    }
+
+    if (exportProfileDialog) {
+        AlertDialog(
+            onDismissRequest = { exportProfileDialog = false },
+            title = { Text("Export Grinder Profile (JSON)") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Lossless JSON representation with schema version 1 and exact raw units:")
+                    OutlinedTextField(
+                        value = exportProfileJson,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth().height(160.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                TactileButton(onClick = { exportProfileDialog = false }) {
+                    Text("Close", maxLines = 1, softWrap = false)
+                }
+            }
+        )
+    }
+
+    if (importProfileDialog) {
+        AlertDialog(
+            onDismissRequest = { importProfileDialog = false },
+            title = { Text("Import Grinder Profile (JSON)") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Paste a valid grinder profile JSON with schema version and raw units:")
+                    OutlinedTextField(
+                        value = importProfileJson,
+                        onValueChange = { importProfileJson = it },
+                        modifier = Modifier.fillMaxWidth().height(160.dp),
+                        label = { Text("Profile JSON") }
+                    )
+                }
+            },
+            confirmButton = {
+                TactileButton(
+                    onClick = {
+                        val imported = runCatching {
+                            com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog.importProfileFromJson(importProfileJson)
+                        }.getOrNull()
+                        if (imported != null) {
+                            model.addUserGrinderProfile(
+                                modelId = imported.grinderModelId,
+                                customName = imported.customName,
+                                variantId = imported.selectedVariantId,
+                                offset = imported.zeroCalibrationOffset,
+                                burrCondition = imported.burrCondition,
+                                notes = imported.calibrationNotes
+                            )
+                            importProfileDialog = false
+                        }
+                    },
+                    enabled = importProfileJson.isNotBlank()
+                ) {
+                    Text("Import", maxLines = 1, softWrap = false)
+                }
+            },
+            dismissButton = {
+                TactileTextButton(onClick = { importProfileDialog = false }) {
+                    Text("Cancel", maxLines = 1, softWrap = false)
+                }
+            }
         )
     }
 

@@ -21,14 +21,24 @@ import com.coffeecreator.app.core.brew.AudioCueType
 import com.coffeecreator.app.core.brew.BrewSessionState
 import com.coffeecreator.app.core.brew.HapticCueType
 import com.coffeecreator.app.core.catalog.BagOcrParsedDraft
+import com.coffeecreator.app.core.catalog.BrewDiagnosticRecord
 import com.coffeecreator.app.core.catalog.DetailedBeanRecord
+import com.coffeecreator.app.core.catalog.DialInAdvice
+import com.coffeecreator.app.core.catalog.DripperFlowAdvice
+import com.coffeecreator.app.core.catalog.DripperIntelligenceCatalog
+import com.coffeecreator.app.core.catalog.DripperModelRecord
 import com.coffeecreator.app.core.catalog.EquipmentItem
 import com.coffeecreator.app.core.catalog.EquipmentOcrParsedDraft
 import com.coffeecreator.app.core.catalog.FoodGradeIngredientItem
 import com.coffeecreator.app.core.catalog.GreenCoffeeLot
+import com.coffeecreator.app.core.catalog.GrindGuidanceResult
+import com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog
+import com.coffeecreator.app.core.catalog.GrinderModelRecord
 import com.coffeecreator.app.core.catalog.GrinderRecord
 import com.coffeecreator.app.core.catalog.ImportDryRunSummary
 import com.coffeecreator.app.core.catalog.RoastBatchRecord
+import com.coffeecreator.app.core.catalog.UserGrinderProfile
+import com.coffeecreator.app.core.catalog.ValveState
 import com.coffeecreator.app.core.catalog.WaterMineralProfile
 import com.coffeecreator.app.core.data.BackupCodec
 import com.coffeecreator.app.core.engine.DomainValidation
@@ -166,7 +176,19 @@ data class CoffeeUiState(
     val pendingEquipmentOcrDraft: EquipmentOcrParsedDraft? = null,
     val photoOcrError: String? = null,
     val photoOcrNotice: String? = null,
-    val catalogImportPreview: ImportDryRunSummary? = null
+    val catalogImportPreview: ImportDryRunSummary? = null,
+    val grinderCatalog: List<GrinderModelRecord> = GrinderIntelligenceCatalog.ALL_44_GRINDERS,
+    val dripperCatalog: List<DripperModelRecord> = DripperIntelligenceCatalog.ALL_26_DRIPPERS,
+    val userGrinderProfiles: List<UserGrinderProfile> = emptyList(),
+    val selectedGrinderModelId: String? = null,
+    val selectedDripperModelId: String? = null,
+    val selectedFilterTypeId: String? = null,
+    val selectedValveState: ValveState = ValveState.NOT_APPLICABLE,
+    val selectedBottomVariant: String? = null,
+    val currentGrindGuidance: GrindGuidanceResult? = null,
+    val currentDripperFlowAdvice: DripperFlowAdvice? = null,
+    val currentDialInAdvice: DialInAdvice? = null,
+    val brewDiagnosticsHistory: List<BrewDiagnosticRecord> = emptyList()
 )
 
 private data class RecommendationInputs(

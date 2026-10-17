@@ -129,6 +129,21 @@ class ToolExecutor(
             "recommend_inventory_bean",
             "Recommend only from verified available inventory and a recorded sensory profile",
             mapOf("brewMethod" to "string")
+        ),
+        ToolDefinition(
+            "lookup_grinder_range",
+            "Model-specific starting grind range from 44-model catalog",
+            mapOf("grinderModel" to "string", "method" to "string")
+        ),
+        ToolDefinition(
+            "recommend_dial_in_step",
+            "Reversible single-variable dial-in advice from brew time and taste",
+            mapOf("actualDurationSeconds" to "number", "targetDurationSeconds" to "number", "sensoryFeedback" to "string")
+        ),
+        ToolDefinition(
+            "lookup_dripper_geometry",
+            "Dripper geometry, flow class and filter baseline from 26-dripper catalog",
+            mapOf("dripperName" to "string")
         )
     )
 
@@ -178,6 +193,9 @@ class ToolExecutor(
         "recommend_inventory_bean" -> error(
             "Verified bag inventory and a recorded sensory profile are not available to this tool."
         )
+        "lookup_grinder_range" -> lookupGrinderRange(arguments.string("grinderModel"), arguments.string("method"))
+        "recommend_dial_in_step" -> recommendDialInStep(arguments)
+        "lookup_dripper_geometry" -> lookupDripperGeometry(arguments.string("dripperName"))
         else -> error("Tool not implemented.")
     }
 
@@ -288,6 +306,53 @@ class ToolExecutor(
             targetDuration,
             diagnosis,
             arguments.number("boilingPointCelsius")
+        )
+    }
+
+    private fun lookupGrinderRange(grinderModel: String, method: String): Map<String, Any?> {
+        val matches = com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog.searchGrinders(grinderModel)
+        val grinder = matches.firstOrNull() ?: error("Grinder '$grinderModel' not found in catalog.")
+        val guidance = com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog.getStartingRange(grinder.id, method)
+        return mapOf(
+            "grinderModel" to grinder.modelName,
+            "type" to grinder.type.name,
+            "method" to method,
+            "recommendedRange" to guidance.recommendedRange,
+            "evidenceStatus" to guidance.evidenceStatus.name,
+            "caveats" to guidance.caveats
+        )
+    }
+
+    private fun recommendDialInStep(arguments: ToolArguments): Map<String, Any?> {
+        val actual = arguments.number("actualDurationSeconds").toInt()
+        val target = arguments.number("targetDurationSeconds").toInt()
+        val feedback = arguments.string("sensoryFeedback")
+        val advice = com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog.dialInRecommendation(
+            actual,
+            target,
+            feedback
+        )
+        return mapOf(
+            "proposedAction" to advice.proposedAction,
+            "scientificReason" to advice.scientificReason,
+            "controlVariable" to advice.controlVariable,
+            "isDeterministic" to advice.isDeterministic
+        )
+    }
+
+    private fun lookupDripperGeometry(dripperName: String): Map<String, Any?> {
+        val matches = com.coffeecreator.app.core.catalog.DripperIntelligenceCatalog.searchDrippers(dripperName)
+        val dripper = matches.firstOrNull() ?: error("Dripper '$dripperName' not found in catalog.")
+        val advice = com.coffeecreator.app.core.catalog.DripperIntelligenceCatalog.getDripperFlowAdvice(dripper.id)
+        return mapOf(
+            "dripperName" to dripper.name,
+            "geometry" to dripper.geometry.name,
+            "flowClass" to dripper.flowClass.name,
+            "flowMode" to dripper.flowMode.name,
+            "startingGrindText" to dripper.startingGrindText,
+            "relativeGrindBaseline" to dripper.grindBaselineRelativeToV60,
+            "qualitativeDrainSpeed" to advice.qualitativeDrainSpeed,
+            "evidenceStatus" to dripper.evidenceStatus.name
         )
     }
 

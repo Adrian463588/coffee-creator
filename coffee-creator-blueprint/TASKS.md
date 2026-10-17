@@ -67,6 +67,40 @@ Historical physical evidence is separate from current local tests.
   without authentication and verified against the build. README/history/topics/
   description complete. Exact release/source receipt in docs/VERIFICATION.md.
 
+## Sprint 03: Manual Brewing & Grinder Intelligence (`v1.13.0`)
+
+- [x] **GR-01**: Curated 44-model grinder catalog searchable by brand, model, and mechanism (`HAND` vs `ELECTRIC`).
+- [x] **GR-02**: Grinder model variants, burr geometry, axle bearings, and typed adjustment units; zero cross-model conversion.
+- [x] **GR-03**: Safe model-specific zero calibration wizard with timestamped calibration offset storage.
+- [x] **GR-04**: Typed grind settings with mechanism-aware input validation.
+- [x] **GR-05**: Manufacturer evidence overlay displaying verified ranges alongside community settings without overwriting.
+- [x] **GR-06**: Owned grinder profile persistence tracking burr wear and custom zero offset.
+- [x] **GR-07**: Grind range finder filtering by grinder model, brewer, and brew method.
+- [x] **GR-08**: Dial-in assistant recommending reversible single-click finer/coarser experiments from user taste feedback.
+- [x] **GR-09**: Grind history logging recording grinder revision, offset, and dial setting in brew journal.
+- [x] **GR-10**: Grinder compatibility guard warning when filter-specialized grinders are selected for espresso.
+- [x] **GR-11**: Optional Kruve sieve/laser particle size measurement fields.
+- [x] **GR-12**: Calibration profile export and import via versioned JSON schema.
+- [x] **BR-01**: Curated 26-dripper catalog with unknown facts preserved as `UNKNOWN`.
+- [x] **BR-02**: Brewer geometry, flow mode, and interactive valve toggle (`OPEN` vs `CLOSED`).
+- [x] **BR-03**: Filter paper compatibility matrix checking shape and size fit.
+- [x] **BR-04**: Manual brew composer integrating bean, grinder, dripper, filter, water, and pour plan.
+- [x] **BR-05**: Ratio scaling with pure Kotlin precision calculation and immutable recipe revisions.
+- [x] **BR-06**: Bloom and staged pour planner with mass validation.
+- [x] **BR-07**: Tabular countdown/elapsed brew chronometer with pause/resume and haptics.
+- [x] **BR-08**: Manual weigh-ins supporting setups without BLE scales.
+- [x] **BR-09**: Brew diagnostics recording drawdown, clogging, bypass, and channeling observations.
+- [x] **BR-10**: User water mineral chemistry and temperature tracking.
+- [x] **BR-11**: Support for 9 manual brew methods and pour strategies.
+- [x] **BR-12**: 80 World Champion recipes linked to active brew timer and template library.
+- [x] **BR-13**: 221-descriptor flavor wheel integration and Roda Rasa vocabulary.
+- [x] **BR-14**: Side-by-side A/B brew comparison with deterministic delta calculus.
+- [x] **BR-15**: Typed Kotlin AI tools: `lookup_grinder_range`, `recommend_dial_in_step`, `lookup_dripper_geometry`.
+- [x] **BR-16**: 48dp touch targets, TalkBack accessibility, and high-density Samsung display layout.
+- [x] **BR-17**: Timestamped video reference audit documented in OpenSpec proposal.
+- [x] **BR-18**: Additive migration preserving all Sprint 01 and Sprint 02 user records.
+- [x] **Hardware Gate**: Designated ADB device `RRCN3008VYE` (Samsung Galaxy S20 Ultra 5G / `SM-G988B`) verified with zero-data-loss installation (`adb -s RRCN3008VYE install -r -d`).
+
 ## Remaining production acceptance
 
 User instruction: test without ADB device. These stay open. Compiling authored

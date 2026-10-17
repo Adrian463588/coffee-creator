@@ -378,3 +378,152 @@ fun CoffeeViewModel.exportCatalogJson(): String {
 fun CoffeeViewModel.exportBeansCsv(): String {
     return CatalogImportExportEngine.exportBeansToCsv(mutableState.value.detailedBeans)
 }
+
+// ============================================================================
+// Sprint 03: Grinder & Dripper Intelligence ViewModel Actions (GR-01..12, BR-01..18)
+// ============================================================================
+
+fun CoffeeViewModel.selectGrinderModel(id: String, method: String = "V60") {
+    val guidance = com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog.getStartingRange(id, method)
+    mutableState.update {
+        it.copy(
+            selectedGrinderModelId = id,
+            currentGrindGuidance = guidance
+        )
+    }
+    diagnosticBuffer.log(LogLevel.INFO, "GRINDER", "Selected grinder '$id' for method '$method' -> ${guidance.recommendedRange}")
+}
+
+fun CoffeeViewModel.selectDripperModel(
+    id: String,
+    valveState: com.coffeecreator.app.core.catalog.ValveState = com.coffeecreator.app.core.catalog.ValveState.NOT_APPLICABLE,
+    bottomVariant: String? = null
+) {
+    val advice = com.coffeecreator.app.core.catalog.DripperIntelligenceCatalog.getDripperFlowAdvice(id, valveState, bottomVariant)
+    mutableState.update {
+        it.copy(
+            selectedDripperModelId = id,
+            selectedValveState = valveState,
+            selectedBottomVariant = bottomVariant,
+            currentDripperFlowAdvice = advice
+        )
+    }
+    diagnosticBuffer.log(LogLevel.INFO, "DRIPPER", "Selected dripper '$id' (flow: ${advice.flowClass}, valve: $valveState)")
+}
+
+fun CoffeeViewModel.addUserGrinderProfile(
+    modelId: String,
+    customName: String,
+    variantId: String? = null,
+    offset: Double = 0.0,
+    burrCondition: String = "SEASONED",
+    notes: String = ""
+) {
+    val newProfile = com.coffeecreator.app.core.catalog.UserGrinderProfile(
+        id = UUID.randomUUID().toString(),
+        grinderModelId = modelId,
+        customName = customName,
+        selectedVariantId = variantId,
+        zeroCalibrationOffset = offset,
+        burrCondition = burrCondition,
+        calibrationNotes = notes
+    )
+    mutableState.update {
+        it.copy(userGrinderProfiles = it.userGrinderProfiles + newProfile)
+    }
+    diagnosticBuffer.log(LogLevel.INFO, "GRINDER", "Saved owned grinder profile '$customName' ($modelId, offset: $offset)")
+}
+
+fun CoffeeViewModel.updateGrinderZeroOffset(profileId: String, offset: Double, notes: String) {
+    mutableState.update { state ->
+        state.copy(
+            userGrinderProfiles = state.userGrinderProfiles.map { p ->
+                if (p.id == profileId) {
+                    p.copy(
+                        zeroCalibrationOffset = offset,
+                        calibrationNotes = notes,
+                        calibratedAtEpochMs = System.currentTimeMillis()
+                    )
+                } else {
+                    p
+                }
+            }
+        )
+    }
+    diagnosticBuffer.log(LogLevel.INFO, "CALIBRATION", "Updated zero calibration on profile '$profileId' -> offset $offset")
+}
+
+fun CoffeeViewModel.deleteUserGrinderProfile(profileId: String) {
+    mutableState.update { state ->
+        state.copy(userGrinderProfiles = state.userGrinderProfiles.filterNot { it.id == profileId })
+    }
+}
+
+fun CoffeeViewModel.setValveState(valveState: com.coffeecreator.app.core.catalog.ValveState) {
+    val dripperId = mutableState.value.selectedDripperModelId ?: return
+    val advice = com.coffeecreator.app.core.catalog.DripperIntelligenceCatalog.getDripperFlowAdvice(
+        dripperId,
+        valveState,
+        mutableState.value.selectedBottomVariant
+    )
+    mutableState.update {
+        it.copy(
+            selectedValveState = valveState,
+            currentDripperFlowAdvice = advice
+        )
+    }
+}
+
+fun CoffeeViewModel.setDripperBottomVariant(bottomVariant: String) {
+    val dripperId = mutableState.value.selectedDripperModelId ?: return
+    val advice = com.coffeecreator.app.core.catalog.DripperIntelligenceCatalog.getDripperFlowAdvice(
+        dripperId,
+        mutableState.value.selectedValveState,
+        bottomVariant
+    )
+    mutableState.update {
+        it.copy(
+            selectedBottomVariant = bottomVariant,
+            currentDripperFlowAdvice = advice
+        )
+    }
+}
+
+fun CoffeeViewModel.calculateDialInAdvice(
+    brewTimeSec: Int,
+    targetTimeSec: Int = 180,
+    sensoryFeedback: String = ""
+) {
+    val advice = com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog.dialInRecommendation(
+        brewTimeSec,
+        targetTimeSec,
+        sensoryFeedback
+    )
+    mutableState.update { it.copy(currentDialInAdvice = advice) }
+}
+
+fun CoffeeViewModel.logBrewDiagnostic(
+    brewJournalId: String,
+    totalDrawdownSeconds: Int,
+    clogging: String = "NONE",
+    bypass: Boolean = false,
+    channeling: Boolean = false,
+    bedAppearance: String = "FLAT",
+    notes: String = ""
+) {
+    val record = com.coffeecreator.app.core.catalog.BrewDiagnosticRecord(
+        id = UUID.randomUUID().toString(),
+        brewJournalId = brewJournalId,
+        totalDrawdownSeconds = totalDrawdownSeconds,
+        cloggingObserved = clogging,
+        bypassObserved = bypass,
+        channelingObserved = channeling,
+        bedAppearance = bedAppearance,
+        notes = notes
+    )
+    mutableState.update {
+        it.copy(brewDiagnosticsHistory = it.brewDiagnosticsHistory + record)
+    }
+    diagnosticBuffer.log(LogLevel.INFO, "DIAGNOSTIC", "Logged diagnostic for brew $brewJournalId (drawdown: ${totalDrawdownSeconds}s, clogging: $clogging)")
+}
+
