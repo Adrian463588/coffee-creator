@@ -1,11 +1,11 @@
 # Coffee Creator
 
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="Coffee Creator Banner" width="400" style="border-radius: 16px; border: 1px solid rgba(255,255,255,0.15);" />
+  <img src="docs/screenshots/s20_ultra_v1145_01_home.png" alt="Coffee Creator Samsung Galaxy S20 Ultra Showcase" width="360" style="border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12);" />
 </p>
 
 <p align="center">
-  <strong>Native Android Coffee Formulation Workbench, Water Chemistry, Offline BLE Brewing & On-Device AI Lab</strong>
+  <strong>Native Android Coffee Formulation Workbench, 221-Descriptor Sensory Wheel, Digital CVA Cupping, Offline BLE Brewing & On-Device AI Lab</strong>
 </p>
 
 <p align="center">
@@ -21,84 +21,87 @@
 
 ---
 
-## ☕ Overview
+## ⚡ Direct APK Download
 
-**Coffee Creator** is a native, offline-first Android coffee laboratory and formulation workbench engineered for professional baristas, roasters, coffee scientists, and passionate home brewers. Built on pure Kotlin scientific calculation engines, strict Clean Architecture boundaries, and a 2026 **Tactile Industrial** Jetpack Compose design system, it provides uncompromising precision from bean agronomy to extraction yield physics and sensory cupping.
+### 🚀 Latest Release: **v1.14.5** (2026 Tactile Industrial & Precision Coffee Lab UI/UX Refinement)
 
-### 🌟 Core Architectural Pillars
-- **Zero Cloud, Zero Telemetry**: 100% functional in airplane mode. Zero remote analytics, zero cloud inference, zero external API tracking. Network is solely utilized for user-initiated GGUF/OCR downloads.
-- **Deterministic Coffee Science**: Pure Kotlin JVM calculation engine (`core/engine`) with zero Android or Room dependencies. Strict `BigDecimal` mass balances for extraction yield, refractometer Brix-to-TDS calibrations, water mineral chemistry ($Ca^{2+}, Mg^{2+}, Na^+, HCO_3^- \to GH/KH/TDS$), and roast-rest degassing kinetics.
-- **Tactile Industrial UI (2026 Standards)**: Anti-AI-slop design language featuring physical spring micro-depression (`scale = 0.97f`), haptic confirmations, 1px crisp hairline borders (`alpha = 0.40f`), concentric nested geometry ($R_{inner} = \max(0, R_{outer} - Padding)$), and single-line text constraints preventing bubble distortion.
-- **Hardware-Integrated BLE Brewing**: Real-time Bluetooth Low Energy scale abstraction with rolling flow rate ($g/s$), auto-tare, swirl artifact rejection filter, and proximity guidance.
-- **On-Device Local AI & RAG**: CPU-accelerated GGUF inference powered by pinned `llama.cpp` JNI, ONNX Runtime vector embeddings, ObjectBox HNSW vector store, and strictly allowlisted, schema-validated Kotlin tools with zero-hallucination abstention.
+| Download Link | Package Size | SHA-256 Checksum | Compatibility |
+|:---:|:---:|:---:|:---:|
+| [⬇️ **Download coffee-creator-v1.14.5.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/coffee-creator-v1.14.5.apk) | `117.3 MB` | `447ccdde1cafc1799bb6a11af4e4c32a1344a4e11708beea64ec1fc2621a0f09` | Android 8.0+ (API 26–35)<br>`arm64-v8a`, `x86_64` |
 
----
+- 📋 [Release Notes for v1.14.5](docs/releases/v1.14.5.md)
+- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/SHA256SUMS.txt)
+- 📱 **Tested & Verified Hardware**: Samsung Galaxy S20 Ultra 5G (`SM-G988B`, Serial `RRCN3008VYE`, Android 13 / One UI 5.1 / API 33).
 
-## 📦 Download & Installation
-
-### 🚀 Latest Release: v1.14.5 (2026 Tactile Industrial & Precision Coffee Lab UI/UX Refinement)
-| Artifact | Size | SHA-256 Checksum |
-|---|---|---|
-| [**Download coffee-creator-v1.14.5.apk**](https://github.com/murchid21/CoffeCreator/releases/download/v1.14.5/coffee-creator-v1.14.5.apk) | `117.3 MB` | `447ccdde1cafc1799bb6a11af4e4c32a1344a4e11708beea64ec1fc2621a0f09` |
-
-- 📄 [Release Notes for v1.14.5](docs/releases/v1.14.5.md)
-- 🔒 [SHA256SUMS.txt](https://github.com/murchid21/CoffeCreator/releases/download/v1.14.5/SHA256SUMS.txt)
-- 📱 **Compatibility**: Android 8.0+ (API level 26 to 35). Architectures: `arm64-v8a`, `x86_64`. Tested on Samsung Galaxy S20 Ultra (`SM-G988B`, serial `RRCN3008VYE`, Android 13/API 33).
-
-### 🛠️ Zero-Data-Loss ADB Installation (Recommended for Development)
-To install or upgrade the APK without deleting existing recipes, journal logs, sensory sessions, or Room database state, execute with `-r -d` flags:
+#### 🛠️ Zero-Data-Loss ADB Installation Command (Recommended for Baristas & Developers)
+To upgrade or install the APK on your connected Android device while preserving all local beans, recipes, sensory cupping forms, and Room database state:
 
 ```powershell
 adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.5.apk
 ```
+
 > [!IMPORTANT]
-> The `-r` flag reinstalls the package while **preserving all user data**. The `-d` flag allows sidegrade/downgrade version code safety. Always specify `-s RRCN3008VYE` to target the designated test device. **Never** run `adb uninstall` if you wish to retain local records, as Android purges private databases and revokes SAF folder grants upon uninstallation.
+> The `-r` flag reinstalls the application while **preserving all user data**. The `-d` flag permits version downgrade/sidegrade safety without wiping records. **Never** execute `adb uninstall` if you wish to retain local records, as Android purges private app databases and revokes SAF folder grants upon uninstallation.
 
 ---
 
-## 📜 Historical Release Archive
+## 📸 Device Showcase: Samsung Galaxy S20 Ultra (`SM-G988B`)
 
-| Version | Release Date | Download APK | Release Highlights | SHA-256 Checksum |
-|:---:|:---:|:---:|:---|:---:|
-| **v1.14.5** | 2026-10-18 | [Download](https://github.com/murchid21/CoffeCreator/releases/download/v1.14.5/coffee-creator-v1.14.5.apk) | [Notes](docs/releases/v1.14.5.md) · **2026 Tactile Industrial & Precision Coffee Lab UI/UX Refinement ("Microinteraction Full Max & Anti-AI Slop")**: Shared Tactile Industrial primitives library (`com.coffeecreator.app.ui.components`), concentric nested corner radius formula $R_{inner} = \max(0, R_{outer} - P)$, physical spring micro-depression (`scale = 0.97f`) with subtle haptics (`TextHandleMove`), $1\text{px}$ crisp hairline outline borders (`alpha = 0.40f`), bottom navigation brand container indicator pill with semibold active text, anti-bubble single-line constraints on headers and action buttons, tabular monospace figures (`fontFeatureSettings = "tnum"`) across timers, cupping scores, defect counters, and consensus metrics, and WCAG 2.2 compliant $48\text{dp}$ green defect increment/decrement buttons. | `447ccdde1cafc...` |
-| **v1.14.4** | 2026-10-18 | [Download](https://github.com/murchid21/CoffeCreator/releases/download/v1.14.4/coffee-creator-v1.14.4.apk) | [Notes](docs/releases/v1.14.4.md) · **Sprint 04 Epic E: Pro Operations, Architecture, AI & Integration (`S4-052..65`)**: 100% offline operational guarantee, additive Room migration safety, immutable cross-domain provenance linking cupping to bean/roast/recipe/grinder, deterministic standards engine strictly decoupled from LLM, local RAG knowledge citation verification with anti-hallucination guard (`[chunk-cva-desc-04, Page 3]`), blind panel workflow with role separation (Host vs Assessor) and 3-digit randomized codes with premature unblinding audit trail (`UNBLINDED_PREMATURELY_AUDITED`), inter-rater agreement and panel calibration statistics (Pearson $r$, Spearman $\rho$, Mean Consensus Deviation $\text{MCD} \le 0.35$, Fleiss' generalized Kappa $\kappa_{\text{Fleiss}}$ with Landis-Koch benchmarks), bilingual EN/ID glossary, accessibility profiles (anosmia/parosmia accommodation, allergen alerts with non-clinical disclaimer), and user-consent-based export with PII redaction and SHA-256 integrity seal. | `a931abbccb6aa...` |
-| **v1.14.3** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.3/coffee-creator-v1.14.3.apk) | [Notes](docs/releases/v1.14.3.md) · **Sprint 04 Epic D: Green Coffee Physical Assessment (`S4-041..51`)**: Complete 350g green lot catalog, provenance & chain of custody, SCA 2004 washed Arabica defect taxonomy (Cat 1 full defects vs Cat 2 weighted equivalents), ISO 4150 sieve distribution with mass balance recovery check ($\Delta M \le 1.5\text{g}$) and Screen 16+ retention %, moisture assessment with meter uncertainty, water activity ($a_w \le 0.700$), density (g/L), organoleptic odor disqualification, deterministic grade rule engine with out-of-scope guards (`UNDETERMINED_OUT_OF_SCOPE`), epistemological decoupling (physical grade $\ne$ cup score), buyer spec contract compliance, and SHA-256 sealed JSON/CSV export. | `e377bf4d7ad80...` |
-| **v1.14.2** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.2/coffee-creator-v1.14.2.apk) | [Notes](docs/releases/v1.14.2.md) · **Sprint 04 Epic C: Sensory Training & Testing Lab (`S4-027..40`)**: Blind triangle testing with 6 balanced permutations (`AAB`, `ABA`, etc.), concealed 3-digit keys, exact binomial hypothesis calculus $P(X \ge k)$, 5 basic-taste threshold series (ASTM E679 BET), 60 olfactory reference vials with Sensory SM-2 spaced repetition, confusion matrix, 7 organic-acid comparative tastings, roast defect discrimination, tactile/mouthfeel controls, 2-AFC paired comparisons ($p_0=1/2$), 6-pillar readiness radar, and physical human observation anti-cheating mandate (`isAutoPassed=false`). | `8eff8a4e7feda...` |
-| **v1.14.1** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.1/coffee-creator-v1.14.1.apk) | [Notes](docs/releases/v1.14.1.md) · **Sprint 04 Epic B: Digital CVA Cupping & 221-Wheel Integration (`S4-011..26`)**: Multi-sample sessions, protocol selector (`SCA_CVA_CURRENT`, `SCA_2004_LEGACY`, `CUSTOM_RESEARCH`), 4-perspective forms (`Physical`, `Descriptive`, `Affective`, `Extrinsic`), extrinsic blinding gate (`UNBLINDED_PREMATURELY_AUDITED`), 221-descriptor Sensory Wheel modal with bilingual search, 5-bowl multi-cup defect grid (Clean/Taint/Fault), 6-milestone cupping timer, A/B side-by-side comparison, cryptographic SHA-256 session lock, JSON/CSV exports, and 1-click "Log to Brew Journal as Graded Coffee". | `f2415b498e4fb...` |
-| **v1.14.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.0/coffee-creator-v1.14.0.apk) | [Notes](docs/releases/v1.14.0.md) · **Sprint 04 Professional Sensory, Cupping, CVA & Green Coffee Assessment**: 22-module bilingual Learning Academy (`EDU-01..22`) with quizzes and ASCII diagrams, 5 basic tastes (Sweet, Sour, Salty, Bitter, Umami), 7 organic acids atlas, generic 60-aroma taxonomy, 4-perspective Digital CVA (`Physical`, `Descriptive`, `Affective`, `Extrinsic`) with blind codes, SHA-256 session lock and JSON/CSV exports, 6-permutation balanced Triangle testing with exact cumulative Binomial probability $P(X \ge k)$, and 350g washed Arabica green coffee defect grading. | `350fe44ffeb47...` |
-| **v1.13.1** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.1/coffee-creator-v1.13.1.apk) | [Notes](docs/releases/v1.13.1.md) · **Tactile Microinteractions & Anti-AI-Slop Refinement**: Semantic `MicroBadgePill`s (Hand/Electric/Verified/Filter-only), 3-tile monospace grind range grid (`fontFeatureSettings = "tnum"`), animated segmented valve toggle (`InteractiveValveSwitch`), numbered step-by-step zero calibration accordion, and zero text-wrapping distortion. | `5b0a0f542cc2e...` |
-| **v1.13.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.0/coffee-creator-v1.13.0.apk) | [Notes](docs/releases/v1.13.0.md) · **Sprint 03 Manual Brewing & Grinder Intelligence (`GR-01..12`, `BR-01..18`)**: 44-model grinder catalog with variants, zero calibration wizard, typed grind settings, manufacturer evidence overlay, 26-dripper catalog with qualitative flow classes, filter paper compatibility engine, reversible dial-in assistant, and designated ADB device targeting (`RRCN3008VYE`). | `ba15137a41234...` |
-| **v1.12.2** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.2/coffee-creator-v1.12.2.apk) | [Notes](docs/releases/v1.12.2.md) · **Tactile Microinteractions Full-Max & Anti-AI Slop**: Standardized `TactileButton`, `TactileOutlinedButton`, `TactileFilledTonalButton`, `TactileTextButton`, and `TactileFilterChip` with spring micro-depression (`scale = 0.97f`), haptics, single-line text bounds, and zero-data-loss `-r -d` deployment. | `f7358795ea6ee...` |
-| **v1.12.1** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.1/coffee-creator-v1.12.1.apk) | [Notes](docs/releases/v1.12.1.md) · **Zero-Crash Resilience**: 5-tier resilient recipe resolution cascade (`resolveActiveRecipe`), defensive coroutines on scale connections, timer sessions, and scale tare operations. | `0b381b2367476...` |
-| **v1.12.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.0/coffee-creator-v1.12.0.apk) | [Notes](docs/releases/v1.12.0.md) · **Sensory Deepening (Epic S2-E05)**: Full 221-descriptor taxonomy (84 SCA + 137 Indonesian/global), bilingual search (`name` / `idLabel`), 16-attribute CVA cupping, multi-temperature evaluation timeline. | `727e73b709fa5...` |
-| **v1.11.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.11.0/coffee-creator-v1.11.0.apk) | [Notes](docs/releases/v1.11.0.md) · **World Champion Recipe Catalog**: 80 curated recipes (21 Competition, 14 Signature, 45 Traditional), 1-click Journal logging, active timer handoff, custom recipe template saving. | `c63f74fcf3bc3...` |
-| **v1.10.2** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.2/coffee-creator-v1.10.2.apk) | [Notes](docs/releases/v1.10.2.md) · **Tactile Settings Anti-Slop**: Full-width industrial status banner, 3-column `TelemetryStatusPill` grid with active status dots, tactile chips for language/units/palate quiz. | `b5539ad55f333...` |
-| **v1.10.1** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.1/coffee-creator-v1.10.1.apk) | [Notes](docs/releases/v1.10.1.md) · **Custom Precision Lab Launcher Icon**: Master vector emblem (bean + dripper flask + amber drop), dark espresso `#1B120C` background, full mdpi-xxxhdpi mipmaps. | `a8cfc5fccb4ab...` |
-| **v1.10.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.0/coffee-creator-v1.10.0.apk) | [Notes](docs/releases/v1.10.0.md) · Offline OCR coffee bag scanner, verified Kafi/Gemma model catalog, evidence-safe extraction yield, durable record restore. | `d06e9c6bace08...` |
-| **v1.9.6** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.6/coffee-creator-v1.9.6.apk) | [Notes](docs/releases/v1.9.6.md) · Tactile Industrial UI/UX Refinement: 0.97f spring micro-depression, subtle haptics, tabular monospace figures (`tnum`), 1px hairline borders. | `d3d28471fdf73...` |
-| **v1.9.5** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.5/coffee-creator-v1.9.5.apk) | [Notes](docs/releases/v1.9.5.md) · Interactive Canvas Sensory Wheel, touch-arc polar hit detection & zoom, commercial defect/taint catalog, multi-select flavor picker dialog. | `d84569a5035fa...` |
-| **v1.9.4** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.4/coffee-creator-v1.9.4.apk) | [Notes](docs/releases/v1.9.4.md) · Hardware-verified E2E release: BackHandler sub-screen navigation, restored journal revision list, exception safety. | `d5a0a24c3d4b2...` |
-| **v1.9.3** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.3/coffee-creator-v1.9.3.apk) | [Notes](docs/releases/v1.9.3.md) · Anti-slop bag inventory Surface container, single-line action headers, zero word-wrapping distortion into oval buttons. | `0463433500797...` |
-| **v1.9.2** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.2/coffee-creator-v1.9.2.apk) | [Notes](docs/releases/v1.9.2.md) · Anti-slop tactile navigation: single-line horizontal scroll rows with M3 icons across Journal and Sensory categories. | `ab068dea442fa...` |
-| **v1.9.1** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.1/coffee-creator-v1.9.1.apk) | [Notes](docs/releases/v1.9.1.md) · Precision Lab Timer & Telemetry Console: unified digital readout, live pulse indicator, integrated mass & flow rate, 54dp CTA. | `917f9cdbab661...` |
-| **v1.9.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.0/coffee-creator-v1.9.0.apk) | [Notes](docs/releases/v1.9.0.md) · **Epic S2-E01**: Bean agronomy, bag freeze/thaw, water chemistry ($Ca^{2+}, Mg^{2+}, Na^+, HCO_3^-$), green coffee QC, roast curves. | `4801d10dbc143...` |
-| **v1.8.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.8.0/coffee-creator-v1.8.0.apk) | [Notes](docs/releases/v1.8.0.md) · **Epic S2-E07**: SAF persistent model manifest, resumable downloads (Range/ETag), cryptographic backup/restore, bilingual EN/ID. | `1DC681387D6DE...` |
-| **v1.7.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.7.0/coffee-creator-v1.7.0.apk) | [Notes](docs/releases/v1.7.0.md) · **Epic S2-E06**: Offline palate quiz, Bayesian taste adaptation, explainable inventory suggestions, grounded AI barista chat. | `1CB40B36E6DCB...` |
-| **v1.6.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.6.0/coffee-creator-v1.6.0.apk) | [Notes](docs/releases/v1.6.0.md) · **Epic S2-E05**: Hierarchical flavor wheel, safe reference preparation lab, blind cupping sessions, consensus radar. | `9b2060e67ff69...` |
-| **v1.5.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.5.0/coffee-creator-v1.5.0.apk) | [Notes](docs/releases/v1.5.0.md) · **Epic S2-E04**: Brew journal, espresso dial-in progression, single-variable OVAT suggestions, streak calendar, Beanconqueror I/O. | `99a32c636b467...` |
-| **v1.4.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.4.0/coffee-creator-v1.4.0.apk) | [Notes](docs/releases/v1.4.0.md) · **Epic S2-E03**: Active brew timer, BLE scale abstraction, rolling flow rate ($g/s$), swirl artifact filter, proximity cues. | `def99509dadd5...` |
-| **v1.3.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.3.0/coffee-creator-v1.3.0.apk) | [Notes](docs/releases/v1.3.0.md) · **Epic S2-E02**: Recipe composer, Hamilton-Hare pour scaling, optical Brix-to-TDS refractometer lab, offline Sharesheet. | `78ca7128c350c...` |
-| **v1.2.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.2.0/coffee-creator-v1.2.0.apk) | [Notes](docs/releases/v1.2.0.md) · Curated recipe library (10 methods, 8 single-origins, 5 sensory logs), custom bean/method inputs. | `4c197fcee2785...` |
-| **v1.1.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk) | [Notes](docs/releases/v1.1.0.md) · Real Room SQLite records, local llama.cpp GGUF/ONNX RAG integration, user-selected SAF model storage. | `e25474341ca5d...` |
-| **v1.0.0** | 2026-10-13 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Initial Prototype Release with architectural scaffold and UI layout foundations. | `2843362ff29dd...` |
+All interfaces captured directly from physical Samsung Galaxy S20 Ultra running Coffee Creator `v1.14.5` with the **2026 Tactile Industrial** design system.
 
-*(Full verified checksums for all historical artifacts are preserved in [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.2/SHA256SUMS.txt)).*
+### Gallery 1: ☕ Coffee Workbench & Active Extraction Laboratory
+
+| 01. Home Workbench | 02. Brew Recipe Composer | 03. Precision Chronometer |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/s20_ultra_v1145_01_home.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_02_brew_recipe.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_03_active_timer.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> |
+| **Workbench Hero & Bottom Nav**<br>Offline status pills, saved brew revisions, zero-telemetry indicator, and tactile navigation bar. | **Scientific Recipe Composer**<br>Hamilton-Hare monotonic pour scaling, dynamic ratio slider, and method-specific targets. | **Active Brew Chronometer**<br>Monotonic digital timebase, rolling flow rate telemetry ($g/s$), target mass, and BLE scale tare. |
 
 ---
 
-## 🗺️ User Journey & Workflow Diagram
+### Gallery 2: ⚙️ Equipment Intelligence & World Champion Routines
 
-The complete end-to-end feedback loop in Coffee Creator empowers baristas to move from green/roasted coffee beans through scientific formulation, live smart-scale extraction, professional CVA sensory cupping, and iterative dial-in optimization:
+| 04. Grinder & Dripper Catalog | 05. Bag Inventory & Freeze Stock | 06. 80 World Champion Recipes |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/s20_ultra_v1145_04_grinders_drippers.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_05_bag_inventory.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_06_champion_recipes.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> |
+| **44-Grinder & 26-Dripper Intelligence**<br>Manufacturer evidence overlays, click/micron conversions, and interactive valve state switch. | **Bean Agronomy & Freezer Stock**<br>Degassing decay curves, freeze-pause kinetics, and compact tactile dose deductions (`Brew -18g`). | **80 World Champion Catalog**<br>WBrC & WAC winning routines (Tetsu Kasuya 4:6, Hoffmann, Rao) with 1-click Journal logging. |
+
+---
+
+### Gallery 3: 🎯 Professional Sensory, CVA Cupping & Training Lab
+
+| 07. 221-Descriptor Sensory Wheel | 08. Digital CVA Cupping Form | 09. Sensory Training Lab |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/s20_ultra_v1145_07_sensory_wheel.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_08_cva_cupping.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_09_sensory_training.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> |
+| **221-Descriptor Sunburst Wheel**<br>Interactive Canvas wheel, 9 primary families, bilingual EN/ID search, and multi-select chip filter. | **Digital CVA Cupping System**<br>SCA CVA & 2004 protocols, 5-bowl multi-cup defect grid (Clean/Taint/Fault), and SHA-256 seal. | **Blind Triangle Discrimination**<br>6 balanced position permutations (`AAB`, `ABA`, etc.), hidden answer key, and exact binomial $P(X \ge k)$. |
+
+---
+
+### Gallery 4: 🌿 Green Coffee Grading, Panel Calibration & System Integrity
+
+| 10. Green Coffee Physical QC | 11. Panel Calibration & Radar | 12. Settings & Subsystems |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/s20_ultra_v1145_10_green_grading.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_11_panel_calibration.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_12_settings_degradation.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> |
+| **350g Washed Arabica Defect Grading**<br>SCA 2004 primary & secondary defect equivalencies, ISO 4150 sieve distribution, and $48\text{dp}$ counters. | **Inter-Rater Consensus Radar**<br>Multi-evaluator alignment, Pearson $r$, Fleiss $\kappa$, and Mean Consensus Deviation ($\text{MCD} \le 0.35$). | **Subsystem Degradation Monitor**<br>Zero-crash graceful fallback state machine, unit preferences (°C/°F, g/oz), and SAF storage selector. |
+
+---
+
+## ☕ Project Overview & Core Mission
+
+**Coffee Creator** is a native, offline-first Android application designed for professional baristas, specialty roasters, coffee scientists, and passionate home brewers. Engineered under strict Clean Architecture boundaries with a pure Kotlin JVM scientific engine, it bridges empirical agronomy, precision extraction thermodynamics, Bluetooth scale telemetry, and formal sensory cupping evaluation.
+
+### 🌟 Five Architectural Pillars
+
+1. **Zero Cloud & Zero Telemetry**: 100% operational in airplane mode. Zero background analytics, zero third-party telemetry, zero external tracking SDKs. Network connectivity is exclusively utilized for user-initiated GGUF/OCR downloads.
+2. **Deterministic Coffee Science**: Pure Kotlin JVM calculation engine (`core/engine`) completely decoupled from Android and Room. Computes mass-balance extraction yield ($EY = \frac{\text{beverage\_mass} \times \text{TDS}}{\text{dose}}$), refractometer Brix-to-TDS calibrations, water mineral chemistry ($Ca^{2+}, Mg^{2+}, Na^+, HCO_3^- \to GH/KH/TDS$), and roast-rest degassing kinetics.
+3. **Tactile Industrial UI (2026 Standards)**: Anti-AI-slop design system built with physical spring micro-depression (`scale = 0.97f`), subtle haptic feedback (`TextHandleMove`), $1\text{px}$ crisp hairline outline borders (`alpha = 0.40f`), concentric nested geometry ($R_{\text{inner}} = \max(0, R_{\text{outer}} - P)$), and strict single-line text constraints preventing distorted oval bubble wrapping.
+4. **Hardware-Integrated BLE Brewing**: Direct Bluetooth Low Energy GATT abstraction for smart scales (Acaia, Felicita, Decent, Skale) featuring a real-time rolling flow rate filter ($g/s$), auto-tare, and pour proximity alerts.
+5. **Grounded On-Device AI & Hybrid RAG**: CPU-accelerated GGUF execution via pinned `llama.cpp` JNI, local ONNX Runtime MiniLM vector embeddings, ObjectBox HNSW vector indexing, and strictly allowlisted, schema-validated Kotlin tools with explicit factual citation and zero-evidence abstention.
+
+---
+
+## 🗺️ User Journey & Feedback Loop
+
+The continuous scientific feedback loop empowers baristas to move from green/roasted beans through formulation, live smart-scale extraction, CVA sensory cupping, and iterative dial-in optimization:
 
 ```mermaid
 flowchart TD
@@ -186,7 +189,7 @@ flowchart TD
 
 ---
 
-## 💻 Modern Technology Stack
+## 💻 Modern Technology Stack Matrix
 
 | Architecture Domain | Framework / Library | Version | Technical Responsibility |
 |---|---|:---:|---|
@@ -207,11 +210,14 @@ flowchart TD
 | **Hardware Telemetry** | Android BLE GATT Client | Native | Low-latency smart scale communication, rolling flow filter ($g/s$) |
 | **Network (Asset Only)** | Square OkHttp | `4.12.0` | Resumable HTTP 206 Range transfers with ETag checkpoints; zero telemetry |
 | **Code Quality & Lint** | Detekt & Ktlint | `1.23.7` / `1.3.1` | Strict static analysis, cyclomatic complexity limits, anti-slop rules |
-| **Testing Harness** | JUnit4, Robolectric, Espresso | `4.13.2` / `4.14.1` | Fast local JVM Compose rendering, DAO tests, 244 unit tests passing |
+| **Testing Harness** | JUnit4, Robolectric, Espresso | `4.13.2` / `4.14.1` | Fast local JVM Compose rendering, DAO tests, 322 unit tests passing |
 
 ---
 
 ## 📂 Project Directory Structure
+
+<details>
+<summary><strong>🔍 Click to expand full modular directory tree</strong></summary>
 
 ```text
 d:/SEMESTER13/KodeProject/CoffeCreator/
@@ -246,10 +252,20 @@ d:/SEMESTER13/KodeProject/CoffeCreator/
 │   │   │   │   │   └── champion/            # 80 Curated World Champion & Heritage Recipes catalog
 │   │   │   │   ├── reliability/             # Scrubbed diagnostic logger, cryptographic backup/restore
 │   │   │   │   └── sensory/                 # 221-descriptor taxonomy, CVA cupping protocol & radar math
+│   │   │   │       ├── academy/             # 22 modular learning lessons (EDU-01..22) with quizzes
+│   │   │   │       ├── cva/                 # 4-Perspective CVA cupping forms & SHA-256 seal
+│   │   │   │       ├── greengrading/        # 350g washed Arabica defect grading & ISO sieves
+│   │   │   │       ├── operations/          # Panel blind coding, consensus & agreement analytics
+│   │   │   │       └── training/            # Blind triangle testing & basic-taste threshold series
 │   │   │   ├── ui/
+│   │   │   │   ├── components/              # Shared 2026 Tactile Industrial primitives
+│   │   │   │   │   ├── TactileButtons.kt    # Scale 0.97f micro-depression & haptic buttons
+│   │   │   │   │   ├── TactileCards.kt      # 1px hairline border & concentric radius formula
+│   │   │   │   │   └── MicroPills.kt        # Tabular monospace pills & telemetry status badges
 │   │   │   │   ├── screens/                 # 9 High-density Compose screens & tactile consoles
 │   │   │   │   │   ├── CoffeeApp.kt         # Master navigation host, top bar, rail & bottom navigation
 │   │   │   │   │   ├── BrewSection.kt       # Active timer console, tabular digits, telemetry LED
+│   │   │   │   │   ├── SensorySprint04Screens.kt # CVA cupping, green grading & training consoles
 │   │   │   │   │   ├── SensoryWheelVisualizer.kt # Interactive multi-ring Canvas flavor wheel
 │   │   │   │   │   └── SensoryRadar.kt      # Multi-attribute CVA cupping radar chart
 │   │   │   │   ├── theme/                   # 2026 Tactile Industrial Design System tokens
@@ -262,52 +278,42 @@ d:/SEMESTER13/KodeProject/CoffeCreator/
 │   └── build.gradle.kts                     # App module build script, NDK/CMake bindings
 ├── coffee-creator-blueprint/                # Authoritative specifications (PRD, DESIGN, ARCHITECTURE, TASKS)
 ├── docs/                                    # Documentation, verification reports, release notes
-│   ├── releases/                            # Release notes for all historical versions (v1.0.0 to v1.12.2)
-│   └── screenshots/                         # Robolectric & on-device verification captures
+│   ├── releases/                            # Release notes for all historical versions (v1.0.0 to v1.14.5)
+│   └── screenshots/                         # Physical Samsung S20 Ultra device screenshot gallery
 ├── openspec/                                # OpenSpec Spec-Driven Development (SDD) changes & proposals
 └── scripts/                                 # Asset preparation, research verifiers, release publishing
 ```
+</details>
 
 ---
 
-## 🔬 Comprehensive Feature Breakdown
+## 🔬 Deep Feature Inventory
 
-### 🌿 Epic S2-E01 — Coffee Bean, Ingredient & Equipment Foundation
-- **Agronomic Bean Cataloging**: Track origin, producer, farm, varietal (Bourbon, Geisha, SL28, Typica, etc.), process (Washed, Natural, Anaerobic, Honey), altitude (MASL), harvest date, and roast date.
+### 🌿 Bean Agronomy, Water Mineral Chemistry & Bag Inventory
+- **Agronomic Bean Cataloging**: Track origin country, region, farm, producer, varietal (Bourbon, Geisha, SL28, Typica, etc.), process (Washed, Natural, Anaerobic, Honey), altitude (MASL), harvest date, and roast date.
 - **Dynamic Bag Inventory & Dose Deduction**: Multi-state lifecycle (`PURCHASED`, `ACTIVE`, `FINISHED`, `FROZEN`). Auto-deducts bean mass upon completed brew. Freezing pauses the aging clock; thawing recalculates rest windows.
 - **Roast-Rest Kinetics**: Heuristic degassing decay tracking (`TOO_FRESH_DEGASSING`, `PEAK_FLAVOR`, `STABLE_MATURE`, `STALE_OXIDIZED`).
 - **Water Mineral Chemistry**: Calculate Calcium ($Ca^{2+}$), Magnesium ($Mg^{2+}$), Sodium ($Na^+$), Total Hardness ($GH\text{ as ppm }CaCO_3$), Total Alkalinity ($KH\text{ as ppm }CaCO_3$), and target TDS. Presets for SCA, Hendon, Rao/Perger, and custom mineral profiles.
-- **Gear & Grinder Registry**: Burr geometry (Conical vs Flat, diameter in mm), calibration units (Clicks, Microns, Marks), espresso baskets, drippers, and kettles.
 - **Offline OCR Bag Label Scanner**: Bundled optical character recognition to extract roaster, variety, and roast date directly from camera or image file with manual correction confirmation.
 
-### ⚖️ Epic S2-E02 — Recipe Composer & Brewing Science
+### ⚖️ Recipe Formulation, Extraction Yield & Refractometer Physics
 - **Multi-Method Formulation**: Native support for Espresso, V60, AeroPress, Chemex, French Press, Kalita Wave, Clever, Siphon, Cold Brew, and Custom Immersion methods.
 - **Hamilton-Hare Monotonic Pour Scaling**: Scale dose or water mass; all individual pour targets recalculate automatically while maintaining exact step ratios and monotonicity.
 - **Extraction Yield Mass Balance**: Approximate $EY = \frac{\text{Beverage Mass (g)} \times \text{TDS (\%)}}{\text{Dose (g)}}$. Clear epistemological labeling: measured vs estimated.
 - **Optical Brix-to-TDS Refractometer Lab**: Verified index equations for Standard Coffee (0.850), Atago (0.840), and VST (0.857) refractometers.
 - **Food-Grade Additive & Aroma Dosing**: Micro-dosing mass balance with food safety validation, allergen flags, and distinction between active compound and stock solution.
 
-### ⏱️ Epic S2-E03 — Active Brew Timer & BLE Hardware
+### ⏱️ Precision Chronometer & Smart BLE Hardware Integration
 - **Precision Chronometer**: Monotonic `elapsedRealtime` timebase resistant to background sleeping and UI rotation. Tabular monospace digits (`tnum`) for jitter-free viewing.
 - **Bluetooth Low Energy Scale Driver**: Unified abstraction supporting Acaia, Felicita, Decent, and Skale devices. Real-time mass stream with simulated mock provider for JVM tests.
 - **Rolling Flow Rate Telemetry ($g/s$)**: Filtered first-derivative flow calculation with swirl/stir artifact rejection filter.
 - **Guided Pour Assist**: Auto-start on first drop ($>0.5g$), auto-stop on espresso completion ($<0.2g/s$), and proximity cues (warning at 10g, imminent at 2g).
 
-### 📖 Epic S2-E04 — Brew Journal, Espresso Dial-In & Analytics
-- **Comprehensive Logbook**: Record dose, water, grind, temperature, drawdown time, TDS, flavor descriptors, photos, and tasting notes.
-- **Espresso Dial-In History**: Target vs actual yield, shot time, flow profile, and puck prep records.
-- **One-Variable-At-A-Time (OVAT) Feedback**: Algorithmic dial-in recommendations (e.g. sour/underextracted $\to$ grind finer or increase yield; bitter/astringent $\to$ grind coarser).
-- **Side-by-Side Comparison**: Calculate deterministic numeric deltas ($\Delta\text{dose}$, $\Delta\text{yield}$, $\Delta\text{time}$, $\Delta\text{EY}$, $\Delta\text{rating}$) between two sessions.
-- **Diary Streak & Consumption Analytics**: Local monthly calendar, brew streak calculator, and heuristic caffeine consumption estimation ($\pm 15\%$ uncertainty bounds).
-- **Beanconqueror JSON Mapping**: Full import/export compatibility with standard Beanconqueror backup schemas.
-
-### 🎨 Epic S2-E05 — 221-Descriptor Sensory Wheel & CVA Cupping
-- **221-Descriptor Hierarchical Taxonomy**: 84 SCA/WCR reference descriptors + 137 expanded Indonesian and global descriptors across 9 primary categories (Floral, Fruity, Sour/Fermented, Green/Vegetative, Roasted, Spices, Nutty/Cocoa, Sweet, Other/Defects).
-- **Bilingual Lookup**: Simultaneous search across English and Indonesian (`idLabel`) descriptors.
-- **Interactive Canvas Wheel (`SensoryWheelVisualizer`)**: Touch-arc polar hit detection, category zoom, and dynamic color shading.
-- **16-Attribute CVA Professional Cupping Form**: Fragrance, Aroma, Flavor, Aftertaste, Acidity (Intensity & Quality), Sweetness, Bitterness, Saltiness, Body (Intensity & Texture), Astringency, Finish, Temperature, Defects, and Overall Impression.
-- **Multi-Phase Temperature Timeline**: Guided evaluation across Hot (~70°C), Warm (~60°C), and Cool (~40°C) stages.
-- **Consensus & Radar Analytics**: Multi-evaluator mean, median, standard deviation, and inter-rater agreement index (IRAI) radar charts.
+### ⚙️ Equipment Intelligence: 44 Grinders & 26 Drippers
+- **44-Model Grinder Catalog**: Electric and hand grinders with burr geometry, calibration units (Clicks, Rotations, Dial Marks), and manufacturer verified starting ranges.
+- **Zero-Calibration Wizard**: Step-by-step instructions for finding the true zero point and recording calibration offsets.
+- **26-Dripper Catalog**: Flow geometry (Cone, Flat-Bed, Immersion, Hybrid), filter paper fit check, and interactive valve toggle (Open/Closed).
+- **Dial-In Assistant**: Single-variable experiment recommendations driven by brew drawdown time and taste feedback.
 
 ### 🏆 Curated 80 World Champion & Signature Recipe Catalog
 Directly accessible from the Brew Journal with 1-click journal logging, active timer arming, and custom template saving:
@@ -316,21 +322,20 @@ Directly accessible from the Brew Journal with 1-click journal logging, active t
 - **45 Traditional & Heritage Methods**: Indonesian heritage (Kopi Tubruk, Kopi Joss, Kopi Sanger, Kopi Talua, Kopi Rarobang, Es Kopi Susu Gula Aren), Vietnamese Phin (Cà Phê Sữa Đá), Turkish Cezve, Greek Briki, Italian Moka Pot, Neapolitan Cuccumella, Ethiopian Jebena, and classic batch brews.
 - **Epistemological Verification Badges**: Categorized into `OFFICIAL`, `DOCUMENTED_RECREATION`, `SECONDARY_ADAPTATION`, and `NEEDS_VERIFICATION`.
 
-### 🤖 Epic S2-E06 — Personalization, Local AI & Grounded RAG
-- **Offline Personal Palate Quiz**: 5-question baseline preference profiling establishing roast, acidity, sweetness, and bitterness weights.
-- **Bayesian Taste Adaptation**: Dynamic exponential moving average updates to user taste vectors derived from highly rated ($\ge 7.5$) brew logs.
-- **Explainable Inventory Recommendations**: Cosine similarity matching between palate vectors and available in-stock coffee beans.
-- **On-Device Barista Chat**: Powered by CPU-accelerated `llama.cpp` (Qwen2.5 0.5B, Kafi Llama-3.2 1B, Gemma 2B) running in airplane mode.
-- **Hybrid Lexical + Vector RAG**: Room FTS4 full-text search combined with ObjectBox HNSW vector search over user-imported coffee literature.
-- **Strict No-Evidence Abstention**: Clear citation of document page/section; model explicitly abstains when factual evidence is absent.
-- **Thermodynamic Weather Correction**: Barometric and altitude boiling point adjustments ($T_{\text{boil}} = 100^\circ\text{C} - \frac{\text{Altitude (m)}}{300}$).
+### 🎨 221-Descriptor Sensory Wheel & Digital CVA Cupping
+- **221-Descriptor Hierarchical Taxonomy**: 84 SCA/WCR reference descriptors + 137 expanded Indonesian and global descriptors across 9 primary categories (Floral, Fruity, Sour/Fermented, Green/Vegetative, Roasted, Spices, Nutty/Cocoa, Sweet, Other/Defects).
+- **Bilingual Lookup**: Simultaneous search across English and Indonesian (`idLabel`) descriptors.
+- **Interactive Canvas Wheel (`SensoryWheelVisualizer`)**: Touch-arc polar hit detection, category zoom, and dynamic color shading.
+- **16-Attribute CVA Professional Cupping Form**: Fragrance, Aroma, Flavor, Aftertaste, Acidity (Intensity & Quality), Sweetness, Bitterness, Saltiness, Body (Intensity & Texture), Astringency, Finish, Temperature, Defects, and Overall Impression.
+- **5-Bowl Multi-Cup Evaluation**: Individual cup tracking for Cleanliness, Taint (-2 pts), and Fault (-4 pts) per sample.
+- **Cryptographic SHA-256 Lock**: Finished sessions are locked and hashed with audit trails for amendments.
 
-### 🛡️ Epic S2-E07 — Reliability, Inclusivity & Data Portability
-- **Storage Access Framework (SAF) Invariant**: Model assets, guides, and full backups reside in user-owned storage (`content://`). Zero filesystem path inferences.
-- **Resumable HTTP Transfers**: Checkpointed asset downloads with HTTP 206 Range headers and ETag validation.
-- **Cryptographic Backup & Restore**: Full JSON backup with integrity checksums for recipes, journals, cupping forms, and preferences.
-- **Bilingual Internationalization**: Complete on-device English and Bahasa Indonesia (ID) localization, with localized physics units (°C/°F, g/oz, mL/fl oz, masl/ft).
-- **Graceful Degradation State Machine**: App functions seamlessly in manual mode when AI models, OCR libraries, or BLE scales are unconfigured or unavailable.
+### 🧪 Sensory Academy, Blind Triangle Training & Green Coffee QC
+- **Sensory Academy (EDU-01..22)**: 22 modular syllabus lessons with ASCII diagrams, practice quizzes, and an organic acid atlas (Citric, Malic, Tartaric, Acetic, Lactic, Phosphoric, Quinic).
+- **Blind Triangle Discrimination Engine**: Exactly 3 coded samples (2 same, 1 different) across all 6 position permutations (`AAB, ABA, BAA, BBA, BAB, ABB`) with hidden answer keys and exact cumulative Binomial probability $P(X \ge k)$.
+- **5 Basic-Taste Threshold Drills**: Ascending concentration series (Sucrose, Citric Acid, NaCl, Caffeine, MSG) adhering to ASTM E679 standards.
+- **350g Washed Arabica Defect Grading**: Full primary (Category 1) vs secondary (Category 2) defect equivalencies, ISO 4150 sieve distribution with mass-balance checks, moisture uncertainty, water activity, and buyer contract validation.
+- **Inter-Rater Panel Calibration**: Multi-evaluator alignment calculating Pearson $r$, Spearman $\rho$, Fleiss' generalized Kappa $\kappa$, and Mean Consensus Deviation ($\text{MCD} \le 0.35$).
 
 ---
 
@@ -361,12 +366,54 @@ Coffee Creator strictly adheres to modern 2026 Android interface engineering gui
 
 ---
 
+## 📜 Historical Release Archive
+
+<details>
+<summary><strong>📦 Click to view full historical releases archive (v1.0.0 through v1.14.4)</strong></summary>
+
+| Version | Release Date | Download APK | Release Highlights | SHA-256 Checksum |
+|:---:|:---:|:---:|:---|:---:|
+| **v1.14.4** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.4/coffee-creator-v1.14.4.apk) | [Notes](docs/releases/v1.14.4.md) · **Sprint 04 Epic E: Pro Operations, Architecture, AI & Integration (`S4-052..65`)**: 100% offline operational guarantee, additive Room migration safety, immutable cross-domain provenance linking cupping to bean/roast/recipe/grinder, deterministic standards engine strictly decoupled from LLM, local RAG knowledge citation verification with anti-hallucination guard (`[chunk-cva-desc-04, Page 3]`), blind panel workflow with role separation (Host vs Assessor) and 3-digit randomized codes with premature unblinding audit trail (`UNBLINDED_PREMATURELY_AUDITED`), inter-rater agreement and panel calibration statistics (Pearson $r$, Spearman $\rho$, Mean Consensus Deviation $\text{MCD} \le 0.35$, Fleiss' generalized Kappa $\kappa_{\text{Fleiss}}$ with Landis-Koch benchmarks), bilingual EN/ID glossary, accessibility profiles (anosmia/parosmia accommodation, allergen alerts with non-clinical disclaimer), and user-consent-based export with PII redaction and SHA-256 integrity seal. | `a931abbccb6aa...` |
+| **v1.14.3** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.3/coffee-creator-v1.14.3.apk) | [Notes](docs/releases/v1.14.3.md) · **Sprint 04 Epic D: Green Coffee Physical Assessment (`S4-041..51`)**: Complete 350g green lot catalog, provenance & chain of custody, SCA 2004 washed Arabica defect taxonomy (Cat 1 full defects vs Cat 2 weighted equivalents), ISO 4150 sieve distribution with mass balance recovery check ($\Delta M \le 1.5\text{g}$) and Screen 16+ retention %, moisture assessment with meter uncertainty, water activity ($a_w \le 0.700$), density (g/L), organoleptic odor disqualification, deterministic grade rule engine with out-of-scope guards (`UNDETERMINED_OUT_OF_SCOPE`), epistemological decoupling (physical grade $\ne$ cup score), buyer spec contract compliance, and SHA-256 sealed JSON/CSV export. | `e377bf4d7ad80...` |
+| **v1.14.2** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.2/coffee-creator-v1.14.2.apk) | [Notes](docs/releases/v1.14.2.md) · **Sprint 04 Epic C: Sensory Training & Testing Lab (`S4-027..40`)**: Blind triangle testing with 6 balanced permutations (`AAB`, `ABA`, etc.), concealed 3-digit keys, exact binomial hypothesis calculus $P(X \ge k)$, 5 basic-taste threshold series (ASTM E679 BET), 60 olfactory reference vials with Sensory SM-2 spaced repetition, confusion matrix, 7 organic-acid comparative tastings, roast defect discrimination, tactile/mouthfeel controls, 2-AFC paired comparisons ($p_0=1/2$), 6-pillar readiness radar, and physical human observation anti-cheating mandate (`isAutoPassed=false`). | `8eff8a4e7feda...` |
+| **v1.14.1** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.1/coffee-creator-v1.14.1.apk) | [Notes](docs/releases/v1.14.1.md) · **Sprint 04 Epic B: Digital CVA Cupping & 221-Wheel Integration (`S4-011..26`)**: Multi-sample sessions, protocol selector (`SCA_CVA_CURRENT`, `SCA_2004_LEGACY`, `CUSTOM_RESEARCH`), 4-perspective forms (`Physical`, `Descriptive`, `Affective`, `Extrinsic`), extrinsic blinding gate (`UNBLINDED_PREMATURELY_AUDITED`), 221-descriptor Sensory Wheel modal with bilingual search, 5-bowl multi-cup defect grid (Clean/Taint/Fault), 6-milestone cupping timer, A/B side-by-side comparison, cryptographic SHA-256 session lock, JSON/CSV exports, and 1-click "Log to Brew Journal as Graded Coffee". | `f2415b498e4fb...` |
+| **v1.14.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.0/coffee-creator-v1.14.0.apk) | [Notes](docs/releases/v1.14.0.md) · **Sprint 04 Professional Sensory, Cupping, CVA & Green Coffee Assessment**: 22-module bilingual Learning Academy (`EDU-01..22`) with quizzes and ASCII diagrams, 5 basic tastes (Sweet, Sour, Salty, Bitter, Umami), 7 organic acids atlas, generic 60-aroma taxonomy, 4-perspective Digital CVA (`Physical`, `Descriptive`, `Affective`, `Extrinsic`) with blind codes, SHA-256 session lock and JSON/CSV exports, 6-permutation balanced Triangle testing with exact cumulative Binomial probability $P(X \ge k)$, and 350g washed Arabica green coffee defect grading. | `350fe44ffeb47...` |
+| **v1.13.1** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.1/coffee-creator-v1.13.1.apk) | [Notes](docs/releases/v1.13.1.md) · **Tactile Microinteractions & Anti-AI-Slop Refinement**: Semantic `MicroBadgePill`s (Hand/Electric/Verified/Filter-only), 3-tile monospace grind range grid (`fontFeatureSettings = "tnum"`), animated segmented valve toggle (`InteractiveValveSwitch`), numbered step-by-step zero calibration accordion, and zero text-wrapping distortion. | `5b0a0f542cc2e...` |
+| **v1.13.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.0/coffee-creator-v1.13.0.apk) | [Notes](docs/releases/v1.13.0.md) · **Sprint 03 Manual Brewing & Grinder Intelligence (`GR-01..12`, `BR-01..18`)**: 44-model grinder catalog with variants, zero calibration wizard, typed grind settings, manufacturer evidence overlay, 26-dripper catalog with qualitative flow classes, filter paper compatibility engine, reversible dial-in assistant, and designated ADB device targeting (`RRCN3008VYE`). | `ba15137a41234...` |
+| **v1.12.2** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.2/coffee-creator-v1.12.2.apk) | [Notes](docs/releases/v1.12.2.md) · **Tactile Microinteractions Full-Max & Anti-AI Slop**: Standardized `TactileButton`, `TactileOutlinedButton`, `TactileFilledTonalButton`, `TactileTextButton`, and `TactileFilterChip` with spring micro-depression (`scale = 0.97f`), haptics, single-line text bounds, and zero-data-loss `-r -d` deployment. | `f7358795ea6ee...` |
+| **v1.12.1** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.1/coffee-creator-v1.12.1.apk) | [Notes](docs/releases/v1.12.1.md) · **Zero-Crash Resilience**: 5-tier resilient recipe resolution cascade (`resolveActiveRecipe`), defensive coroutines on scale connections, timer sessions, and scale tare operations. | `0b381b2367476...` |
+| **v1.12.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.0/coffee-creator-v1.12.0.apk) | [Notes](docs/releases/v1.12.0.md) · **Sensory Deepening (Epic S2-E05)**: Full 221-descriptor taxonomy (84 SCA + 137 Indonesian/global), bilingual search (`name` / `idLabel`), 16-attribute CVA cupping, multi-temperature evaluation timeline. | `727e73b709fa5...` |
+| **v1.11.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.11.0/coffee-creator-v1.11.0.apk) | [Notes](docs/releases/v1.11.0.md) · **World Champion Recipe Catalog**: 80 curated recipes (21 Competition, 14 Signature, 45 Traditional), 1-click Journal logging, active timer handoff, custom recipe template saving. | `c63f74fcf3bc3...` |
+| **v1.10.2** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.2/coffee-creator-v1.10.2.apk) | [Notes](docs/releases/v1.10.2.md) · **Tactile Settings Anti-Slop**: Full-width industrial status banner, 3-column `TelemetryStatusPill` grid with active status dots, tactile chips for language/units/palate quiz. | `b5539ad55f333...` |
+| **v1.10.1** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.1/coffee-creator-v1.10.1.apk) | [Notes](docs/releases/v1.10.1.md) · **Custom Precision Lab Launcher Icon**: Master vector emblem (bean + dripper flask + amber drop), dark espresso `#1B120C` background, full mdpi-xxxhdpi mipmaps. | `a8cfc5fccb4ab...` |
+| **v1.10.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.0/coffee-creator-v1.10.0.apk) | [Notes](docs/releases/v1.10.0.md) · Offline OCR coffee bag scanner, verified Kafi/Gemma model catalog, evidence-safe extraction yield, durable record restore. | `d06e9c6bace08...` |
+| **v1.9.6** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.6/coffee-creator-v1.9.6.apk) | [Notes](docs/releases/v1.9.6.md) · Tactile Industrial UI/UX Refinement: 0.97f spring micro-depression, subtle haptics, tabular monospace figures (`tnum`), 1px hairline borders. | `d3d28471fdf73...` |
+| **v1.9.5** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.5/coffee-creator-v1.9.5.apk) | [Notes](docs/releases/v1.9.5.md) · Interactive Canvas Sensory Wheel, touch-arc polar hit detection & zoom, commercial defect/taint catalog, multi-select flavor picker dialog. | `d84569a5035fa...` |
+| **v1.9.4** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.4/coffee-creator-v1.9.4.apk) | [Notes](docs/releases/v1.9.4.md) · Hardware-verified E2E release: BackHandler sub-screen navigation, restored journal revision list, exception safety. | `d5a0a24c3d4b2...` |
+| **v1.9.3** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.3/coffee-creator-v1.9.3.apk) | [Notes](docs/releases/v1.9.3.md) · Anti-slop bag inventory Surface container, single-line action headers, zero word-wrapping distortion into oval buttons. | `0463433500797...` |
+| **v1.9.2** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.2/coffee-creator-v1.9.2.apk) | [Notes](docs/releases/v1.9.2.md) · Anti-slop tactile navigation: single-line horizontal scroll rows with M3 icons across Journal and Sensory categories. | `ab068dea442fa...` |
+| **v1.9.1** | 2026-10-16 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.1/coffee-creator-v1.9.1.apk) | [Notes](docs/releases/v1.9.1.md) · Precision Lab Timer & Telemetry Console: unified digital readout, live pulse indicator, integrated mass & flow rate, 54dp CTA. | `917f9cdbab661...` |
+| **v1.9.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.0/coffee-creator-v1.9.0.apk) | [Notes](docs/releases/v1.9.0.md) · **Epic S2-E01**: Bean agronomy, bag freeze/thaw, water chemistry ($Ca^{2+}, Mg^{2+}, Na^+, HCO_3^-$), green coffee QC, roast curves. | `4801d10dbc143...` |
+| **v1.8.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.8.0/coffee-creator-v1.8.0.apk) | [Notes](docs/releases/v1.8.0.md) · **Epic S2-E07**: SAF persistent model manifest, resumable downloads (Range/ETag), cryptographic backup/restore, bilingual EN/ID. | `1DC681387D6DE...` |
+| **v1.7.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.7.0/coffee-creator-v1.7.0.apk) | [Notes](docs/releases/v1.7.0.md) · **Epic S2-E06**: Offline palate quiz, Bayesian taste adaptation, explainable inventory suggestions, grounded AI barista chat. | `1CB40B36E6DCB...` |
+| **v1.6.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.6.0/coffee-creator-v1.6.0.apk) | [Notes](docs/releases/v1.6.0.md) · **Epic S2-E05**: Hierarchical flavor wheel, safe reference preparation lab, blind cupping sessions, consensus radar. | `9b2060e67ff69...` |
+| **v1.5.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.5.0/coffee-creator-v1.5.0.apk) | [Notes](docs/releases/v1.5.0.md) · **Epic S2-E04**: Brew journal, espresso dial-in progression, single-variable OVAT suggestions, streak calendar, Beanconqueror I/O. | `99a32c636b467...` |
+| **v1.4.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.4.0/coffee-creator-v1.4.0.apk) | [Notes](docs/releases/v1.4.0.md) · **Epic S2-E03**: Active brew timer, BLE scale abstraction, rolling flow rate ($g/s$), swirl artifact filter, proximity cues. | `def99509dadd5...` |
+| **v1.3.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.3.0/coffee-creator-v1.3.0.apk) | [Notes](docs/releases/v1.3.0.md) · **Epic S2-E02**: Recipe composer, Hamilton-Hare pour scaling, optical Brix-to-TDS refractometer lab, offline Sharesheet. | `78ca7128c350c...` |
+| **v1.2.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.2.0/coffee-creator-v1.2.0.apk) | [Notes](docs/releases/v1.2.0.md) · Curated recipe library (10 methods, 8 single-origins, 5 sensory logs), custom bean/method inputs. | `4c197fcee2785...` |
+| **v1.1.0** | 2026-10-15 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.1.0/coffee-creator-v1.1.0.apk) | [Notes](docs/releases/v1.1.0.md) · Real Room SQLite records, local llama.cpp GGUF/ONNX RAG integration, user-selected SAF model storage. | `e25474341ca5d...` |
+| **v1.0.0** | 2026-10-13 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.0.0/coffee-creator-v1.0.0.apk) | Initial Prototype Release with architectural scaffold and UI layout foundations. | `2843362ff29dd...` |
+
+</details>
+
+---
+
 ## 🔒 Privacy, Security & Chemical Safety Invariants
 
-- **Air-Gap Verification**: Core brewing, recipe formulation, refractometer calculations, cupping sessions, and local AI chats operate with zero network sockets.
-- **User-Owned Storage**: Personal journal entries, photos, and AI model weights are stored in user-designated SAF locations. Deleting the application does not delete your external model files or manual export archives.
+- **Air-Gap Operational Guarantee**: Core brewing, recipe formulation, refractometer calculations, cupping sessions, and local AI chats operate with zero network sockets.
+- **User-Owned Storage**: Personal journal entries, photos, and AI model weights are stored in user-designated SAF locations (`content://`). Deleting the application does not delete your external model files or manual export archives.
 - **Food-Grade Safety Enforcement**: Ingredient catalogs strictly separate culinary food-grade aroma solutions from perfumery/fragrance compounds. Supplier concentration limits and allergen warnings are strictly enforced in formulation recipes.
-- **No Remote Telemetry**: Zero Google Analytics, Firebase, Sentry, or third-party tracking libraries are included in the codebase.
+- **Zero Remote Telemetry**: Zero Google Analytics, Firebase, Sentry, or third-party tracking libraries are included in the codebase.
 
 ---
 
@@ -406,7 +453,7 @@ Execute the comprehensive test suite across pure JVM engine, Room DAOs, and Robo
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest
 ```
-*(All 244 unit tests pass with zero failures).*
+*(All 322 unit tests pass with zero failures).*
 
 ### 4. Assemble Debug APK
 Compile the distribution debug preview APK:
@@ -429,9 +476,10 @@ The compiled APK will be output to `app/build/outputs/apk/debug/app-debug.apk`.
 | **Gate 5: Sensory Taxonomy** | 221 descriptors verified across 9 categories with bilingual tags | `SensoryTaxonomyTest.kt` | **PASSED** |
 | **Gate 6: Champion Catalog** | 80 recipes verified with steps, ratios, and provenance | `WorldChampionCatalogTest.kt`| **PASSED** |
 | **Gate 7: Tactile UI Standards** | `scale = 0.97f` spring physics, `tnum` figures, concentric radii | Robolectric Compose Tests | **PASSED** |
-| **Gate 8: APK Build & Hash** | APK assembled and checksum matched against `SHA256SUMS.txt` | `Get-FileHash coffee-creator-*.apk` | **PASSED** |
-| **Gate 9: Zero-Data-Loss Install** | App reinstalled on connected SM-G988B with `-r -d` preserving Room state | `adb install -r -d ...` | **PASSED** |
-| **Gate 10: Zero Telemetry** | Zero network calls or external sockets in airplane mode | Logcat & Network Profiler | **PASSED** |
+| **Gate 8: Device Verification** | 12 device screenshots captured and verified on Galaxy S20 Ultra (`RRCN3008VYE`) | `adb exec-out screencap -p` | **PASSED** |
+| **Gate 9: APK Build & Hash** | APK assembled and checksum matched against `SHA256SUMS.txt` | `Get-FileHash coffee-creator-*.apk` | **PASSED** |
+| **Gate 10: Zero-Data-Loss Install** | App reinstalled on connected SM-G988B with `-r -d` preserving Room state | `adb install -r -d ...` | **PASSED** |
+| **Gate 11: Zero Telemetry** | Zero network calls or external sockets in airplane mode | Logcat & Network Profiler | **PASSED** |
 
 ---
 
