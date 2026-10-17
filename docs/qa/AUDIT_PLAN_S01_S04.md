@@ -7,7 +7,7 @@
 
 ## Objective and invariants
 
-Audit every specified FR-01–FR-10, S2, GR, BR, S4, and EDU requirement, plus shipped legacy behavior, against current code, tests, schemas, history, and actual execution evidence. Keep implementation status separate from test status. Preserve all production features, records, device state, source documents, and release history. No repair or refactor occurs during this audit; defects receive reproducible cases and a minimal repair plan for a separately approved, isolated worktree.
+Audit every specified FR-01–FR-10, S2, GR, BR, S4, and EDU requirement, plus shipped legacy behavior and the user's repository/release delivery requirements, against current code, tests, schemas, history, and actual execution evidence. Keep implementation status separate from test status. Preserve all production features, records, device state, source documents, and release history. No repair or refactor occurs during this audit; defects receive reproducible cases and a minimal repair plan for a separately approved, isolated worktree.
 
 The Samsung SM-G988B (`RRCN3008VYE`, API 33) is visible over ADB, but no disposable seeded profile has yet been established. It will remain untouched until test bootstrap and data isolation are proven. Any device-only case without a safe disposable environment is `BLOCKED` or `NOT_RUN`, never `PASS`.
 
@@ -27,7 +27,7 @@ Method references checked on 2026-10-18:
 1. **Freeze baseline:** commit/branch/status, toolchain and variants, SDK/device inventory, Room and backup schema versions, release history, CI receipts, and source-tree checksum. Do not access or export the installed app's user database or SAF documents.
 2. **Inventory:** enumerate routes/deep links, Compose screens/actions, ViewModels/use cases, repositories/DAOs/entities/migrations, catalogs/seeds, exports/backups, workers, permissions, network surfaces, model/RAG/tool adapters, and tests.
 3. **Preservation review:** compare source and tests across available sprint tags/commits; identify removals, renames, altered IDs/fields/seeds, navigation changes, and unsupported historical claims.
-4. **Traceability:** map each exact source requirement and every observed legacy feature to implementation symbols, storage, navigation, relevant test IDs/layers, device dependencies, evidence, defect, and separate implementation/test verdicts. Record numbering gaps and source conflicts explicitly.
+4. **Traceability:** map each exact source requirement, every observed legacy feature, and user-requested release-delivery conditions to implementation symbols, storage, navigation, relevant test IDs/layers, device dependencies, evidence, defect, and separate implementation/test verdicts. Record numbering gaps and source conflicts explicitly.
 5. **BDD test design:** create requirement-linked happy, negative/boundary, invalid, state/recovery, offline/no-model, persistence/relaunch, navigation, migration, accessibility, security, and performance cases where applicable. State why any dimension is not applicable.
 6. **Safe execution:** inspect fixtures and test runners before execution. Run only tests proven isolated from the installed app's data. Save command, exit code, XML/log/screenshots, environment, SHA, and result. Connected tests remain blocked if they can clear, replace, or mutate a non-disposable package/data profile.
 7. **Independent triage:** classify P0–P3; state exact reproduction and smallest additive fix; identify required focused/full regression suites. Do not implement fixes in this audit.

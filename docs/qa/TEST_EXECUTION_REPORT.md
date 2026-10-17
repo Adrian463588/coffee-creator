@@ -26,13 +26,13 @@ The first combined command `rtk proxy .\gradlew.bat :app:testDebugUnitTest :app:
 
 ## Test-case execution coverage
 
-The master contains **295 BDD-oriented test designs**: 209 blueprint requirement cases, ten historical shipped-feature preservation cases, 12 cross-cutting, ten E2E, 24 Sprint 03 TC cases, and 30 Sprint 04 QA cases. All 295 are `NOT_RUN` because these acceptance flows did not execute. Each of the 219 requirement/legacy cases contains 11 dimension prompts, but the prompts do not always name concrete row-specific fixtures, observable oracles, or a justified N/A. Treat them as a test-design backlog requiring that detail before execution, not as completed coverage.
+The master contains **297 BDD-oriented test designs**: 209 blueprint requirement cases, ten historical shipped-feature preservation cases, two user-requested release-delivery cases, 12 cross-cutting, ten E2E, 24 Sprint 03 TC cases, and 30 Sprint 04 QA cases. All 297 are `NOT_RUN` because these acceptance flows did not execute. Each of the 221 requirement/legacy/delivery cases contains 11 dimension prompts, but the prompts do not always name concrete row-specific fixtures, observable oracles, or a justified N/A. Treat them as a test-design backlog requiring that detail before execution, not as completed coverage.
 
 The RTM finds an explicit source-text marker candidate for 106/209 requirement IDs. This search does not verify that the matched assertion actually tests that requirement (for example, `FR-01` also appears in a blend-ratio test name), so marker matches are not counted as requirement passes. The 103 remaining requirements have no explicit ID marker; untagged tests may exist. Instrumented device cases were not run. As a result:
 
 - Blueprint requirement-level BDD cases executed: **0/209 (0%)**.
-- Blueprint plus legacy requirement cases executed: **0/219 (0%)**.
-- Full master acceptance cases executed: **0/295 (0%)**.
+- Blueprint, legacy, and delivery requirement cases executed: **0/221 (0%)**.
+- Full master acceptance cases executed: **0/297 (0%)**.
 - Existing JVM unit suite: **322/322 passed (100% of executed suite)**.
 - Explicit story-ID marker candidates: **106/209 (50.7%)**; assertion relevance is not verified, so this is not requirement traceability, code coverage, or acceptance coverage.
 - Automation coverage across applicable acceptance dimensions: **not calculable**; no repository coverage report or full automated acceptance mapping was produced.

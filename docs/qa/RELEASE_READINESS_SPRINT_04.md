@@ -4,7 +4,7 @@
 
 ## Required summary table
 
-“Implemented verified” means full acceptance has evidence at the required layer, not that a class or test source exists. The table's test column counts 219 planned `TC-REQ-*` cases: 209 blueprint IDs plus ten historical shipped-feature checks. None ran. The separate fresh JVM suite result is stated below.
+“Implemented verified” means full acceptance has evidence at the required layer, not that a class or test source exists. The table's test column counts 221 planned `TC-REQ-*` cases: 209 blueprint IDs, ten historical shipped-feature checks, and two user-requested release-delivery checks. None ran. The separate fresh JVM suite result is stated below.
 
 | Sprint / epic | Requirements | Implemented verified | Implemented unverified | Partial | Missing | Broken | Blocked | Spec conflict | Tests pass / fail / not-run | P0 defects | Evidence |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---|
@@ -12,22 +12,23 @@
 | Sprint 02 / S2-001–082 | 82 | 0 | 75 | 7 | 0 | 0 | 0 | 0 | 0 / 0 / 82 | 0 | RTM; catalog/recipe/brew/journal/sensory/RAG suites in aggregate; D-005/D-010 |
 | Sprint 03 / GR-01–12 | 12 | 0 | 12 | 0 | 0 | 0 | 0 | 0 | 0 / 0 / 12 | 0 | RTM; grinder/dripper unit suite passed in aggregate; row-level cases not run |
 | Sprint 03 / BR-01–18 | 18 | 0 | 16 | 1 | 0 | 0 | 1 | 0 | 0 / 0 / 18 | 0 | RTM; TC-301–324; D-006/D-007 |
-| Sprint 04 / S4-001–065 | 65 | 0 | 30 | 21 | 0 | 9 | 5 | 0 | 0 / 0 / 65 | 4 | RTM; CVA/green/training unit suites passed in aggregate; D-001–003, D-008, D-011, D-015 |
+| Sprint 04 / S4-001–065 | 65 | 0 | 29 | 22 | 0 | 9 | 5 | 0 | 0 / 0 / 65 | 3 | RTM; CVA/green/training unit suites passed in aggregate; D-001–003, D-008, D-011 |
 | Sprint 04 / EDU-01–22 | 22 | 0 | 22 | 0 | 0 | 0 | 0 | 0 | 0 / 0 / 22 | 0 | RTM; curriculum structure test passed in aggregate; D-012 |
 | Historical shipped features | 10 | 0 | 9 | 0 | 0 | 0 | 0 | 1 | 0 / 0 / 10 | 1 | RTM LEGACY-01–10; nine route candidates present but behavior parity NOT_RUN; catalog identity conflict D-013 |
-| **Total** | **219** | **0** | **172** | **31** | **0** | **9** | **6** | **1** | **0 / 0 / 219** | **5** | RTM, master cases, execution report; all 295 master cases NOT_RUN |
+| Release / delivery | 2 | 0 | 0 | 1 | 0 | 1 | 0 | 0 | 0 / 0 / 2 | 1 | RTM DELIVERY-01/02; APK metadata mismatch D-014; release-claim contradiction D-015 |
+| **Total** | **221** | **0** | **171** | **33** | **0** | **10** | **6** | **1** | **0 / 0 / 221** | **5** | RTM, master cases, execution report; all 297 master cases NOT_RUN |
 
-The blueprint denominator is 209 IDs; the RTM adds ten historical shipped-feature preservation rows, for 219 total. The 172 `IMPLEMENTED_UNVERIFIED` rows and one `SPEC_CONFLICT` are not counted as complete. “Missing” is zero because a current source candidate or identifiable historical feature exists; this does not mean required behavior passes or that historical data parity is established. S4 `BROKEN` and `BLOCKED` rows contain specific reachable actions or an explicit missing standards gate.
+The blueprint denominator is 209 IDs; the RTM adds ten historical shipped-feature rows and two delivery rows, for 221 total. The 171 `IMPLEMENTED_UNVERIFIED` rows and one `SPEC_CONFLICT` are not counted as complete. “Missing” is zero because a current source candidate or identifiable historical feature exists; this does not mean required behavior passes or that historical data parity is established. S4 `BROKEN` and `BLOCKED` rows contain specific reachable actions or an explicit missing standards gate.
 
 ## Coverage and evidence denominators
 
 - **Specification completeness:** 209/209 numbered blueprint IDs found (100% source inventory); source ranges have no numbering gaps. No numbered ID in the audited specifications was excluded. Ten additional historical features are separately listed in the RTM.
-- **Implementation acceptance:** 0/219 fully verified (0%): 209 blueprint IDs plus ten legacy checks. Matrix verdict counts: 172 `IMPLEMENTED_UNVERIFIED`, 31 `PARTIAL`, 9 `BROKEN`, 6 `BLOCKED`, and one `SPEC_CONFLICT`.
-- **Master acceptance execution:** 0/295 BDD/E2E/spec test cases executed (0%): 219 blueprint/legacy cases + 12 cross-cutting + 10 end-to-end + 24 Sprint 03 TC + 30 Sprint 04 QA cases. The connected/device cases were not run.
-- **Requirement test marker candidates:** source text contains an explicit ID marker for 106/209 blueprint rows (50.7%). This heuristic does not verify that the assertion tests the requirement; no requirement is marked passed from a marker. The other 103 blueprint rows and all ten legacy rows have no explicit marker; untagged tests may exist. All 219 `TC-REQ-*` cases are NOT_RUN.
+- **Implementation acceptance:** 0/221 fully verified (0%): 209 blueprint IDs, ten legacy checks, and two delivery checks. Matrix verdict counts: 171 `IMPLEMENTED_UNVERIFIED`, 33 `PARTIAL`, 10 `BROKEN`, 6 `BLOCKED`, and one `SPEC_CONFLICT`.
+- **Master acceptance execution:** 0/297 BDD/E2E/spec test cases executed (0%): 221 requirement cases + 12 cross-cutting + 10 end-to-end + 24 Sprint 03 TC + 30 Sprint 04 QA cases. The connected/device cases were not run.
+- **Requirement test marker candidates:** source text contains an explicit ID marker for 106/209 blueprint rows (50.7%). This heuristic does not verify that the assertion tests the requirement; no requirement is marked passed from a marker. The other 103 blueprint rows, ten legacy rows, and two delivery rows have no explicit marker; untagged tests may exist. All 221 `TC-REQ-*` cases are NOT_RUN.
 - **Existing JVM suite:** 322/322 cases passed (100% of cases executed) in the fresh Gradle run. It is not 322/209 requirement acceptance and does not prove device, SAF, AI generation, BLE, accessibility, or sensory outcomes.
-- **Automation coverage:** not calculable as a repository-wide percentage. No coverage report was run, and the 295 acceptance cases have not been implemented/executed as a complete automated suite. Do not convert the 106 source marker candidates into an automation-coverage claim.
-- **Case-design limit:** the 295 entries are BDD-oriented test designs, not all execution-ready scripts. Some still require row-specific fixture values, observable oracles, and justified N/A decisions from a disposable profile, authorized sources, or physical hardware. Those dimensions receive no execution or automation credit until completed and evidenced.
+- **Automation coverage:** not calculable as a repository-wide percentage. No coverage report was run, and the 297 acceptance cases have not been implemented/executed as a complete automated suite. Do not convert the 106 source marker candidates into an automation-coverage claim.
+- **Case-design limit:** the 297 entries are BDD-oriented test designs, not all execution-ready scripts. Some still require row-specific fixture values, observable oracles, and justified N/A decisions from a disposable profile, authorized sources, or physical hardware. Those dimensions receive no execution or automation credit until completed and evidenced.
 
 ## Quality gates
 
@@ -76,5 +77,6 @@ The latest existing public release remains [v1.14.5](https://github.com/Adrian46
 6. Add migration/backward-compatible nested JSON fixtures and prove no data loss in copied historical databases.
 7. Resolve Detekt/KtLint without suppressions; clear or disposition Android Lint warnings, especially locale and dependency security findings.
 8. Run full connected test matrix on disposable emulator/device and complete actual SAF, model, accessibility, offline, and required hardware acceptance.
+9. Correct the v1.14.5 release note's repository owner and asset size from verified GitHub metadata, recheck URL/digest, then qualify or correct v1.14.3/v1.14.4 historical behavior claims against tagged source and evidence (D-014/D-015).
 
 Fixes must be separate, narrow worktree slices with failing regression tests first, then focused and full regression runs. Preserve all legacy workflows and data through each slice.

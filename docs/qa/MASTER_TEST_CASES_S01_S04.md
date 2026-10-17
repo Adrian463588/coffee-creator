@@ -1,6 +1,6 @@
 # Master BDD Test Cases — Sprint 01–04
 
-All cases below are BDD-oriented test designs, not executed tests. Their status is **NOT_RUN** until a receipt is recorded. A source marker, unrelated test report, or screenshot does not change that status. Several dimensions still need case-specific fixture values, observable oracles, and justified N/A decisions before execution; no dimension coverage is credited from these prompts alone. Ten legacy rows record historical screen/data preservation checks in addition to the 209 blueprint IDs.
+All cases below are BDD-oriented test designs, not executed tests. Their status is **NOT_RUN** until a receipt is recorded. A source marker, unrelated test report, or screenshot does not change that status. Several dimensions still need case-specific fixture values, observable oracles, and justified N/A decisions before execution; no dimension coverage is credited from these prompts alone. Ten legacy rows record historical screen/data preservation checks and two delivery rows record current release requirements in addition to the 209 blueprint IDs.
 
 ## How to execute safely
 
@@ -362,7 +362,7 @@ Use a disposable seeded app profile and a copy of each supported historical data
 - Result: NOT_RUN.
 - Defect ID: See defect register.
 
-## Blueprint requirement cases
+## Blueprint and delivery requirement cases
 
 Each requirement below receives a linked BDD acceptance case with explicit checks for every requested dimension. Shared cases above provide common execution detail; mark an inapplicable dimension with its reason in the execution record.
 
@@ -4765,7 +4765,7 @@ Each requirement below receives a linked BDD acceptance case with explicit check
 - Execution environment: Not run; hardware need: Physical sensory / instrument tests require actual user-provided samples and gear.
 - Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
 - Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
-- Result: NOT_RUN. - Defect ID: D-003. - Static verdict lead: PARTIAL.
+- Result: NOT_RUN. - Defect ID: D-003; D-015. - Static verdict lead: PARTIAL.
 
 ### TC-REQ-S4-020 — S4-020: Phone-friendly one-handed form entry, progressive disclosure, large tap targets, offline haptics optional
 
@@ -4873,7 +4873,7 @@ Each requirement below receives a linked BDD acceptance case with explicit check
 - Execution environment: Not run; hardware need: Physical sensory / instrument tests require actual user-provided samples and gear.
 - Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
 - Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
-- Result: NOT_RUN. - Defect ID: D-002. - Static verdict lead: BROKEN.
+- Result: NOT_RUN. - Defect ID: D-002; D-015. - Static verdict lead: BROKEN.
 
 ### TC-REQ-S4-024 — S4-024: PDF/CSV/JSON export of **app-native** reports; official form appearance/export only with explicit license/permission
 
@@ -4900,7 +4900,7 @@ Each requirement below receives a linked BDD acceptance case with explicit check
 - Execution environment: Not run; hardware need: Physical sensory / instrument tests require actual user-provided samples and gear.
 - Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
 - Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
-- Result: NOT_RUN. - Defect ID: D-002. - Static verdict lead: BROKEN.
+- Result: NOT_RUN. - Defect ID: D-002; D-015. - Static verdict lead: BROKEN.
 
 ### TC-REQ-S4-025 — S4-025: Compare coffees side-by-side with protocol-aware compatible metrics and confidence labels
 
@@ -5467,7 +5467,7 @@ Each requirement below receives a linked BDD acceptance case with explicit check
 - Execution environment: Not run; hardware need: Physical sensory / instrument tests require actual user-provided samples and gear.
 - Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
 - Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
-- Result: NOT_RUN. - Defect ID: D-001. - Static verdict lead: BROKEN.
+- Result: NOT_RUN. - Defect ID: D-001; D-015. - Static verdict lead: BROKEN.
 
 ### TC-REQ-S4-046 — S4-046: Water activity, density, color, odor, foreign matter and additional QC observations if measured
 
@@ -5494,7 +5494,7 @@ Each requirement below receives a linked BDD acceptance case with explicit check
 - Execution environment: Not run; hardware need: Physical sensory / instrument tests require actual user-provided samples and gear.
 - Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
 - Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
-- Result: NOT_RUN. - Defect ID: D-001. - Static verdict lead: BROKEN.
+- Result: NOT_RUN. - Defect ID: D-001; D-015. - Static verdict lead: BROKEN.
 
 ### TC-REQ-S4-047 — S4-047: Rule engine for washed Arabica historical grading with **versioned** and sourced thresholds; refuse unsupported species/process claims
 
@@ -5602,7 +5602,7 @@ Each requirement below receives a linked BDD acceptance case with explicit check
 - Execution environment: Not run; hardware need: Physical sensory / instrument tests require actual user-provided samples and gear.
 - Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
 - Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
-- Result: NOT_RUN. - Defect ID: D-002. - Static verdict lead: BROKEN.
+- Result: NOT_RUN. - Defect ID: D-002; D-015. - Static verdict lead: BROKEN.
 
 ### TC-REQ-S4-051 — S4-051: Show `NOT_MEASURED`, `UNKNOWN`, `OUT_OF_SCOPE`, `PENDING_REVIEW` instead of fabricated values
 
@@ -5683,7 +5683,7 @@ Each requirement below receives a linked BDD acceptance case with explicit check
 - Execution environment: Not run; hardware need: Physical sensory / instrument tests require actual user-provided samples and gear.
 - Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
 - Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
-- Result: NOT_RUN. - Defect ID: None assigned before execution. - Static verdict lead: IMPLEMENTED_UNVERIFIED.
+- Result: NOT_RUN. - Defect ID: D-003; D-015. - Static verdict lead: PARTIAL.
 
 ### TC-REQ-S4-054 — S4-054: Reuse Sprint 02 sensory taxonomy, recipe library and existing flavor wheel rather than replacing
 
@@ -5710,7 +5710,7 @@ Each requirement below receives a linked BDD acceptance case with explicit check
 - Execution environment: Not run; hardware need: Physical sensory / instrument tests require actual user-provided samples and gear.
 - Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
 - Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
-- Result: NOT_RUN. - Defect ID: None assigned before execution. - Static verdict lead: IMPLEMENTED_UNVERIFIED.
+- Result: NOT_RUN. - Defect ID: D-015. - Static verdict lead: IMPLEMENTED_UNVERIFIED.
 
 ### TC-REQ-S4-055 — S4-055: Link cupping result to coffee bean, roast batch, manual brew recipe, grinder/dripper session without overwriting historical data
 
@@ -6008,6 +6008,60 @@ Each requirement below receives a linked BDD acceptance case with explicit check
 - Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
 - Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
 - Result: NOT_RUN. - Defect ID: D-011. - Static verdict lead: BROKEN.
+
+### TC-REQ-DELIVERY-01 — DELIVERY-01: Latest APK download metadata
+
+- Linked requirement: DELIVERY-01 (User request (2026-10-18): GitHub release/download requirements; evidence in docs/qa/DEFECT_REGISTER.csv).
+- Title: Verify Latest APK download metadata and its failure/recovery behavior.
+- Priority: P1.
+- Preconditions: clean disposable profile with its immutable manifest; navigate using RTM route 'GitHub Releases / README download history'; airplane mode unless the requirement is an explicit user-requested transfer.
+- Fixtures: documented, provenance-bearing values for DELIVERY-01; include valid, boundary, invalid, empty, and revoked/unavailable inputs where the requirement accepts them. Do not use fabricated measurements or copyrighted material.
+- Test steps (BDD): Given the row-specific, provenance-bearing fixture and current supported build, when the user completes 'Latest APK download metadata', then The latest release download points to the canonical repository and reports the actual uploaded asset size and SHA-256. Execute each applicable dimension check below; compare persisted identifiers and values only in a disposable profile.
+- Dimension checks:
+  - Happy path: execute the row-specific action and confirm the acceptance criterion: The latest release download points to the canonical repository and reports the actual uploaded asset size and SHA-256.
+  - Negative/boundary: repeat with the lowest/highest supported values and one unsupported boundary; retain the exact observed result and reject unsafe values.
+  - Invalid input: submit malformed, missing, or out-of-range values wherever this requirement accepts user input; otherwise record N/A because the row is read-only/static.
+  - UI states: verify success plus empty/loading/offline/error/retry or recovery on the owning route; record N/A for a pure domain contract with no screen.
+  - Offline/no-model: execute TC-CROSS-01; use airplane mode and no installed model, and verify the manual path or explicit unavailable state required by this row.
+  - Persistence/relaunch: create or edit the row's user-owned record, relaunch the disposable app, and compare IDs and values; record N/A for immutable bundled reference data.
+  - Navigation/back/deep-link: enter from the documented route, complete the action, navigate Back, and reopen; deep-link is N/A because no deep-link declaration was found.
+  - Migration/regression: apply supported schema/seed upgrade to a copied historical fixture and compare IDs/counts/links; record N/A when no persisted data is involved.
+  - Accessibility: verify TalkBack label/order, keyboard focus, 48dp targets, contrast and 200% font via TC-CROSS-05; record N/A for a pure domain contract.
+  - Security: exercise the relevant trust/permission boundary, malformed input, consent, and local-log behavior via TC-CROSS-06/12; record N/A when the requirement exposes no such boundary.
+  - Performance: measure the actual screen/operation under recorded build/device conditions via TC-CROSS-11; report measurements without inventing an acceptance budget.
+- Expected result: The latest release download points to the canonical repository and reports the actual uploaded asset size and SHA-256.
+- Actual result: Not executed; see static finding in the feature inventory when applicable.
+- Execution environment: Not run; hardware need: Network metadata lookup required; no app/device dependency.
+- Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
+- Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
+- Result: NOT_RUN. - Defect ID: D-014. - Static verdict lead: PARTIAL.
+
+### TC-REQ-DELIVERY-02 — DELIVERY-02: Published release claims match tagged source
+
+- Linked requirement: DELIVERY-02 (User request (2026-10-18): GitHub release/download requirements; evidence in docs/qa/DEFECT_REGISTER.csv).
+- Title: Verify Published release claims match tagged source and its failure/recovery behavior.
+- Priority: P0.
+- Preconditions: clean disposable profile with its immutable manifest; navigate using RTM route 'GitHub Releases / README download history'; airplane mode unless the requirement is an explicit user-requested transfer.
+- Fixtures: documented, provenance-bearing values for DELIVERY-02; include valid, boundary, invalid, empty, and revoked/unavailable inputs where the requirement accepts them. Do not use fabricated measurements or copyrighted material.
+- Test steps (BDD): Given the row-specific, provenance-bearing fixture and current supported build, when the user completes 'Published release claims match tagged source', then Published release behavior, test, measurement, and device claims are supported by the exact tagged source and commit-bound evidence. Execute each applicable dimension check below; compare persisted identifiers and values only in a disposable profile.
+- Dimension checks:
+  - Happy path: execute the row-specific action and confirm the acceptance criterion: Published release behavior, test, measurement, and device claims are supported by the exact tagged source and commit-bound evidence.
+  - Negative/boundary: repeat with the lowest/highest supported values and one unsupported boundary; retain the exact observed result and reject unsafe values.
+  - Invalid input: submit malformed, missing, or out-of-range values wherever this requirement accepts user input; otherwise record N/A because the row is read-only/static.
+  - UI states: verify success plus empty/loading/offline/error/retry or recovery on the owning route; record N/A for a pure domain contract with no screen.
+  - Offline/no-model: execute TC-CROSS-01; use airplane mode and no installed model, and verify the manual path or explicit unavailable state required by this row.
+  - Persistence/relaunch: create or edit the row's user-owned record, relaunch the disposable app, and compare IDs and values; record N/A for immutable bundled reference data.
+  - Navigation/back/deep-link: enter from the documented route, complete the action, navigate Back, and reopen; deep-link is N/A because no deep-link declaration was found.
+  - Migration/regression: apply supported schema/seed upgrade to a copied historical fixture and compare IDs/counts/links; record N/A when no persisted data is involved.
+  - Accessibility: verify TalkBack label/order, keyboard focus, 48dp targets, contrast and 200% font via TC-CROSS-05; record N/A for a pure domain contract.
+  - Security: exercise the relevant trust/permission boundary, malformed input, consent, and local-log behavior via TC-CROSS-06/12; record N/A when the requirement exposes no such boundary.
+  - Performance: measure the actual screen/operation under recorded build/device conditions via TC-CROSS-11; report measurements without inventing an acceptance budget.
+- Expected result: Published release behavior, test, measurement, and device claims are supported by the exact tagged source and commit-bound evidence.
+- Actual result: Not executed; see static finding in the feature inventory when applicable.
+- Execution environment: Not run; hardware need: Network metadata lookup required; no app/device dependency.
+- Automation type: JVM unit/property/golden for pure deterministic contracts; repository/Room migration tests for persistence; Compose/instrumented Android for navigation, lifecycle, SAF, and accessibility; manual device/human evaluation for physical sensory and hardware behavior.
+- Screenshot/log/test-report evidence: Not generated; add commit-bound XML/log/screenshot paths after execution.
+- Result: NOT_RUN. - Defect ID: D-015. - Static verdict lead: BROKEN.
 
 ## Shipped legacy preservation cases
 

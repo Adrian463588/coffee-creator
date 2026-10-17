@@ -50,6 +50,15 @@ LEGACY_FEATURES = [
      "Reconcile every v1.9.5 recipe ID, step and source with current catalogs and historical imports; retain verified recipe content, mark unsupported measurements unknown, and do not inject synthetic test fixtures into production."),
 ]
 
+# Release/delivery conditions explicitly requested by the user, tracked apart
+# from blueprint IDs and historical app-feature preservation rows.
+DELIVERY_REQUIREMENTS = [
+    ("DELIVERY-01", "Latest APK download metadata", "P1",
+     "The latest release download points to the canonical repository and reports the actual uploaded asset size and SHA-256."),
+    ("DELIVERY-02", "Published release claims match tagged source", "P0",
+     "Published release behavior, test, measurement, and device claims are supported by the exact tagged source and commit-bound evidence."),
+]
+
 SOURCE_MAP = {
     "FR-01": "app/src/main/java/com/coffeecreator/app/core/catalog/CatalogModels.kt; CoffeeViewModelCatalog.kt",
     "FR-02": "app/src/main/java/com/coffeecreator/app/core/model/Models.kt; RecipeDraft.kt; CoffeeViewModelRecipe.kt",
@@ -76,6 +85,13 @@ def source_for(req_id: str) -> tuple[str, str, str, str]:
         if req_id == "LEGACY-10":
             return historical_path, route, "Recipe records in StoredRecord JSON; current bundled champion templates are static", "No disposable profile or historical record snapshot available"
         return f"Historical: {historical_path}; current candidate: {current_path}", route, "Navigation/action state; verify any linked StoredRecord IDs", "No disposable profile; route parity not run"
+    if any(item[0] == req_id for item in DELIVERY_REQUIREMENTS):
+        return (
+            "docs/releases/v1.14.5.md; README.md; GitHub release metadata and tagged release notes/source",
+            "GitHub Releases / README download history",
+            "Published APK asset metadata and release documentation; no app database",
+            "Network metadata lookup required; no app/device dependency",
+        )
     if req_id in SOURCE_MAP:
         return SOURCE_MAP[req_id], "Home → primary destination (see route inventory)", "StoredRecord JSON / domain record; verify exact linkage", "No disposable profile; persistence not observed"
     prefix, number_text = req_id.split("-")
@@ -230,7 +246,13 @@ def findings(req_id: str) -> tuple[str, str, str, str]:
     actual = "Source/test candidate located; user journey and acceptance dimensions not executed in this audit."
     owner = "Unassigned"
     legacy = next((item for item in LEGACY_FEATURES if item[0] == req_id), None)
-    if legacy and req_id == "LEGACY-10":
+    if req_id == "DELIVERY-01":
+        verdict, defect = "PARTIAL", "D-014"
+        actual = "Current GitHub asset metadata is valid, but the checked-in v1.14.5 release note reports a different size and names a non-canonical repository owner in its download command."
+    elif req_id == "DELIVERY-02":
+        verdict, defect = "BROKEN", "D-015"
+        actual = "Public v1.14.3/v1.14.4 behavior claims conflict with the implementation at those exact tags; no commit-bound device receipts support the claims."
+    elif legacy and req_id == "LEGACY-10":
         verdict, defect = "SPEC_CONFLICT", "D-013"
         actual = "v1.9.5 production catalog and its test were removed in v1.9.6; recipe-shaped data survives only as a test fixture there, while current SeedData.sampleRecipes is empty and the separate 80-entry champion catalog is not reconciled by stable old IDs. Provenance and no-fabrication rules conflict with blindly restoring its historical measured values."
     elif legacy:
@@ -239,18 +261,24 @@ def findings(req_id: str) -> tuple[str, str, str, str]:
     elif req_id in {"S4-023", "S4-024", "S4-050", "S4-060"}:
         verdict, defect = "BROKEN", "D-002"
         actual = "Reachable action reports lock/export/seal success without locking the persisted record or publishing the requested export; see feature inventory evidence."
+        if req_id in {"S4-023", "S4-024", "S4-050"}:
+            defect += "; D-015"
     elif req_id in {"S4-045", "S4-046", "S4-051", "S4-057"}:
         verdict, defect = "BROKEN", "D-001"
         actual = "UI initializes measurements, panel scores, or citation-like evidence as prefilled hardcoded values; no user observation/source record is present."
+        if req_id in {"S4-045", "S4-046"}:
+            defect += "; D-015"
     elif req_id == "S4-065":
         verdict, defect = "BROKEN", "D-011"
         actual = "The sharing-consent state initializes true, so an export can appear consented before the user gives affirmative consent."
     elif req_id in {"S4-010"}:
         verdict, defect = "PARTIAL", "D-012"
         actual = "Lesson source links exist, but the required content source/license register is absent."
-    elif req_id in {"S4-011", "S4-017", "S4-018", "S4-019", "S4-020", "S4-021", "S4-022", "S4-025", "S4-026", "S4-041", "S4-042", "S4-043", "S4-044", "S4-047", "S4-048", "S4-049", "S4-055", "S4-056", "S4-058", "S4-059"}:
+    elif req_id in {"S4-011", "S4-017", "S4-018", "S4-019", "S4-020", "S4-021", "S4-022", "S4-025", "S4-026", "S4-041", "S4-042", "S4-043", "S4-044", "S4-047", "S4-048", "S4-049", "S4-053", "S4-055", "S4-056", "S4-058", "S4-059"}:
         verdict, defect = "PARTIAL", "D-003"
         actual = "Domain support exists, but current Sprint 04 UI state is not connected to durable ViewModel/repository records."
+        if req_id in {"S4-019", "S4-053"}:
+            defect += "; D-015"
     elif req_id in {"S4-012", "S4-013", "S4-014", "S4-015", "S4-016"}:
         verdict, defect = "BLOCKED", "D-008"
         actual = "Current CVA label/field mapping cannot be verified from required source register; S4 specification explicitly blocks production labeling without mapping."
@@ -272,6 +300,9 @@ def findings(req_id: str) -> tuple[str, str, str, str]:
     elif req_id in {"S2-008", "S2-067"}:
         verdict, defect = "IMPLEMENTED_UNVERIFIED", "D-010"
         actual = "OCR implementation and synthetic image tests exist; real coffee-label photography is not accepted by the source checklist and was not run."
+    elif req_id == "S4-054":
+        defect = "D-015"
+        actual = "Legacy taxonomy and recipe entry points remain in source, but the v1.14.4 release preservation/restore claim is not supported by tagged acceptance evidence."
     return verdict, defect, actual, owner
 
 
@@ -290,7 +321,7 @@ def write_master_test_cases(rows: list[dict[str, str]]) -> None:
     out: list[str] = [
         "# Master BDD Test Cases — Sprint 01–04",
         "",
-        "All cases below are BDD-oriented test designs, not executed tests. Their status is **NOT_RUN** until a receipt is recorded. A source marker, unrelated test report, or screenshot does not change that status. Several dimensions still need case-specific fixture values, observable oracles, and justified N/A decisions before execution; no dimension coverage is credited from these prompts alone. Ten legacy rows record historical screen/data preservation checks in addition to the 209 blueprint IDs.",
+        "All cases below are BDD-oriented test designs, not executed tests. Their status is **NOT_RUN** until a receipt is recorded. A source marker, unrelated test report, or screenshot does not change that status. Several dimensions still need case-specific fixture values, observable oracles, and justified N/A decisions before execution; no dimension coverage is credited from these prompts alone. Ten legacy rows record historical screen/data preservation checks and two delivery rows record current release requirements in addition to the 209 blueprint IDs.",
         "",
         "## How to execute safely",
         "",
@@ -332,7 +363,7 @@ def write_master_test_cases(rows: list[dict[str, str]]) -> None:
     for tc_id, steps, expected in journeys:
         out.extend([f"### {tc_id}", "", f"- Linked requirement: cross-sprint (see linked FR/S2/GR/BR/S4/EDU rows in RTM).", f"- Title: {steps}", "- Priority: P0.", "- Preconditions: disposable seeded profile plus immutable baseline snapshot; all referenced source IDs recorded.", "- Fixtures: only verified fixtures/catalog rows; actual user samples are required for sensory or instrument measurements.", f"- Test steps (BDD): Given a clean disposable profile and the stated starting route, when the operator follows {steps}, then {expected}", f"- Expected result: {expected}", "- Actual result: Not executed.", "- Execution environment: Not run; disposable app profile and full device matrix not available.", "- Automation type: Compose UI + repository/Room instrumentation; manual sensory/device steps where required.", "- Screenshot/log/test-report evidence: Not generated.", "- Result: NOT_RUN.", "- Defect ID: See defect register.", ""])
 
-    out.extend(["## Blueprint requirement cases", "", "Each requirement below receives a linked BDD acceptance case with explicit checks for every requested dimension. Shared cases above provide common execution detail; mark an inapplicable dimension with its reason in the execution record.", ""])
+    out.extend(["## Blueprint and delivery requirement cases", "", "Each requirement below receives a linked BDD acceptance case with explicit checks for every requested dimension. Shared cases above provide common execution detail; mark an inapplicable dimension with its reason in the execution record.", ""])
     for row in rows:
         if row["id"].startswith("LEGACY-"):
             continue
@@ -426,6 +457,8 @@ def write_master_test_cases(rows: list[dict[str, str]]) -> None:
         *(f"TC-REQ-S4-{number:03d}" for number in range(1, 66)),
         *(f"TC-REQ-EDU-{number:02d}" for number in range(1, 23)),
         *(f"TC-REQ-LEGACY-{number:02d}" for number in range(1, 11)),
+        "TC-REQ-DELIVERY-01",
+        "TC-REQ-DELIVERY-02",
         *(f"TC-{number:03d}" for number in range(301, 325)),
         *(f"QA-{number:03d}" for number in range(1, 31)),
     }
@@ -441,8 +474,8 @@ def write_master_test_cases(rows: list[dict[str, str]]) -> None:
         extra = sorted(set(actual_case_ids) - expected_case_ids)
         raise SystemExit(f"Master test-case ID drift; missing={missing}; extra={extra}")
     dimension_sections = sum(line == "- Dimension checks:" for line in out)
-    if dimension_sections != 219:
-        raise SystemExit(f"Expected 219 requirement/legacy dimension sections, found {dimension_sections}")
+    if dimension_sections != 221:
+        raise SystemExit(f"Expected 221 requirement/legacy/delivery dimension sections, found {dimension_sections}")
     dimension_counts = []
     for index, line in enumerate(out):
         if line != "- Dimension checks:":
@@ -453,8 +486,8 @@ def write_master_test_cases(rows: list[dict[str, str]]) -> None:
                 break
             count += 1
         dimension_counts.append(count)
-    if dimension_counts != [11] * 219:
-        raise SystemExit("Every blueprint and legacy requirement case must contain exactly 11 dimension checks")
+    if dimension_counts != [11] * 221:
+        raise SystemExit("Every blueprint, legacy, and delivery requirement case must contain exactly 11 dimension checks")
     QA.mkdir(parents=True, exist_ok=True)
     (QA / "MASTER_TEST_CASES_S01_S04.md").write_text("\n".join(out), encoding="utf-8")
 
@@ -485,8 +518,13 @@ def main() -> None:
         "feature": item[1], "acceptance": item[4], "priority": "P0 (preservation invariant)",
         "spec": f"Git history {'v1.9.5..v1.9.6' if item[0] == 'LEGACY-10' else 'v1.0.0..v1.1.0'}:{item[3]}; current route reference coffee-creator-blueprint/DESIGN.md:13",
     } for item in LEGACY_FEATURES)
-    if len(rows) != 219 or len({row["id"] for row in rows}) != 219:
-        raise SystemExit(f"Expected 219 unique blueprint and legacy RTM rows; found {len(rows)}")
+    rows.extend({
+        "id": item[0], "sprint": "Release / delivery", "epic": "User-requested release requirements",
+        "feature": item[1], "acceptance": item[3], "priority": item[2],
+        "spec": "User request (2026-10-18): GitHub release/download requirements; evidence in docs/qa/DEFECT_REGISTER.csv",
+    } for item in DELIVERY_REQUIREMENTS)
+    if len(rows) != 221 or len({row["id"] for row in rows}) != 221:
+        raise SystemExit(f"Expected 221 unique blueprint, legacy, and delivery RTM rows; found {len(rows)}")
 
     columns = ["Requirement ID", "Sprint", "Epic", "Feature", "Priority", "Exact spec location", "Source file/symbol",
                "Route", "Storage entities", "Baseline behavior", "Test ID", "Test layer", "Device dependency",
@@ -519,7 +557,7 @@ def main() -> None:
                 "Source test marker candidate": mapped_test_status, "Test status": "NOT_RUN",
             })
     write_master_test_cases(rows)
-    print(f"wrote {len(rows)} RTM rows: {sum(not row['id'].startswith('LEGACY-') for row in rows)} blueprint IDs + {len(LEGACY_FEATURES)} legacy checks; counts={counts}; explicit source markers={sum('No explicit ID marker' not in test_evidence(row['id'])[0] for row in rows)}")
+    print(f"wrote {len(rows)} RTM rows: 209 blueprint IDs + {len(LEGACY_FEATURES)} legacy checks + {len(DELIVERY_REQUIREMENTS)} delivery requirements; counts={counts}; explicit source markers={sum('No explicit ID marker' not in test_evidence(row['id'])[0] for row in rows)}")
 
 
 if __name__ == "__main__":
