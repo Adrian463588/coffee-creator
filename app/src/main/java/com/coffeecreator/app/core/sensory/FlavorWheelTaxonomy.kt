@@ -10,25 +10,30 @@ import java.math.RoundingMode
 data class FlavorDescriptor(
     val id: String,
     val name: String,
+    val idLabel: String? = null,
     val categoryId: String,
     val subcategoryId: String,
     val colorHex: String,
     val sensoryNotes: String,
     val synonyms: List<String> = emptyList(),
     val accessibilityDescription: String,
-    val isDefect: Boolean = false
+    val isDefect: Boolean = false,
+    val isOfficialReference: Boolean = true,
+    val isCustomExtension: Boolean = !isOfficialReference
 )
 
 data class FlavorSubcategory(
     val id: String,
     val categoryId: String,
     val name: String,
+    val idLabel: String? = null,
     val descriptors: List<FlavorDescriptor>
 )
 
 data class FlavorCategory(
     val id: String,
     val name: String,
+    val idLabel: String? = null,
     val colorHex: String,
     val subcategories: List<FlavorSubcategory>
 )
@@ -36,7 +41,24 @@ data class FlavorCategory(
 data class FlavorWheelTaxonomy(
     val version: String,
     val categories: List<FlavorCategory>
-)
+) {
+    val totalDescriptorCount: Int
+        get() = categories.sumOf { c ->
+            c.subcategories.sumOf { s -> s.descriptors.size }
+        }
+    val officialReferenceCount: Int
+        get() = categories.sumOf { c ->
+            c.subcategories.sumOf { s ->
+                s.descriptors.count { it.isOfficialReference }
+            }
+        }
+    val customExtensionCount: Int
+        get() = categories.sumOf { c ->
+            c.subcategories.sumOf { s ->
+                s.descriptors.count { it.isCustomExtension }
+            }
+        }
+}
 
 // ============================================================================
 // 2. Safe Food-Grade Calibration Exercises (S2-052)
@@ -176,6 +198,7 @@ object SensoryTaxonomyRegistry {
         if (clean.isEmpty()) return getAllDescriptors(taxonomy)
         return getAllDescriptors(taxonomy).filter { desc ->
             desc.name.lowercase().contains(clean) ||
+                (desc.idLabel != null && desc.idLabel.lowercase().contains(clean)) ||
                 desc.sensoryNotes.lowercase().contains(clean) ||
                 desc.synonyms.any { it.lowercase().contains(clean) } ||
                 desc.categoryId.lowercase().contains(clean) ||
@@ -189,12 +212,28 @@ object SensoryTaxonomyRegistry {
         }
     }
 
+    fun getOfficialDescriptors(taxonomy: FlavorWheelTaxonomy = DEFAULT_TAXONOMY): List<FlavorDescriptor> {
+        return getAllDescriptors(taxonomy).filter { it.isOfficialReference }
+    }
+
+    fun getExpandedLocalDescriptors(taxonomy: FlavorWheelTaxonomy = DEFAULT_TAXONOMY): List<FlavorDescriptor> {
+        return getAllDescriptors(taxonomy).filter { it.isCustomExtension }
+    }
+
+    fun filterByOfficialReference(isOfficial: Boolean, taxonomy: FlavorWheelTaxonomy = DEFAULT_TAXONOMY): List<FlavorDescriptor> {
+        return getAllDescriptors(taxonomy).filter { it.isOfficialReference == isOfficial }
+    }
+
     fun findDescriptorByName(name: String, taxonomy: FlavorWheelTaxonomy = DEFAULT_TAXONOMY): FlavorDescriptor? {
         val clean = name.trim().lowercase()
         return getAllDescriptors(taxonomy).firstOrNull {
             it.name.lowercase() == clean ||
                 it.name.lowercase().startsWith(clean) ||
-                it.synonyms.any { syn -> syn.lowercase() == clean }
+                clean.startsWith(it.name.lowercase()) ||
+                (it.idLabel != null && it.idLabel.lowercase() == clean) ||
+                (it.idLabel != null && it.idLabel.lowercase().startsWith(clean)) ||
+                (it.idLabel != null && clean.contains(it.idLabel.lowercase())) ||
+                it.synonyms.any { syn -> syn.lowercase() == clean || clean.contains(syn.lowercase()) }
         }
     }
 

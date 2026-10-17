@@ -72,11 +72,7 @@ data class ChampionRecipe(
     val recommendedBeansOrRoast: String = "",
     val tags: List<String> = emptyList()
 ) {
-    fun toBrewJournalEntry(
-        beanName: String? = null,
-        beanId: String? = null,
-        customNotes: String = ""
-    ): BrewJournalEntry {
+    fun toBrewJournalEntry(beanName: String? = null, beanId: String? = null, customNotes: String = ""): BrewJournalEntry {
         val podiumStr = podium?.let { " [${it.competitionName} ${it.year} Rank #${it.rank}]" } ?: ""
         return BrewJournalEntry(
             id = UUID.randomUUID().toString(),

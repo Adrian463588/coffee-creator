@@ -366,11 +366,12 @@ private fun OptInFlowRow(descriptors: List<FlavorDescriptor>, onDescriptorTapped
 fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () -> Unit, onConfirm: (List<String>) -> Unit) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedCategoryFilter by rememberSaveable { mutableStateOf("All") }
+    var officialOnly by rememberSaveable { mutableStateOf(false) }
     val selectedList = remember { mutableStateListOf<String>().apply { addAll(initialSelected) } }
 
     val haptic = LocalHapticFeedback.current
     val categories = listOf("All") + SensoryTaxonomyRegistry.DEFAULT_CATEGORIES.map { it.name }
-    val allResults = if (searchQuery.isBlank()) {
+    val rawResults = if (searchQuery.isBlank()) {
         if (selectedCategoryFilter == "All") {
             SensoryTaxonomyRegistry.getAllDescriptors()
         } else {
@@ -389,6 +390,7 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
             }
         }
     }
+    val allResults = if (officialOnly) rawResults.filter { it.isOfficialReference } else rawResults
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -417,7 +419,7 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Search 90+ flavor descriptors...") },
+                    label = { Text("Search 221+ flavor descriptors (EN / ID)...") },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
                         if (searchQuery.isNotBlank()) {
@@ -429,13 +431,31 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Category Chips
+                // Filter & Category Chips
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    FilterChip(
+                        selected = !officialOnly,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            officialOnly = false
+                        },
+                        label = { Text("All (221)", fontSize = 11.sp) },
+                        modifier = Modifier.heightIn(min = 32.dp)
+                    )
+                    FilterChip(
+                        selected = officialOnly,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            officialOnly = true
+                        },
+                        label = { Text("Official Wheel (84)", fontSize = 11.sp) },
+                        modifier = Modifier.heightIn(min = 32.dp)
+                    )
                     categories.forEach { cat ->
                         FilterChip(
                             selected = selectedCategoryFilter == cat,
@@ -506,11 +526,20 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
                                 if (isChecked) selectedList.remove(desc.name) else selectedList.add(desc.name)
                             },
                             label = {
-                                Text(
-                                    desc.name,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal
-                                )
+                                Column {
+                                    Text(
+                                        desc.name,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                    if (!desc.idLabel.isNullOrBlank()) {
+                                        Text(
+                                            desc.idLabel,
+                                            fontSize = 9.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                }
                             },
                             leadingIcon = {
                                 if (isChecked) {

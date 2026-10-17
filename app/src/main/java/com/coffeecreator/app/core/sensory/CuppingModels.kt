@@ -1,6 +1,9 @@
 package com.coffeecreator.app.core.sensory
 
+import com.coffeecreator.app.core.journal.BrewJournalEntry
 import java.math.BigDecimal
+import java.math.RoundingMode
+import java.util.UUID
 
 // ============================================================================
 // 1. Epistemological Origin & Provenance Badges (S2-054)
@@ -27,6 +30,45 @@ data class ProvenanceBadge(
 // 2. Sensory Sliders, Attributes & Templates (S2-053, S2-055)
 // ============================================================================
 
+enum class AcidityQuality(val labelEn: String, val labelId: String) {
+    CITRIC("Citric (Lemon/Lime)", "Sitrat (Jeruk Nipis/Lemon)"),
+    MALIC("Malic (Green Apple)", "Malat (Apel Hijau/Pir)"),
+    TARTARIC("Tartaric (Grape/Tamarind)", "Tartarat (Anggur/Asam Jawa)"),
+    PHOSPHORIC("Phosphoric (Effervescent/Bright)", "Fosforat (Sparkling/Cola)"),
+    ACETIC("Acetic (Vinegar-like/Sharp)", "Asetat (Cuka/Tajam)"),
+    LACTIC("Lactic (Yogurt/Creamy)", "Laktat (Yogurt/Lembut)")
+}
+
+enum class BodyTexture(val labelEn: String, val labelId: String) {
+    WATERY("Watery / Thin", "Encer / Tipis"),
+    TEA_LIKE("Tea-like / Delicate", "Seperti Teh / Ringan"),
+    SILKY("Silky / Smooth", "Sutra / Lembut"),
+    VELVETY("Velvety / Plush", "Beludru / Padat"),
+    CREAMY("Creamy / Rich", "Krim / Berisi"),
+    SYRUPY("Syrupy / Heavy", "Sirup / Kental"),
+    OILY("Oily / Slick", "Berminyak / Licin"),
+    CHALKY("Chalky / Astringent", "Berpasir / Kering")
+}
+
+enum class CuppingPhase(val targetTempCelsius: Double?, val description: String) {
+    DRY_FRAGRANCE(null, "Dry grounds orthonasal aroma before water addition"),
+    WET_AROMA(null, "Wet grounds initial crust blooming"),
+    CRUST_BREAK(null, "Crust break at 4:00 min with 3 gentle stirs"),
+    INITIAL_HOT_CUPPING(70.0, "Initial slurp evaluation at ~70°C (High volatiles & aromatics)"),
+    WARM_CUPPING(60.0, "Mid-range evaluation at ~60°C (Acidity, sweetness & balance peak)"),
+    COOL_CUPPING(40.0, "Cool-range evaluation at ~40°C (Body, defects, astringency, sweetness persistence)"),
+    FINAL_AFTERTASTE(null, "Lingering finish duration and tactile residue post cooling")
+}
+
+data class CuppingPhaseObservation(
+    val phase: CuppingPhase,
+    val temperatureCelsius: Double? = null,
+    val descriptorIds: List<String> = emptyList(),
+    val perceivedIntensity: Double = 0.0,
+    val notes: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 enum class SensoryScaleType {
     Q_SCALE_6_TO_10, // 6.00 to 10.00 in 0.25 increments
     ORDINAL_1_TO_10, // 1.0 to 10.0 continuous
@@ -49,7 +91,8 @@ enum class CuppingTemplateType {
     SPECIALTY_SCA_EQUIVALENT,
     QUICK_BARISTA_DIAL_IN,
     PRODUCTION_QC,
-    ESPRESSO_SENSORY
+    ESPRESSO_SENSORY,
+    CVA_DESCRIPTIVE_16_ATTRIBUTE
 }
 
 data class CuppingTemplate(
@@ -301,11 +344,150 @@ object StandardCuppingTemplates {
         )
     )
 
+    val CVA_DESCRIPTIVE_16 = CuppingTemplate(
+        type = CuppingTemplateType.CVA_DESCRIPTIVE_16_ATTRIBUTE,
+        title = "SCA CVA Descriptive (16 Attributes)",
+        description = "Coffee Value Assessment 16-attribute descriptive protocol " +
+            "covering intensity (0-15), qualitative character, and defect tracking.",
+        attributes = listOf(
+            AttributeDefinition(
+                "fragrance",
+                "Fragrance (Dry Grounds)",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "aroma",
+                "Aroma (Crust Break)",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "flavor",
+                "Flavor (Slurp)",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "aftertaste",
+                "Aftertaste",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "acidity_intensity",
+                "Acidity Intensity",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "acidity_quality",
+                "Acidity Quality",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "sweetness_intensity",
+                "Sweetness Intensity",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "bitterness_intensity",
+                "Bitterness Intensity",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "saltiness_intensity",
+                "Saltiness Intensity",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "body_intensity",
+                "Body Intensity",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "body_texture",
+                "Body Texture",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("10.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "astringency",
+                "Astringency",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("15.0"),
+                BigDecimal("0.5")
+            ),
+            AttributeDefinition(
+                "finish_duration_s",
+                "Finish Duration (s)",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("60.0"),
+                BigDecimal("1.0")
+            ),
+            AttributeDefinition(
+                "temperature_c",
+                "Temperature (°C)",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("20.0"),
+                BigDecimal("95.0"),
+                BigDecimal("1.0")
+            ),
+            AttributeDefinition(
+                "defects",
+                "Defects & Taints",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("0.0"),
+                BigDecimal("10.0"),
+                BigDecimal("1.0"),
+                isDefectEligible = true
+            ),
+            AttributeDefinition(
+                "overall_impression",
+                "Overall Impression",
+                SensoryScaleType.ORDINAL_1_TO_10,
+                BigDecimal("1.0"),
+                BigDecimal("9.0"),
+                BigDecimal("0.25")
+            )
+        )
+    )
+
     fun getTemplate(type: CuppingTemplateType): CuppingTemplate = when (type) {
         CuppingTemplateType.SPECIALTY_SCA_EQUIVALENT -> SPECIALTY_STANDARD
         CuppingTemplateType.QUICK_BARISTA_DIAL_IN -> QUICK_BARISTA_DIAL_IN
         CuppingTemplateType.PRODUCTION_QC -> PRODUCTION_QC
         CuppingTemplateType.ESPRESSO_SENSORY -> ESPRESSO_SENSORY
+        CuppingTemplateType.CVA_DESCRIPTIVE_16_ATTRIBUTE -> CVA_DESCRIPTIVE_16
     }
 }
 
@@ -380,6 +562,7 @@ data class EvaluationSheet(
     val descriptors: List<String>,
     val defects: DefectRecord = DefectRecord(),
     val totalScore: BigDecimal,
+    val phaseObservations: List<CuppingPhaseObservation> = emptyList(),
     val notes: String = "",
     val submittedAt: Long
 )
@@ -529,3 +712,57 @@ data class RestCurvePrediction(
     val expectedStalingDay: Int,
     val provenanceBadge: ProvenanceBadge
 )
+
+/**
+ * 1-Click mapping from CuppingSample to BrewJournalEntry (S2-056, S2-031).
+ */
+fun CuppingSample.toBrewJournalEntry(
+    session: CuppingSession? = null,
+    sheet: EvaluationSheet? = null,
+    ratingOverride: Double? = null,
+    customNotes: String = ""
+): BrewJournalEntry {
+    val displayName = if (isRevealed || session?.maskingMode == MaskingMode.OPEN_LABEL) {
+        beanName
+    } else {
+        blindCode
+    }
+
+    val finalRating = ratingOverride ?: sheet?.totalScore?.let { score ->
+        score.divide(BigDecimal("10.0"), 1, RoundingMode.HALF_UP).toDouble()
+    } ?: 8.0
+
+    val descriptorsList = sheet?.descriptors ?: emptyList()
+    val notePrefix = if (session != null) "[Cupping: ${session.title}]" else "[Cupping]"
+    val roasterNote = roaster?.takeIf { it.isNotBlank() }?.let { " Roaster: $it." } ?: ""
+    val originNote = origin?.takeIf { it.isNotBlank() }?.let { " Origin: $it." } ?: ""
+    val processNote = process?.takeIf { it.isNotBlank() }?.let { " Process: $it." } ?: ""
+    val sheetNote = sheet?.notes?.takeIf { it.isNotBlank() }?.let { " Notes: $it." } ?: ""
+    val extraNote = if (customNotes.isNotBlank()) " $customNotes" else ""
+    val compiledNotes = "$notePrefix$roasterNote$originNote$processNote$sheetNote$extraNote".trim()
+
+    val sensoryScoresMap = mutableMapOf<String, Int>()
+    sheet?.attributeScores?.forEach { (key, score) ->
+        val scaled = score.divide(BigDecimal.ONE, 0, RoundingMode.HALF_UP).toInt()
+        sensoryScoresMap[key] = scaled.coerceIn(1, 10)
+    }
+
+    return BrewJournalEntry(
+        id = UUID.randomUUID().toString(),
+        beanId = actualBeanId,
+        beanName = displayName,
+        brewMethod = "Cupping (SCA/CVA)",
+        equipment = "Cupping Bowl & Spoon",
+        doseGrams = 12.0,
+        waterGrams = 200.0,
+        beverageMassGrams = 190.0,
+        waterTemperatureCelsius = 93.0,
+        brewDurationSeconds = 240,
+        drawdownSeconds = null,
+        rating = finalRating,
+        tasteNotes = descriptorsList,
+        sensoryScores = sensoryScoresMap,
+        generalNotes = compiledNotes,
+        tags = listOf("cupping", "sensory", if (isRevealed) "revealed" else "blind")
+    )
+}

@@ -28,6 +28,7 @@ import com.coffeecreator.app.core.reliability.ModuleStatus
 import com.coffeecreator.app.core.reliability.UserUnitPreferences
 import com.coffeecreator.app.core.sensory.AuditEntry
 import com.coffeecreator.app.core.sensory.CuppingAnalyticsEngine
+import com.coffeecreator.app.core.sensory.CuppingPhaseObservation
 import com.coffeecreator.app.core.sensory.CuppingSessionFactory
 import com.coffeecreator.app.core.sensory.CuppingTemplateType
 import com.coffeecreator.app.core.sensory.DefectRecord
@@ -37,6 +38,7 @@ import com.coffeecreator.app.core.sensory.MaskingMode
 import com.coffeecreator.app.core.sensory.PhysicalQcRecord
 import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.coffeecreator.app.core.sensory.SessionStatus
+import com.coffeecreator.app.core.sensory.toBrewJournalEntry
 import java.math.BigDecimal
 import java.util.UUID
 import kotlinx.coroutines.flow.map
@@ -133,6 +135,7 @@ fun CoffeeViewModel.submitCuppingSheet(
     taintCups: Int = 0,
     faultCups: Int = 0,
     defectDesc: String = "",
+    phaseObservations: List<CuppingPhaseObservation> = emptyList(),
     notes: String = ""
 ) {
     val session = mutableState.value.cuppingSessions.find { it.id == sessionId }
@@ -173,6 +176,7 @@ fun CoffeeViewModel.submitCuppingSheet(
         descriptors = descriptors,
         defects = defects,
         totalScore = totalScore,
+        phaseObservations = phaseObservations,
         notes = notes,
         submittedAt = System.currentTimeMillis()
     )
@@ -187,6 +191,30 @@ fun CoffeeViewModel.submitCuppingSheet(
             }
         }
         current.copy(cuppingSessions = updated, notice = "Submitted score: $totalScore.")
+    }
+}
+
+fun CoffeeViewModel.logCuppingSampleToJournal(sessionId: String, sampleId: String, customNotes: String = "") {
+    val current = mutableState.value
+    val session = current.cuppingSessions.find { it.id == sessionId }
+    val sample = session?.samples?.find { it.sampleId == sampleId }
+    if (session == null || sample == null) {
+        mutableState.update { it.copy(notice = "Choose a valid cupping sample to log.") }
+        return
+    }
+
+    val sheet = session.sheets.firstOrNull { it.sampleId == sampleId }
+    val journalEntry = sample.toBrewJournalEntry(
+        session = session,
+        sheet = sheet,
+        customNotes = customNotes
+    )
+
+    mutableState.update { state ->
+        state.copy(
+            journalEntries = listOf(journalEntry) + state.journalEntries,
+            notice = "Logged cupping sample '${sample.blindCode}' to Journal."
+        )
     }
 }
 

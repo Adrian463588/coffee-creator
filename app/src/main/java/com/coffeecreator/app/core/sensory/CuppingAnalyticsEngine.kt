@@ -233,6 +233,17 @@ object CuppingAnalyticsEngine {
                 rawSum.subtract(defectDeduction).coerceIn(BigDecimal.ZERO, BigDecimal("100.00"))
                     .setScale(2, RoundingMode.HALF_UP)
             }
+            CuppingTemplateType.CVA_DESCRIPTIVE_16_ATTRIBUTE -> {
+                val template = StandardCuppingTemplates.CVA_DESCRIPTIVE_16
+                val maxPossibleSum = template.attributes.fold(BigDecimal.ZERO) { acc, attr -> acc.add(attr.maxValue) }
+                val normalizedScore = if (maxPossibleSum > BigDecimal.ZERO) {
+                    rawSum.multiply(BigDecimal("100.00")).divide(maxPossibleSum, 2, RoundingMode.HALF_UP)
+                } else {
+                    rawSum
+                }
+                normalizedScore.subtract(defectDeduction).coerceIn(BigDecimal.ZERO, BigDecimal("100.00"))
+                    .setScale(2, RoundingMode.HALF_UP)
+            }
             CuppingTemplateType.QUICK_BARISTA_DIAL_IN,
             CuppingTemplateType.PRODUCTION_QC,
             CuppingTemplateType.ESPRESSO_SENSORY -> {

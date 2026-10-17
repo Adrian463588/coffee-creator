@@ -129,7 +129,10 @@ object WorldChampionRecipeCatalog {
             podium = CompetitionPodium("World Brewers Cup", 2025, 2, "Jakarta", "Bayu Prawiro", "Indonesia"),
             steps = listOf(
                 ChampionPourStep(1, "Open Valve Bloom", 40.0, 40.0, 40, 0, 93.0, "Open valve percolation bloom", "OPEN"),
-                ChampionPourStep(2, "Close Valve Immersion 1", 80.0, 120.0, 40, 40, 88.0, "Close switch; pour 80g through shower screen", "CLOSED"),
+                ChampionPourStep(
+                    2, "Close Valve Immersion 1", 80.0, 120.0, 40, 40, 88.0,
+                    "Close switch; pour 80g through shower screen", "CLOSED"
+                ),
                 ChampionPourStep(3, "Immersion Phase 2", 100.0, 220.0, 40, 80, 88.0, "Final immersion pour with 88°C water", "CLOSED"),
                 ChampionPourStep(4, "Release Valve Drain", 0.0, 220.0, 60, 120, null, "Open switch valve for complete drawdown", "OPEN")
             ),
@@ -556,7 +559,16 @@ object WorldChampionRecipeCatalog {
                 ChampionPourStep(1, "Bloom with Swirl", 60.0, 60.0, 45, 0, 98.0, "Pour 2x dose, swirl dripper gently until slurry is even"),
                 ChampionPourStep(2, "First Main Phase", 240.0, 300.0, 30, 45, 98.0, "Pour up to 60% of total mass (300g) by 1:15"),
                 ChampionPourStep(3, "Second Main Phase", 200.0, 500.0, 45, 75, 98.0, "Slow steady pour up to 500g by 1:45"),
-                ChampionPourStep(4, "Stir & Swirl Finish", 0.0, 500.0, 90, 120, 98.0, "Stir once each direction, gentle swirl, flat bed drawdown")
+                ChampionPourStep(
+                    4,
+                    "Stir & Swirl Finish",
+                    0.0,
+                    500.0,
+                    90,
+                    120,
+                    98.0,
+                    "Stir once each direction, gentle swirl, flat bed drawdown"
+                )
             ),
             notes = "The world standard 2-cup V60 technique: high thermal mass, swirling bloom, and flat finished bed.",
             tags = listOf("hoffmann", "v60", "signature", "500g")
@@ -629,7 +641,16 @@ object WorldChampionRecipeCatalog {
             steps = listOf(
                 ChampionPourStep(1, "Pour All Water", 500.0, 500.0, 30, 0, 98.0, "Pour boiling water fast and aggressively"),
                 ChampionPourStep(2, "Initial Steep", 0.0, 500.0, 210, 30, null, "Leave undisturbed for 4 minutes"),
-                ChampionPourStep(3, "Break Crust & Skim", 0.0, 500.0, 60, 240, null, "Stir crust gently with spoon, skim floating foam and fines"),
+                ChampionPourStep(
+                    3,
+                    "Break Crust & Skim",
+                    0.0,
+                    500.0,
+                    60,
+                    240,
+                    null,
+                    "Stir crust gently with spoon, skim floating foam and fines"
+                ),
                 ChampionPourStep(4, "Settling Phase", 0.0, 500.0, 180, 300, null, "Leave undisturbed for 3-5 minutes for grounds to sink"),
                 ChampionPourStep(5, "Filter Pour", 0.0, 500.0, 30, 480, null, "Insert plunger as a strainer only; do not plunge down")
             ),
@@ -778,8 +799,14 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 180,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "God Phase (Open Valve)", 140.0, 140.0, 75, 0, 90.0, "Open valve: percolation pour extracting vibrant bright notes", "OPEN"),
-                ChampionPourStep(2, "Devil Phase (Close Valve)", 140.0, 280.0, 75, 75, 70.0, "Close valve: immersion pour with 70°C water extracting deep body without bitterness", "CLOSED"),
+                ChampionPourStep(
+                    1, "God Phase (Open Valve)", 140.0, 140.0, 75, 0, 90.0,
+                    "Open valve: percolation pour extracting vibrant bright notes", "OPEN"
+                ),
+                ChampionPourStep(
+                    2, "Devil Phase (Close Valve)", 140.0, 280.0, 75, 75, 70.0,
+                    "Close valve: immersion pour with 70°C water extracting deep body without bitterness", "CLOSED"
+                ),
                 ChampionPourStep(3, "Release & Serve", 0.0, 280.0, 30, 150, null, "Release valve to drain into server", "OPEN")
             ),
             notes = "Legendary God/Devil dual temperature method: 90°C percolation bloom + 70°C immersion finish.",
@@ -801,9 +828,18 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 180,
             verificationStatus = RecipeVerificationStatus.DOCUMENTED_RECREATION,
             steps = listOf(
-                ChampionPourStep(1, "Water First Immersion", 60.0, 60.0, 30, 0, 92.0, "Close valve, pour 60g water first then add grounds", "CLOSED"),
-                ChampionPourStep(2, "Open Valve Percolation", 100.0, 160.0, 60, 30, 92.0, "Open valve, pour 100g in spiral motion", "OPEN"),
-                ChampionPourStep(3, "Final Immersion Steep", 90.0, 250.0, 90, 90, 85.0, "Close valve, pour 90g cooler water, steep then release", "CLOSED")
+                ChampionPourStep(
+                    1, "Water First Immersion", 60.0, 60.0, 30, 0, 92.0,
+                    "Close valve, pour 60g water first then add grounds", "CLOSED"
+                ),
+                ChampionPourStep(
+                    2, "Open Valve Percolation", 100.0, 160.0, 60, 30, 92.0,
+                    "Open valve, pour 100g in spiral motion", "OPEN"
+                ),
+                ChampionPourStep(
+                    3, "Final Immersion Steep", 90.0, 250.0, 90, 90, 85.0,
+                    "Close valve, pour 90g cooler water, steep then release", "CLOSED"
+                )
             ),
             notes = "Water-first immersion start preventing fines clogging and preserving cup clarity.",
             tags = listOf("kasuya", "switch", "2025")
@@ -826,7 +862,10 @@ object WorldChampionRecipeCatalog {
             steps = listOf(
                 ChampionPourStep(1, "Ice in Server", 0.0, 0.0, 10, 0, null, "Add 120g clean ice cubes into server decanter"),
                 ChampionPourStep(2, "Open Valve Bloom", 60.0, 60.0, 45, 0, 93.0, "Open valve percolation bloom", "OPEN"),
-                ChampionPourStep(3, "Closed Valve Immersion", 120.0, 180.0, 60, 45, 93.0, "Close switch, pour 120g, steep for 1 min", "CLOSED"),
+                ChampionPourStep(
+                    3, "Closed Valve Immersion", 120.0, 180.0, 60, 45, 93.0,
+                    "Close switch, pour 120g, steep for 1 min", "CLOSED"
+                ),
                 ChampionPourStep(4, "Release over Ice", 0.0, 180.0, 45, 105, null, "Open valve to flash-chill concentrate over ice", "OPEN")
             ),
             notes = "Kyoto specialty iced technique locking in aromatics with instant flash chilling over ice.",
@@ -945,7 +984,16 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 30,
             verificationStatus = RecipeVerificationStatus.SECONDARY_ADAPTATION,
             steps = listOf(
-                ChampionPourStep(1, "Scoop Gelato", 0.0, 0.0, 5, 0, null, "Place 1 generous scoop of Fior di Latte or Vanilla bean gelato in cold glass"),
+                ChampionPourStep(
+                    1,
+                    "Scoop Gelato",
+                    0.0,
+                    0.0,
+                    5,
+                    0,
+                    null,
+                    "Place 1 generous scoop of Fior di Latte or Vanilla bean gelato in cold glass"
+                ),
                 ChampionPourStep(2, "Pull Espresso", 36.0, 36.0, 25, 5, 93.0, "Extract 36g rich double espresso directly over gelato")
             ),
             notes = "Harmonious contrast between hot, bitter, syrupy espresso and cold, sweet, creamy gelato.",
@@ -967,8 +1015,26 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 300,
             verificationStatus = RecipeVerificationStatus.NEEDS_VERIFICATION,
             steps = listOf(
-                ChampionPourStep(1, "Boil Spices", 250.0, 250.0, 180, 0, 98.0, "Rebus jahe bakar geprek, gula aren, kayu manis, dan cengkeh hingga wangi"),
-                ChampionPourStep(2, "Infuse Coffee", 0.0, 250.0, 120, 180, 95.0, "Masukkan bubuk kopi, aduk rata, matikan api dan diamkan 2 menit"),
+                ChampionPourStep(
+                    1,
+                    "Boil Spices",
+                    250.0,
+                    250.0,
+                    180,
+                    0,
+                    98.0,
+                    "Rebus jahe bakar geprek, gula aren, kayu manis, dan cengkeh hingga wangi"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Infuse Coffee",
+                    0.0,
+                    250.0,
+                    120,
+                    180,
+                    95.0,
+                    "Masukkan bubuk kopi, aduk rata, matikan api dan diamkan 2 menit"
+                ),
                 ChampionPourStep(3, "Strain & Serve", 0.0, 250.0, 0, 300, null, "Saring ke cangkir, sajikan hangat")
             ),
             notes = "Kombinasi kopi robusta/arabica dengan jahe bakar dan rempah penghangat tubuh khas tanah Pasundan.",
@@ -1015,8 +1081,26 @@ object WorldChampionRecipeCatalog {
             steps = listOf(
                 ChampionPourStep(1, "Condensed Milk Base", 0.0, 0.0, 10, 0, null, "Add 2 tbsp (30g) sweetened condensed milk to glass"),
                 ChampionPourStep(2, "Phin Bloom", 20.0, 20.0, 40, 0, 96.0, "Screw damper gently, pour 20g water to bloom grounds"),
-                ChampionPourStep(3, "Slow Gravity Drip", 100.0, 120.0, 240, 40, 96.0, "Fill phin to top with 100g water, drip drop by drop for 4-5 min"),
-                ChampionPourStep(4, "Stir & Ice", 0.0, 120.0, 20, 280, null, "Stir thoroughly with spoon, pour over tall glass filled with ice")
+                ChampionPourStep(
+                    3,
+                    "Slow Gravity Drip",
+                    100.0,
+                    120.0,
+                    240,
+                    40,
+                    96.0,
+                    "Fill phin to top with 100g water, drip drop by drop for 4-5 min"
+                ),
+                ChampionPourStep(
+                    4,
+                    "Stir & Ice",
+                    0.0,
+                    120.0,
+                    20,
+                    280,
+                    null,
+                    "Stir thoroughly with spoon, pour over tall glass filled with ice"
+                )
             ),
             notes = "Intense, dark, chocolaty Robusta drip balanced by rich sweetened condensed milk over cracked ice.",
             tags = listOf("vietnam", "phin", "iced", "sweet")
@@ -1037,9 +1121,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 360,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Boil Piloncillo & Canela", 400.0, 400.0, 240, 0, 98.0, "Simmer water with piloncillo raw sugar and Mexican cinnamon stick"),
-                ChampionPourStep(2, "Add Coffee Grounds", 0.0, 400.0, 60, 240, 95.0, "Add coarse coffee grounds, remove from heat, stir once"),
-                ChampionPourStep(3, "Steep & Strain", 0.0, 400.0, 60, 300, null, "Steep 5 minutes in clay pot, strain through fine mesh into clay mug")
+                ChampionPourStep(
+                    1,
+                    "Boil Piloncillo & Canela",
+                    400.0,
+                    400.0,
+                    240,
+                    0,
+                    98.0,
+                    "Simmer water with piloncillo raw sugar and Mexican cinnamon stick"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Add Coffee Grounds",
+                    0.0,
+                    400.0,
+                    60,
+                    240,
+                    95.0,
+                    "Add coarse coffee grounds, remove from heat, stir once"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Steep & Strain",
+                    0.0,
+                    400.0,
+                    60,
+                    300,
+                    null,
+                    "Steep 5 minutes in clay pot, strain through fine mesh into clay mug"
+                )
             ),
             notes = "Earthy clay pot aromas paired with rustic piloncillo and fragrant Mexican canela cinnamon.",
             tags = listOf("mexico", "traditional", "cinnamon", "piloncillo")
@@ -1061,7 +1172,16 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
                 ChampionPourStep(1, "Pull Double Espresso", 36.0, 36.0, 28, 0, 93.0, "Extract 36g espresso into 240ml ceramic cup"),
-                ChampionPourStep(2, "Steam Milk to Microfoam", 0.0, 36.0, 25, 0, 65.0, "Steam fresh whole milk to 60-65°C with silky microfoam"),
+                ChampionPourStep(
+                    2,
+                    "Steam Milk to Microfoam",
+                    0.0,
+                    36.0,
+                    25,
+                    0,
+                    65.0,
+                    "Steam fresh whole milk to 60-65°C with silky microfoam"
+                ),
                 ChampionPourStep(3, "Pour Latte Art", 180.0, 216.0, 15, 28, null, "Pour smoothly with high contrast latte art")
             ),
             notes = "Silky texture where sweet steamed milk highlights caramel and chocolate espresso notes.",
@@ -1084,8 +1204,26 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
                 ChampionPourStep(1, "Pull Double Espresso", 36.0, 36.0, 26, 0, 93.0, "Extract 36g into rounded cappuccino cup"),
-                ChampionPourStep(2, "Steam Dense Foam", 0.0, 36.0, 25, 0, 65.0, "Aerate milk generously to create thick dense velvety foam"),
-                ChampionPourStep(3, "Central Pour", 120.0, 156.0, 15, 26, null, "Pour into center creating the classic white monk's cap ring")
+                ChampionPourStep(
+                    2,
+                    "Steam Dense Foam",
+                    0.0,
+                    36.0,
+                    25,
+                    0,
+                    65.0,
+                    "Aerate milk generously to create thick dense velvety foam"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Central Pour",
+                    120.0,
+                    156.0,
+                    15,
+                    26,
+                    null,
+                    "Pour into center creating the classic white monk's cap ring"
+                )
             ),
             notes = "Classic Italian proportions with rich, luxurious, marshmallow-like milk foam dome.",
             tags = listOf("espresso", "cappuccino", "italian")
@@ -1106,7 +1244,16 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 300,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Add Husks & Water", 300.0, 300.0, 30, 0, 95.0, "Place 15g dried cascara in pot, pour 300g near-boiling water"),
+                ChampionPourStep(
+                    1,
+                    "Add Husks & Water",
+                    300.0,
+                    300.0,
+                    30,
+                    0,
+                    95.0,
+                    "Place 15g dried cascara in pot, pour 300g near-boiling water"
+                ),
                 ChampionPourStep(2, "Steep", 0.0, 300.0, 270, 30, null, "Steep for 4-5 minutes while dried fruit rehydrates"),
                 ChampionPourStep(3, "Strain", 0.0, 300.0, 0, 300, null, "Strain into cup; vibrant red herbal infusion")
             ),
@@ -1154,9 +1301,15 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.SECONDARY_ADAPTATION,
             steps = listOf(
                 ChampionPourStep(1, "Water First Immersion", 320.0, 320.0, 30, 0, 93.0, "Pour all 320g water into dripper first", "CLOSED"),
-                ChampionPourStep(2, "Add Grounds & Submerge", 0.0, 320.0, 30, 30, null, "Add 20g grounds on top, gently submerge with spoon", "CLOSED"),
+                ChampionPourStep(
+                    2, "Add Grounds & Submerge", 0.0, 320.0, 30, 30, null,
+                    "Add 20g grounds on top, gently submerge with spoon", "CLOSED"
+                ),
                 ChampionPourStep(3, "Steep", 0.0, 320.0, 90, 60, null, "Place lid on, steep undisturbed until 2:00", "CLOSED"),
-                ChampionPourStep(4, "Break Crust & Drawdown", 0.0, 320.0, 60, 150, null, "Give 1 gentle stir, place on server to trigger release valve", "OPEN")
+                ChampionPourStep(
+                    4, "Break Crust & Drawdown", 0.0, 320.0, 60, 150, null,
+                    "Give 1 gentle stir, place on server to trigger release valve", "OPEN"
+                )
             ),
             notes = "Water-first method prevents grounds from clogging the draw valve and delivers 100% uniform extraction.",
             tags = listOf("clever", "immersion", "hybrid")
@@ -1177,8 +1330,26 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 57600,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Mix Grounds & Cold Water", 800.0, 800.0, 120, 0, 20.0, "Combine 100g coarse grounds with 800g filtered cold water, stir well"),
-                ChampionPourStep(2, "Cold Maceration", 0.0, 800.0, 57480, 120, 4.0, "Refrigerate at 4°C for 16-18 hours of slow extraction"),
+                ChampionPourStep(
+                    1,
+                    "Mix Grounds & Cold Water",
+                    800.0,
+                    800.0,
+                    120,
+                    0,
+                    20.0,
+                    "Combine 100g coarse grounds with 800g filtered cold water, stir well"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Cold Maceration",
+                    0.0,
+                    800.0,
+                    57480,
+                    120,
+                    4.0,
+                    "Refrigerate at 4°C for 16-18 hours of slow extraction"
+                ),
                 ChampionPourStep(3, "Filter & Bottle", 0.0, 800.0, 0, 57600, null, "Filter through paper filter into clean glass bottle")
             ),
             notes = "Smooth, chocolatey, low-acid cold concentrate. Serve 1:1 with cold water or milk over ice.",
@@ -1200,9 +1371,27 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 14400,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Pre-wet Coffee Bed", 40.0, 40.0, 60, 0, 10.0, "Pre-wet grounds evenly and place round paper filter on top"),
+                ChampionPourStep(
+                    1,
+                    "Pre-wet Coffee Bed",
+                    40.0,
+                    40.0,
+                    60,
+                    0,
+                    10.0,
+                    "Pre-wet grounds evenly and place round paper filter on top"
+                ),
                 ChampionPourStep(2, "Ice Water Chamber", 560.0, 600.0, 60, 60, 2.0, "Fill top globe with 300g ice and 260g ice-cold water"),
-                ChampionPourStep(3, "Calibrate Drip Rate", 0.0, 600.0, 14280, 120, null, "Adjust valve to 1 drop every 1.5 seconds (40 drops/min) for 4 hours")
+                ChampionPourStep(
+                    3,
+                    "Calibrate Drip Rate",
+                    0.0,
+                    600.0,
+                    14280,
+                    120,
+                    null,
+                    "Adjust valve to 1 drop every 1.5 seconds (40 drops/min) for 4 hours"
+                )
             ),
             notes = "Slow percolation through ice melt drops yielding liqueur-like, complex, whiskey-toned coffee.",
             tags = listOf("cold-drip", "dutch", "kyoto", "tower")
@@ -1223,9 +1412,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 30,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Extract Double Espresso", 36.0, 36.0, 25, 0, 93.0, "Extract 36g espresso into faceted Gibraltar glass"),
-                ChampionPourStep(2, "Steam Milk Lightly", 0.0, 36.0, 15, 0, 60.0, "Steam milk gently with minimal aeration (less foam than flat white)"),
-                ChampionPourStep(3, "Cut with Warm Milk", 36.0, 72.0, 10, 25, null, "Pour equal volume 36g warm milk directly into espresso")
+                ChampionPourStep(
+                    1,
+                    "Extract Double Espresso",
+                    36.0,
+                    36.0,
+                    25,
+                    0,
+                    93.0,
+                    "Extract 36g espresso into faceted Gibraltar glass"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Steam Milk Lightly",
+                    0.0,
+                    36.0,
+                    15,
+                    0,
+                    60.0,
+                    "Steam milk gently with minimal aeration (less foam than flat white)"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Cut with Warm Milk",
+                    36.0,
+                    72.0,
+                    10,
+                    25,
+                    null,
+                    "Pour equal volume 36g warm milk directly into espresso"
+                )
             ),
             notes = "From the Spanish 'cortar' (to cut). Cuts espresso acidity without diluting its intense character.",
             tags = listOf("espresso", "cortado", "gibraltar", "spain")
@@ -1246,7 +1462,16 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 60,
             verificationStatus = RecipeVerificationStatus.SECONDARY_ADAPTATION,
             steps = listOf(
-                ChampionPourStep(1, "Pandan & Milk Base", 0.0, 0.0, 10, 0, null, "Pour 15ml natural pandan syrup and 100ml cold milk into ice-filled glass"),
+                ChampionPourStep(
+                    1,
+                    "Pandan & Milk Base",
+                    0.0,
+                    0.0,
+                    10,
+                    0,
+                    null,
+                    "Pour 15ml natural pandan syrup and 100ml cold milk into ice-filled glass"
+                ),
                 ChampionPourStep(2, "Pull Espresso", 36.0, 36.0, 25, 0, 93.0, "Pull 36g double shot espresso"),
                 ChampionPourStep(3, "Layer & Serve", 36.0, 72.0, 10, 25, null, "Pour espresso gently on top to create aesthetic layers")
             ),
@@ -1270,8 +1495,26 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
                 ChampionPourStep(1, "Aren Syrup Base", 0.0, 0.0, 10, 0, null, "Masukkan 25ml sirup gula aren murni ke dasar gelas"),
-                ChampionPourStep(2, "Add Ice & Milk", 0.0, 0.0, 15, 10, null, "Isi es batu penuh, tuangkan campuran 100ml susu cair & 20ml susu evaporasi"),
-                ChampionPourStep(3, "Top with Espresso", 36.0, 36.0, 25, 25, 93.0, "Ekstraksi double shot espresso (36g), tuang di atas susu")
+                ChampionPourStep(
+                    2,
+                    "Add Ice & Milk",
+                    0.0,
+                    0.0,
+                    15,
+                    10,
+                    null,
+                    "Isi es batu penuh, tuangkan campuran 100ml susu cair & 20ml susu evaporasi"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Top with Espresso",
+                    36.0,
+                    36.0,
+                    25,
+                    25,
+                    93.0,
+                    "Ekstraksi double shot espresso (36g), tuang di atas susu"
+                )
             ),
             notes = "Resep standar emas kedai kopi Indonesia: kombinasi espresso pekat, gurihnya susu evaporasi, dan legitnya gula aren.",
             tags = listOf("indonesia", "kopi-susu", "gula-aren", "populer")
@@ -1292,7 +1535,16 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 20,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Restricted Extraction", 22.0, 22.0, 20, 0, 93.5, "Extract only the dense early syrup, cut shot early at 22g")
+                ChampionPourStep(
+                    1,
+                    "Restricted Extraction",
+                    22.0,
+                    22.0,
+                    20,
+                    0,
+                    93.5,
+                    "Extract only the dense early syrup, cut shot early at 22g"
+                )
             ),
             notes = "Short restricted pull maximizing viscous crema and sweet aromatic compounds while minimizing bitter tannins.",
             tags = listOf("espresso", "ristretto", "concentrated")
@@ -1356,7 +1608,16 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 360,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Shower Head Dispersion", 1000.0, 1000.0, 360, 0, 94.0, "Automated pulse spray wetting 60g coffee over 6 minutes")
+                ChampionPourStep(
+                    1,
+                    "Shower Head Dispersion",
+                    1000.0,
+                    1000.0,
+                    360,
+                    0,
+                    94.0,
+                    "Automated pulse spray wetting 60g coffee over 6 minutes"
+                )
             ),
             notes = "Golden ratio standard for consistent high-volume filter coffee brewing.",
             tags = listOf("batch-brew", "moccamaster", "filter")
@@ -1378,8 +1639,26 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
                 ChampionPourStep(1, "Extract Espresso", 36.0, 36.0, 26, 0, 93.0, "Extract 36g into 160ml ceramic cup"),
-                ChampionPourStep(2, "Steam Thin Microfoam", 0.0, 36.0, 20, 0, 62.0, "Steam milk to velvety, glossy liquid texture with very thin foam"),
-                ChampionPourStep(3, "Integrate Pour", 120.0, 156.0, 10, 26, null, "Pour through the crema creating a flat, glossy white surface")
+                ChampionPourStep(
+                    2,
+                    "Steam Thin Microfoam",
+                    0.0,
+                    36.0,
+                    20,
+                    0,
+                    62.0,
+                    "Steam milk to velvety, glossy liquid texture with very thin foam"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Integrate Pour",
+                    120.0,
+                    156.0,
+                    10,
+                    26,
+                    null,
+                    "Pour through the crema creating a flat, glossy white surface"
+                )
             ),
             notes = "Stronger coffee punch than a latte with seamless integration between milk and espresso crema.",
             tags = listOf("espresso", "flat-white", "australasia")
@@ -1401,8 +1680,26 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
                 ChampionPourStep(1, "Pour All Water", 500.0, 500.0, 30, 0, 94.0, "Pour vigorously to saturate grounds completely"),
-                ChampionPourStep(2, "Steep with Lid On", 0.0, 500.0, 210, 30, null, "Insert plunger above water line to retain heat, steep 4 minutes"),
-                ChampionPourStep(3, "Press & Pour Immediately", 0.0, 500.0, 30, 240, null, "Press down smoothly and pour immediately into cups")
+                ChampionPourStep(
+                    2,
+                    "Steep with Lid On",
+                    0.0,
+                    500.0,
+                    210,
+                    30,
+                    null,
+                    "Insert plunger above water line to retain heat, steep 4 minutes"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Press & Pour Immediately",
+                    0.0,
+                    500.0,
+                    30,
+                    240,
+                    null,
+                    "Press down smoothly and pour immediately into cups"
+                )
             ),
             notes = "The classic French press preparation: full immersion body with rich natural coffee oils.",
             tags = listOf("french-press", "standard", "bodum")
@@ -1425,7 +1722,16 @@ object WorldChampionRecipeCatalog {
             steps = listOf(
                 ChampionPourStep(1, "Boiling Water Pour", 450.0, 450.0, 30, 0, 98.0, "Pour boiling water fast"),
                 ChampionPourStep(2, "Long Steep", 0.0, 450.0, 270, 30, null, "Steep 5 minutes for full extraction of dense light beans"),
-                ChampionPourStep(3, "Skim Crust & Filter", 0.0, 450.0, 60, 300, null, "Skim surface foam, plunge gently without disturbing bottom bed")
+                ChampionPourStep(
+                    3,
+                    "Skim Crust & Filter",
+                    0.0,
+                    450.0,
+                    60,
+                    300,
+                    null,
+                    "Skim surface foam, plunge gently without disturbing bottom bed"
+                )
             ),
             notes = "Calibrated specifically for dense light-roasted coffees to highlight floral and citric notes.",
             tags = listOf("french-press", "light-roast", "nordic")
@@ -1446,9 +1752,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 180,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Cold Mix in Briki", 70.0, 70.0, 30, 0, 20.0, "Combine cold water, coffee powder, and sugar; stir once"),
-                ChampionPourStep(2, "Low Heat Rise (Kaimaki)", 0.0, 70.0, 120, 30, 95.0, "Heat on low flame until dense foam (kaimaki) rises to the rim"),
-                ChampionPourStep(3, "Pour with Kaimaki", 0.0, 70.0, 30, 150, null, "Remove immediately before boiling over; pour foam into cup")
+                ChampionPourStep(
+                    1,
+                    "Cold Mix in Briki",
+                    70.0,
+                    70.0,
+                    30,
+                    0,
+                    20.0,
+                    "Combine cold water, coffee powder, and sugar; stir once"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Low Heat Rise (Kaimaki)",
+                    0.0,
+                    70.0,
+                    120,
+                    30,
+                    95.0,
+                    "Heat on low flame until dense foam (kaimaki) rises to the rim"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Pour with Kaimaki",
+                    0.0,
+                    70.0,
+                    30,
+                    150,
+                    null,
+                    "Remove immediately before boiling over; pour foam into cup"
+                )
             ),
             notes = "Silky froth (kaimaki) on top with rich, finely ground coffee sediment resting at the bottom.",
             tags = listOf("greek", "briki", "traditional")
@@ -1472,7 +1805,16 @@ object WorldChampionRecipeCatalog {
                 ChampionPourStep(1, "Ice Prep", 0.0, 0.0, 10, 0, null, "Weigh 150g fresh ice cubes into server"),
                 ChampionPourStep(2, "Bloom", 50.0, 50.0, 45, 0, 95.0, "Bloom 50g water directly over dripper"),
                 ChampionPourStep(3, "Pulse 1", 75.0, 125.0, 45, 45, 95.0, "Gentle spiral pour"),
-                ChampionPourStep(4, "Pulse 2", 75.0, 200.0, 60, 90, 95.0, "Final pulse, drains directly over ice for instant aroma preservation")
+                ChampionPourStep(
+                    4,
+                    "Pulse 2",
+                    75.0,
+                    200.0,
+                    60,
+                    90,
+                    95.0,
+                    "Final pulse, drains directly over ice for instant aroma preservation"
+                )
             ),
             notes = "Concentrated hot pour over that melts ice instantaneously, locking in aromatics without stale oxidation.",
             tags = listOf("iced", "flash-chill", "japanese")
@@ -1493,9 +1835,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 600,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Heat Water in Jebena", 350.0, 350.0, 300, 0, 98.0, "Boil water directly inside clay jebena over charcoal"),
-                ChampionPourStep(2, "Add Fresh Grounds", 0.0, 350.0, 180, 300, 95.0, "Pour freshly ground coffee into spout, allow to brew and settle"),
-                ChampionPourStep(3, "Graceful Sini Pour", 0.0, 350.0, 120, 480, null, "Pour smoothly from a foot above into handleless sini cups without stopping")
+                ChampionPourStep(
+                    1,
+                    "Heat Water in Jebena",
+                    350.0,
+                    350.0,
+                    300,
+                    0,
+                    98.0,
+                    "Boil water directly inside clay jebena over charcoal"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Add Fresh Grounds",
+                    0.0,
+                    350.0,
+                    180,
+                    300,
+                    95.0,
+                    "Pour freshly ground coffee into spout, allow to brew and settle"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Graceful Sini Pour",
+                    0.0,
+                    350.0,
+                    120,
+                    480,
+                    null,
+                    "Pour smoothly from a foot above into handleless sini cups without stopping"
+                )
             ),
             notes = "The oldest coffee ritual in human history, celebrating community and ancestral Buna traditions.",
             tags = listOf("ethiopia", "jebena", "buna", "traditional")
@@ -1540,9 +1909,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 180,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Seduh Kopi & Gula", 200.0, 200.0, 40, 0, 100.0, "Seduh bubuk kopi dan gula dengan air mendidih di gelas blimbing"),
-                ChampionPourStep(2, "Celup Arang Membara", 0.0, 200.0, 60, 40, null, "Ambil arang kayu bakar merah membara dari anglo, celupkan langsung ke dalam kopi (suara 'JOSS!')"),
-                ChampionPourStep(3, "Angkat Arang & Nikmati", 0.0, 200.0, 80, 100, null, "Biarkan mendidih beberapa saat, angkat arang dengan sendok, kopi siap diminum")
+                ChampionPourStep(
+                    1,
+                    "Seduh Kopi & Gula",
+                    200.0,
+                    200.0,
+                    40,
+                    0,
+                    100.0,
+                    "Seduh bubuk kopi dan gula dengan air mendidih di gelas blimbing"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Celup Arang Membara",
+                    0.0,
+                    200.0,
+                    60,
+                    40,
+                    null,
+                    "Ambil arang kayu bakar merah membara dari anglo, celupkan langsung ke dalam kopi (suara 'JOSS!')"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Angkat Arang & Nikmati",
+                    0.0,
+                    200.0,
+                    80,
+                    100,
+                    null,
+                    "Biarkan mendidih beberapa saat, angkat arang dengan sendok, kopi siap diminum"
+                )
             ),
             notes = "Ikon kuliner Yogyakarta: karbon aktif dari arang membara menetralisir keasaman kopi dan memberikan aroma smoky unik.",
             tags = listOf("yogyakarta", "kopi-joss", "arang", "tradisional")
@@ -1563,9 +1959,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 180,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Rebus Bersama di Panci", 200.0, 200.0, 120, 0, 100.0, "Masukkan air, bubuk kopi, dan gula aren/pasir bersamaan ke dalam panci"),
-                ChampionPourStep(2, "Didihkan hingga Berbusa", 0.0, 200.0, 30, 120, 100.0, "Aduk di atas api sampai mendidih dan buih kopi kothok naik ke atas"),
-                ChampionPourStep(3, "Tuang ke Cangkir", 0.0, 200.0, 30, 150, null, "Tuang langsung ke cangkir, ampas mengendap pekat dan gurih")
+                ChampionPourStep(
+                    1,
+                    "Rebus Bersama di Panci",
+                    200.0,
+                    200.0,
+                    120,
+                    0,
+                    100.0,
+                    "Masukkan air, bubuk kopi, dan gula aren/pasir bersamaan ke dalam panci"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Didihkan hingga Berbusa",
+                    0.0,
+                    200.0,
+                    30,
+                    120,
+                    100.0,
+                    "Aduk di atas api sampai mendidih dan buih kopi kothok naik ke atas"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Tuang ke Cangkir",
+                    0.0,
+                    200.0,
+                    30,
+                    150,
+                    null,
+                    "Tuang langsung ke cangkir, ampas mengendap pekat dan gurih"
+                )
             ),
             notes = "Kopi dimasak bersama air dan gula di atas api langsung hingga senyawa manis karamel menyatu utuh.",
             tags = listOf("blora", "kopi-kothok", "jawa-tengah", "tradisional")
@@ -1586,8 +2009,26 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 240,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Rebus Rempah Maluku", 250.0, 250.0, 120, 0, 98.0, "Rebus air dengan jahe, cengkeh, kayu manis, dan gula aren"),
-                ChampionPourStep(2, "Seduh Kopi", 0.0, 250.0, 60, 120, 95.0, "Masukkan bubuk kopi robusta, didihkan sebentar lalu saring ke cangkir"),
+                ChampionPourStep(
+                    1,
+                    "Rebus Rempah Maluku",
+                    250.0,
+                    250.0,
+                    120,
+                    0,
+                    98.0,
+                    "Rebus air dengan jahe, cengkeh, kayu manis, dan gula aren"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Seduh Kopi",
+                    0.0,
+                    250.0,
+                    60,
+                    120,
+                    95.0,
+                    "Masukkan bubuk kopi robusta, didihkan sebentar lalu saring ke cangkir"
+                ),
                 ChampionPourStep(3, "Garnish Kenari", 0.0, 250.0, 60, 180, null, "Taburi atas kopi dengan irisan biji kenari sangrai gurih")
             ),
             notes = "Minuman khas Ambon: kombinasi kopi, rempah cengkeh Maluku, dan kerenyahan gurih biji kenari.",
@@ -1609,9 +2050,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 120,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Ekstraksi Saring Kain", 160.0, 160.0, 45, 0, 98.0, "Seduh kopi di saringan kain panjang, tarik tinggi bolak-balik antara 2 gayung"),
-                ChampionPourStep(2, "Campur Sanger", 0.0, 160.0, 30, 45, null, "Tuang ke cangkir yang telah diberi 1 sdt kental manis dan 1/2 sdt gula (Sama-sama ngerti)"),
-                ChampionPourStep(3, "Tarik Berbusa", 0.0, 160.0, 45, 75, null, "Kocok/tarik sekali lagi hingga menghasilkan busa lembut di atasnya")
+                ChampionPourStep(
+                    1,
+                    "Ekstraksi Saring Kain",
+                    160.0,
+                    160.0,
+                    45,
+                    0,
+                    98.0,
+                    "Seduh kopi di saringan kain panjang, tarik tinggi bolak-balik antara 2 gayung"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Campur Sanger",
+                    0.0,
+                    160.0,
+                    30,
+                    45,
+                    null,
+                    "Tuang ke cangkir yang telah diberi 1 sdt kental manis dan 1/2 sdt gula (Sama-sama ngerti)"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Tarik Berbusa",
+                    0.0,
+                    160.0,
+                    45,
+                    75,
+                    null,
+                    "Kocok/tarik sekali lagi hingga menghasilkan busa lembut di atasnya"
+                )
             ),
             notes = "'Sama-sama ngerti': rasa kopi tetap dominan pekat, hanya dipotong lembut oleh sedikit susu kental manis.",
             tags = listOf("aceh", "sanger", "tarik", "tradisional")
@@ -1632,9 +2100,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 180,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Kocok Kuning Telur", 0.0, 0.0, 60, 0, null, "Kocok 1 kuning telur ayam kampung dengan 1 sdm kental manis hingga putih mengembang di gelas"),
-                ChampionPourStep(2, "Seduh Kopi Mendidih", 180.0, 180.0, 60, 60, 100.0, "Seduh kopi hitam pekat dengan air mendidih bergolak, saring"),
-                ChampionPourStep(3, "Tuang Bertingkat (4 Lapis)", 0.0, 180.0, 60, 120, null, "Tuang air kopi panas mendidih pelan-pelan ke kocokan telur hingga matang dan membentuk layer bertingkat")
+                ChampionPourStep(
+                    1,
+                    "Kocok Kuning Telur",
+                    0.0,
+                    0.0,
+                    60,
+                    0,
+                    null,
+                    "Kocok 1 kuning telur ayam kampung dengan 1 sdm kental manis hingga putih mengembang di gelas"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Seduh Kopi Mendidih",
+                    180.0,
+                    180.0,
+                    60,
+                    60,
+                    100.0,
+                    "Seduh kopi hitam pekat dengan air mendidih bergolak, saring"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Tuang Bertingkat (4 Lapis)",
+                    0.0,
+                    180.0,
+                    60,
+                    120,
+                    null,
+                    "Tuang air kopi panas mendidih pelan-pelan ke kocokan telur hingga matang dan membentuk layer bertingkat"
+                )
             ),
             notes = "Kopi stamina legendaris Bukittinggi & Padang: busa telur lembut matang oleh panasnya seduhan kopi hitam.",
             tags = listOf("minang", "kopi-talua", "telur", "tradisional")
@@ -1656,8 +2151,26 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
                 ChampionPourStep(1, "Tuang Bubuk Kopi", 0.0, 0.0, 10, 0, null, "Masukkan 12g bubuk kopi ke dalam cangkir"),
-                ChampionPourStep(2, "Seduh Air Panas", 180.0, 180.0, 30, 10, 95.0, "Tuangkan air panas 95°C secara memutar hingga timbul busa crema alami"),
-                ChampionPourStep(3, "Aduk & Diamkan", 0.0, 180.0, 200, 40, null, "Aduk 3 kali perlahan, diamkan 3-4 menit sampai seluruh bubuk ampas mengendap di dasar cangkir")
+                ChampionPourStep(
+                    2,
+                    "Seduh Air Panas",
+                    180.0,
+                    180.0,
+                    30,
+                    10,
+                    95.0,
+                    "Tuangkan air panas 95°C secara memutar hingga timbul busa crema alami"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Aduk & Diamkan",
+                    0.0,
+                    180.0,
+                    200,
+                    40,
+                    null,
+                    "Aduk 3 kali perlahan, diamkan 3-4 menit sampai seluruh bubuk ampas mengendap di dasar cangkir"
+                )
             ),
             notes = "Metode seduh paling merakyat di seluruh penjuru Indonesia. Menampilkan karakter rasa asli kopi tanpa filter.",
             tags = listOf("indonesia", "tubruk", "nusantara", "klasik")
@@ -1679,7 +2192,16 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
                 ChampionPourStep(1, "Bloom", 40.0, 40.0, 35, 0, 93.0, "Bloom 40g water"),
-                ChampionPourStep(2, "Continuous Slow Pour", 210.0, 250.0, 145, 35, 93.0, "Pour steady spiral stream through single micro-hole")
+                ChampionPourStep(
+                    2,
+                    "Continuous Slow Pour",
+                    210.0,
+                    250.0,
+                    145,
+                    35,
+                    93.0,
+                    "Pour steady spiral stream through single micro-hole"
+                )
             ),
             notes = "Invented in 1908 by Melitta Bentz, creating the world's very first disposable paper pour-over filter.",
             tags = listOf("melitta", "heritage", "germany")
@@ -1700,10 +2222,46 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 180,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Boiling Water in Base", 150.0, 150.0, 20, 0, 95.0, "Fill base with pre-boiled hot water just below safety valve"),
-                ChampionPourStep(2, "Fill Basket Flat", 0.0, 150.0, 20, 20, null, "Fill funnel basket loosely to brim with grounds, do NOT tamp"),
-                ChampionPourStep(3, "Low Heat Stovetop", 0.0, 150.0, 120, 40, null, "Heat on low flame until honey-colored stream emerges steadily"),
-                ChampionPourStep(4, "Cool Base Stop", 0.0, 150.0, 20, 160, null, "Remove immediately when sputtering starts, run cold water over base")
+                ChampionPourStep(
+                    1,
+                    "Boiling Water in Base",
+                    150.0,
+                    150.0,
+                    20,
+                    0,
+                    95.0,
+                    "Fill base with pre-boiled hot water just below safety valve"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Fill Basket Flat",
+                    0.0,
+                    150.0,
+                    20,
+                    20,
+                    null,
+                    "Fill funnel basket loosely to brim with grounds, do NOT tamp"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Low Heat Stovetop",
+                    0.0,
+                    150.0,
+                    120,
+                    40,
+                    null,
+                    "Heat on low flame until honey-colored stream emerges steadily"
+                ),
+                ChampionPourStep(
+                    4,
+                    "Cool Base Stop",
+                    0.0,
+                    150.0,
+                    20,
+                    160,
+                    null,
+                    "Remove immediately when sputtering starts, run cold water over base"
+                )
             ),
             notes = "Using pre-boiled water and stopping extraction before sputtering prevents bitter metallic over-extraction.",
             tags = listOf("moka-pot", "bialetti", "stovetop", "italy")
@@ -1724,9 +2282,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 300,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Boil Lower Water Chamber", 250.0, 250.0, 180, 0, 98.0, "Boil water in bottom chamber without spout until steam puffs"),
-                ChampionPourStep(2, "The Flip", 0.0, 250.0, 10, 180, null, "Remove from heat, firmly flip entire pot upside down 180 degrees"),
-                ChampionPourStep(3, "Gravity Filtration", 0.0, 250.0, 110, 190, null, "Water filters slowly through grounds chamber into serving pot")
+                ChampionPourStep(
+                    1,
+                    "Boil Lower Water Chamber",
+                    250.0,
+                    250.0,
+                    180,
+                    0,
+                    98.0,
+                    "Boil water in bottom chamber without spout until steam puffs"
+                ),
+                ChampionPourStep(
+                    2,
+                    "The Flip",
+                    0.0,
+                    250.0,
+                    10,
+                    180,
+                    null,
+                    "Remove from heat, firmly flip entire pot upside down 180 degrees"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Gravity Filtration",
+                    0.0,
+                    250.0,
+                    110,
+                    190,
+                    null,
+                    "Water filters slowly through grounds chamber into serving pot"
+                )
             ),
             notes = "Historical Neapolitan brewing apparatus predating the Moka pot, delivering smooth, round, aromatic coffee.",
             tags = listOf("napoletana", "cuccumella", "italy", "flip")
@@ -1749,7 +2334,16 @@ object WorldChampionRecipeCatalog {
             steps = listOf(
                 ChampionPourStep(1, "Charge Cold Brew", 350.0, 350.0, 20, 0, 4.0, "Pour chilled filtered cold brew into dispenser"),
                 ChampionPourStep(2, "Inject Nitrogen", 0.0, 350.0, 20, 20, null, "Charge with pure N2 cartridge, shake vigorously for 15s"),
-                ChampionPourStep(3, "Cascade Pour", 0.0, 350.0, 20, 40, null, "Dispense at 45 degree angle creating stunning Guinness-like cascading crema")
+                ChampionPourStep(
+                    3,
+                    "Cascade Pour",
+                    0.0,
+                    350.0,
+                    20,
+                    40,
+                    null,
+                    "Dispense at 45 degree angle creating stunning Guinness-like cascading crema"
+                )
             ),
             notes = "Tiny micro-bubbles of pure nitrogen create a creamy, sweet, velvety mouthfeel without adding dairy or sugar.",
             tags = listOf("nitro", "cold-brew", "nitrogen")
@@ -1793,9 +2387,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 300,
             verificationStatus = RecipeVerificationStatus.SECONDARY_ADAPTATION,
             steps = listOf(
-                ChampionPourStep(1, "Fill Pot & Basket", 450.0, 450.0, 60, 0, 96.0, "Add water to bottom and coarse coffee into stem basket"),
-                ChampionPourStep(2, "Percolating Cycle", 0.0, 450.0, 180, 60, 96.0, "Heat on medium flame; steam bubble drives water up tube to spray coffee"),
-                ChampionPourStep(3, "Remove from Heat", 0.0, 450.0, 60, 240, null, "Stop when bubble frequency peaks (4-5 min) to prevent burnt flavor")
+                ChampionPourStep(
+                    1,
+                    "Fill Pot & Basket",
+                    450.0,
+                    450.0,
+                    60,
+                    0,
+                    96.0,
+                    "Add water to bottom and coarse coffee into stem basket"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Percolating Cycle",
+                    0.0,
+                    450.0,
+                    180,
+                    60,
+                    96.0,
+                    "Heat on medium flame; steam bubble drives water up tube to spray coffee"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Remove from Heat",
+                    0.0,
+                    450.0,
+                    60,
+                    240,
+                    null,
+                    "Stop when bubble frequency peaks (4-5 min) to prevent burnt flavor"
+                )
             ),
             notes = "Classic camping & heritage method producing piping hot, robust, nostalgic coffee.",
             tags = listOf("percolator", "stovetop", "classic")
@@ -1817,7 +2438,16 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
                 ChampionPourStep(1, "Pour Filter Coffee", 240.0, 240.0, 20, 0, 93.0, "Pour 240ml fresh hot drip coffee into mug"),
-                ChampionPourStep(2, "Add Fresh Espresso Shot", 40.0, 280.0, 25, 20, 93.0, "Drop a freshly extracted double shot of espresso directly into drip coffee")
+                ChampionPourStep(
+                    2,
+                    "Add Fresh Espresso Shot",
+                    40.0,
+                    280.0,
+                    25,
+                    20,
+                    93.0,
+                    "Drop a freshly extracted double shot of espresso directly into drip coffee"
+                )
             ),
             notes = "High-octane barista beverage combining nuanced drip coffee origin notes with raw espresso intensity.",
             tags = listOf("red-eye", "black-eye", "espresso", "drip")
@@ -1838,10 +2468,37 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 120,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Boil Lower Bulb", 300.0, 300.0, 45, 0, 98.0, "Heat lower bulb until vapor pressure forces water into upper chamber"),
-                ChampionPourStep(2, "Add Grounds & Submerge", 0.0, 300.0, 30, 45, 94.0, "Add grounds into upper chamber, gentle paddle stir to submerge"),
+                ChampionPourStep(
+                    1,
+                    "Boil Lower Bulb",
+                    300.0,
+                    300.0,
+                    45,
+                    0,
+                    98.0,
+                    "Heat lower bulb until vapor pressure forces water into upper chamber"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Add Grounds & Submerge",
+                    0.0,
+                    300.0,
+                    30,
+                    45,
+                    94.0,
+                    "Add grounds into upper chamber, gentle paddle stir to submerge"
+                ),
                 ChampionPourStep(3, "Steep", 0.0, 300.0, 30, 75, 92.0, "Steep for 30 seconds"),
-                ChampionPourStep(4, "Remove Heat & Drawdown", 0.0, 300.0, 15, 105, null, "Turn off burner; cooling vacuum pulls extract through cloth filter into bottom globe")
+                ChampionPourStep(
+                    4,
+                    "Remove Heat & Drawdown",
+                    0.0,
+                    300.0,
+                    15,
+                    105,
+                    null,
+                    "Turn off burner; cooling vacuum pulls extract through cloth filter into bottom globe"
+                )
             ),
             notes = "The theatrical peak of coffee brewing: ultra-clean cloth filtration with immense body and piping hot temperature.",
             tags = listOf("siphon", "syphon", "vacuum", "hario")
@@ -1862,9 +2519,36 @@ object WorldChampionRecipeCatalog {
             totalTimeSeconds = 180,
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
-                ChampionPourStep(1, "Cold Slurry Mix", 70.0, 70.0, 20, 0, 20.0, "Combine cold water, ultra-fine coffee, and sugar in cezve, stir until dissolved"),
-                ChampionPourStep(2, "Gentle Low Flame Rise", 0.0, 70.0, 130, 20, 94.0, "Heat on low flame (or hot sand) until thick foam rises to the neck"),
-                ChampionPourStep(3, "Pour with Foam", 0.0, 70.0, 30, 150, null, "Pour into finjan cup transferring foam; allow grounds to settle before sipping")
+                ChampionPourStep(
+                    1,
+                    "Cold Slurry Mix",
+                    70.0,
+                    70.0,
+                    20,
+                    0,
+                    20.0,
+                    "Combine cold water, ultra-fine coffee, and sugar in cezve, stir until dissolved"
+                ),
+                ChampionPourStep(
+                    2,
+                    "Gentle Low Flame Rise",
+                    0.0,
+                    70.0,
+                    130,
+                    20,
+                    94.0,
+                    "Heat on low flame (or hot sand) until thick foam rises to the neck"
+                ),
+                ChampionPourStep(
+                    3,
+                    "Pour with Foam",
+                    0.0,
+                    70.0,
+                    30,
+                    150,
+                    null,
+                    "Pour into finjan cup transferring foam; allow grounds to settle before sipping"
+                )
             ),
             notes = "UNESCO Cultural Heritage: boiled decoction celebrating foam thickness, aromatics, and grounds sedimentation.",
             tags = listOf("turkish", "cezve", "ibrik", "unesco")
@@ -1909,21 +2593,33 @@ object WorldChampionRecipeCatalog {
             verificationStatus = RecipeVerificationStatus.OFFICIAL,
             steps = listOf(
                 ChampionPourStep(1, "Bloom grounds", 20.0, 20.0, 40, 0, 96.0, "Bloom dengan 20g air mendidih"),
-                ChampionPourStep(2, "Full Gravity Extraction", 120.0, 140.0, 230, 40, 96.0, "Tuang 120g air, pasang tutup phin, tetes demi tetes sampai habis")
+                ChampionPourStep(
+                    2,
+                    "Full Gravity Extraction",
+                    120.0,
+                    140.0,
+                    230,
+                    40,
+                    96.0,
+                    "Tuang 120g air, pasang tutup phin, tetes demi tetes sampai habis"
+                )
             ),
-            notes = "Ekstraksi gravitasi lambat khas Vietnam menghasilkan rasa kopi yang sangat pekat, tebal, dan bernuansa cokelat karamel.",
+            notes = "Ekstraksi gravitasi lambat khas Vietnam menghasilkan rasa kopi yang sangat pekat, " +
+                "tebal, dan bernuansa cokelat karamel.",
             tags = listOf("vietnam", "phin", "robusta")
         )
     )
 
     fun getById(id: String): ChampionRecipe? = entries.find { it.id == id }
 
-    fun filterByCategory(category: RecipeCategory): List<ChampionRecipe> =
-        entries.filter { it.category == category }
+    fun filterByCategory(category: RecipeCategory): List<ChampionRecipe> = entries.filter { it.category == category }
 
     fun filterByMethod(methodQuery: String): List<ChampionRecipe> =
-        if (methodQuery.isBlank() || methodQuery.equals("All", ignoreCase = true)) entries
-        else entries.filter { it.method.contains(methodQuery, ignoreCase = true) }
+        if (methodQuery.isBlank() || methodQuery.equals("All", ignoreCase = true)) {
+            entries
+        } else {
+            entries.filter { it.method.contains(methodQuery, ignoreCase = true) }
+        }
 
     fun search(query: String): List<ChampionRecipe> {
         val q = query.trim().lowercase()

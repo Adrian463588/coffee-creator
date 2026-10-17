@@ -30,7 +30,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -54,6 +53,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -180,6 +180,10 @@ import com.coffeecreator.app.core.journal.CafeCupEntry
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.ModelStatus
 import com.coffeecreator.app.core.model.Recipe
+import com.coffeecreator.app.core.recipes.champion.ChampionRecipe
+import com.coffeecreator.app.core.recipes.champion.RecipeCategory
+import com.coffeecreator.app.core.recipes.champion.RecipeVerificationStatus
+import com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalog
 import com.coffeecreator.app.core.reliability.AppLanguage
 import com.coffeecreator.app.core.reliability.LogLevel
 import com.coffeecreator.app.core.reliability.MassUnit
@@ -196,23 +200,17 @@ import com.coffeecreator.app.core.sensory.MaskingMode
 import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
 import com.coffeecreator.app.core.sensory.SessionStatus
-import com.coffeecreator.app.core.recipes.champion.ChampionRecipe
-import com.coffeecreator.app.core.recipes.champion.RecipeCategory
-import com.coffeecreator.app.core.recipes.champion.RecipeVerificationStatus
-import com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalog
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
 import com.coffeecreator.app.ui.viewmodel.RecipeDraft
-import com.coffeecreator.app.ui.viewmodel.brewChampionRecipe
-import com.coffeecreator.app.ui.viewmodel.logChampionRecipeToJournal
-import com.coffeecreator.app.ui.viewmodel.saveChampionRecipeAsTemplate
 import com.coffeecreator.app.ui.viewmodel.addBagToBean
 import com.coffeecreator.app.ui.viewmodel.addDetailedBean
 import com.coffeecreator.app.ui.viewmodel.addDraftStep
 import com.coffeecreator.app.ui.viewmodel.addLine
 import com.coffeecreator.app.ui.viewmodel.applyOvatAdjustmentToDraft
 import com.coffeecreator.app.ui.viewmodel.auditIngredientSafety
+import com.coffeecreator.app.ui.viewmodel.brewChampionRecipe
 import com.coffeecreator.app.ui.viewmodel.cancelCatalogPhotoOcr
 import com.coffeecreator.app.ui.viewmodel.cancelDeletion
 import com.coffeecreator.app.ui.viewmodel.cancelGeneration
@@ -256,6 +254,8 @@ import com.coffeecreator.app.ui.viewmodel.finishBrewSession
 import com.coffeecreator.app.ui.viewmodel.generateInventoryRecommendations
 import com.coffeecreator.app.ui.viewmodel.importBeanconquerorJson
 import com.coffeecreator.app.ui.viewmodel.isSupportedByNativeRuntime
+import com.coffeecreator.app.ui.viewmodel.logChampionRecipeToJournal
+import com.coffeecreator.app.ui.viewmodel.logCuppingSampleToJournal
 import com.coffeecreator.app.ui.viewmodel.newRecipe
 import com.coffeecreator.app.ui.viewmodel.parseBagOcr
 import com.coffeecreator.app.ui.viewmodel.parseEquipmentOcr
@@ -279,6 +279,7 @@ import com.coffeecreator.app.ui.viewmodel.revealCuppingSample
 import com.coffeecreator.app.ui.viewmodel.runManualCalculation
 import com.coffeecreator.app.ui.viewmodel.saveBean
 import com.coffeecreator.app.ui.viewmodel.saveCafeCup
+import com.coffeecreator.app.ui.viewmodel.saveChampionRecipeAsTemplate
 import com.coffeecreator.app.ui.viewmodel.saveEntryAsTemplate
 import com.coffeecreator.app.ui.viewmodel.saveIngredient
 import com.coffeecreator.app.ui.viewmodel.saveRecipe
@@ -750,12 +751,7 @@ private fun TactileOutlinedButton(
 }
 
 @Composable
-private fun TelemetryStatusPill(
-    label: String,
-    status: String,
-    isActive: Boolean,
-    modifier: Modifier = Modifier
-) {
+private fun TelemetryStatusPill(label: String, status: String, isActive: Boolean, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(6.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
@@ -3138,9 +3134,21 @@ private fun ChampionRecipeCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val (catLabel, catBg, catFg) = when (recipe.category) {
-                        RecipeCategory.COMPETITION -> Triple("🏆 Competition", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
-                        RecipeCategory.SIGNATURE -> Triple("✍️ Signature", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
-                        RecipeCategory.STANDARD -> Triple("☕ Traditional", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+                        RecipeCategory.COMPETITION -> Triple(
+                            "🏆 Competition",
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        RecipeCategory.SIGNATURE -> Triple(
+                            "✍️ Signature",
+                            MaterialTheme.colorScheme.secondaryContainer,
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        RecipeCategory.STANDARD -> Triple(
+                            "☕ Traditional",
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     Surface(shape = RoundedCornerShape(6.dp), color = catBg) {
                         Text(
@@ -3153,10 +3161,26 @@ private fun ChampionRecipeCard(
                     }
 
                     val (verLabel, verBg, verFg) = when (recipe.verificationStatus) {
-                        RecipeVerificationStatus.OFFICIAL -> Triple("OFFICIAL", MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
-                        RecipeVerificationStatus.DOCUMENTED_RECREATION -> Triple("RECREATION", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
-                        RecipeVerificationStatus.SECONDARY_ADAPTATION -> Triple("ADAPTED", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
-                        RecipeVerificationStatus.NEEDS_VERIFICATION -> Triple("STANDARD", MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f), MaterialTheme.colorScheme.outline)
+                        RecipeVerificationStatus.OFFICIAL -> Triple(
+                            "OFFICIAL",
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            MaterialTheme.colorScheme.primary
+                        )
+                        RecipeVerificationStatus.DOCUMENTED_RECREATION -> Triple(
+                            "RECREATION",
+                            MaterialTheme.colorScheme.tertiaryContainer,
+                            MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        RecipeVerificationStatus.SECONDARY_ADAPTATION -> Triple(
+                            "ADAPTED",
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        RecipeVerificationStatus.NEEDS_VERIFICATION -> Triple(
+                            "STANDARD",
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            MaterialTheme.colorScheme.outline
+                        )
                     }
                     Surface(shape = RoundedCornerShape(6.dp), color = verBg) {
                         Text(
@@ -3630,7 +3654,8 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                     item {
                         InfoCard(
                             "Your brew history is empty",
-                            "Complete a timer session or add a brew log with the values you observed.\nOr explore 80 World Champion and Signature recipes to log your first brew!"
+                            "Complete a timer session or add a brew log with the values you observed.\n" +
+                                "Or explore 80 World Champion and Signature recipes to log your first brew!"
                         ) {
                             TactileButton(
                                 onClick = { activeTab = JournalTab.CHAMPION_RECIPES },
@@ -3769,42 +3794,83 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                         TactileFilterChip(
                             selected = selectedChampionCategory == null,
                             onClick = { selectedChampionCategory = null },
-                            label = { Text("All (80)", fontWeight = if (selectedChampionCategory == null) FontWeight.SemiBold else FontWeight.Normal) },
+                            label = {
+                                Text(
+                                    "All (80)",
+                                    fontWeight = if (selectedChampionCategory == null) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                            },
                             modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_cat_all")
                         )
                         TactileFilterChip(
                             selected = selectedChampionCategory == RecipeCategory.COMPETITION,
                             onClick = { selectedChampionCategory = RecipeCategory.COMPETITION },
-                            label = { Text("🏆 Competition (21)", fontWeight = if (selectedChampionCategory == RecipeCategory.COMPETITION) FontWeight.SemiBold else FontWeight.Normal) },
+                            label = {
+                                Text(
+                                    "🏆 Competition (21)",
+                                    fontWeight = if (selectedChampionCategory == RecipeCategory.COMPETITION) {
+                                        FontWeight.SemiBold
+                                    } else {
+                                        FontWeight.Normal
+                                    }
+                                )
+                            },
                             modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_cat_competition")
                         )
                         TactileFilterChip(
                             selected = selectedChampionCategory == RecipeCategory.SIGNATURE,
                             onClick = { selectedChampionCategory = RecipeCategory.SIGNATURE },
-                            label = { Text("✍️ Signature (14)", fontWeight = if (selectedChampionCategory == RecipeCategory.SIGNATURE) FontWeight.SemiBold else FontWeight.Normal) },
+                            label = {
+                                Text(
+                                    "✍️ Signature (14)",
+                                    fontWeight = if (selectedChampionCategory == RecipeCategory.SIGNATURE) {
+                                        FontWeight.SemiBold
+                                    } else {
+                                        FontWeight.Normal
+                                    }
+                                )
+                            },
                             modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_cat_signature")
                         )
                         TactileFilterChip(
                             selected = selectedChampionCategory == RecipeCategory.STANDARD,
                             onClick = { selectedChampionCategory = RecipeCategory.STANDARD },
-                            label = { Text("☕ Traditional (45)", fontWeight = if (selectedChampionCategory == RecipeCategory.STANDARD) FontWeight.SemiBold else FontWeight.Normal) },
+                            label = {
+                                Text(
+                                    "☕ Traditional (45)",
+                                    fontWeight = if (selectedChampionCategory == RecipeCategory.STANDARD) {
+                                        FontWeight.SemiBold
+                                    } else {
+                                        FontWeight.Normal
+                                    }
+                                )
+                            },
                             modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_cat_traditional")
                         )
                     }
                 }
 
                 item {
+                    val methodsList = listOf(
+                        "All", "V60", "AeroPress", "Switch", "Origami / Flat Bed",
+                        "Espresso", "Cold Brew / Drip", "Immersion / Press", "Heritage / Pot"
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf("All", "V60", "AeroPress", "Switch", "Origami / Flat Bed", "Espresso", "Cold Brew / Drip", "Immersion / Press", "Heritage / Pot").forEach { method ->
+                        methodsList.forEach { method ->
                             TactileFilterChip(
                                 selected = selectedChampionMethod == method,
                                 onClick = { selectedChampionMethod = method },
-                                label = { Text(method, fontWeight = if (selectedChampionMethod == method) FontWeight.SemiBold else FontWeight.Normal) },
+                                label = {
+                                    Text(
+                                        method,
+                                        fontWeight = if (selectedChampionMethod == method) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                },
                                 modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_method_$method")
                             )
                         }
@@ -3815,15 +3881,29 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                     val matchesCategory = selectedChampionCategory == null || recipe.category == selectedChampionCategory
                     val matchesMethod = when (selectedChampionMethod) {
                         "All" -> true
-                        "V60" -> recipe.equipment.contains("V60", ignoreCase = true) || recipe.method.contains("V60", ignoreCase = true)
-                        "AeroPress" -> recipe.equipment.contains("AeroPress", ignoreCase = true) || recipe.method.contains("AeroPress", ignoreCase = true)
+                        "V60" -> recipe.equipment.contains("V60", ignoreCase = true) ||
+                            recipe.method.contains("V60", ignoreCase = true)
+                        "AeroPress" -> recipe.equipment.contains("AeroPress", ignoreCase = true) ||
+                            recipe.method.contains("AeroPress", ignoreCase = true)
                         "Switch" -> recipe.equipment.contains("Switch", ignoreCase = true)
-                        "Origami / Flat Bed" -> recipe.equipment.contains("Origami", ignoreCase = true) || recipe.equipment.contains("Orea", ignoreCase = true) || recipe.equipment.contains("Kalita", ignoreCase = true) || recipe.equipment.contains("Wave", ignoreCase = true)
-                        "Espresso" -> recipe.equipment.contains("Espresso", ignoreCase = true) || recipe.method.contains("Espresso", ignoreCase = true)
+                        "Origami / Flat Bed" -> recipe.equipment.contains("Origami", ignoreCase = true) ||
+                            recipe.equipment.contains("Orea", ignoreCase = true) ||
+                            recipe.equipment.contains("Kalita", ignoreCase = true) ||
+                            recipe.equipment.contains("Wave", ignoreCase = true)
+                        "Espresso" -> recipe.equipment.contains("Espresso", ignoreCase = true) ||
+                            recipe.method.contains("Espresso", ignoreCase = true)
                         "Cold Brew / Drip" -> recipe.method.contains("Cold", ignoreCase = true)
-                        "Immersion / Press" -> recipe.equipment.contains("French Press", ignoreCase = true) || recipe.equipment.contains("Clever", ignoreCase = true) || recipe.method.contains("Immersion", ignoreCase = true)
-                        "Heritage / Pot" -> recipe.equipment.contains("Phin", ignoreCase = true) || recipe.equipment.contains("Moka", ignoreCase = true) || recipe.equipment.contains("Tubruk", ignoreCase = true) || recipe.equipment.contains("Ibrik", ignoreCase = true) || recipe.equipment.contains("Cezve", ignoreCase = true) || recipe.equipment.contains("Jebena", ignoreCase = true)
-                        else -> recipe.method.contains(selectedChampionMethod, ignoreCase = true) || recipe.equipment.contains(selectedChampionMethod, ignoreCase = true)
+                        "Immersion / Press" -> recipe.equipment.contains("French Press", ignoreCase = true) ||
+                            recipe.equipment.contains("Clever", ignoreCase = true) ||
+                            recipe.method.contains("Immersion", ignoreCase = true)
+                        "Heritage / Pot" -> recipe.equipment.contains("Phin", ignoreCase = true) ||
+                            recipe.equipment.contains("Moka", ignoreCase = true) ||
+                            recipe.equipment.contains("Tubruk", ignoreCase = true) ||
+                            recipe.equipment.contains("Ibrik", ignoreCase = true) ||
+                            recipe.equipment.contains("Cezve", ignoreCase = true) ||
+                            recipe.equipment.contains("Jebena", ignoreCase = true)
+                        else -> recipe.method.contains(selectedChampionMethod, ignoreCase = true) ||
+                            recipe.equipment.contains(selectedChampionMethod, ignoreCase = true)
                     }
                     val matchesQuery = championQuery.isBlank() ||
                         recipe.name.contains(championQuery, ignoreCase = true) ||
@@ -4908,6 +4988,11 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                             activeTab = SensoryTab.CONSENSUS
                                         }) {
                                             Text("View Consensus", maxLines = 1, softWrap = false)
+                                        }
+                                        OutlinedButton(onClick = {
+                                            model.logCuppingSampleToJournal(activeSession.id, sample.sampleId)
+                                        }) {
+                                            Text("Log to Journal", maxLines = 1, softWrap = false)
                                         }
                                     }
                                 }
@@ -6594,31 +6679,49 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     Text("1. Roast Preference:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         RoastPreference.values().forEach { r ->
-                            TactileFilterChip(selected = quizRoast == r, onClick = { quizRoast = r }, label = { Text(r.name, maxLines = 1, softWrap = false) })
+                            TactileFilterChip(
+                                selected = quizRoast == r,
+                                onClick = { quizRoast = r },
+                                label = { Text(r.name, maxLines = 1, softWrap = false) }
+                            )
                         }
                     }
                     Text("2. Acidity Tolerance:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         AcidityTolerance.values().forEach { a ->
-                            TactileFilterChip(selected = quizAcidity == a, onClick = { quizAcidity = a }, label = { Text(a.name, maxLines = 1, softWrap = false) })
+                            TactileFilterChip(
+                                selected = quizAcidity == a,
+                                onClick = { quizAcidity = a },
+                                label = { Text(a.name, maxLines = 1, softWrap = false) }
+                            )
                         }
                     }
                     Text("3. Sweetness Priority:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         SweetnessPriority.values().forEach { s ->
-                            TactileFilterChip(selected = quizSweetness == s, onClick = { quizSweetness = s }, label = { Text(s.name, maxLines = 1, softWrap = false) })
+                            TactileFilterChip(
+                                selected = quizSweetness == s,
+                                onClick = { quizSweetness = s },
+                                label = { Text(s.name, maxLines = 1, softWrap = false) }
+                            )
                         }
                     }
                     Text("4. Bitterness Sensitivity:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         BitternessSensitivity.values().forEach { b ->
-                            TactileFilterChip(selected = quizBitterness == b, onClick = { quizBitterness = b }, label = { Text(b.name, maxLines = 1, softWrap = false) })
+                            TactileFilterChip(selected = quizBitterness == b, onClick = {
+                                quizBitterness = b
+                            }, label = { Text(b.name, maxLines = 1, softWrap = false) })
                         }
                     }
                     Text("5. Body Preference:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         BodyPreference.values().forEach { m ->
-                            TactileFilterChip(selected = quizBody == m, onClick = { quizBody = m }, label = { Text(m.name, maxLines = 1, softWrap = false) })
+                            TactileFilterChip(
+                                selected = quizBody == m,
+                                onClick = { quizBody = m },
+                                label = { Text(m.name, maxLines = 1, softWrap = false) }
+                            )
                         }
                     }
                 }
@@ -6901,8 +7004,11 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                             },
                             border = BorderStroke(
                                 1.dp,
-                                if (badge.isDegraded) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.50f)
-                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)
+                                if (badge.isDegraded) {
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.50f)
+                                } else {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)
+                                }
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -6915,7 +7021,11 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                                     modifier = Modifier
                                         .size(8.dp)
                                         .background(
-                                            color = if (badge.isDegraded) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                                            color = if (badge.isDegraded) {
+                                                MaterialTheme.colorScheme.tertiary
+                                            } else {
+                                                MaterialTheme.colorScheme.primary
+                                            },
                                             shape = CircleShape
                                         )
                                 )
@@ -6926,7 +7036,11 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                                         letterSpacing = 0.5.sp,
                                         fontFeatureSettings = "tnum"
                                     ),
-                                    color = if (badge.isDegraded) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    color = if (badge.isDegraded) {
+                                        MaterialTheme.colorScheme.onTertiaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    },
                                     maxLines = 1,
                                     softWrap = false,
                                     overflow = TextOverflow.Ellipsis
@@ -7002,7 +7116,10 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        TactileOutlinedButton(onClick = { model.refreshDiagnostics() }, modifier = Modifier.testTag("settings:refresh_diag")) {
+                        TactileOutlinedButton(
+                            onClick = { model.refreshDiagnostics() },
+                            modifier = Modifier.testTag("settings:refresh_diag")
+                        ) {
                             Text(
                                 if (isIndonesian) {
                                     "Segarkan Log (${state.diagnosticLogSnapshot.size})"
@@ -7013,8 +7130,15 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                                 softWrap = false
                             )
                         }
-                        TactileButton(onClick = { model.exportDiagnosticLogs(context) }, modifier = Modifier.testTag("settings:export_diag")) {
-                            Text(if (isIndonesian) "Ekspor Log (Sharesheet)" else "Export Logs (Sharesheet)", maxLines = 1, softWrap = false)
+                        TactileButton(
+                            onClick = { model.exportDiagnosticLogs(context) },
+                            modifier = Modifier.testTag("settings:export_diag")
+                        ) {
+                            Text(
+                                if (isIndonesian) "Ekspor Log (Sharesheet)" else "Export Logs (Sharesheet)",
+                                maxLines = 1,
+                                softWrap = false
+                            )
                         }
                         TextButton(onClick = { model.clearDiagnostics() }) {
                             Text(if (isIndonesian) "Hapus Log" else "Clear Logs", maxLines = 1, softWrap = false)

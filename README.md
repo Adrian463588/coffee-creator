@@ -8,9 +8,9 @@ network access; models need a first-time install before natural-language chat.
 
 ## Download
 
-[Download the latest debug preview APK (v1.11.0)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.11.0/coffee-creator-v1.11.0.apk)
-· [Release notes](docs/releases/v1.11.0.md)
-· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.11.0/SHA256SUMS.txt)
+[Download the latest debug preview APK (v1.12.0)](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.0/coffee-creator-v1.12.0.apk)
+· [Release notes](docs/releases/v1.12.0.md)
+· [SHA-256 checksums](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.0/SHA256SUMS.txt)
 
 The distribution APK is debug-signed, targets Android 8/API 26+ and arm64-v8a/x86_64.
 The physical test reference is Samsung SM-G988B, Android 13/API 33. Other device/RAM/
@@ -18,7 +18,7 @@ provider tiers are separate validation work; see [verification](docs/VERIFICATIO
 Install an APK from GitHub using Android's explicit install permission. For ADB:
 
 ```powershell
-adb install --user 0 -r coffee-creator-v1.11.0.apk
+adb install --user 0 -r coffee-creator-v1.12.0.apk
 ```
 
 Replacement installation preserves app records when the signing key matches.
@@ -26,12 +26,14 @@ Uninstall removes private records/grants; export a backup first if you want them
 
 | Version | Date | APK | History |
 |---|---|---|---|
-| v1.11.0 | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.11.0/coffee-creator-v1.11.0.apk) | [Notes](docs/releases/v1.11.0.md) · World Champion Recipes & Brewing Catalog: comprehensive 80-recipe database across Competition (21 WBrC/WAC champions), Signature (14 master baristas), and Traditional (45 global/Indonesian heritage methods); 1-click Journal logging, active timer handoff, custom recipe template saving, category/method tactile filtering, and full physical device verification without data loss (`-r -d`) |
+| v1.12.0 | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.0/coffee-creator-v1.12.0.apk) | [Notes](docs/releases/v1.12.0.md) · Sensory Wheel & Professional Cupping Deepening (Epic S2-E05): complete 221-descriptor taxonomy (84 SCA reference + 137 custom Indonesian & global descriptors) across 9 primary categories, full bilingual lookup (`name` / `idLabel`), standard 16-attribute CVA cupping protocol & defect scoring math, multi-phase temperature cupping timeline (dry fragrance to final aftertaste), 1-click cupping sample logging to Journal, and zero-data-loss device deployment (`-r -d`) |
+| v1.11.0 | 2026-10-17 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.11.0/coffee-creator-v1.11.0.apk) | [Notes](docs/releases/v1.11.0.md) · World Champion Recipes & Brewing Catalog: comprehensive 80-recipe database across Competition (21 WBrC/WAC champions), Signature (14 master baristas), and Traditional (45 global/Indonesian heritage methods); 1-click Journal logging, active timer handoff, custom recipe template saving, category/method tactile filtering, and full physical device verification without data loss (`-r -d`) |
 | v1.10.2 | 2026-10-17 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.2/coffee-creator-v1.10.2.apk) | [Notes](docs/releases/v1.10.2.md) · Tactile Settings Anti-Slop & Precision Telemetry: elimination of unconstrained badge word-wrapping/bubble distortion, full-width industrial status banner, 3-column equal-weighted `TelemetryStatusPill` grid with active status indicator dots, migration to `TactileFilterChip` with spring micro-depression (`scale = 0.97f`) & haptics across language, units, and palate quiz, and 100% JVM/ADB device verification |
 | v1.10.1 | 2026-10-17 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.1/coffee-creator-v1.10.1.apk) | [Notes](docs/releases/v1.10.1.md) · Custom Precision Coffee Laboratory launcher icon: master vector aesthetic emblem (coffee bean + conical dripper flask + amber extraction drop), full adaptive icon XMLs with dark espresso `#1B120C` background and floating foreground layers, density mipmaps (mdpi to xxxhdpi), AndroidManifest update from system compass fallback, and physical ADB device verification |
 | v1.10.0 | 2026-10-17 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.10.0/coffee-creator-v1.10.0.apk) | [Notes](docs/releases/v1.10.0.md) · Offline bean/equipment label capture and review, conservative OCR drafts, durable record restore, verified Kafi/Gemma model catalog, evidence-safe extraction calculations, and keyboard-safe validation |
 | v1.9.6 | 2026-10-16 | [Historical APK](https://github.com/Adrian463588/coffee-creator/releases/download/v1.9.6/coffee-creator-v1.9.6.apk) | [Notes](docs/releases/v1.9.6.md) · Tactile Industrial & Precision Coffee Lab UI/UX Refinement: standardized 0.97f spring micro-depression physics & subtle haptic feedback across buttons/chips/dropdowns, jitter-free tabular monospace figures (tnum) on timers and telemetry, 1px solid hairline borders (0.40f alpha), concentric nested corner geometry, and 100% JVM/device verification |
 
+v1.12.0 APK verification: 122,233,241 bytes, SHA256: `727e73b709fa594ccb7c65f1a27890e20c55ae622c27ae179a5e0c86ca8419b8`.
 v1.11.0 APK verification: 122,996,058 bytes, SHA256: `c63f74fcf3bc3461b24a6cdec9f4ac2b378b815c57b8449c05963852ccaa6f61`.
 v1.10.2 APK verification: 122,118,494 bytes, SHA256: `b5539ad55f333585dbdf76c1811ccfd19cd6399c10c6d325b080b4836d721f55`.
 v1.10.1 APK verification: 122,118,494 bytes, SHA256: `a8cfc5fccb4ab081f6d95d33f6b3ce94e030341927e3f6719ff221c617be0a42`.
