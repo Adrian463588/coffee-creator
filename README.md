@@ -15,7 +15,7 @@
   <a href="https://developer.android.com/about/versions/15"><img src="https://img.shields.io/badge/Android-8.0%20to%2015%20(API%2026--35)-34A853.svg?logo=android&logoColor=white" alt="Android Support"></a>
   <a href="#"><img src="https://img.shields.io/badge/Privacy-100%25%20Offline%20First-E37400.svg" alt="Offline First"></a>
   <a href="#"><img src="https://img.shields.io/badge/Telemetry-Zero%20SDKs-blueviolet.svg" alt="Zero Telemetry"></a>
-  <a href="https://github.com/Adrian463588/coffee-creator/actions"><img src="https://img.shields.io/badge/Tests-309%20JVM%20Passing-success.svg" alt="Tests"></a>
+  <a href="https://github.com/Adrian463588/coffee-creator/actions"><img src="https://img.shields.io/badge/Tests-322%20JVM%20Passing-success.svg" alt="Tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
 </p>
 
@@ -36,20 +36,20 @@
 
 ## 📦 Download & Installation
 
-### 🚀 Latest Release: v1.14.3 (Sprint 04 Epic D: Green Coffee Physical Assessment)
+### 🚀 Latest Release: v1.14.4 (Sprint 04 Epic E: Pro Operations, Architecture, AI & Integration)
 | Artifact | Size | SHA-256 Checksum |
 |---|---|---|
-| [**Download coffee-creator-v1.14.3.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.3/coffee-creator-v1.14.3.apk) | `117.2 MB` | `e377bf4d7ad806b107316856fdacd227c2f7a744df25988e168e27330126563e` |
+| [**Download coffee-creator-v1.14.4.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.4/coffee-creator-v1.14.4.apk) | `117.3 MB` | `a931abbccb6aa77806e85fa677ca774ab33608aa0ac99397bb63c3d8d478bc0f` |
 
-- 📄 [Release Notes for v1.14.3](docs/releases/v1.14.3.md)
-- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.3/SHA256SUMS.txt)
+- 📄 [Release Notes for v1.14.4](docs/releases/v1.14.4.md)
+- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.4/SHA256SUMS.txt)
 - 📱 **Compatibility**: Android 8.0+ (API level 26 to 35). Architectures: `arm64-v8a`, `x86_64`. Tested on Samsung Galaxy S20 Ultra (`SM-G988B`, serial `RRCN3008VYE`, Android 13/API 33).
 
 ### 🛠️ Zero-Data-Loss ADB Installation (Recommended for Development)
 To install or upgrade the APK without deleting existing recipes, journal logs, sensory sessions, or Room database state, execute with `-r -d` flags:
 
 ```powershell
-adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.3.apk
+adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.4.apk
 ```
 > [!IMPORTANT]
 > The `-r` flag reinstalls the package while **preserving all user data**. The `-d` flag allows sidegrade/downgrade version code safety. Always specify `-s RRCN3008VYE` to target the designated test device. **Never** run `adb uninstall` if you wish to retain local records, as Android purges private databases and revokes SAF folder grants upon uninstallation.
@@ -60,6 +60,7 @@ adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.3.apk
 
 | Version | Release Date | Download APK | Release Highlights | SHA-256 Checksum |
 |:---:|:---:|:---:|:---|:---:|
+| **v1.14.4** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.4/coffee-creator-v1.14.4.apk) | [Notes](docs/releases/v1.14.4.md) · **Sprint 04 Epic E: Pro Operations, Architecture, AI & Integration (`S4-052..65`)**: 100% offline operational guarantee, additive Room migration safety, immutable cross-domain provenance linking cupping to bean/roast/recipe/grinder, deterministic standards engine strictly decoupled from LLM, local RAG knowledge citation verification with anti-hallucination guard (`[chunk-cva-desc-04, Page 3]`), blind panel workflow with role separation (Host vs Assessor) and 3-digit randomized codes with premature unblinding audit trail (`UNBLINDED_PREMATURELY_AUDITED`), inter-rater agreement and panel calibration statistics (Pearson $r$, Spearman $\rho$, Mean Consensus Deviation $\text{MCD} \le 0.35$, Fleiss' generalized Kappa $\kappa_{\text{Fleiss}}$ with Landis-Koch benchmarks), bilingual EN/ID glossary, accessibility profiles (anosmia/parosmia accommodation, allergen alerts with non-clinical disclaimer), and user-consent-based export with PII redaction and SHA-256 integrity seal. | `a931abbccb6aa...` |
 | **v1.14.3** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.3/coffee-creator-v1.14.3.apk) | [Notes](docs/releases/v1.14.3.md) · **Sprint 04 Epic D: Green Coffee Physical Assessment (`S4-041..51`)**: Complete 350g green lot catalog, provenance & chain of custody, SCA 2004 washed Arabica defect taxonomy (Cat 1 full defects vs Cat 2 weighted equivalents), ISO 4150 sieve distribution with mass balance recovery check ($\Delta M \le 1.5\text{g}$) and Screen 16+ retention %, moisture assessment with meter uncertainty, water activity ($a_w \le 0.700$), density (g/L), organoleptic odor disqualification, deterministic grade rule engine with out-of-scope guards (`UNDETERMINED_OUT_OF_SCOPE`), epistemological decoupling (physical grade $\ne$ cup score), buyer spec contract compliance, and SHA-256 sealed JSON/CSV export. | `e377bf4d7ad80...` |
 | **v1.14.2** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.2/coffee-creator-v1.14.2.apk) | [Notes](docs/releases/v1.14.2.md) · **Sprint 04 Epic C: Sensory Training & Testing Lab (`S4-027..40`)**: Blind triangle testing with 6 balanced permutations (`AAB`, `ABA`, etc.), concealed 3-digit keys, exact binomial hypothesis calculus $P(X \ge k)$, 5 basic-taste threshold series (ASTM E679 BET), 60 olfactory reference vials with Sensory SM-2 spaced repetition, confusion matrix, 7 organic-acid comparative tastings, roast defect discrimination, tactile/mouthfeel controls, 2-AFC paired comparisons ($p_0=1/2$), 6-pillar readiness radar, and physical human observation anti-cheating mandate (`isAutoPassed=false`). | `8eff8a4e7feda...` |
 | **v1.14.1** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.1/coffee-creator-v1.14.1.apk) | [Notes](docs/releases/v1.14.1.md) · **Sprint 04 Epic B: Digital CVA Cupping & 221-Wheel Integration (`S4-011..26`)**: Multi-sample sessions, protocol selector (`SCA_CVA_CURRENT`, `SCA_2004_LEGACY`, `CUSTOM_RESEARCH`), 4-perspective forms (`Physical`, `Descriptive`, `Affective`, `Extrinsic`), extrinsic blinding gate (`UNBLINDED_PREMATURELY_AUDITED`), 221-descriptor Sensory Wheel modal with bilingual search, 5-bowl multi-cup defect grid (Clean/Taint/Fault), 6-milestone cupping timer, A/B side-by-side comparison, cryptographic SHA-256 session lock, JSON/CSV exports, and 1-click "Log to Brew Journal as Graded Coffee". | `f2415b498e4fb...` |

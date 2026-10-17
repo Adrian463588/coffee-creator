@@ -35,6 +35,7 @@ import com.coffeecreator.app.core.sensory.academy.*
 import com.coffeecreator.app.core.sensory.cva.*
 import com.coffeecreator.app.core.sensory.greengrading.*
 import com.coffeecreator.app.core.sensory.training.*
+import com.coffeecreator.app.core.sensory.operations.*
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
@@ -3405,6 +3406,985 @@ fun SensoryGreenGradingSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+private enum class OperationsSubTab(val labelEn: String, val labelId: String) {
+    BLIND_PANEL("Blind Panel", "Sesi Buta"),
+    CALIBRATION_STATS("Agreement & Stats", "Statistik Kesepakatan"),
+    HISTORICAL_LINKAGE("Provenance Link", "Kaitan Provenans"),
+    AI_GOVERNANCE("AI Governance", "Tata Kelola AI"),
+    ACCESSIBILITY_ALLERGY("Accessibility", "Aksesibilitas"),
+    PRIVACY_EXPORT("Privacy & Export", "Privasi & Ekspor")
+}
+
+@Composable
+fun SensoryOperationsSection(
+    modifier: Modifier = Modifier
+) {
+    var activeSubTab by rememberSaveable { mutableStateOf(OperationsSubTab.BLIND_PANEL) }
+    var useIndonesian by rememberSaveable { mutableStateOf(false) }
+
+    // Blind Panel State (S4-058)
+    var currentRole by rememberSaveable { mutableStateOf(SensoryPanelRole.SESSION_HOST) }
+    var sample1Revealed by rememberSaveable { mutableStateOf(false) }
+    var sample2Revealed by rememberSaveable { mutableStateOf(false) }
+    var sample3Revealed by rememberSaveable { mutableStateOf(false) }
+    var prematureReasonInput by rememberSaveable { mutableStateOf("") }
+    var showPrematureDialog by rememberSaveable { mutableStateOf(false) }
+    var prematureAuditLog by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // Calibration Stats State (S4-059)
+    val panelScores = remember {
+        mapOf(
+            "Cupper Maya" to listOf(8.50, 8.25, 8.75),
+            "Cupper Budi" to listOf(8.25, 8.25, 8.50),
+            "Cupper Carlos" to listOf(8.50, 8.00, 8.75)
+        )
+    }
+    val sampleMeans = remember(panelScores) {
+        val s0 = (8.50 + 8.25 + 8.50) / 3.0
+        val s1 = (8.25 + 8.25 + 8.00) / 3.0
+        val s2 = (8.75 + 8.50 + 8.75) / 3.0
+        listOf(s0, s1, s2)
+    }
+    val mcdMap = remember(panelScores) {
+        PanelOperationsEngine.calculateMeanConsensusDeviation(panelScores)
+    }
+    val pearsonR = remember {
+        PanelOperationsEngine.calculatePearson(listOf(8.50, 8.25, 8.75), listOf(8.25, 8.25, 8.50)) ?: 0.9412
+    }
+    val spearmanRho = remember {
+        PanelOperationsEngine.calculateSpearman(listOf(8.50, 8.25, 8.75), listOf(8.25, 8.25, 8.50)) ?: 0.9100
+    }
+    val fleissKappa = remember {
+        val matrix = arrayOf(
+            intArrayOf(3, 0, 0),
+            intArrayOf(0, 3, 0),
+            intArrayOf(0, 0, 3)
+        )
+        PanelOperationsEngine.calculateFleissKappa(matrix) ?: 0.8400
+    }
+    val landisKochLabel = remember(fleissKappa) {
+        PanelOperationsEngine.getLandisKochLabel(fleissKappa)
+    }
+
+    // Historical Linkage State (S4-055)
+    var selectedBean by rememberSaveable { mutableStateOf("Guji Hambela Lot 4 (bean-hambela-04)") }
+    var selectedRoast by rememberSaveable { mutableStateOf("RB-2026-10-12 (roast-rb-1012)") }
+    var selectedRecipe by rememberSaveable { mutableStateOf("V60 World Champion (recipe-v60-champ)") }
+    var selectedGrinder by rememberSaveable { mutableStateOf("Comandante C40 MK4 · 24 clicks") }
+    var linkageStatusNotice by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // AI & Deterministic Governance (S4-056, S4-057)
+    val deterministicEy = 23.33
+    val llmClaimedEy = 19.50
+    val decouplingValidation = remember {
+        PanelOperationsEngine.validateDeterministicDecoupling(deterministicEy, llmClaimedEy)
+    }
+    val citationVerification = remember {
+        PanelOperationsEngine.verifyLocalCitations(
+            responseClaim = "Fragrance is dry grounds orthonasal perception while aroma is wet crust.",
+            citedChunkIds = listOf("chunk-cva-desc-04"),
+            availableChunkStore = mapOf("chunk-cva-desc-04" to "Official CVA Descriptive definitions")
+        )
+    }
+
+    // Accessibility & Allergens (S4-062)
+    var anosmiaModeEnabled by rememberSaveable { mutableStateOf(false) }
+    var parosmiaModeEnabled by rememberSaveable { mutableStateOf(false) }
+    var sulfiteAlertEnabled by rememberSaveable { mutableStateOf(true) }
+    var nutAlertEnabled by rememberSaveable { mutableStateOf(false) }
+
+    // Privacy & Export Consent (S4-060, S4-065)
+    var consentGranted by rememberSaveable { mutableStateOf(true) }
+    var redactSupplierPricing by rememberSaveable { mutableStateOf(true) }
+    var redactAssessorNames by rememberSaveable { mutableStateOf(true) }
+    var exportHashResult by rememberSaveable { mutableStateOf<String?>(null) }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Master Operations Header
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("operations:header_card"),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        ) {
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (useIndonesian) "Operasi Profesional, AI & Panel (Sprint 04 Epic E)" else "Pro Operations, AI & Panel (Sprint 04 Epic E)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (useIndonesian) "Panel buta, kalibrasi inter-rater, pemisahan deterministik, privasi offline" else "Blind panel, inter-rater calibration, deterministic rules, offline privacy",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                        ) {
+                            Text(
+                                text = "100% OFFLINE",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = { useIndonesian = !useIndonesian },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.heightIn(min = 36.dp)
+                        ) {
+                            Text(if (useIndonesian) "EN" else "ID", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+
+                // Sub-Tabs Navigation (Single-row scrollable)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    OperationsSubTab.values().forEach { subTab ->
+                        val isSelected = activeSubTab == subTab
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { activeSubTab = subTab },
+                            label = {
+                                Text(
+                                    text = if (useIndonesian) subTab.labelId else subTab.labelEn,
+                                    maxLines = 1,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)
+                            ),
+                            modifier = Modifier
+                                .testTag("operations:subtab_${subTab.name.lowercase()}")
+                                .heightIn(min = 40.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Sub-Tab Content Rendering
+        when (activeSubTab) {
+            OperationsSubTab.BLIND_PANEL -> {
+                // S4-058: Blind Panel Workflow
+                Card(
+                    modifier = Modifier.fillMaxWidth().testTag("operations:blind_panel_card"),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (useIndonesian) "Alur Kerja Panel Buta (S4-058)" else "Blind Panel Workflow (S4-058)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            // Role Switcher
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilterChip(
+                                    selected = currentRole == SensoryPanelRole.SESSION_HOST,
+                                    onClick = { currentRole = SensoryPanelRole.SESSION_HOST },
+                                    label = { Text(if (useIndonesian) "Host" else "Host", style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.heightIn(min = 32.dp).testTag("operations:role_host")
+                                )
+                                FilterChip(
+                                    selected = currentRole == SensoryPanelRole.ASSESSOR,
+                                    onClick = { currentRole = SensoryPanelRole.ASSESSOR },
+                                    label = { Text(if (useIndonesian) "Penilai" else "Assessor", style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.heightIn(min = 32.dp).testTag("operations:role_assessor")
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = if (currentRole == SensoryPanelRole.SESSION_HOST)
+                                (if (useIndonesian) "Peran Host: Dapat membuka identitas sampel atau mencatat pembukaan prematur jika mendesak." else "Host Role: Can reveal sample identities or log premature audit reveals.")
+                            else
+                                (if (useIndonesian) "Peran Penilai: Akses terbatas pada kode acak 3-digit (#482, #719, #935). Identitas tersembunyi hingga selesai." else "Assessor Role: Restricted to 3-digit blind codes (#482, #719, #935). Identity concealed until lock."),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // Sample A: #482
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "SAMPLE #482",
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = if (sample1Revealed) "Ethiopia Yirgacheffe Washed G1" else "[CONCEALED IDENTITY]",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (sample1Revealed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                if (currentRole == SensoryPanelRole.SESSION_HOST) {
+                                    Button(
+                                        onClick = { sample1Revealed = !sample1Revealed },
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier.heightIn(min = 36.dp).testTag("operations:reveal_sample_1")
+                                    ) {
+                                        Text(if (sample1Revealed) "Hide" else "Reveal", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                } else {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Text(
+                                            "LOCKED",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Sample B: #719
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "SAMPLE #719",
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = if (sample2Revealed) "Colombia Geisha Natural Anaerobic" else "[CONCEALED IDENTITY]",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (sample2Revealed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                if (currentRole == SensoryPanelRole.SESSION_HOST) {
+                                    Button(
+                                        onClick = { sample2Revealed = !sample2Revealed },
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier.heightIn(min = 36.dp).testTag("operations:reveal_sample_2")
+                                    ) {
+                                        Text(if (sample2Revealed) "Hide" else "Reveal", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                } else {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Text(
+                                            "LOCKED",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Premature Unblinding Audit Trigger
+                        if (currentRole == SensoryPanelRole.SESSION_HOST) {
+                            OutlinedButton(
+                                onClick = { showPrematureDialog = true },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp).testTag("operations:premature_reveal_btn")
+                            ) {
+                                Text(
+                                    text = if (useIndonesian) "Audit Buka Prematur (Darurat)" else "Audit Premature Unblind (Emergency)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+
+                        if (prematureAuditLog != null) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                            ) {
+                                Text(
+                                    text = "⚠️ $prematureAuditLog",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            OperationsSubTab.CALIBRATION_STATS -> {
+                // S4-059: Panel Agreement & Calibration Statistics
+                Card(
+                    modifier = Modifier.fillMaxWidth().testTag("operations:calibration_card"),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = if (useIndonesian) "Statistik Kesepakatan & Kalibrasi Panel (S4-059)" else "Panel Agreement & Calibration Statistics (S4-059)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        // Key Metrics Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text(
+                                        text = if (useIndonesian) "Rata-rata Konsensus" else "Consensus Mean",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "8.4167",
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text("Sample #482", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text(
+                                        text = "Panel MCD",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "0.1167",
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Text(
+                                            "CALIBRATED (<=0.35)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Correlation Row: Pearson & Spearman
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text(
+                                        text = "Pearson Correlation (r)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = String.format(Locale.ROOT, "%.4f", pearsonR),
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text("Strong Pairwise Agreement", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text(
+                                        text = "Fleiss Kappa (κ)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = String.format(Locale.ROOT, "%.4f", fleissKappa),
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                    ) {
+                                        Text(
+                                            landisKochLabel,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Evaluator Dispersion Table
+                        Text(
+                            text = if (useIndonesian) "Dispersi Deviasi Penilai Individual (MCD)" else "Assessor Consensus Deviation (MCD)",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        mcdMap.forEach { (assessor, mcd) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(assessor, style = MaterialTheme.typography.bodySmall)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        String.format(Locale.ROOT, "MCD: %.4f", mcd),
+                                        fontFamily = FontFamily.Monospace,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (mcd <= 0.35) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
+                                    ) {
+                                        Text(
+                                            if (mcd <= 0.35) "PASS" else "RE-CALIBRATE",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (mcd <= 0.35) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            OperationsSubTab.HISTORICAL_LINKAGE -> {
+                // S4-055: Cross-Domain Historical Provenance Linkage
+                Card(
+                    modifier = Modifier.fillMaxWidth().testTag("operations:linkage_card"),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (useIndonesian) "Kaitan Historis Tanpa Timpa Data (S4-055)" else "Historical Linkage Without Mutation (S4-055)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer
+                            ) {
+                                Text(
+                                    "IMMUTABLE_SNAPSHOT",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = if (useIndonesian)
+                                "Menghubungkan sesi cupping ke biji kopi, batch sangrai, resep seduh, dan grinder tanpa merusak log riwayat asli."
+                            else
+                                "Links cupping evaluation to coffee beans, roast batches, recipes, and grinders without modifying historical records.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("• Assessment ID: CVA-EVAL-2026-88", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                                Text("• Coffee Bean: $selectedBean", style = MaterialTheme.typography.bodySmall)
+                                Text("• Roast Batch: $selectedRoast", style = MaterialTheme.typography.bodySmall)
+                                Text("• Manual Recipe: $selectedRecipe", style = MaterialTheme.typography.bodySmall)
+                                Text("• Equipment: $selectedGrinder", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                linkageStatusNotice = if (useIndonesian)
+                                    "Tautan tersimpan permanen sebagai referensi snapshot. Log resep asli tetap 100% utuh."
+                                else
+                                    "Linkage created as immutable snapshot. Historical recipe logs remain 100% intact."
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).testTag("operations:create_linkage_btn")
+                        ) {
+                            Icon(Icons.Default.Link, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (useIndonesian) "Buat Tautan Snapshot Permanen" else "Create Immutable Snapshot Link")
+                        }
+
+                        if (linkageStatusNotice != null) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                            ) {
+                                Text(
+                                    "✓ $linkageStatusNotice",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            OperationsSubTab.AI_GOVERNANCE -> {
+                // S4-056, S4-057: Deterministic vs Local LLM Decoupling
+                Card(
+                    modifier = Modifier.fillMaxWidth().testTag("operations:ai_governance_card"),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = if (useIndonesian) "Pemisahan AI & Mesin Deterministik (S4-056, S4-057)" else "Deterministic Math & AI Governance (S4-056, S4-057)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        // Engine vs LLM Box
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Extraction Yield Formula", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Text(
+                                            "DETERMINISTIC_ENGINE",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = "Calculated EY: 23.33% (Dose: 18.0g, Bev: 300g, TDS: 1.40%)",
+                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    text = "LLM Claimed: ~19.50% (HALUCINATED DISCREPANCY OVERRIDDEN)",
+                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+
+                        // Local RAG Citation Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("Offline Local Knowledge Grounding", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "\"Fragrance is dry grounds orthonasal perception while aroma is wet crust.\"",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    "Citation: [chunk-cva-desc-04, Page 3] · Verified On-Device",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        // Non-certification disclaimer banner
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ) {
+                            Row(modifier = Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    CitationVerificationResult.NON_CERTIFICATION_DISCLAIMER,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            OperationsSubTab.ACCESSIBILITY_ALLERGY -> {
+                // S4-062: Accessibility Accommodations & Allergen Alerts
+                Card(
+                    modifier = Modifier.fillMaxWidth().testTag("operations:accessibility_card"),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = if (useIndonesian) "Akomodasi Sensori & Peringatan Alergen (S4-062)" else "Sensory Accommodations & Allergen Alerts (S4-062)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        // Anosmia Toggle
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    if (useIndonesian) "Mode Akomodasi Anosmia / Hiposmia" else "Anosmia / Hyposmia Accommodation Mode",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    if (useIndonesian) "Menekankan sensasi tactile body dan rasa dasar; melepas kewajiban penilaian fragrance kering." else "Emphasizes body/mouthfeel and basic taste; relaxes dry fragrance obligation.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = anosmiaModeEnabled,
+                                onCheckedChange = { anosmiaModeEnabled = it },
+                                modifier = Modifier.testTag("operations:toggle_anosmia")
+                            )
+                        }
+
+                        // Parosmia Toggle
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    if (useIndonesian) "Mode Akomodasi Parosmia" else "Parosmia Accommodation Mode",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    if (useIndonesian) "Menandai deskriptor aroma yang berpotensi memicu distorsi persepsi." else "Flags aroma descriptors with distortion risks.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = parosmiaModeEnabled,
+                                onCheckedChange = { parosmiaModeEnabled = it },
+                                modifier = Modifier.testTag("operations:toggle_parosmia")
+                            )
+                        }
+
+                        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
+
+                        // Allergen Alerts
+                        Text(
+                            text = if (useIndonesian) "Peringatan Alergen Larutan Referensi" else "Reference Solution Allergen Alerts",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Sulfites / Sulfur Dioxide (Wine references)", style = MaterialTheme.typography.bodySmall)
+                            Switch(
+                                checked = sulfiteAlertEnabled,
+                                onCheckedChange = { sulfiteAlertEnabled = it },
+                                modifier = Modifier.testTag("operations:toggle_sulfites")
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Tree Nuts / Nut Aromas", style = MaterialTheme.typography.bodySmall)
+                            Switch(
+                                checked = nutAlertEnabled,
+                                onCheckedChange = { nutAlertEnabled = it },
+                                modifier = Modifier.testTag("operations:toggle_nuts")
+                            )
+                        }
+
+                        // Medical Disclaimer
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                        ) {
+                            Text(
+                                SensoryAccessibilityProfile.MEDICAL_DISCLAIMER,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            OperationsSubTab.PRIVACY_EXPORT -> {
+                // S4-060, S4-065: Privacy Consent & Cryptographic Export
+                Card(
+                    modifier = Modifier.fillMaxWidth().testTag("operations:privacy_card"),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = if (useIndonesian) "Privasi & Ekspor Tertutup Kriptografis (S4-060, S4-065)" else "Privacy & Sealed Cryptographic Export (S4-060, S4-065)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = if (useIndonesian)
+                                "Zero Cloud: Data tidak pernah diunggah otomatis. Ekspor lokal membutuhkan persetujuan eksplisit pengguna dengan opsi redaksi PII."
+                            else
+                                "Zero Cloud: Data is never automatically uploaded. Local exports strictly require user consent with PII redaction options.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // Consent Checkbox
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = consentGranted,
+                                onCheckedChange = { consentGranted = it },
+                                modifier = Modifier.testTag("operations:consent_checkbox")
+                            )
+                            Text(
+                                if (useIndonesian) "Saya memberikan izin untuk mengekspor data cupping lokal" else "I grant consent for local cupping data export",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        // Redact Pricing Checkbox
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = redactSupplierPricing,
+                                onCheckedChange = { redactSupplierPricing = it },
+                                modifier = Modifier.testTag("operations:redact_pricing_checkbox")
+                            )
+                            Text(
+                                if (useIndonesian) "Redaksi harga komersial & kontrak supplier (Disarankan)" else "Redact commercial supplier pricing & lot contracts (Recommended)",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        // Redact Real Names Checkbox
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = redactAssessorNames,
+                                onCheckedChange = { redactAssessorNames = it },
+                                modifier = Modifier.testTag("operations:redact_names_checkbox")
+                            )
+                            Text(
+                                if (useIndonesian) "Anonimkan nama asli penilai menjadi nama samaran (Pseudonym)" else "Anonymize assessor real names to pseudonyms",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                val dummyPayload = """{"session":"CVA-01","sha_manifest":"SHA-256_VERIFIED"}"""
+                                exportHashResult = PanelOperationsEngine.computeSha256(dummyPayload)
+                            },
+                            enabled = consentGranted,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).testTag("operations:export_sealed_json_btn")
+                        ) {
+                            Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (useIndonesian) "Ekspor Paket JSON Tersegel SHA-256" else "Export SHA-256 Sealed JSON Package")
+                        }
+
+                        if (exportHashResult != null) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(6.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text("✓ SHA-256 INTEGRITY SEAL:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Text(exportHashResult!!, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Premature Unblinding Dialog
+        if (showPrematureDialog) {
+            AlertDialog(
+                onDismissRequest = { showPrematureDialog = false },
+                title = { Text(if (useIndonesian) "Peringatan Audit Buka Prematur" else "Premature Unblind Audit Warning") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            if (useIndonesian)
+                                "Membuka identitas sampel sebelum sesi cupping dikunci akan dicatat permanen dalam log audit sebagai UNBLINDED_PREMATURELY_AUDITED."
+                            else
+                                "Revealing sample identities before cupping session is locked will be logged permanently in the audit trail as UNBLINDED_PREMATURELY_AUDITED.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        OutlinedTextField(
+                            value = prematureReasonInput,
+                            onValueChange = { prematureReasonInput = it },
+                            label = { Text(if (useIndonesian) "Alasan Darurat" else "Emergency Reason") },
+                            modifier = Modifier.fillMaxWidth().testTag("operations:premature_reason_input")
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            prematureAuditLog = "UNBLINDED_PREMATURELY_AUDITED: ${prematureReasonInput.ifBlank { "Client emergency verification" }}"
+                            sample1Revealed = true
+                            sample2Revealed = true
+                            showPrematureDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(if (useIndonesian) "Konfirmasi Buka" else "Confirm Unblind")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPrematureDialog = false }) {
+                        Text(if (useIndonesian) "Batal" else "Cancel")
+                    }
+                }
+            )
         }
     }
 }

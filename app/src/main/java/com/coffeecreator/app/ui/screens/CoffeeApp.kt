@@ -5541,7 +5541,8 @@ private enum class SensoryTab {
     ACADEMY,
     CVA_CUPPING,
     TRAINING_LAB,
-    GREEN_QC
+    GREEN_QC,
+    OPERATIONS
 }
 
 @Composable
@@ -5734,6 +5735,18 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                     },
                     leadingIcon = { Icon(Icons.Default.Spa, null, Modifier.padding(end = 4.dp)) },
                     modifier = Modifier.testTag("sensory:tab_green_qc").heightIn(min = 48.dp)
+                )
+                TactileFilterChip(
+                    selected = activeTab == SensoryTab.OPERATIONS,
+                    onClick = { activeTab = SensoryTab.OPERATIONS },
+                    label = {
+                        Text(
+                            "Pro Operations",
+                            fontWeight = if (activeTab == SensoryTab.OPERATIONS) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.Settings, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("sensory:tab_operations").heightIn(min = 48.dp)
                 )
             }
         }
@@ -6590,6 +6603,12 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
             SensoryTab.GREEN_QC -> {
                 item {
                     SensoryGreenGradingSection()
+                }
+            }
+
+            SensoryTab.OPERATIONS -> {
+                item {
+                    SensoryOperationsSection()
                 }
             }
         }
