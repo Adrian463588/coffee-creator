@@ -36,20 +36,20 @@
 
 ## 📦 Download & Installation
 
-### 🚀 Latest Release: v1.13.0 (Sprint 03 — Manual Brewing & Grinder Intelligence)
+### 🚀 Latest Release: v1.13.1 (Tactile Microinteractions & Anti-AI-Slop Refinement)
 | Artifact | Size | SHA-256 Checksum |
 |---|---|---|
-| [**Download coffee-creator-v1.13.0.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.0/coffee-creator-v1.13.0.apk) | `122 MB` (122,331,545 bytes) | `ba15137a41234ac79724952e2432d83c325e9a88803eecc6f3a0c838ae5caa52` |
+| [**Download coffee-creator-v1.13.1.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.1/coffee-creator-v1.13.1.apk) | `122.4 MB` (122,364,313 bytes) | `5b0a0f542cc2e0513b73fd430af555d44032f61810c1f3a62e2c3ff312ee233f` |
 
-- 📄 [Release Notes for v1.13.0](docs/releases/v1.13.0.md)
-- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.0/SHA256SUMS.txt)
+- 📄 [Release Notes for v1.13.1](docs/releases/v1.13.1.md)
+- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.1/SHA256SUMS.txt)
 - 📱 **Compatibility**: Android 8.0+ (API level 26 to 35). Architectures: `arm64-v8a`, `x86_64`. Tested on Samsung Galaxy S20 Ultra (`SM-G988B`, serial `RRCN3008VYE`, Android 13/API 33).
 
 ### 🛠️ Zero-Data-Loss ADB Installation (Recommended for Development)
 To install or upgrade the APK without deleting existing recipes, journal logs, sensory sessions, or Room database state, execute with `-r -d` flags:
 
 ```powershell
-adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.13.0.apk
+adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.13.1.apk
 ```
 > [!IMPORTANT]
 > The `-r` flag reinstalls the package while **preserving all user data**. The `-d` flag allows sidegrade/downgrade version code safety. Always specify `-s RRCN3008VYE` to target the designated test device. **Never** run `adb uninstall` if you wish to retain local records, as Android purges private databases and revokes SAF folder grants upon uninstallation.
@@ -60,6 +60,7 @@ adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.13.0.apk
 
 | Version | Release Date | Download APK | Release Highlights | SHA-256 Checksum |
 |:---:|:---:|:---:|:---|:---:|
+| **v1.13.1** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.1/coffee-creator-v1.13.1.apk) | [Notes](docs/releases/v1.13.1.md) · **Tactile Microinteractions & Anti-AI-Slop Refinement**: Semantic `MicroBadgePill`s (Hand/Electric/Verified/Filter-only), 3-tile monospace grind range grid (`fontFeatureSettings = "tnum"`), animated segmented valve toggle (`InteractiveValveSwitch`), numbered step-by-step zero calibration accordion, and zero text-wrapping distortion. | `5b0a0f542cc2e...` |
 | **v1.13.0** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.13.0/coffee-creator-v1.13.0.apk) | [Notes](docs/releases/v1.13.0.md) · **Sprint 03 Manual Brewing & Grinder Intelligence (`GR-01..12`, `BR-01..18`)**: 44-model grinder catalog with variants, zero calibration wizard, typed grind settings, manufacturer evidence overlay, 26-dripper catalog with qualitative flow classes, filter paper compatibility engine, reversible dial-in assistant, and designated ADB device targeting (`RRCN3008VYE`). | `ba15137a41234...` |
 | **v1.12.2** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.2/coffee-creator-v1.12.2.apk) | [Notes](docs/releases/v1.12.2.md) · **Tactile Microinteractions Full-Max & Anti-AI Slop**: Standardized `TactileButton`, `TactileOutlinedButton`, `TactileFilledTonalButton`, `TactileTextButton`, and `TactileFilterChip` with spring micro-depression (`scale = 0.97f`), haptics, single-line text bounds, and zero-data-loss `-r -d` deployment. | `f7358795ea6ee...` |
 | **v1.12.1** | 2026-10-17 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.12.1/coffee-creator-v1.12.1.apk) | [Notes](docs/releases/v1.12.1.md) · **Zero-Crash Resilience**: 5-tier resilient recipe resolution cascade (`resolveActiveRecipe`), defensive coroutines on scale connections, timer sessions, and scale tare operations. | `0b381b2367476...` |

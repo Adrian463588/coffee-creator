@@ -938,6 +938,165 @@ private fun TelemetryStatusPill(label: String, status: String, isActive: Boolean
 }
 
 @Composable
+private fun MicroBadgePill(
+    text: String,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f),
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = containerColor,
+        border = BorderStroke(1.dp, borderColor),
+        modifier = modifier
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontFeatureSettings = "tnum",
+                fontWeight = FontWeight.Medium
+            ),
+            color = contentColor,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
+
+@Composable
+private fun GrindRangeTile(
+    label: String,
+    range: String,
+    modifier: Modifier = Modifier,
+    isWarning: Boolean = false,
+    isVerified: Boolean = false
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (isWarning) {
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        },
+        border = BorderStroke(
+            1.dp,
+            if (isWarning) MaterialTheme.colorScheme.error.copy(alpha = 0.30f)
+            else if (isVerified) Color(0xFF2E7D32).copy(alpha = 0.35f)
+            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+        ),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (isVerified) {
+                    Text(
+                        text = "✓",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2E7D32)
+                    )
+                }
+            }
+            Text(
+                text = range,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontFeatureSettings = "tnum"
+                ),
+                color = if (isWarning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun InteractiveValveSwitch(
+    isOpen: Boolean,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = if (isOpen) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                border = if (isOpen) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)) else null,
+                modifier = Modifier
+                    .weight(1f)
+                    .tactilePress(onClick = { if (!isOpen) onToggle(true) })
+            ) {
+                Row(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "OPEN (Percolation)",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isOpen) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isOpen) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = if (!isOpen) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                border = if (!isOpen) BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.40f)) else null,
+                modifier = Modifier
+                    .weight(1f)
+                    .tactilePress(onClick = { if (isOpen) onToggle(false) })
+            ) {
+                Row(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "CLOSED (Immersion)",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (!isOpen) FontWeight.Bold else FontWeight.Normal,
+                        color = if (!isOpen) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun Field(label: String, value: String, onChange: (String) -> Unit, tag: String, numeric: Boolean = false) {
     OutlinedTextField(
         value = value,
@@ -1347,11 +1506,43 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             "form:select_dripper_model"
                                         )
                                         state.currentDripperFlowAdvice?.let { advice ->
-                                            Text(
-                                                "Dripper Flow: [${advice.flowClass.name}] · Drain: ${advice.qualitativeDrainSpeed}\nBaseline: ${advice.relativeGrindAdjustmentNote}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.20f),
+                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                            ) {
+                                                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        MicroBadgePill(
+                                                            text = advice.flowClass.name,
+                                                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                                            contentColor = MaterialTheme.colorScheme.primary,
+                                                            borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
+                                                        )
+                                                        MicroBadgePill(
+                                                            text = "Drain: ${advice.qualitativeDrainSpeed}",
+                                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f),
+                                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                    Text(
+                                                        text = advice.relativeGrindAdjustmentNote,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    advice.valveNotice?.let { vn ->
+                                                        Text(
+                                                            text = "💡 $vn",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.tertiary
+                                                        )
+                                                    }
+                                                }
+                                            }
                                         }
                                         Field("Equipment", fields.getValue("equipment"), {
                                             model.updateField("equipment", it)
@@ -2712,39 +2903,176 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         (query.isBlank() || listOf(g.brand, g.modelName, g.adjustmentMechanism).any { it.contains(query, true) })
                 }
                 items(filteredGrinders, key = { "grinder-cat-${it.id}" }) { grinder ->
-                    InfoCard(
-                        title = "${grinder.brand} — ${grinder.modelName}",
-                        detail = listOf(
-                            "[${grinder.type.name}] · [${grinder.adjustmentUnit.name}] · [${grinder.evidenceStatus.name}]",
-                            "Mechanism: ${grinder.adjustmentMechanism}",
-                            "Coarse (Tubruk/Cold Brew): ${grinder.rawCoarseRange}",
-                            "Medium (V60/Pour Over): ${grinder.rawMediumRange}",
-                            "Fine (Espresso): ${grinder.rawFineRange}" + if (!grinder.isEspressoCapable) " ⚠️ (Filter-only, not for espresso)" else "",
-                            if (grinder.verifiedRangeMedium != null) "Verified Range: ${grinder.verifiedRangeMedium}" else "",
-                            if (grinder.variants.isNotEmpty()) "Variants: " + grinder.variants.joinToString { it.name } else "",
-                            if (grinder.caveats.isNotEmpty()) "Notes: " + grinder.caveats.joinToString("; ") else "",
-                            if (selectedZeroGrinderId == grinder.id && grinder.safeZeroInstructions.isNotEmpty()) {
-                                "Zero Calibration Instructions:\n" + grinder.safeZeroInstructions.joinToString("\n• ", prefix = "• ")
-                            } else ""
-                        ).filter(String::isNotBlank).joinToString("\n")
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                     ) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (grinder.safeZeroInstructions.isNotEmpty()) {
-                                TactileTextButton(onClick = {
-                                    selectedZeroGrinderId = if (selectedZeroGrinderId == grinder.id) null else grinder.id
-                                }) {
-                                    Text(if (selectedZeroGrinderId == grinder.id) "Hide Zero Guide" else "Zero Calibration Guide", maxLines = 1, softWrap = false)
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "${grinder.brand} — ${grinder.modelName}",
+                                modifier = Modifier.semantics { heading() },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                MicroBadgePill(
+                                    text = grinder.type.name,
+                                    containerColor = if (grinder.type == GrinderType.HAND) Color(0xFF8D6E63).copy(alpha = 0.20f) else Color(0xFF3F51B5).copy(alpha = 0.20f),
+                                    contentColor = if (grinder.type == GrinderType.HAND) Color(0xFFD7CCC8) else Color(0xFFC5CAE9)
+                                )
+                                MicroBadgePill(text = grinder.adjustmentUnit.name.replace("_", " "))
+                                MicroBadgePill(
+                                    text = grinder.evidenceStatus.name.replace("_", " "),
+                                    containerColor = if (grinder.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) Color(0xFF2E7D32).copy(alpha = 0.20f) else Color(0xFFEF6C00).copy(alpha = 0.20f),
+                                    contentColor = if (grinder.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) Color(0xFF81C784) else Color(0xFFFFB74D)
+                                )
+                                if (!grinder.isEspressoCapable) {
+                                    MicroBadgePill(
+                                        text = "Filter Only",
+                                        containerColor = Color(0xFFC62828).copy(alpha = 0.20f),
+                                        contentColor = Color(0xFFEF9A9A)
+                                    )
                                 }
                             }
-                            TactileTextButton(onClick = {
-                                model.addUserGrinderProfile(grinder.id, grinder.modelName)
-                            }) {
-                                Text("+ Add to Owned", maxLines = 1, softWrap = false)
+                            Text(
+                                text = "Mechanism: ${grinder.adjustmentMechanism}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                GrindRangeTile(
+                                    label = "Coarse (Tubruk)",
+                                    range = grinder.rawCoarseRange,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                GrindRangeTile(
+                                    label = "Medium (V60)",
+                                    range = grinder.rawMediumRange,
+                                    isVerified = grinder.verifiedRangeMedium != null,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                GrindRangeTile(
+                                    label = "Fine (Espresso)",
+                                    range = if (grinder.isEspressoCapable) grinder.rawFineRange else "Filter Only",
+                                    isWarning = !grinder.isEspressoCapable,
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
-                            TactileTextButton(onClick = {
-                                model.selectGrinderModel(grinder.id)
-                            }) {
-                                Text("Select for Brew", maxLines = 1, softWrap = false)
+                            if (grinder.verifiedRangeMedium != null) {
+                                Text(
+                                    text = "Verified Range: ${grinder.verifiedRangeMedium}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF81C784)
+                                )
+                            }
+                            if (grinder.variants.isNotEmpty()) {
+                                Text(
+                                    text = "Variants: " + grinder.variants.joinToString { it.name },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (grinder.caveats.isNotEmpty()) {
+                                Text(
+                                    text = "Notes: " + grinder.caveats.joinToString("; "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (selectedZeroGrinderId == grinder.id && grinder.safeZeroInstructions.isNotEmpty()) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                "Zero Calibration Procedure",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            MicroBadgePill(
+                                                text = "Manufacturer Guide",
+                                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
+                                                contentColor = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        grinder.safeZeroInstructions.forEachIndexed { idx, step ->
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.Top
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(20.dp)
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.20f), CircleShape),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        "${idx + 1}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                                Text(
+                                                    step,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (grinder.safeZeroInstructions.isNotEmpty()) {
+                                    TactileOutlinedButton(
+                                        onClick = {
+                                            selectedZeroGrinderId = if (selectedZeroGrinderId == grinder.id) null else grinder.id
+                                        },
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(if (selectedZeroGrinderId == grinder.id) "Hide Zero Guide" else "Zero Calibration Guide", maxLines = 1, softWrap = false)
+                                    }
+                                }
+                                TactileFilledTonalButton(
+                                    onClick = {
+                                        model.addUserGrinderProfile(grinder.id, grinder.modelName)
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("+ Add to Owned", maxLines = 1, softWrap = false)
+                                }
+                                TactileButton(
+                                    onClick = {
+                                        model.selectGrinderModel(grinder.id)
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Select for Brew", maxLines = 1, softWrap = false)
+                                }
                             }
                         }
                     }
@@ -2762,41 +3090,130 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         dripper.id,
                         if (isValve) dripperValveStateToggle else ValveState.NOT_APPLICABLE
                     )
-                    InfoCard(
-                        title = dripper.name,
-                        detail = listOf(
-                            "[${dripper.geometry.name}] · [Flow: ${dripper.flowClass.name}] · [${dripper.flowMode.name}] · [${dripper.evidenceStatus.name}]",
-                            "Flow behavior: ${dripper.flowBehaviorDescription}",
-                            "Drain speed expectation: ${flowAdvice.qualitativeDrainSpeed}",
-                            "Grind relative to V60: ${dripper.grindBaselineRelativeToV60}",
-                            "Starting suggestion: ${dripper.startingGrindText}",
-                            if (isValve) "Valve Status: $dripperValveStateToggle (Toggle below)" else "",
-                            if (flowAdvice.valveNotice != null) flowAdvice.valveNotice else "",
-                            if (dripper.supportedBottomVariants.isNotEmpty()) "Interchangeable bottoms: " + dripper.supportedBottomVariants.joinToString(", ") else "",
-                            if (testFilterDripperId == dripper.id) {
-                                val c = DripperIntelligenceCatalog.checkFilterCompatibility(dripper.id, testFilterId)
-                                "Filter Check (${testFilterId}): [${c.statusText}] ${c.recommendationNote}"
-                            } else ""
-                        ).filter(String::isNotBlank).joinToString("\n")
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                     ) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (isValve) {
-                                TactileTextButton(onClick = {
-                                    dripperValveStateToggle = if (dripperValveStateToggle == ValveState.OPEN) ValveState.CLOSED else ValveState.OPEN
-                                    model.setValveState(dripperValveStateToggle)
-                                }) {
-                                    Text(if (dripperValveStateToggle == ValveState.OPEN) "Valve: OPEN (Tap to CLOSE)" else "Valve: CLOSED (Tap to OPEN)", maxLines = 1, softWrap = false)
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = dripper.name,
+                                modifier = Modifier.semantics { heading() },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                MicroBadgePill(text = dripper.geometry.name.replace("_", " "))
+                                MicroBadgePill(text = "Flow: ${dripper.flowClass.name.replace("_", " ")}")
+                                MicroBadgePill(text = dripper.flowMode.name.replace("_", " "))
+                                MicroBadgePill(
+                                    text = dripper.evidenceStatus.name.replace("_", " "),
+                                    containerColor = if (dripper.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) Color(0xFF2E7D32).copy(alpha = 0.20f) else Color(0xFFEF6C00).copy(alpha = 0.20f),
+                                    contentColor = if (dripper.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) Color(0xFF81C784) else Color(0xFFFFB74D)
+                                )
+                                if (isValve) {
+                                    MicroBadgePill(
+                                        text = "Valve Equipped",
+                                        containerColor = Color(0xFF7B1FA2).copy(alpha = 0.20f),
+                                        contentColor = Color(0xFFCE93D8)
+                                    )
                                 }
                             }
-                            TactileTextButton(onClick = {
-                                testFilterDripperId = if (testFilterDripperId == dripper.id) null else dripper.id
-                            }) {
-                                Text(if (testFilterDripperId == dripper.id) "Hide Filter Check" else "Check Filter Fit", maxLines = 1, softWrap = false)
+                            Text(
+                                text = "Flow behavior: ${dripper.flowBehaviorDescription}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            MicroBadgePill(
+                                text = "Drain: ${flowAdvice.qualitativeDrainSpeed}",
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f),
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Grind rel. to V60: ${dripper.grindBaselineRelativeToV60}",
+                                style = MaterialTheme.typography.bodySmall.copy(fontFeatureSettings = "tnum"),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Starting suggestion: ${dripper.startingGrindText}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (dripper.supportedBottomVariants.isNotEmpty()) {
+                                Text(
+                                    text = "Interchangeable bottoms: " + dripper.supportedBottomVariants.joinToString(", "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                            TactileTextButton(onClick = {
-                                model.selectDripperModel(dripper.id, if (isValve) dripperValveStateToggle else ValveState.NOT_APPLICABLE)
-                            }) {
-                                Text("Select for Brew", maxLines = 1, softWrap = false)
+                            if (isValve) {
+                                InteractiveValveSwitch(
+                                    isOpen = dripperValveStateToggle == ValveState.OPEN,
+                                    onToggle = { open ->
+                                        dripperValveStateToggle = if (open) ValveState.OPEN else ValveState.CLOSED
+                                        model.setValveState(dripperValveStateToggle)
+                                    }
+                                )
+                                flowAdvice.valveNotice?.let { vn ->
+                                    Text(
+                                        text = "💡 $vn",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
+                            }
+                            if (testFilterDripperId == dripper.id) {
+                                val c = DripperIntelligenceCatalog.checkFilterCompatibility(dripper.id, testFilterId)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        MicroBadgePill(
+                                            text = c.statusText,
+                                            containerColor = if (c.statusText == "RECOMMENDED_FIT") Color(0xFF2E7D32).copy(alpha = 0.20f) else Color(0xFFEF6C00).copy(alpha = 0.20f),
+                                            contentColor = if (c.statusText == "RECOMMENDED_FIT") Color(0xFF81C784) else Color(0xFFFFB74D)
+                                        )
+                                        Text(
+                                            text = "Filter ($testFilterId): ${c.recommendationNote}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TactileOutlinedButton(
+                                    onClick = {
+                                        testFilterDripperId = if (testFilterDripperId == dripper.id) null else dripper.id
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(if (testFilterDripperId == dripper.id) "Hide Filter Check" else "Check Filter Fit", maxLines = 1, softWrap = false)
+                                }
+                                TactileButton(
+                                    onClick = {
+                                        model.selectDripperModel(dripper.id, if (isValve) dripperValveStateToggle else ValveState.NOT_APPLICABLE)
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Select for Brew", maxLines = 1, softWrap = false)
+                                }
                             }
                         }
                     }
@@ -2837,27 +3254,62 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     }
                 }
                 items(state.userGrinderProfiles, key = { "profile-${it.id}" }) { profile ->
-                    InfoCard(
-                        title = profile.customName,
-                        detail = listOf(
-                            "Model ID: ${profile.grinderModelId}",
-                            "Zero Calibration Offset: ${profile.zeroCalibrationOffset}",
-                            "Burr Condition: ${profile.burrCondition}",
-                            if (profile.calibrationNotes.isNotBlank()) "Notes: ${profile.calibrationNotes}" else ""
-                        ).joinToString("\n")
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TactileTextButton(onClick = {
-                                val json = GrinderIntelligenceCatalog.exportProfileToJson(profile)
-                                exportProfileJson = json
-                                exportProfileDialog = true
-                            }) {
-                                Text("Export JSON", maxLines = 1, softWrap = false)
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = profile.customName.ifBlank { "Grinder Profile" },
+                                modifier = Modifier.semantics { heading() },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                MicroBadgePill(text = "Model: ${profile.grinderModelId}")
+                                MicroBadgePill(text = "Burr: ${profile.burrCondition}")
+                                MicroBadgePill(
+                                    text = "Offset: ${profile.zeroCalibrationOffset}",
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.30f),
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
                             }
-                            TactileTextButton(onClick = {
-                                model.deleteUserGrinderProfile(profile.id)
-                            }) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
+                            if (profile.calibrationNotes.isNotBlank()) {
+                                Text(
+                                    text = "Notes: ${profile.calibrationNotes}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TactileOutlinedButton(
+                                    onClick = {
+                                        val json = GrinderIntelligenceCatalog.exportProfileToJson(profile)
+                                        exportProfileJson = json
+                                        exportProfileDialog = true
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Export JSON", maxLines = 1, softWrap = false)
+                                }
+                                TactileOutlinedButton(
+                                    onClick = {
+                                        model.deleteUserGrinderProfile(profile.id)
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
+                                }
                             }
                         }
                     }
@@ -4505,17 +4957,26 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f))
                         ) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text("🎯 One-Variable-at-a-Time (OVAT) Recommendation", style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    "Target Variable: ${rec.targetVariable.name} → ${rec.direction.name}",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Text("Recommended Adjustment: ${rec.suggestedMagnitude}", style = MaterialTheme.typography.bodyMedium)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("🎯 OVAT Recommendation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    MicroBadgePill(
+                                        text = "${rec.targetVariable.name} → ${rec.direction.name}",
+                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Text("Adjustment: ${rec.suggestedMagnitude}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum"))
                                 Text("Physical Mechanism: ${rec.physicalReasoning}", style = MaterialTheme.typography.bodySmall)
-                                Text("Expected Extraction Impact: ${rec.expectedImpact}", style = MaterialTheme.typography.bodySmall)
+                                Text("Expected Impact: ${rec.expectedImpact}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -4543,19 +5004,57 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                         val delta = shot.brewDurationSeconds - it.targetDurationSeconds
                         " (Target: ${it.targetDurationSeconds}s, Δ: ${delta}s)"
                     }.orEmpty()
-                    InfoCard(
-                        "Espresso Shot: ${shot.beanName}",
-                        listOf(
-                            "Dose: ${shot.doseGrams}g$doseTarget",
-                            "Liquid Yield: ${liquidYield}g$yieldTarget",
-                            "Shot Time: ${shot.brewDurationSeconds}s$timeTarget",
-                            "Mean Flow Rate: ${esp?.meanFlowRateGps ?: "—"} g/s · TDS: ${shot.measuredTdsPercent ?: "—"}%",
-                            "Puck Prep: ${esp?.puckPrepMethods?.joinToString(", ") ?: "Standard Tamp"}",
-                            "Grind Setting: ${shot.grinderModel} [${shot.grindSetting}]"
-                        ).joinToString("\n")
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                     ) {
-                        TactileButton(onClick = { model.evaluateOvatForEntry(shot) }) {
-                            Text("Diagnose with OVAT Coach", maxLines = 1, softWrap = false)
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                text = "Espresso Shot: ${shot.beanName}",
+                                modifier = Modifier.semantics { heading() },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (shot.grinderModel.isNotBlank()) MicroBadgePill(text = "Grinder: ${shot.grinderModel}")
+                                if (shot.grindSetting.isNotBlank()) MicroBadgePill(text = "Setting: ${shot.grindSetting}")
+                                if (esp?.meanFlowRateGps != null) MicroBadgePill(text = "Flow: ${esp.meanFlowRateGps} g/s")
+                                if (shot.measuredTdsPercent != null) MicroBadgePill(text = "TDS: ${shot.measuredTdsPercent}%")
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                GrindRangeTile(
+                                    label = "Dose",
+                                    range = "${shot.doseGrams}g",
+                                    modifier = Modifier.weight(1f)
+                                )
+                                GrindRangeTile(
+                                    label = "Yield",
+                                    range = "${liquidYield}g",
+                                    modifier = Modifier.weight(1f)
+                                )
+                                GrindRangeTile(
+                                    label = "Time",
+                                    range = "${shot.brewDurationSeconds}s",
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (doseTarget.isNotBlank() || yieldTarget.isNotBlank() || timeTarget.isNotBlank()) {
+                                Text(
+                                    text = "Targets & Deltas: $doseTarget $yieldTarget $timeTarget".trim(),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontFeatureSettings = "tnum"),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            TactileButton(onClick = { model.evaluateOvatForEntry(shot) }) {
+                                Text("Diagnose with OVAT Coach", maxLines = 1, softWrap = false)
+                            }
                         }
                     }
                 }
