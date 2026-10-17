@@ -399,15 +399,25 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
             },
             bottomBar = {
                 if (!expanded) {
-                    NavigationBar {
-                        destinations.forEach { destination ->
-                            NavigationBarItem(
-                                selected = route == destination.route,
-                                onClick = { navigate(destination.route) },
-                                icon = { Icon(destination.icon, contentDescription = null) },
-                                label = { Text(destination.label) },
-                                modifier = Modifier.testTag("nav:${destination.route}")
-                            )
+                    val haptic = LocalHapticFeedback.current
+                    Column {
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+                        NavigationBar {
+                            destinations.forEach { destination ->
+                                NavigationBarItem(
+                                    selected = route == destination.route,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        navigate(destination.route)
+                                    },
+                                    icon = { Icon(destination.icon, contentDescription = null) },
+                                    label = { Text(destination.label, maxLines = 1, softWrap = false) },
+                                    modifier = Modifier.testTag("nav:${destination.route}")
+                                )
+                            }
                         }
                     }
                 }
@@ -415,13 +425,17 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
         ) { padding ->
             Row(Modifier.fillMaxSize().padding(padding)) {
                 if (expanded) {
+                    val haptic = LocalHapticFeedback.current
                     NavigationRail(Modifier.fillMaxHeight()) {
                         destinations.forEach { destination ->
                             NavigationRailItem(
                                 selected = route == destination.route,
-                                onClick = { navigate(destination.route) },
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    navigate(destination.route)
+                                },
                                 icon = { Icon(destination.icon, null) },
-                                label = { Text(destination.label) },
+                                label = { Text(destination.label, maxLines = 1, softWrap = false) },
                                 modifier = Modifier.testTag("nav:${destination.route}")
                             )
                         }
@@ -465,7 +479,7 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                                     },
                                     style = MaterialTheme.typography.bodyMedium
                                 )
-                                TextButton(onClick = model::clearNotice) { Text("Dismiss") }
+                                TactileTextButton(onClick = model::clearNotice) { Text("Dismiss", maxLines = 1, softWrap = false) }
                             }
                         }
                     }
@@ -474,11 +488,11 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                         enter = fadeIn() + expandVertically(),
                         exit = fadeOut() + shrinkVertically()
                     ) {
-                        TextButton(
+                        TactileTextButton(
                             onClick = model::undoDraftChange,
                             enabled = !state.busy,
                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                        ) { Text("Undo draft change") }
+                        ) { Text("Undo draft change", maxLines = 1, softWrap = false) }
                     }
                     NavHost(navController, startDestination = "Home", modifier = Modifier.weight(1f)) {
                         composable("Home") {
@@ -523,8 +537,16 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                     }
                 )
             },
-            confirmButton = { TextButton(onClick = model::confirmDeletion, enabled = !state.busy) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = model::cancelDeletion) { Text("Keep record") } }
+            confirmButton = {
+                TactileTextButton(onClick = model::confirmDeletion, enabled = !state.busy) {
+                    Text("Delete", maxLines = 1, softWrap = false)
+                }
+            },
+            dismissButton = {
+                TactileTextButton(onClick = model::cancelDeletion) {
+                    Text("Keep record", maxLines = 1, softWrap = false)
+                }
+            }
         )
     }
     state.inspectedChunk?.let { chunk ->
@@ -536,8 +558,10 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                 state.sourceOpenError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         }, confirmButton = {
-            TextButton(onClick = { model.openOriginal(context) }) { Text("Open original") }
-        }, dismissButton = { TextButton(onClick = { model.inspectChunk(null) }) { Text("Close") } })
+            TactileTextButton(onClick = { model.openOriginal(context) }) { Text("Open original", maxLines = 1, softWrap = false) }
+        }, dismissButton = {
+            TactileTextButton(onClick = { model.inspectChunk(null) }) { Text("Close", maxLines = 1, softWrap = false) }
+        })
     }
 }
 
@@ -751,6 +775,114 @@ private fun TactileOutlinedButton(
 }
 
 @Composable
+private fun TactileFilledTonalButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.filledTonalButtonColors(),
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.97f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "filledTonalButtonTactileScale"
+    )
+    FilledTonalButton(
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
+        enabled = enabled,
+        colors = colors,
+        shape = shape,
+        contentPadding = contentPadding,
+        interactionSource = interactionSource,
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+        content = content
+    )
+}
+
+@Composable
+private fun TactileTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.textButtonColors(),
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
+    contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.97f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "textButtonTactileScale"
+    )
+    TextButton(
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
+        enabled = enabled,
+        colors = colors,
+        shape = shape,
+        contentPadding = contentPadding,
+        interactionSource = interactionSource,
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+        content = content
+    )
+}
+
+@Composable
+private fun Modifier.tactilePress(enabled: Boolean = true, scaleDown: Float = 0.97f, onClick: (() -> Unit)? = null): Modifier {
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) scaleDown else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "tactilePressScale"
+    )
+    return this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .then(
+            if (onClick != null) {
+                Modifier.clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    enabled = enabled,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onClick()
+                    }
+                )
+            } else {
+                Modifier
+            }
+        )
+}
+
+@Composable
 private fun TelemetryStatusPill(label: String, status: String, isActive: Boolean, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(6.dp),
@@ -864,7 +996,11 @@ private fun Select(label: String, selected: String, choices: List<Pair<String, S
 @Composable
 private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String) -> Unit) = Page("Home") {
     item {
-        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
+        ) {
             Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.Coffee, contentDescription = null)
@@ -877,14 +1013,14 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
                     fontWeight = FontWeight.Bold
                 )
                 Text("Plan a recipe, measure your brew, then keep what you learned.", style = MaterialTheme.typography.bodyLarge)
-                Button(
+                TactileButton(
                     onClick = {
                         model.newRecipe()
                         navigate("Formulate")
                     },
                     enabled = state.ready && !state.busy,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("home:new")
-                ) { Text("New recipe") }
+                ) { Text("New recipe", maxLines = 1, softWrap = false) }
             }
         }
     }
@@ -895,7 +1031,9 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
                 "Manual tools work without an AI model. Documents and chat stay on this device. Only a " +
                     "download you request uses the network."
             ) {
-                Button(onClick = model::finishOnboarding, enabled = !state.busy) { Text("Continue offline") }
+                TactileButton(onClick = model::finishOnboarding, enabled = !state.busy) {
+                    Text("Continue offline", maxLines = 1, softWrap = false)
+                }
             }
         }
     }
@@ -938,32 +1076,39 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
                 Triple("Sensory", "Tasting radar & observations", Icons.Default.Psychology),
                 Triple("Settings", "Storage, export & reset", Icons.Default.Settings)
             )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 navItems.forEach { (target, subtitle, icon) ->
                     Surface(
                         onClick = { navigate(target) },
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
                         modifier = Modifier
-                            .heightIn(min = 48.dp)
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                            .tactilePress(onClick = { navigate(target) })
                             .testTag("home:nav:$target")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Column {
-                                Text(target, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    target,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                                 Text(
                                     subtitle,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -982,10 +1127,10 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
             "${recipe.name} · v${recipe.version}",
             "${recipe.doseGrams} g coffee / ${recipe.waterGrams} g water · ${recipe.brewMethod}"
         ) {
-            TextButton(onClick = {
+            TactileTextButton(onClick = {
                 model.editRecipe(recipe)
                 navigate("Formulate")
-            }) { Text("Repeat / edit") }
+            }) { Text("Repeat / edit", maxLines = 1, softWrap = false) }
         }
     }
 }
@@ -1043,7 +1188,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 singleLine = true,
                                                 modifier = Modifier.weight(1f).testTag("form:custom_bean")
                                             )
-                                            Button(
+                                            TactileButton(
                                                 onClick = {
                                                     val name = customBeanText.trim()
                                                     if (name.isNotBlank()) {
@@ -1067,7 +1212,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 enabled = customBeanText.isNotBlank() && !state.busy,
                                                 modifier = Modifier.heightIn(min = 48.dp).testTag("form:add_custom_bean")
                                             ) {
-                                                Text("Apply bean")
+                                                Text("Apply bean", maxLines = 1, softWrap = false)
                                             }
                                         }
                                         Select(
@@ -1102,18 +1247,18 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text("Scale:", style = MaterialTheme.typography.labelMedium)
-                                            OutlinedButton(
+                                            TactileOutlinedButton(
                                                 onClick = { model.scaleDraft(HALF_RECIPE_SCALE) },
-                                                modifier = Modifier.heightIn(min = 36.dp).testTag("form:scale:0.5")
-                                            ) { Text("0.5x") }
-                                            OutlinedButton(
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("form:scale:0.5")
+                                            ) { Text("0.5x", maxLines = 1, softWrap = false) }
+                                            TactileOutlinedButton(
                                                 onClick = { model.scaleDraft(ONE_AND_HALF_RECIPE_SCALE) },
-                                                modifier = Modifier.heightIn(min = 36.dp).testTag("form:scale:1.5")
-                                            ) { Text("1.5x") }
-                                            OutlinedButton(
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("form:scale:1.5")
+                                            ) { Text("1.5x", maxLines = 1, softWrap = false) }
+                                            TactileOutlinedButton(
                                                 onClick = { model.scaleDraft(2.0) },
-                                                modifier = Modifier.heightIn(min = 36.dp).testTag("form:scale:2.0")
-                                            ) { Text("2.0x") }
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("form:scale:2.0")
+                                            ) { Text("2.0x", maxLines = 1, softWrap = false) }
                                         }
                                     }
                                 }
@@ -1159,26 +1304,29 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            OutlinedButton(
+                                            TactileOutlinedButton(
                                                 onClick = {
                                                     val r = runCatching { state.draft.build(state.ingredients) }.getOrNull()
                                                     if (r != null) model.shareRecipe(context, r, formatJson = false)
                                                 },
-                                                modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("form:share_card")
-                                            ) { Text("Share Card") }
-                                            OutlinedButton(
+                                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:share_card")
+                                            ) { Text("Share Card", maxLines = 1, softWrap = false) }
+                                            TactileOutlinedButton(
                                                 onClick = {
                                                     val r = runCatching { state.draft.build(state.ingredients) }.getOrNull()
                                                     if (r != null) model.shareRecipe(context, r, formatJson = true)
                                                 },
-                                                modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("form:share_json")
-                                            ) { Text("Share JSON") }
+                                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:share_json")
+                                            ) { Text("Share JSON", maxLines = 1, softWrap = false) }
                                         }
                                     }
                                 }
                                 item {
-                                    TextButton(onClick = model::newRecipe, modifier = Modifier.heightIn(min = 48.dp).testTag("form:new")) {
-                                        Text("Start a separate recipe")
+                                    TactileTextButton(
+                                        onClick = model::newRecipe,
+                                        modifier = Modifier.heightIn(min = 48.dp).testTag("form:new")
+                                    ) {
+                                        Text("Start a separate recipe", maxLines = 1, softWrap = false)
                                     }
                                 }
                             }
@@ -1220,12 +1368,12 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             { model.updateField("brixProfile", it) },
                                             "form:brix_profile"
                                         )
-                                        Button(
+                                        TactileButton(
                                             onClick = model::convertDraftBrix,
                                             enabled = fields.getValue("brix").isNotBlank() && !state.busy,
                                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("form:convert_brix")
                                         ) {
-                                            Text("Convert Brix → TDS & Apply")
+                                            Text("Convert Brix → TDS & Apply", maxLines = 1, softWrap = false)
                                         }
                                     }
                                 }
@@ -1265,11 +1413,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                         Field("Ingredient quantity", quantity, { quantity = it }, "form:quantity", true)
                                         Select("Unit", unit, listOf("g", "mg", "mL").map { it to it }, { unit = it }, "form:unit")
                                         Field("Density (g/mL), optional override", density, { density = it }, "form:density", true)
-                                        OutlinedButton(
+                                        TactileOutlinedButton(
                                             onClick = { model.addLine(ingredientId, quantity, unit, density) },
                                             enabled = ingredientId.isNotBlank() && !state.busy,
                                             modifier = Modifier.heightIn(min = 48.dp)
-                                        ) { Text("Add ingredient") }
+                                        ) { Text("Add ingredient", maxLines = 1, softWrap = false) }
                                     }
                                 }
                                 if (state.draft.lines.isEmpty()) {
@@ -1286,11 +1434,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                         state.ingredients.find { it.id == line.ingredientId }?.name ?: "Unknown ingredient",
                                         "${line.quantity} ${line.unit}; food-grade and supplier limits checked on save"
                                     ) {
-                                        TextButton(
+                                        TactileTextButton(
                                             onClick = { model.removeLine(indexed.index) },
                                             modifier = Modifier.heightIn(min = 48.dp)
                                         ) {
-                                            Text("Remove line")
+                                            Text("Remove line", maxLines = 1, softWrap = false)
                                         }
                                     }
                                 }
@@ -1299,7 +1447,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                         val allergens = state.draft.lines.flatMap { line ->
                                             state.ingredients.find { it.id == line.ingredientId }?.allergens.orEmpty()
                                         }.distinct().joinToString().ifBlank { "none declared; verify supplier" }
-                                        FilterChip(
+                                        TactileFilterChip(
                                             selected = fields["allergens"] == "yes",
                                             onClick = { model.updateField("allergens", if (fields["allergens"] == "yes") "" else "yes") },
                                             label = { Text("Acknowledge listed ingredient allergens: $allergens") },
@@ -1341,7 +1489,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 scienceInputs = scienceInputs + (key to it)
                                             }, "science:$key", true)
                                         }
-                                        Button(onClick = {
+                                        TactileButton(onClick = {
                                             val tool = when (science) {
                                                 "Dilution" -> "calculate_dilution"
                                                 "Concentration" -> "calculate_concentration_ppm"
@@ -1352,7 +1500,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 scienceFields.associate { it.first to scienceInputs[it.first].orEmpty() }
                                             )
                                         }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp)) {
-                                            Text("Calculate ${science.lowercase()}")
+                                            Text("Calculate ${science.lowercase()}", maxLines = 1, softWrap = false)
                                         }
                                     }
                                 }
@@ -1361,11 +1509,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                             BrewSection.Steps -> {
                                 item {
                                     BrewCard("Ordered pour steps", "Action, timing, pour water, temperature and valve state.") {
-                                        Button(
+                                        TactileButton(
                                             onClick = model::addDraftStep,
                                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("steps:add")
                                         ) {
-                                            Text("+ Add pour step")
+                                            Text("+ Add pour step", maxLines = 1, softWrap = false)
                                         }
                                     }
                                 }
@@ -1434,11 +1582,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 label = { Text("Description") },
                                                 modifier = Modifier.fillMaxWidth().testTag("step:desc:$index")
                                             )
-                                            TextButton(
+                                            TactileTextButton(
                                                 onClick = { model.removeDraftStep(index) },
-                                                modifier = Modifier.testTag("step:remove:$index")
+                                                modifier = Modifier.heightIn(min = 48.dp).testTag("step:remove:$index")
                                             ) {
-                                                Text("Remove step")
+                                                Text("Remove step", maxLines = 1, softWrap = false)
                                             }
                                         }
                                     }
@@ -1696,29 +1844,29 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                                 ) {
                                                     if (session?.scaleDevice == null) {
-                                                        FilledTonalButton(
+                                                        TactileFilledTonalButton(
                                                             onClick = model::connectMockScale,
                                                             modifier = Modifier.weight(
                                                                 1f
-                                                            ).heightIn(min = 44.dp).testTag("timer:connect_scale")
+                                                            ).heightIn(min = 48.dp).testTag("timer:connect_scale")
                                                         ) {
-                                                            Text("Connect Scale")
+                                                            Text("Connect Scale", maxLines = 1, softWrap = false)
                                                         }
                                                     } else {
-                                                        OutlinedButton(
+                                                        TactileOutlinedButton(
                                                             onClick = model::disconnectScale,
                                                             modifier = Modifier.weight(
                                                                 1f
-                                                            ).heightIn(min = 44.dp).testTag("timer:disconnect_scale")
+                                                            ).heightIn(min = 48.dp).testTag("timer:disconnect_scale")
                                                         ) {
-                                                            Text("Disconnect")
+                                                            Text("Disconnect", maxLines = 1, softWrap = false)
                                                         }
                                                     }
-                                                    Button(
+                                                    TactileButton(
                                                         onClick = model::tareScale,
-                                                        modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("timer:tare_scale")
+                                                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:tare_scale")
                                                     ) {
-                                                        Text("Tare (0.0g)")
+                                                        Text("Tare (0.0g)", maxLines = 1, softWrap = false)
                                                     }
                                                 }
 
@@ -1729,7 +1877,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                     ) {
                                                         SIMULATED_POUR_INCREMENT_GRAMS.forEach { delta ->
-                                                            OutlinedButton(
+                                                            TactileOutlinedButton(
                                                                 onClick = {
                                                                     model.feedSimulatedWeight(
                                                                         (session.currentWeightGrams + delta)
@@ -1737,9 +1885,9 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                                 },
                                                                 modifier = Modifier.weight(
                                                                     1f
-                                                                ).heightIn(min = 40.dp).testTag("timer:sim_pour_${delta.toInt()}")
+                                                                ).heightIn(min = 48.dp).testTag("timer:sim_pour_${delta.toInt()}")
                                                             ) {
-                                                                Text("+${delta.toInt()}g")
+                                                                Text("+${delta.toInt()}g", maxLines = 1, softWrap = false)
                                                             }
                                                         }
                                                     }
@@ -1779,7 +1927,9 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                     "Start Session"
                                                 },
                                                 style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false
                                             )
                                         }
 
@@ -1788,42 +1938,47 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
-                                            OutlinedButton(
+                                            TactileOutlinedButton(
                                                 onClick = model::skipBrewStep,
                                                 enabled = session != null && session.status != BrewExecutionStatus.COMPLETED,
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("timer:skip_step")
+                                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:skip_step")
                                             ) {
-                                                Text("Skip", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                                Text("Skip", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false)
                                             }
-                                            OutlinedButton(
+                                            TactileOutlinedButton(
                                                 onClick = model::restartBrewStep,
                                                 enabled = session != null,
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                                                 modifier = Modifier
                                                     .weight(TIMER_RESTART_ACTION_WEIGHT)
-                                                    .heightIn(min = 44.dp)
+                                                    .heightIn(min = 48.dp)
                                                     .testTag("timer:restart_step")
                                             ) {
-                                                Text("Restart", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                                Text("Restart", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false)
                                             }
-                                            OutlinedButton(
+                                            TactileOutlinedButton(
                                                 onClick = model::resetBrewSession,
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier.weight(1f).heightIn(min = 44.dp).testTag("timer:reset")
+                                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:reset")
                                             ) {
-                                                Text("Reset", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                                Text("Reset", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false)
                                             }
-                                            FilledTonalButton(
+                                            TactileFilledTonalButton(
                                                 onClick = model::finishBrewSession,
                                                 enabled = session != null && (state.timerSeconds > 0 || session.currentWeightGrams > 0.0),
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                                                 modifier = Modifier
                                                     .weight(TIMER_FINISH_ACTION_WEIGHT)
-                                                    .heightIn(min = 44.dp)
+                                                    .heightIn(min = 48.dp)
                                                     .testTag("timer:finish_and_log")
                                             ) {
-                                                Text("Finish & Log", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                                Text(
+                                                    "Finish & Log",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    maxLines = 1,
+                                                    softWrap = false
+                                                )
                                             }
                                         }
 
@@ -1832,22 +1987,22 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            FilterChip(
+                                            TactileFilterChip(
                                                 selected = session?.keepScreenOn ?: true,
                                                 onClick = model::toggleKeepScreenOn,
-                                                label = { Text("Screen Awake") },
+                                                label = { Text("Screen Awake", maxLines = 1, softWrap = false) },
                                                 modifier = Modifier.testTag("timer:toggle_awake")
                                             )
-                                            FilterChip(
+                                            TactileFilterChip(
                                                 selected = session?.audioEnabled ?: true,
                                                 onClick = model::toggleSound,
-                                                label = { Text("Audio") },
+                                                label = { Text("Audio", maxLines = 1, softWrap = false) },
                                                 modifier = Modifier.testTag("timer:toggle_sound")
                                             )
-                                            FilterChip(
+                                            TactileFilterChip(
                                                 selected = session?.hapticsEnabled ?: true,
                                                 onClick = model::toggleHaptics,
-                                                label = { Text("Haptics") },
+                                                label = { Text("Haptics", maxLines = 1, softWrap = false) },
                                                 modifier = Modifier.testTag("timer:toggle_haptics")
                                             )
                                         }
@@ -1925,7 +2080,7 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                     } else {
                         "Review calculation"
                     }
-                    TextButton(
+                    TactileTextButton(
                         onClick = { selectedSection = BrewSection.Measurements.name },
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:ratio")
                     ) {
@@ -1937,10 +2092,16 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                             },
                             label = "ratioAnimation"
                         ) { targetText ->
-                            Text(targetText, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                targetText,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
-                    Button(
+                    TactileButton(
                         onClick = {
                             focusManager.clearFocus()
                             keyboardController?.hide()
@@ -1957,7 +2118,12 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                             },
                             label = "saveLabelAnimation"
                         ) { isNew ->
-                            Text(if (isNew) "Save recipe" else "Save new revision", maxLines = 2)
+                            Text(
+                                if (isNew) "Save recipe" else "Save new revision",
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
@@ -2148,7 +2314,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
         if (tab == "Beans & Bags" || tab == "Coffee") {
             item {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
+                    TactileButton(
                         onClick = {
                             formKind = "Coffee"
                             editingId = null
@@ -2156,20 +2322,21 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         },
                         modifier = Modifier.heightIn(min = 48.dp).testTag("library:add")
                     ) {
-                        Text("+ Add Bean Record")
+                        Text("+ Add Bean Record", maxLines = 1, softWrap = false)
                     }
-                    OutlinedButton(
+                    TactileOutlinedButton(
                         onClick = {
                             ocrDialogVisible = true
                         },
                         modifier = Modifier.heightIn(min = 48.dp).testTag("library:photo_scan")
                     ) {
-                        Text("Scan a label")
+                        Text("Scan a label", maxLines = 1, softWrap = false)
                     }
-                    FilterChip(
+                    TactileFilterChip(
                         selected = favoritesOnly,
                         onClick = { favoritesOnly = !favoritesOnly },
-                        label = { Text(if (favoritesOnly) "★ Favorites Only" else "☆ All Beans") }
+                        label = { Text(if (favoritesOnly) "★ Favorites Only" else "☆ All Beans") },
+                        modifier = Modifier.heightIn(min = 48.dp)
                     )
                 }
             }
@@ -2184,10 +2351,10 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     ) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
                         Text("Recognizing the label on this device. Your photo stays local.")
-                        TextButton(
+                        TactileTextButton(
                             onClick = model::cancelCatalogPhotoOcr,
                             modifier = Modifier.heightIn(min = 48.dp).testTag("library:cancel_photo_scan")
-                        ) { Text("Cancel scan") }
+                        ) { Text("Cancel scan", maxLines = 1, softWrap = false) }
                     }
                 }
             }
@@ -2199,7 +2366,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     InfoCard("Photo scan needs attention", error) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (lastPhotoUri != null) {
-                                TextButton(
+                                TactileTextButton(
                                     onClick = {
                                         lastPhotoUri?.let { photoUri ->
                                             model.scanCatalogPhoto(
@@ -2210,12 +2377,12 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                         }
                                     },
                                     modifier = Modifier.heightIn(min = 48.dp).testTag("library:retry_photo_scan")
-                                ) { Text("Retry") }
+                                ) { Text("Retry", maxLines = 1, softWrap = false) }
                             }
-                            TextButton(
+                            TactileTextButton(
                                 onClick = { ocrDialogVisible = true },
                                 modifier = Modifier.heightIn(min = 48.dp).testTag("library:reselect_photo")
-                            ) { Text("Choose another photo") }
+                            ) { Text("Choose another photo", maxLines = 1, softWrap = false) }
                         }
                     }
                 }
@@ -2261,24 +2428,24 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (bean.photoUri != null) {
-                                TextButton(
+                                TactileTextButton(
                                     onClick = { openSourcePhoto(bean.photoUri) },
                                     modifier = Modifier.heightIn(min = 48.dp).testTag("library:open_bean_photo")
-                                ) { Text("View label photo") }
+                                ) { Text("View label photo", maxLines = 1, softWrap = false) }
                             }
-                            TextButton(onClick = { model.toggleBeanFavorite(bean.id) }) {
-                                Text(if (bean.isFavorite) "★ Favorited" else "☆ Add Favorite")
+                            TactileTextButton(onClick = { model.toggleBeanFavorite(bean.id) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                                Text(if (bean.isFavorite) "★ Favorited" else "☆ Add Favorite", maxLines = 1, softWrap = false)
                             }
-                            TextButton(onClick = {
+                            TactileTextButton(onClick = {
                                 addingBagBeanId = bean.id
                                 bagPackageMassText = ""
                                 bagRemainingMassText = ""
                                 bagPriceText = ""
-                            }) {
-                                Text("+ Add bag")
+                            }, modifier = Modifier.heightIn(min = 48.dp)) {
+                                Text("+ Add bag", maxLines = 1, softWrap = false)
                             }
-                            TextButton(onClick = { model.deleteDetailedBean(bean.id) }) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            TactileTextButton(onClick = { model.deleteDetailedBean(bean.id) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
                             }
                         }
 
@@ -2412,12 +2579,16 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     }
                 ) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = {
+                        TactileTextButton(onClick = {
                             formKind = "Coffee"
                             editingId = bean.id
                             form = beanForm(bean)
-                        }) { Text("Edit coffee") }
-                        if (!bean.isCuratedSeed) TextButton(onClick = { model.requestDeletion("bean", bean.id) }) { Text("Delete coffee") }
+                        }) { Text("Edit coffee", maxLines = 1, softWrap = false) }
+                        if (!bean.isCuratedSeed) {
+                            TactileTextButton(onClick = { model.requestDeletion("bean", bean.id) }) {
+                                Text("Delete coffee", maxLines = 1, softWrap = false)
+                            }
+                        }
                     }
                 }
             }
@@ -2428,13 +2599,13 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
         // ====================================================================
         if (tab == "Grinders & Gear") {
             item {
-                OutlinedButton(
+                TactileOutlinedButton(
                     onClick = {
                         ocrTargetName = CatalogPhotoTarget.EQUIPMENT.name
                         ocrDialogVisible = true
                     },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("library:scan_equipment_photo")
-                ) { Text("Add equipment from label photo") }
+                ) { Text("Add equipment from label photo", maxLines = 1, softWrap = false) }
             }
             item {
                 val gearCategories =
@@ -2464,11 +2635,11 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         ).filter { it.isNotBlank() }.joinToString("\n")
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { model.toggleGrinderFavorite(grinder.id) }) {
-                                Text(if (grinder.isFavorite) "★ Favorited" else "☆ Add Favorite")
+                            TactileTextButton(onClick = { model.toggleGrinderFavorite(grinder.id) }) {
+                                Text(if (grinder.isFavorite) "★ Favorited" else "☆ Add Favorite", maxLines = 1, softWrap = false)
                             }
-                            TextButton(onClick = { model.deleteGrinder(grinder.id) }) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            TactileTextButton(onClick = { model.deleteGrinder(grinder.id) }) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
                             }
                         }
                     }
@@ -2493,16 +2664,16 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (item.photoUri != null) {
-                                TextButton(
+                                TactileTextButton(
                                     onClick = { openSourcePhoto(item.photoUri) },
                                     modifier = Modifier.heightIn(min = 48.dp).testTag("library:open_equipment_photo")
-                                ) { Text("View label photo") }
+                                ) { Text("View label photo", maxLines = 1, softWrap = false) }
                             }
-                            TextButton(onClick = { model.toggleEquipmentFavorite(item.id) }) {
-                                Text(if (item.isFavorite) "★ Favorited" else "☆ Add Favorite")
+                            TactileTextButton(onClick = { model.toggleEquipmentFavorite(item.id) }) {
+                                Text(if (item.isFavorite) "★ Favorited" else "☆ Add Favorite", maxLines = 1, softWrap = false)
                             }
-                            TextButton(onClick = { model.deleteEquipmentItem(item.id) }) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            TactileTextButton(onClick = { model.deleteEquipmentItem(item.id) }) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
                             }
                         }
                     }
@@ -2529,7 +2700,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         "Preset Type: ${water.preset.name}"
                     ).joinToString("\n")
                 ) {
-                    TextButton(onClick = {
+                    TactileTextButton(onClick = {
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_SUBJECT, water.name)
@@ -2543,7 +2714,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Share Water Profile"))
                     }) {
-                        Text("Share Profile")
+                        Text("Share Profile", maxLines = 1, softWrap = false)
                     }
                 }
             }
@@ -2634,7 +2805,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
             }
             item {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
+                    TactileButton(onClick = {
                         val json = model.exportCatalogJson()
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "application/json"
@@ -2643,9 +2814,9 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Export Catalog JSON"))
                     }) {
-                        Text("Export Catalog (JSON)")
+                        Text("Export Catalog (JSON)", maxLines = 1, softWrap = false)
                     }
-                    OutlinedButton(onClick = {
+                    TactileOutlinedButton(onClick = {
                         val csv = model.exportBeansCsv()
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/csv"
@@ -2654,7 +2825,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Export Beans (CSV)"))
                     }) {
-                        Text("Export Beans (CSV)")
+                        Text("Export Beans (CSV)", maxLines = 1, softWrap = false)
                     }
                 }
             }
@@ -2687,21 +2858,21 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                             Text("Conflict Resolution Strategy:", style = MaterialTheme.typography.labelMedium)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 ConflictResolutionStrategy.values().forEach { strategy ->
-                                    FilterChip(
+                                    TactileFilterChip(
                                         selected = selectedStrategy == strategy,
                                         onClick = { selectedStrategy = strategy },
-                                        label = { Text(strategy.name) }
+                                        label = { Text(strategy.name, maxLines = 1, softWrap = false) }
                                     )
                                 }
                             }
-                            Button(
+                            TactileButton(
                                 onClick = {
                                     model.executeCatalogImport(importJsonText, selectedStrategy)
                                     importJsonText = ""
                                 },
                                 enabled = preview.totalRecords > 0
                             ) {
-                                Text("Execute Import (${selectedStrategy.name})")
+                                Text("Execute Import (${selectedStrategy.name})", maxLines = 1, softWrap = false)
                             }
                         }
                     }
@@ -2731,16 +2902,16 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(
+                TactileButton(
                     onClick = {
                         model.addBagToBean(beanId, requireNotNull(packageMass), requireNotNull(remainingMass))
                         addingBagBeanId = null
                     },
                     enabled = packageMass != null && remainingMass != null,
                     modifier = Modifier.heightIn(min = 48.dp).testTag("library:add_bag_confirm")
-                ) { Text("Save inventory") }
+                ) { Text("Save inventory", maxLines = 1, softWrap = false) }
             },
-            dismissButton = { TextButton(onClick = { addingBagBeanId = null }) { Text("Cancel") } }
+            dismissButton = { TactileTextButton(onClick = { addingBagBeanId = null }) { Text("Cancel", maxLines = 1, softWrap = false) } }
         )
     }
 
@@ -2756,15 +2927,15 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(
+                TactileButton(
                     onClick = {
                         if (model.deductDoseFromBag(bagId, requireNotNull(doseMass))) deductingBagId = null
                     },
                     enabled = doseMass != null,
                     modifier = Modifier.heightIn(min = 48.dp).testTag("library:bag_dose_confirm")
-                ) { Text("Record dose") }
+                ) { Text("Record dose", maxLines = 1, softWrap = false) }
             },
-            dismissButton = { TextButton(onClick = { deductingBagId = null }) { Text("Cancel") } }
+            dismissButton = { TactileTextButton(onClick = { deductingBagId = null }) { Text("Cancel", maxLines = 1, softWrap = false) } }
         )
     }
 
@@ -2781,30 +2952,30 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         style = MaterialTheme.typography.bodySmall
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
+                        TactileFilterChip(
                             selected = ocrTargetName == CatalogPhotoTarget.BEAN.name,
                             onClick = { ocrTargetName = CatalogPhotoTarget.BEAN.name },
-                            label = { Text("Coffee bag") },
+                            label = { Text("Coffee bag", maxLines = 1, softWrap = false) },
                             modifier = Modifier.heightIn(min = 48.dp).testTag("ocr:target_bean")
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = ocrTargetName == CatalogPhotoTarget.EQUIPMENT.name,
                             onClick = { ocrTargetName = CatalogPhotoTarget.EQUIPMENT.name },
-                            label = { Text("Equipment") },
+                            label = { Text("Equipment", maxLines = 1, softWrap = false) },
                             modifier = Modifier.heightIn(min = 48.dp).testTag("ocr:target_equipment")
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
+                        TactileButton(
                             onClick = ::startCameraCapture,
                             enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !state.busy,
                             modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("ocr:take_photo")
-                        ) { Text("Take photo") }
-                        OutlinedButton(
+                        ) { Text("Take photo", maxLines = 1, softWrap = false) }
+                        TactileOutlinedButton(
                             onClick = { imagePicker.launch(arrayOf("image/jpeg", "image/png", "image/webp")) },
                             enabled = !state.busy,
                             modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("ocr:choose_photo")
-                        ) { Text("Choose photo") }
+                        ) { Text("Choose photo", maxLines = 1, softWrap = false) }
                     }
                     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                         Text("System camera capture is available on Android 10 and later. Photo selection works on this device.")
@@ -2817,7 +2988,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         label = { Text("Label text") },
                         modifier = Modifier.fillMaxWidth().height(LABEL_INPUT_HEIGHT_DP.dp).testTag("ocr:manual_text")
                     )
-                    Button(
+                    TactileButton(
                         onClick = {
                             when (CatalogPhotoTarget.valueOf(ocrTargetName)) {
                                 CatalogPhotoTarget.BEAN -> model.parseBagOcr(null, ocrSampleText)
@@ -2828,13 +2999,13 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                         enabled = ocrSampleText.isNotBlank(),
                         modifier = Modifier.heightIn(min = 48.dp).testTag("ocr:review_manual_text")
                     ) {
-                        Text("Review entered text")
+                        Text("Review entered text", maxLines = 1, softWrap = false)
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { ocrDialogVisible = false }) { Text("Cancel") }
+                TactileTextButton(onClick = { ocrDialogVisible = false }) { Text("Cancel", maxLines = 1, softWrap = false) }
             }
         )
     }
@@ -2906,7 +3077,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(
+                TactileButton(
                     onClick = {
                         val beanId = UUID.randomUUID().toString()
                         val bags = if (packageMass != null && remainingMass != null) {
@@ -2942,11 +3113,11 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     },
                     enabled = editName.isNotBlank() && validAltitude && validRoastDate && validInventory && !state.busy
                 ) {
-                    Text("Confirm & Save Bean")
+                    Text("Confirm & Save Bean", maxLines = 1, softWrap = false)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { model.dismissOcrDraft() }) { Text("Discard Draft") }
+                TactileTextButton(onClick = { model.dismissOcrDraft() }) { Text("Discard Draft", maxLines = 1, softWrap = false) }
             }
         )
     }
@@ -2990,7 +3161,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(
+                TactileButton(
                     onClick = {
                         model.confirmEquipmentOcrDraft(
                             EquipmentItem(
@@ -3004,11 +3175,11 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     },
                     enabled = selectedCategory.isNotBlank() && !state.busy,
                     modifier = Modifier.heightIn(min = 48.dp).testTag("ocr:equipment_confirm")
-                ) { Text("Confirm & Save Equipment") }
+                ) { Text("Confirm & Save Equipment", maxLines = 1, softWrap = false) }
             },
             dismissButton = {
-                TextButton(onClick = model::dismissEquipmentOcrDraft, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text("Discard Draft")
+                TactileTextButton(onClick = model::dismissEquipmentOcrDraft, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Discard Draft", maxLines = 1, softWrap = false)
                 }
             }
         )
@@ -3065,7 +3236,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                TextButton(
+                TactileTextButton(
                     onClick = {
                         val values = form + ("name" to form["name"].orEmpty())
                         if (kind == "Coffee") {
@@ -3096,10 +3267,10 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     enabled = form["name"].orEmpty().isNotBlank() && validCoffeeMetadata && !state.busy,
                     modifier = Modifier.testTag("catalog:save")
                 ) {
-                    Text("Save entry")
+                    Text("Save entry", maxLines = 1, softWrap = false)
                 }
             },
-            dismissButton = { TextButton(onClick = { formKind = null }) { Text("Cancel") } }
+            dismissButton = { TactileTextButton(onClick = { formKind = null }) { Text("Cancel", maxLines = 1, softWrap = false) } }
         )
     }
 }
@@ -3421,7 +3592,7 @@ private fun ChampionRecipeCard(
                     Text("Log Brew", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                 }
 
-                FilledTonalButton(
+                TactileFilledTonalButton(
                     onClick = onBrewOnTimer,
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
@@ -3431,7 +3602,7 @@ private fun ChampionRecipeCard(
                     Text("Brew Timer", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                 }
 
-                OutlinedButton(
+                TactileOutlinedButton(
                     onClick = onSaveTemplate,
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
@@ -3586,11 +3757,11 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                         Box(Modifier.weight(1f)) {
                             Field("Search brews / beans / notes", query, { query = it }, "journal:query")
                         }
-                        FilterChip(
+                        TactileFilterChip(
                             selected = showArchived,
                             onClick = { showArchived = !showArchived },
                             label = { Text("Archived") },
-                            modifier = Modifier.testTag("journal:show_archived")
+                            modifier = Modifier.heightIn(min = 44.dp).testTag("journal:show_archived")
                         )
                     }
                 }
@@ -3624,28 +3795,28 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Button(
+                        TactileButton(
                             onClick = { model.repeatLastBrew() },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.weight(1.2f).height(38.dp).testTag("journal:repeat_last_brew")
+                            modifier = Modifier.weight(1.2f).heightIn(min = 44.dp).testTag("journal:repeat_last_brew")
                         ) {
                             Text("⚡ Repeat Last", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
-                        FilledTonalButton(
+                        TactileFilledTonalButton(
                             onClick = { activeTab = JournalTab.CHAMPION_RECIPES },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.weight(1.1f).height(38.dp).testTag("journal:nav_champion_recipes")
+                            modifier = Modifier.weight(1.1f).heightIn(min = 44.dp).testTag("journal:nav_champion_recipes")
                         ) {
                             Icon(Icons.Default.Star, null, Modifier.size(16.dp).padding(end = 4.dp))
                             Text("World (80)", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
-                        OutlinedButton(
+                        TactileOutlinedButton(
                             onClick = { model.exportJournalCsv(context) },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.height(38.dp).testTag("journal:export_csv_quick")
+                            modifier = Modifier.heightIn(min = 44.dp).testTag("journal:export_csv_quick")
                         ) {
                             Text("Export CSV", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
@@ -3705,27 +3876,39 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             val recipe = state.recipes.find { it.id == entry.recipeId }
                             if (recipe != null) {
-                                TextButton(onClick = { edit(recipe) }, modifier = Modifier.testTag("journal:edit:${recipe.id}")) {
-                                    Text("Repeat / edit")
+                                TactileTextButton(
+                                    onClick = { edit(recipe) },
+                                    modifier = Modifier.heightIn(min = 44.dp).testTag("journal:edit:${recipe.id}")
+                                ) {
+                                    Text("Repeat / edit", maxLines = 1, softWrap = false)
                                 }
                             }
-                            TextButton(onClick = {
+                            TactileTextButton(onClick = {
                                 model.selectComparisonSlot(entry, "A")
                                 activeTab = JournalTab.COMPARISON
-                            }) { Text("Set Slot A") }
-                            TextButton(onClick = {
+                            }, modifier = Modifier.heightIn(min = 44.dp)) { Text("Set Slot A", maxLines = 1, softWrap = false) }
+                            TactileTextButton(onClick = {
                                 model.selectComparisonSlot(entry, "B")
                                 activeTab = JournalTab.COMPARISON
-                            }) { Text("Set Slot B") }
-                            TextButton(onClick = {
+                            }, modifier = Modifier.heightIn(min = 44.dp)) { Text("Set Slot B", maxLines = 1, softWrap = false) }
+                            TactileTextButton(onClick = {
                                 model.evaluateOvatForEntry(entry)
                                 activeTab = JournalTab.DIAL_IN
-                            }) { Text("OVAT Coach") }
-                            TextButton(onClick = {
+                            }, modifier = Modifier.heightIn(min = 44.dp)) { Text("OVAT Coach", maxLines = 1, softWrap = false) }
+                            TactileTextButton(onClick = {
                                 model.saveEntryAsTemplate(entry, "${entry.beanName} ${entry.brewMethod}")
-                            }) { Text("Save Template") }
-                            TextButton(onClick = { editingJournalNotesEntry = entry.id }) { Text("Wheel Notes") }
-                            TextButton(onClick = { model.deleteJournalEntry(entry.id) }) { Text("Delete") }
+                            }, modifier = Modifier.heightIn(min = 44.dp)) { Text("Save Template", maxLines = 1, softWrap = false) }
+                            TactileTextButton(onClick = {
+                                editingJournalNotesEntry = entry.id
+                            }, modifier = Modifier.heightIn(min = 44.dp)) { Text("Wheel Notes", maxLines = 1, softWrap = false) }
+                            TactileTextButton(
+                                onClick = {
+                                    model.deleteJournalEntry(entry.id)
+                                },
+                                modifier = Modifier.heightIn(
+                                    min = 44.dp
+                                )
+                            ) { Text("Delete", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false) }
                         }
                     }
                 }
@@ -3754,15 +3937,18 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             ).joinToString("\n")
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(
+                                TactileButton(
                                     onClick = { edit(recipe) },
-                                    modifier = Modifier.testTag("journal:edit:${recipe.id}")
+                                    modifier = Modifier.heightIn(min = 44.dp).testTag("journal:edit:${recipe.id}")
                                 ) {
-                                    Text("Edit / Revision")
+                                    Text("Edit / Revision", maxLines = 1, softWrap = false)
                                 }
                                 if (state.recipes.count { it.revisionGroupId == recipe.revisionGroupId } > 1) {
-                                    OutlinedButton(onClick = { comparing = recipe.revisionGroupId }) {
-                                        Text("Compare versions")
+                                    TactileOutlinedButton(
+                                        onClick = { comparing = recipe.revisionGroupId },
+                                        modifier = Modifier.heightIn(min = 44.dp)
+                                    ) {
+                                        Text("Compare versions", maxLines = 1, softWrap = false)
                                     }
                                 }
                             }
@@ -3787,15 +3973,15 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             )
                         }
                         if (championQuery.isNotBlank() || selectedChampionCategory != null || selectedChampionMethod != "All") {
-                            TextButton(
+                            TactileTextButton(
                                 onClick = {
                                     championQuery = ""
                                     selectedChampionCategory = null
                                     selectedChampionMethod = "All"
                                 },
-                                modifier = Modifier.testTag("champion:reset_filters")
+                                modifier = Modifier.heightIn(min = 44.dp).testTag("champion:reset_filters")
                             ) {
-                                Text("Reset")
+                                Text("Reset", maxLines = 1, softWrap = false)
                             }
                         }
                     }
@@ -4030,8 +4216,8 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             "Grind Setting: ${shot.grinderModel} [${shot.grindSetting}]"
                         ).joinToString("\n")
                     ) {
-                        Button(onClick = { model.evaluateOvatForEntry(shot) }) {
-                            Text("Diagnose with OVAT Coach")
+                        TactileButton(onClick = { model.evaluateOvatForEntry(shot) }) {
+                            Text("Diagnose with OVAT Coach", maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -4079,8 +4265,8 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
 
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { model.clearComparison() }) {
-                            Text("Clear Comparison")
+                        TactileOutlinedButton(onClick = { model.clearComparison() }) {
+                            Text("Clear Comparison", maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -4157,8 +4343,12 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("${entry.beanName} (${entry.brewMethod})", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = { model.selectComparisonSlot(entry, "A") }) { Text("Slot A") }
-                        TextButton(onClick = { model.selectComparisonSlot(entry, "B") }) { Text("Slot B") }
+                        TactileTextButton(onClick = { model.selectComparisonSlot(entry, "A") }) {
+                            Text("Slot A", maxLines = 1, softWrap = false)
+                        }
+                        TactileTextButton(onClick = { model.selectComparisonSlot(entry, "B") }) {
+                            Text("Slot B", maxLines = 1, softWrap = false)
+                        }
                     }
                 }
             }
@@ -4242,29 +4432,29 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 )
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                FilterChip(
+                                TactileFilterChip(
                                     selected = caffeineArabicaFraction >= 0.99,
                                     onClick = {
                                         caffeineArabicaFraction = 1.0
                                         model.estimateCaffeineForDose(caffeineDoseInput, 1.0)
                                     },
-                                    label = { Text("100% Arabica") }
+                                    label = { Text("100% Arabica", maxLines = 1, softWrap = false) }
                                 )
-                                FilterChip(
+                                TactileFilterChip(
                                     selected = caffeineArabicaFraction in 0.4..0.6,
                                     onClick = {
                                         caffeineArabicaFraction = CAFFEINE_BLEND_ARABICA_FRACTION
                                         model.estimateCaffeineForDose(caffeineDoseInput, CAFFEINE_BLEND_ARABICA_FRACTION)
                                     },
-                                    label = { Text("50/50 Blend") }
+                                    label = { Text("50/50 Blend", maxLines = 1, softWrap = false) }
                                 )
-                                FilterChip(
+                                TactileFilterChip(
                                     selected = caffeineArabicaFraction <= 0.01,
                                     onClick = {
                                         caffeineArabicaFraction = 0.0
                                         model.estimateCaffeineForDose(caffeineDoseInput, 0.0)
                                     },
-                                    label = { Text("100% Robusta") }
+                                    label = { Text("100% Robusta", maxLines = 1, softWrap = false) }
                                 )
                             }
                             state.activeCaffeineEstimate?.let { est ->
@@ -4322,7 +4512,7 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 Field("Tasting Notes", newCafeNotes, { newCafeNotes = it }, "cafecup:notes")
                                 val cafeRating = newCafeRating.toDoubleOrNull()?.takeIf { it.isFinite() && it in 1.0..10.0 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = {
+                                    TactileButton(onClick = {
                                         if (newCafeName.isNotBlank() && newDrinkName.isNotBlank() && cafeRating != null) {
                                             model.saveCafeCup(
                                                 CafeCupEntry(
@@ -4344,9 +4534,11 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                             showAddCafeDialog = false
                                         }
                                     }, enabled = newCafeName.isNotBlank() && newDrinkName.isNotBlank() && cafeRating != null) {
-                                        Text("Save Cafe Cup")
+                                        Text("Save Cafe Cup", maxLines = 1, softWrap = false)
                                     }
-                                    TextButton(onClick = { showAddCafeDialog = false }) { Text("Cancel") }
+                                    TactileTextButton(onClick = { showAddCafeDialog = false }) {
+                                        Text("Cancel", maxLines = 1, softWrap = false)
+                                    }
                                 }
                             }
                         }
@@ -4366,7 +4558,9 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             if (cup.notes.isNotBlank()) "\"${cup.notes}\"" else ""
                         ).filter { it.isNotBlank() }.joinToString("\n")
                     ) {
-                        TextButton(onClick = { model.deleteCafeCup(cup.id) }) { Text("Delete") }
+                        TactileTextButton(onClick = { model.deleteCafeCup(cup.id) }) {
+                            Text("Delete", maxLines = 1, softWrap = false)
+                        }
                     }
                 }
             }
@@ -4377,8 +4571,8 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                         "Data Portability & Migration (S2-047, S2-048)",
                         "Export complete journal history to standard CSV or import JSON backups from Beanconqueror."
                     ) {
-                        Button(onClick = { model.exportJournalCsv(context) }) {
-                            Text("Export Journal to CSV")
+                        TactileButton(onClick = { model.exportJournalCsv(context) }) {
+                            Text("Export Journal to CSV", maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -4397,7 +4591,7 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 label = { Text("Beanconqueror JSON payload") },
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp)
                             )
-                            Button(
+                            TactileButton(
                                 onClick = {
                                     if (beanconquerorJsonInput.isNotBlank()) {
                                         model.importBeanconquerorJson(beanconquerorJsonInput)
@@ -4406,7 +4600,7 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 },
                                 enabled = beanconquerorJsonInput.isNotBlank()
                             ) {
-                                Text("Import Beanconqueror Records")
+                                Text("Import Beanconqueror Records", maxLines = 1, softWrap = false)
                             }
                         }
                     }
@@ -4427,15 +4621,15 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp)
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(
+                                TactileButton(
                                     onClick = { model.previewBackup(backupJsonInput) },
                                     enabled = backupJsonInput.isNotBlank()
                                 ) {
-                                    Text("Preview Conflicts")
+                                    Text("Preview Conflicts", maxLines = 1, softWrap = false)
                                 }
                                 if (state.importConflictPreview != null) {
-                                    TextButton(onClick = { model.clearConflictPreview() }) {
-                                        Text("Clear Preview")
+                                    TactileTextButton(onClick = { model.clearConflictPreview() }) {
+                                        Text("Clear Preview", maxLines = 1, softWrap = false)
                                     }
                                 }
                             }
@@ -4903,19 +5097,19 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    FilledTonalButton(onClick = { model.selectCuppingSession(session.id) }) {
+                                    TactileFilledTonalButton(onClick = { model.selectCuppingSession(session.id) }) {
                                         Text(if (isSelected) "Active Session" else "Select Session", maxLines = 1, softWrap = false)
                                     }
                                     if (session.status == SessionStatus.OPEN) {
-                                        OutlinedButton(onClick = { model.closeCuppingSession(session.id) }) {
+                                        TactileOutlinedButton(onClick = { model.closeCuppingSession(session.id) }) {
                                             Text("Close & Lock", maxLines = 1, softWrap = false)
                                         }
                                     } else if (session.status == SessionStatus.CLOSED) {
-                                        OutlinedButton(onClick = { showReopenDialog = true }) {
+                                        TactileOutlinedButton(onClick = { showReopenDialog = true }) {
                                             Text("Reopen...", maxLines = 1, softWrap = false)
                                         }
                                     }
-                                    Button(onClick = { model.exportSessionQcReport(session.id) }) {
+                                    TactileButton(onClick = { model.exportSessionQcReport(session.id) }) {
                                         Text("Export QC", maxLines = 1, softWrap = false)
                                     }
                                 }
@@ -4954,8 +5148,10 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                         if (sample.isRevealed) {
                                             Text("Revealed Identity", style = MaterialTheme.typography.labelSmall)
                                         } else {
-                                            OutlinedButton(onClick = { model.revealCuppingSample(activeSession.id, sample.sampleId) }) {
-                                                Text("Reveal Identity")
+                                            TactileOutlinedButton(
+                                                onClick = { model.revealCuppingSample(activeSession.id, sample.sampleId) }
+                                            ) {
+                                                Text("Reveal Identity", maxLines = 1, softWrap = false)
                                             }
                                         }
                                     }
@@ -4989,7 +5185,7 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Button(
+                                        TactileButton(
                                             onClick = {
                                                 scoringSample = sample.sampleId
                                                 evaluatorIdInput = activeSession.evaluators.firstOrNull()?.id ?: ""
@@ -4999,14 +5195,14 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                                         ) {
                                             Text("Score Sample", maxLines = 1, softWrap = false)
                                         }
-                                        FilledTonalButton(onClick = {
+                                        TactileFilledTonalButton(onClick = {
                                             model.selectCuppingSession(activeSession.id)
                                             model.selectCuppingSample(sample.sampleId)
                                             activeTab = SensoryTab.CONSENSUS
                                         }) {
                                             Text("View Consensus", maxLines = 1, softWrap = false)
                                         }
-                                        OutlinedButton(onClick = {
+                                        TactileOutlinedButton(onClick = {
                                             model.logCuppingSampleToJournal(activeSession.id, sample.sampleId)
                                         }) {
                                             Text("Log to Journal", maxLines = 1, softWrap = false)
@@ -5515,19 +5711,21 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            FilterChip(
+                            TactileFilterChip(
                                 selected = newSessionTemplate == type,
                                 onClick = { newSessionTemplate = type },
-                                label = { Text(type.name.replace('_', ' ')) }
+                                label = { Text(type.name.replace('_', ' ')) },
+                                modifier = Modifier.heightIn(min = 44.dp)
                             )
                         }
                     }
                     Text("Masking Mode:", style = MaterialTheme.typography.labelMedium)
                     MaskingMode.values().forEach { mode ->
-                        FilterChip(
+                        TactileFilterChip(
                             selected = newSessionMasking == mode,
                             onClick = { newSessionMasking = mode },
-                            label = { Text(mode.name.replace('_', ' ')) }
+                            label = { Text(mode.name.replace('_', ' ')) },
+                            modifier = Modifier.heightIn(min = 44.dp)
                         )
                     }
                     OutlinedTextField(
@@ -5545,7 +5743,7 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(
+                TactileButton(
                     onClick = {
                         val evals = newSessionEvaluators.split(',').map { it.trim() }.filter { it.isNotBlank() }
                         val samples = newSessionSamples.split(',').map { it.trim() }.filter { it.isNotBlank() }
@@ -5561,14 +5759,15 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                     },
                     enabled = newSessionTitle.isNotBlank() &&
                         newSessionEvaluators.split(',').any { it.isNotBlank() } &&
-                        newSessionSamples.split(',').any { it.isNotBlank() }
+                        newSessionSamples.split(',').any { it.isNotBlank() },
+                    modifier = Modifier.heightIn(min = 48.dp)
                 ) {
-                    Text("Create Session")
+                    Text("Create Session", maxLines = 1, softWrap = false)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateSessionDialog = false }) {
-                    Text("Cancel")
+                TactileTextButton(onClick = { showCreateSessionDialog = false }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Cancel", maxLines = 1, softWrap = false)
                 }
             }
         )
@@ -5607,10 +5806,11 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 ) {
                     Text("Evaluator:", style = MaterialTheme.typography.labelMedium)
                     activeSession.evaluators.forEach { eval ->
-                        FilterChip(
+                        TactileFilterChip(
                             selected = evaluatorIdInput == eval.id,
                             onClick = { evaluatorIdInput = eval.id },
-                            label = { Text("${eval.name} (${eval.role.name})") }
+                            label = { Text("${eval.name} (${eval.role.name})") },
+                            modifier = Modifier.heightIn(min = 44.dp)
                         )
                     }
 
@@ -5657,10 +5857,10 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold
                         )
-                        TextButton(onClick = { showWheelPickerForSample = true }) {
+                        TactileTextButton(onClick = { showWheelPickerForSample = true }, modifier = Modifier.heightIn(min = 44.dp)) {
                             Icon(Icons.Default.Psychology, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Pick from Wheel")
+                            Text("Pick from Wheel", maxLines = 1, softWrap = false)
                         }
                     }
 
@@ -5726,7 +5926,7 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(
+                TactileButton(
                     onClick = {
                         val scores = dynamicScores.mapValues {
                             BigDecimal(it.value.toDouble()).setScale(2, RoundingMode.HALF_UP)
@@ -5749,14 +5949,15 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                     enabled = dynamicScores.keys == template.attributes.map { it.key }.toSet() &&
                         activeSession.evaluators.any { it.id == evaluatorIdInput } &&
                         scoreTaints.toIntOrNull()?.let { it >= 0 } == true &&
-                        scoreFaults.toIntOrNull()?.let { it >= 0 } == true
+                        scoreFaults.toIntOrNull()?.let { it >= 0 } == true,
+                    modifier = Modifier.heightIn(min = 48.dp)
                 ) {
-                    Text("Submit Score")
+                    Text("Submit Score", maxLines = 1, softWrap = false)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { scoringSample = null }) {
-                    Text("Cancel")
+                TactileTextButton(onClick = { scoringSample = null }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Cancel", maxLines = 1, softWrap = false)
                 }
             }
         )
@@ -5780,20 +5981,20 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(onClick = {
+                TactileButton(onClick = {
                     model.reopenCuppingSession(
                         activeSession.id,
                         activeSession.evaluators.firstOrNull()?.id ?: "lead",
                         reopenReasonInput
                     )
                     showReopenDialog = false
-                }) {
-                    Text("Reopen Session")
+                }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Reopen Session", maxLines = 1, softWrap = false)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showReopenDialog = false }) {
-                    Text("Cancel")
+                TactileTextButton(onClick = { showReopenDialog = false }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Cancel", maxLines = 1, softWrap = false)
                 }
             }
         )
@@ -5822,8 +6023,8 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(onClick = { model.clearQcReceipt() }) {
-                    Text("Dismiss")
+                TactileButton(onClick = { model.clearQcReceipt() }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Dismiss", maxLines = 1, softWrap = false)
                 }
             }
         )
@@ -5858,20 +6059,22 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                     Text("Roast level used for the modeled rest estimate:", style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         knownRoastLevels.forEach { roastLevel ->
-                            FilterChip(
+                            TactileFilterChip(
                                 selected = obsRoastLevelInput == roastLevel,
                                 onClick = { obsRoastLevelInput = roastLevel },
-                                label = { Text(roastLevel) }
+                                label = { Text(roastLevel) },
+                                modifier = Modifier.heightIn(min = 44.dp)
                             )
                         }
                     }
                     Text("Process used for the modeled rest estimate:", style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         knownProcesses.forEach { process ->
-                            FilterChip(
+                            TactileFilterChip(
                                 selected = obsProcessInput == process,
                                 onClick = { obsProcessInput = process },
-                                label = { Text(process) }
+                                label = { Text(process) },
+                                modifier = Modifier.heightIn(min = 44.dp)
                             )
                         }
                     }
@@ -5912,15 +6115,17 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
                         Text("Carbonic Acid / Sharpness:", modifier = Modifier.weight(1f))
-                        FilterChip(
+                        TactileFilterChip(
                             selected = obsPerceivedCarbonic == true,
                             onClick = { obsPerceivedCarbonic = true },
-                            label = { Text("Detected") }
+                            label = { Text("Detected") },
+                            modifier = Modifier.heightIn(min = 44.dp)
                         )
-                        FilterChip(
+                        TactileFilterChip(
                             selected = obsPerceivedCarbonic == false,
                             onClick = { obsPerceivedCarbonic = false },
-                            label = { Text("Not detected") }
+                            label = { Text("Not detected") },
+                            modifier = Modifier.heightIn(min = 44.dp)
                         )
                     }
                     OutlinedTextField(
@@ -5936,7 +6141,7 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(onClick = {
+                TactileButton(onClick = {
                     val roastAgeDays = requireNotNull(days)
                     val observedScore = requireNotNull(score)
                     val observedAroma = requireNotNull(aroma)
@@ -5961,13 +6166,13 @@ private fun Sensory(state: CoffeeUiState, model: CoffeeViewModel) {
                     )
                     model.recordRoastRestObservation(obs)
                     showLogObsDialog = false
-                }, enabled = validObservation) {
-                    Text("Save Observation")
+                }, enabled = validObservation, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Save Observation", maxLines = 1, softWrap = false)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showLogObsDialog = false }) {
-                    Text("Cancel")
+                TactileTextButton(onClick = { showLogObsDialog = false }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Cancel", maxLines = 1, softWrap = false)
                 }
             }
         )
@@ -5986,15 +6191,19 @@ private fun Knowledge(state: CoffeeUiState, model: CoffeeViewModel) {
             )
         }
         item {
-            Button(onClick = {
+            TactileButton(onClick = {
                 picker.launch(arrayOf("text/plain", "application/pdf"))
-            }, enabled = !state.busy, modifier = Modifier.testTag("knowledge:import")) { Text("Import TXT / PDF") }
+            }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp).testTag("knowledge:import")) {
+                Text("Import TXT / PDF", maxLines = 1, softWrap = false)
+            }
         }
         item { Field("Search imported evidence", query, { query = it }, "knowledge:query") }
         item {
-            OutlinedButton(onClick = {
+            TactileOutlinedButton(onClick = {
                 model.searchDocuments(query)
-            }, enabled = query.isNotBlank() && !state.busy, modifier = Modifier.testTag("knowledge:search")) { Text("Search locally") }
+            }, enabled = query.isNotBlank() && !state.busy, modifier = Modifier.heightIn(min = 48.dp).testTag("knowledge:search")) {
+                Text("Search locally", maxLines = 1, softWrap = false)
+            }
         }
         state.searchResult?.let { result ->
             item {
@@ -6003,7 +6212,9 @@ private fun Knowledge(state: CoffeeUiState, model: CoffeeViewModel) {
                     "${result.retrievalMode}\n${result.text}"
                 ) {
                     result.matchedChunks.forEach { chunk ->
-                        TextButton(onClick = { model.inspectChunk(chunk) }) { Text("Inspect ${chunk.citationText}") }
+                        TactileTextButton(onClick = { model.inspectChunk(chunk) }, modifier = Modifier.heightIn(min = 44.dp)) {
+                            Text("Inspect ${chunk.citationText}", maxLines = 1, softWrap = false)
+                        }
                     }
                 }
             }
@@ -6026,8 +6237,19 @@ private fun Knowledge(state: CoffeeUiState, model: CoffeeViewModel) {
                 ).joinToString("\n")
             ) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { model.reindex(document) }, enabled = !state.busy) { Text("Reindex") }
-                    TextButton(onClick = { model.requestDeletion("document", document.id) }) { Text("Remove source") }
+                    TactileTextButton(
+                        onClick = { model.reindex(document) },
+                        enabled = !state.busy,
+                        modifier = Modifier.heightIn(min = 44.dp)
+                    ) {
+                        Text("Reindex", maxLines = 1, softWrap = false)
+                    }
+                    TactileTextButton(
+                        onClick = { model.requestDeletion("document", document.id) },
+                        modifier = Modifier.heightIn(min = 44.dp)
+                    ) {
+                        Text("Remove source", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
+                    }
                 }
             }
         }
@@ -6059,13 +6281,21 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
                 state.directory ?: "Choose a SAF folder before downloading. Verified model files and manifests are published there."
             ) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
+                    TactileButton(onClick = {
                         directoryPicker.launch(null)
-                    }, enabled = !state.busy, modifier = Modifier.testTag("models:directory")) { Text("Choose directory") }
-                    OutlinedButton(onClick = model::discoverAssets, enabled = state.directory != null && !state.busy) {
-                        Text("Recover bundles")
+                    }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp).testTag("models:directory")) {
+                        Text("Choose directory", maxLines = 1, softWrap = false)
                     }
-                    TextButton(onClick = { showManifest = true }) { Text("Add manifest") }
+                    TactileOutlinedButton(
+                        onClick = model::discoverAssets,
+                        enabled = state.directory != null && !state.busy,
+                        modifier = Modifier.heightIn(min = 48.dp)
+                    ) {
+                        Text("Recover bundles", maxLines = 1, softWrap = false)
+                    }
+                    TactileTextButton(onClick = { showManifest = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text("Add manifest", maxLines = 1, softWrap = false)
+                    }
                 }
             }
         }
@@ -6099,60 +6329,75 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
                             ModelStatus.PUBLISHING
                         )
                     ) {
-                        Button(
+                        TactileButton(
                             onClick = { model.modelAction(asset, "download") },
                             enabled = state.directory != null && !state.busy && asset.downloadUrl.isNotBlank(),
-                            modifier = Modifier.testTag("models:download:${asset.id}")
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("models:download:${asset.id}")
                         ) {
                             Text(
-                                if (asset.downloadedBytes >
-                                    0
-                                ) {
-                                    "Resume download"
-                                } else {
-                                    "Download"
-                                }
+                                if (asset.downloadedBytes > 0) "Resume download" else "Download",
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                         if (asset.format.startsWith("GGUF", ignoreCase = true)) {
-                            OutlinedButton(
+                            TactileOutlinedButton(
                                 onClick = {
                                     importingId = asset.id
                                     modelPicker.launch(arrayOf("*/*"))
                                 },
-                                enabled = state.directory != null && !state.busy
-                            ) { Text("Import matching GGUF") }
+                                enabled = state.directory != null && !state.busy,
+                                modifier = Modifier.heightIn(min = 48.dp)
+                            ) { Text("Import matching GGUF", maxLines = 1, softWrap = false) }
                         }
                     }
                     if (asset.status in
                         setOf(ModelStatus.DOWNLOADING, ModelStatus.QUEUED)
                     ) {
-                        OutlinedButton(onClick = { model.modelAction(asset, "pause") }) { Text("Pause") }
+                        TactileOutlinedButton(onClick = { model.modelAction(asset, "pause") }, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text("Pause", maxLines = 1, softWrap = false)
+                        }
                     }
                     if (asset.status in
                         setOf(ModelStatus.DOWNLOADING, ModelStatus.PAUSED, ModelStatus.FAILED)
                     ) {
-                        TextButton(onClick = { model.modelAction(asset, "cancel") }) { Text("Cancel transfer") }
+                        TactileTextButton(onClick = { model.modelAction(asset, "cancel") }, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text("Cancel transfer", maxLines = 1, softWrap = false)
+                        }
                     }
                     if (asset.status == ModelStatus.INSTALLED) {
                         if (asset.isSupportedByNativeRuntime()) {
-                            Button(onClick = {
-                                model.modelAction(asset, "load")
-                            }, enabled = !state.busy && !state.generating, modifier = Modifier.testTag("models:load:${asset.id}")) {
-                                Text("Load local model")
+                            TactileButton(
+                                onClick = {
+                                    model.modelAction(asset, "load")
+                                },
+                                enabled = !state.busy && !state.generating,
+                                modifier = Modifier.heightIn(
+                                    min = 48.dp
+                                ).testTag("models:load:${asset.id}")
+                            ) {
+                                Text("Load local model", maxLines = 1, softWrap = false)
                             }
                         } else {
                             Text("Download-only · no compatible inference runtime in this build.")
                         }
-                        TextButton(onClick = {
+                        TactileTextButton(onClick = {
                             model.modelAction(asset, "forget")
-                        }, enabled = !state.busy) { Text("Forget registry entry") }
+                        }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text("Forget registry entry", maxLines = 1, softWrap = false)
+                        }
                     }
                 }
-                TextButton(
+                TactileTextButton(
                     onClick = { expandedModel = if (expandedModel == asset.id) null else asset.id },
                     modifier = Modifier.heightIn(min = 48.dp).testTag("models:details:${asset.id}")
-                ) { Text(if (expandedModel == asset.id) "Hide model details" else "Source, license & integrity") }
+                ) {
+                    Text(
+                        if (expandedModel == asset.id) "Hide model details" else "Source, license & integrity",
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
                 if (expandedModel == asset.id) {
                     HorizontalDivider()
                     Text(BuiltInAssets.guidance(asset).orEmpty())
@@ -6169,9 +6414,11 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
             null
         ) {
             item {
-                OutlinedButton(onClick = {
+                TactileOutlinedButton(onClick = {
                     state.models.firstOrNull()?.let { model.modelAction(it, "unload") }
-                }, enabled = !state.generating) { Text("Unload native model") }
+                }, enabled = !state.generating, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Unload native model", maxLines = 1, softWrap = false)
+                }
             }
         }
         item {
@@ -6191,15 +6438,20 @@ private fun Models(state: CoffeeUiState, model: CoffeeViewModel) {
                 }, label = { Text("Manifest JSON") }, modifier = Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()))
             }
         }, confirmButton = {
-            TextButton(onClick = {
-                model.registerManifest(manifest)
-                showManifest = false
-            }, enabled = manifest.isNotBlank()) { Text("Validate manifest") }
+            TactileTextButton(
+                onClick = {
+                    model.registerManifest(manifest)
+                    showManifest = false
+                },
+                enabled = manifest.isNotBlank(),
+                modifier = Modifier.heightIn(
+                    min = 48.dp
+                )
+            ) { Text("Validate manifest", maxLines = 1, softWrap = false) }
         }, dismissButton = {
-            TextButton(onClick = {
-                showManifest =
-                    false
-            }) { Text("Cancel") }
+            TactileTextButton(onClick = {
+                showManifest = false
+            }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel", maxLines = 1, softWrap = false) }
         })
     }
 }
@@ -6361,21 +6613,22 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     Text("Inventory Recommendations", style = MaterialTheme.typography.titleMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("Pour Over (V60)", "Espresso", "AeroPress", "French Press").forEach { method ->
-                            FilterChip(
+                            TactileFilterChip(
                                 selected = selectedRecMethod == method,
                                 onClick = {
                                     selectedRecMethod = method
                                     model.generateInventoryRecommendations(method)
                                 },
-                                label = { Text(method) }
+                                label = { Text(method) },
+                                modifier = Modifier.heightIn(min = 44.dp)
                             )
                         }
                     }
-                    Button(
+                    TactileButton(
                         onClick = { model.generateInventoryRecommendations(selectedRecMethod) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
                     ) {
-                        Text("Check evidence for $selectedRecMethod matches")
+                        Text("Check evidence for $selectedRecMethod matches", maxLines = 1, softWrap = false)
                     }
                     if (state.inventoryRecommendations.isNotEmpty()) {
                         state.inventoryRecommendations.take(3).forEachIndexed { idx, item ->
@@ -6421,10 +6674,11 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         SensoryFeedbackDiagnosis.values().forEach { diag ->
-                            FilterChip(
+                            TactileFilterChip(
                                 selected = ovatDiagnosis == diag,
                                 onClick = { ovatDiagnosis = diag },
-                                label = { Text(diag.name.replace("_", " ")) }
+                                label = { Text(diag.name.replace("_", " ")) },
+                                modifier = Modifier.heightIn(min = 44.dp)
                             )
                         }
                     }
@@ -6445,7 +6699,7 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    Button(
+                    TactileButton(
                         onClick = {
                             model.proposeSingleVariableAdjustment(
                                 requireNotNull(ovatDiagnosis),
@@ -6456,7 +6710,7 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                         enabled = canPropose,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
                     ) {
-                        Text("Diagnose & Propose Adjustment")
+                        Text("Diagnose & Propose Adjustment", maxLines = 1, softWrap = false)
                     }
                     if (!canPropose) {
                         Text("Select a diagnosis and enter positive observed and target times.", style = MaterialTheme.typography.bodySmall)
@@ -6474,8 +6728,15 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                                 )
                                 Text(prop.diagnosticReason, style = MaterialTheme.typography.bodySmall)
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = model::applyOvatAdjustmentToDraft) { Text("Apply to Recipe Draft") }
-                                    OutlinedButton(onClick = model::dismissOvatAdjustment) { Text("Dismiss") }
+                                    TactileButton(onClick = model::applyOvatAdjustmentToDraft, modifier = Modifier.heightIn(min = 44.dp)) {
+                                        Text("Apply to Recipe Draft", maxLines = 1, softWrap = false)
+                                    }
+                                    TactileOutlinedButton(
+                                        onClick = model::dismissOvatAdjustment,
+                                        modifier = Modifier.heightIn(min = 44.dp)
+                                    ) {
+                                        Text("Dismiss", maxLines = 1, softWrap = false)
+                                    }
                                 }
                             }
                         }
@@ -6506,15 +6767,15 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                             label = { Text("Elevation (m)") },
                             modifier = Modifier.weight(1f)
                         )
-                        Button(
+                        TactileButton(
                             onClick = {
-                                val elev = elevationInput.toDoubleOrNull() ?: return@Button
+                                val elev = elevationInput.toDoubleOrNull() ?: return@TactileButton
                                 model.updateWeatherParameters(elev)
                             },
                             enabled = elevationInput.toDoubleOrNull()?.isFinite() == true,
-                            modifier = Modifier.padding(top = 8.dp)
+                            modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)
                         ) {
-                            Text("Compute")
+                            Text("Compute", maxLines = 1, softWrap = false)
                         }
                     }
                     Text(
@@ -6561,14 +6822,14 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     )
                     val ingredientDosePercent = auditIngPct.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..100.0 }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
+                        TactileButton(
                             onClick = {
                                 model.auditIngredientSafety(auditIngName, requireNotNull(ingredientDosePercent))
                             },
                             enabled = auditIngName.isNotBlank() && ingredientDosePercent != null,
                             modifier = Modifier.heightIn(min = 48.dp)
                         ) {
-                            Text("Audit Safety")
+                            Text("Audit Safety", maxLines = 1, softWrap = false)
                         }
                     }
                     state.safetyAuditResult?.let { res ->
@@ -6606,7 +6867,13 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     "Explain my observations",
                     "Calculate extraction yield"
                 ).forEach { preset ->
-                    OutlinedButton(onClick = { prompt = preset }, enabled = !state.generating) { Text(preset) }
+                    TactileOutlinedButton(
+                        onClick = { prompt = preset },
+                        enabled = !state.generating,
+                        modifier = Modifier.heightIn(min = 44.dp)
+                    ) {
+                        Text(preset, maxLines = 1, softWrap = false)
+                    }
                 }
             }
         }
@@ -6618,8 +6885,12 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
             }
             InfoCard(title, message.content) {
                 state.chunks.filter { it.id in message.sourceChunkIds }.forEach { chunk ->
-                    TextButton(onClick = { model.inspectChunk(chunk) }) {
-                        Text("${if (chunk.citationText in message.citations) "Cited" else "Retrieved context"}: ${chunk.citationText}")
+                    TactileTextButton(onClick = { model.inspectChunk(chunk) }, modifier = Modifier.heightIn(min = 44.dp)) {
+                        Text(
+                            "${if (chunk.citationText in message.citations) "Cited" else "Retrieved context"}: ${chunk.citationText}",
+                            maxLines = 1,
+                            softWrap = false
+                        )
                     }
                 }
             }
@@ -6630,10 +6901,16 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     "Review quantities before calculation",
                     "Check each value, unit and measured field. Edit by sending corrected JSON.\n$json"
                 ) {
-                    Button(onClick = model::confirmToolInputs, enabled = !state.generating && !state.busy) {
-                        Text("Confirm inputs and calculate")
+                    TactileButton(
+                        onClick = model::confirmToolInputs,
+                        enabled = !state.generating && !state.busy,
+                        modifier = Modifier.heightIn(min = 48.dp)
+                    ) {
+                        Text("Confirm inputs and calculate", maxLines = 1, softWrap = false)
                     }
-                    TextButton(onClick = model::dismissToolInputs) { Text("Discard") }
+                    TactileTextButton(onClick = model::dismissToolInputs, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text("Discard", maxLines = 1, softWrap = false)
+                    }
                 }
             }
         }
@@ -6644,8 +6921,12 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                     "${recipe.name}: ${recipe.doseGrams} g dose / ${recipe.waterGrams} g water. No measured TDS or beverage mass supplied."
                 ) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = model::confirmAiRecipe, enabled = !state.busy) { Text("Confirm save") }
-                        OutlinedButton(onClick = model::dismissAiRecipe) { Text("Discard draft") }
+                        TactileButton(onClick = model::confirmAiRecipe, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text("Confirm save", maxLines = 1, softWrap = false)
+                        }
+                        TactileOutlinedButton(onClick = model::dismissAiRecipe, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text("Discard draft", maxLines = 1, softWrap = false)
+                        }
                     }
                 }
             }
@@ -6661,20 +6942,25 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
             )
         }
         item {
-            Button(
+            TactileButton(
                 onClick = {
                     model.sendChat(prompt)
                     prompt = ""
                 },
                 enabled = prompt.isNotBlank() && !state.generating && !state.busy && state.ready,
-                modifier = Modifier.fillMaxWidth().testTag("chat:send")
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("chat:send")
             ) {
-                Text("Send locally")
+                Text("Send locally", maxLines = 1, softWrap = false)
             }
         }
         if (state.generating) {
             item {
-                OutlinedButton(onClick = model::cancelGeneration, modifier = Modifier.testTag("chat:cancel")) { Text("Cancel generation") }
+                TactileOutlinedButton(
+                    onClick = model::cancelGeneration,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("chat:cancel")
+                ) {
+                    Text("Cancel generation", maxLines = 1, softWrap = false)
+                }
             }
         }
         item {
@@ -6760,7 +7046,9 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showQuizDialog = false }) { Text("Cancel") }
+                TactileTextButton(onClick = {
+                    showQuizDialog = false
+                }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel", maxLines = 1, softWrap = false) }
             }
         )
     }
@@ -6786,18 +7074,21 @@ private fun Chat(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             },
             confirmButton = {
-                Button(
+                TactileButton(
                     onClick = {
                         model.updateCustomPersonaPrompt(customPersonaText)
                         showCustomPersonaDialog = false
                     },
-                    enabled = customPersonaText.isNotBlank()
+                    enabled = customPersonaText.isNotBlank(),
+                    modifier = Modifier.heightIn(min = 48.dp)
                 ) {
-                    Text("Save & Apply")
+                    Text("Save & Apply", maxLines = 1, softWrap = false)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCustomPersonaDialog = false }) { Text("Cancel") }
+                TactileTextButton(onClick = {
+                    showCustomPersonaDialog = false
+                }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel", maxLines = 1, softWrap = false) }
             }
         )
     }
@@ -7157,7 +7448,7 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                                 softWrap = false
                             )
                         }
-                        TextButton(onClick = { model.clearDiagnostics() }) {
+                        TactileTextButton(onClick = { model.clearDiagnostics() }, modifier = Modifier.heightIn(min = 44.dp)) {
                             Text(if (isIndonesian) "Hapus Log" else "Clear Logs", maxLines = 1, softWrap = false)
                         }
                     }
@@ -7243,15 +7534,15 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
             ) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
+                    TactileButton(onClick = {
                         exporter.launch("coffee-creator-backup.json")
-                    }, enabled = !state.busy, modifier = Modifier.testTag("settings:export")) {
-                        Text(if (isIndonesian) "Ekspor cadangan" else "Export backup")
+                    }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp).testTag("settings:export")) {
+                        Text(if (isIndonesian) "Ekspor cadangan" else "Export backup", maxLines = 1, softWrap = false)
                     }
-                    OutlinedButton(onClick = {
+                    TactileOutlinedButton(onClick = {
                         restorer.launch(arrayOf("application/json", "text/plain"))
-                    }, enabled = !state.busy, modifier = Modifier.testTag("settings:restore")) {
-                        Text(if (isIndonesian) "Pulihkan cadangan" else "Restore backup")
+                    }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp).testTag("settings:restore")) {
+                        Text(if (isIndonesian) "Pulihkan cadangan" else "Restore backup", maxLines = 1, softWrap = false)
                     }
                 }
             }
@@ -7270,9 +7561,11 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
         item { Field("Maximum output tokens (16–256)", tokens, { tokens = it }, "settings:tokens", true) }
         item { Field("Sampling temperature (0.1–1.2)", temperature, { temperature = it }, "settings:temperature", true) }
         item {
-            Button(onClick = {
+            TactileButton(onClick = {
                 model.setGeneration(tokens.toIntOrNull() ?: 0, temperature.replace(',', '.').toFloatOrNull() ?: Float.NaN)
-            }, enabled = !state.busy) { Text(if (isIndonesian) "Simpan pengaturan inferensi" else "Save generation settings") }
+            }, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(if (isIndonesian) "Simpan pengaturan inferensi" else "Save generation settings", maxLines = 1, softWrap = false)
+            }
         }
 
         item {
@@ -7289,10 +7582,11 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
         }
 
         item {
-            OutlinedButton(
+            TactileOutlinedButton(
                 onClick = { model.requestDeletion("all application records", "all") },
-                enabled = !state.busy && !state.generating
-            ) { Text(if (isIndonesian) "Hapus semua data aplikasi…" else "Delete application records…") }
+                enabled = !state.busy && !state.generating,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) { Text(if (isIndonesian) "Hapus semua data aplikasi…" else "Delete application records…", maxLines = 1, softWrap = false) }
         }
     }
 
@@ -7320,8 +7614,8 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { activeHelpDialog = null }) {
-                        Text(if (isIndonesian) "Tutup" else "Close")
+                    TactileTextButton(onClick = { activeHelpDialog = null }, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text(if (isIndonesian) "Tutup" else "Close", maxLines = 1, softWrap = false)
                     }
                 }
             )
@@ -7349,14 +7643,16 @@ private fun Settings(state: CoffeeUiState, model: CoffeeViewModel) {
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                TactileTextButton(onClick = {
                     model.restoreBackup(uri, context.contentResolver)
                     restoring = null
-                }) { Text(if (isIndonesian) "Validasi & Pulihkan" else "Validate and restore") }
+                }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(if (isIndonesian) "Validasi & Pulihkan" else "Validate and restore", maxLines = 1, softWrap = false)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { restoring = null }) {
-                    Text(if (isIndonesian) "Batal" else "Cancel")
+                TactileTextButton(onClick = { restoring = null }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(if (isIndonesian) "Batal" else "Cancel", maxLines = 1, softWrap = false)
                 }
             }
         )
