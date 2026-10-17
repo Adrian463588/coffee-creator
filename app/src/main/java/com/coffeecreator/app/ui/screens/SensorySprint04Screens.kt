@@ -36,6 +36,7 @@ import com.coffeecreator.app.core.sensory.cva.*
 import com.coffeecreator.app.core.sensory.greengrading.*
 import com.coffeecreator.app.core.sensory.training.*
 import com.coffeecreator.app.core.sensory.operations.*
+import com.coffeecreator.app.ui.components.*
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
@@ -964,9 +965,8 @@ fun SensoryCvaCuppingSection(
                                 .weight(1f)
                                 .height(52.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable {
+                                .tactileClickable {
                                     cupStates[idx] = (st + 1) % 3
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 },
                             border = BorderStroke(1.dp, fg.copy(alpha = 0.35f))
                         ) {
@@ -981,8 +981,16 @@ fun SensoryCvaCuppingSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Uniformity: ${String.format("%.1f", uniformityScore)} / 10.0", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Clean Cup: ${String.format("%.1f", cleanCupScore)} / 10.0", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Uniformity: ${String.format(Locale.US, "%.1f", uniformityScore)} / 10.0",
+                        style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Clean Cup: ${String.format(Locale.US, "%.1f", cleanCupScore)} / 10.0",
+                        style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -1012,7 +1020,7 @@ fun SensoryCvaCuppingSection(
                         ) {
                             Text(
                                 text = String.format(" %.2f pts ", legTotalScore),
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"),
                                 fontWeight = FontWeight.Bold,
                                 color = if (legTotalScore >= 80.0f) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
                             )
@@ -1052,7 +1060,11 @@ fun SensoryCvaCuppingSection(
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                Text(String.format("%.2f / 10.0", value), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = String.format("%.2f / 10.0", value),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                             Slider(
                                 value = value,
@@ -1927,7 +1939,7 @@ fun SensoryTrainingLabSection(
                             Text("6-permutation balanced presentation (AAB, ABA, BAA, BBA, BAB, ABB)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
 
-                        Button(
+                        TactileButton(
                             onClick = {
                                 val allPerms = TriangleSampleOrder.values()
                                 val nextPerm = allPerms[(drillPermutation.ordinal + 1) % allPerms.size]
@@ -1996,10 +2008,10 @@ fun SensoryTrainingLabSection(
                                 else -> MaterialTheme.colorScheme.surfaceContainer
                             }
 
-                            Card(
+                            TactileCard(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable(enabled = !drillSubmitted) { selectedCupIndex = idx }
+                                    .tactileClickable(enabled = !drillSubmitted) { selectedCupIndex = idx }
                                     .testTag("sensory:triangle_cup_$idx"),
                                 shape = RoundedCornerShape(8.dp),
                                 border = BorderStroke(
@@ -2041,7 +2053,7 @@ fun SensoryTrainingLabSection(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         (1..5).forEach { rating ->
-                            FilterChip(
+                            TactileFilterChip(
                                 selected = selectedConfidence == rating,
                                 onClick = { selectedConfidence = rating },
                                 label = { Text("$rating★", style = MaterialTheme.typography.labelSmall) },
@@ -2052,7 +2064,7 @@ fun SensoryTrainingLabSection(
                     }
 
                     // Submit Button
-                    Button(
+                    TactileButton(
                         onClick = { drillSubmitted = true },
                         enabled = selectedCupIndex != null && !drillSubmitted,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).testTag("sensory:btn_submit_triangle"),
@@ -2977,13 +2989,40 @@ fun SensoryGreenGradingSection(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    IconButton(onClick = { if (count > 0) setter(count - 1) }, modifier = Modifier.size(28.dp)) {
-                                        Icon(Icons.Default.Clear, "Decrement", modifier = Modifier.size(16.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    IconButton(
+                                        onClick = { if (count > 0) setter(count - 1) },
+                                        modifier = Modifier.size(48.dp)
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(Icons.Default.Clear, "Decrement", modifier = Modifier.size(16.dp))
+                                            }
+                                        }
                                     }
-                                    Text("$count", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                    IconButton(onClick = { setter(count + 1) }, modifier = Modifier.size(28.dp)) {
-                                        Icon(Icons.Default.Add, "Increment", modifier = Modifier.size(16.dp))
+                                    Text(
+                                        text = "$count",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.widthIn(min = 24.dp)
+                                    )
+                                    IconButton(
+                                        onClick = { setter(count + 1) },
+                                        modifier = Modifier.size(48.dp)
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(Icons.Default.Add, "Increment", modifier = Modifier.size(16.dp))
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -3023,13 +3062,40 @@ fun SensoryGreenGradingSection(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    IconButton(onClick = { if (count > 0) setter(count - 1) }, modifier = Modifier.size(28.dp)) {
-                                        Icon(Icons.Default.Clear, "Decrement", modifier = Modifier.size(16.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    IconButton(
+                                        onClick = { if (count > 0) setter(count - 1) },
+                                        modifier = Modifier.size(48.dp)
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(Icons.Default.Clear, "Decrement", modifier = Modifier.size(16.dp))
+                                            }
+                                        }
                                     }
-                                    Text("$count", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                    IconButton(onClick = { setter(count + 1) }, modifier = Modifier.size(28.dp)) {
-                                        Icon(Icons.Default.Add, "Increment", modifier = Modifier.size(16.dp))
+                                    Text(
+                                        text = "$count",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.widthIn(min = 24.dp)
+                                    )
+                                    IconButton(
+                                        onClick = { setter(count + 1) },
+                                        modifier = Modifier.size(48.dp)
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(Icons.Default.Add, "Increment", modifier = Modifier.size(16.dp))
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -3807,7 +3873,7 @@ fun SensoryOperationsSection(
                                         text = "8.4167",
                                         fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium
+                                        style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum")
                                     )
                                     Text("Sample #482", style = MaterialTheme.typography.labelSmall)
                                 }
@@ -3828,7 +3894,7 @@ fun SensoryOperationsSection(
                                         text = "0.1167",
                                         fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium
+                                        style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum")
                                     )
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
@@ -3866,7 +3932,7 @@ fun SensoryOperationsSection(
                                         text = String.format(Locale.ROOT, "%.4f", pearsonR),
                                         fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium
+                                        style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum")
                                     )
                                     Text("Strong Pairwise Agreement", style = MaterialTheme.typography.labelSmall)
                                 }
@@ -3887,7 +3953,7 @@ fun SensoryOperationsSection(
                                         text = String.format(Locale.ROOT, "%.4f", fleissKappa),
                                         fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium
+                                        style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum")
                                     )
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),

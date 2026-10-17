@@ -104,8 +104,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -211,6 +213,7 @@ import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
 import com.coffeecreator.app.core.sensory.SessionStatus
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
+import com.coffeecreator.app.ui.components.*
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
 import com.coffeecreator.app.ui.viewmodel.RecipeDraft
@@ -426,14 +429,27 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                         )
                         NavigationBar {
                             destinations.forEach { destination ->
+                                val isSelected = route == destination.route
                                 NavigationBarItem(
-                                    selected = route == destination.route,
+                                    selected = isSelected,
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         navigate(destination.route)
                                     },
                                     icon = { Icon(destination.icon, contentDescription = null) },
-                                    label = { Text(destination.label, maxLines = 1, softWrap = false) },
+                                    label = {
+                                        Text(
+                                            destination.label,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary
+                                    ),
                                     modifier = Modifier.testTag("nav:${destination.route}")
                                 )
                             }
@@ -447,14 +463,27 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                     val haptic = LocalHapticFeedback.current
                     NavigationRail(Modifier.fillMaxHeight()) {
                         destinations.forEach { destination ->
+                            val isSelected = route == destination.route
                             NavigationRailItem(
-                                selected = route == destination.route,
+                                selected = isSelected,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     navigate(destination.route)
                                 },
                                 icon = { Icon(destination.icon, null) },
-                                label = { Text(destination.label, maxLines = 1, softWrap = false) },
+                                label = {
+                                    Text(
+                                        destination.label,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                },
+                                colors = NavigationRailItemDefaults.colors(
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary
+                                ),
                                 modifier = Modifier.testTag("nav:${destination.route}")
                             )
                         }
@@ -611,13 +640,9 @@ private fun Heading(title: String, detail: String) {
 
 @Composable
 private fun InfoCard(title: String, detail: String, content: @Composable () -> Unit = {}) {
-    Card(
-        Modifier
-            .fillMaxWidth()
-            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    TactileCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -681,290 +706,7 @@ private fun LivePulseIndicator(isActive: Boolean, modifier: Modifier = Modifier,
     }
 }
 
-@Composable
-private fun TactileFilterChip(
-    selected: Boolean,
-    onClick: () -> Unit,
-    label: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    leadingIcon: (@Composable () -> Unit)? = null,
-    enabled: Boolean = true
-) {
-    val haptic = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "chipTactileScale"
-    )
-    FilterChip(
-        selected = selected,
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onClick()
-        },
-        label = label,
-        leadingIcon = leadingIcon,
-        enabled = enabled,
-        interactionSource = interactionSource,
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-    )
-}
 
-@Composable
-private fun TactileButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    colors: ButtonColors = ButtonDefaults.buttonColors(),
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
-    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
-) {
-    val haptic = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "buttonTactileScale"
-    )
-    Button(
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onClick()
-        },
-        enabled = enabled,
-        colors = colors,
-        shape = shape,
-        contentPadding = contentPadding,
-        interactionSource = interactionSource,
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-        content = content
-    )
-}
-
-@Composable
-private fun TactileOutlinedButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
-    border: BorderStroke? = null,
-    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
-) {
-    val haptic = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "outlinedButtonTactileScale"
-    )
-    OutlinedButton(
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onClick()
-        },
-        enabled = enabled,
-        shape = shape,
-        contentPadding = contentPadding,
-        border = border ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-        interactionSource = interactionSource,
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-        content = content
-    )
-}
-
-@Composable
-private fun TactileFilledTonalButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    colors: ButtonColors = ButtonDefaults.filledTonalButtonColors(),
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
-    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
-) {
-    val haptic = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "filledTonalButtonTactileScale"
-    )
-    FilledTonalButton(
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onClick()
-        },
-        enabled = enabled,
-        colors = colors,
-        shape = shape,
-        contentPadding = contentPadding,
-        interactionSource = interactionSource,
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-        content = content
-    )
-}
-
-@Composable
-private fun TactileTextButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    colors: ButtonColors = ButtonDefaults.textButtonColors(),
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
-    contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
-    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
-) {
-    val haptic = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "textButtonTactileScale"
-    )
-    TextButton(
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onClick()
-        },
-        enabled = enabled,
-        colors = colors,
-        shape = shape,
-        contentPadding = contentPadding,
-        interactionSource = interactionSource,
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-        content = content
-    )
-}
-
-@Composable
-private fun Modifier.tactilePress(enabled: Boolean = true, scaleDown: Float = 0.97f, onClick: (() -> Unit)? = null): Modifier {
-    val haptic = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) scaleDown else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "tactilePressScale"
-    )
-    return this
-        .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
-        .then(
-            if (onClick != null) {
-                Modifier.clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    enabled = enabled,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onClick()
-                    }
-                )
-            } else {
-                Modifier
-            }
-        )
-}
-
-@Composable
-private fun TelemetryStatusPill(label: String, status: String, isActive: Boolean, modifier: Modifier = Modifier) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-        modifier = modifier
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(
-                        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        shape = CircleShape
-                    )
-            )
-            Text(
-                text = "$label: $status",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontFeatureSettings = "tnum",
-                    fontWeight = FontWeight.Medium
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
-private fun MicroBadgePill(
-    text: String,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
-    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f),
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = containerColor,
-        border = BorderStroke(1.dp, borderColor),
-        modifier = modifier
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontFeatureSettings = "tnum",
-                fontWeight = FontWeight.Medium
-            ),
-            color = contentColor,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        )
-    }
-}
 
 @Composable
 private fun GrindRangeTile(
@@ -1103,6 +845,9 @@ private fun Field(label: String, value: String, onChange: (String) -> Unit, tag:
         onValueChange = onChange,
         label = { Text(label) },
         shape = RoundedCornerShape(8.dp),
+        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+            fontFeatureSettings = if (numeric) "tnum" else ""
+        ),
         modifier = Modifier.fillMaxWidth().testTag(tag),
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text)

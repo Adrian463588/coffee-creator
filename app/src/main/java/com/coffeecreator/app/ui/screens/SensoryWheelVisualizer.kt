@@ -41,6 +41,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.coffeecreator.app.ui.components.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -251,7 +252,7 @@ fun SensoryWheelVisualizer(
                 } catch (_: IllegalArgumentException) {
                     MaterialTheme.colorScheme.primary
                 }
-                FilterChip(
+                TactileFilterChip(
                     selected = isSelected,
                     onClick = {
                         focusedCategory = cat.id
@@ -277,7 +278,7 @@ fun SensoryWheelVisualizer(
         Spacer(Modifier.height(8.dp))
 
         // Subcategory & Descriptors Flow
-        Card(
+        TactileCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         ) {
@@ -564,7 +565,7 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
             }
         },
         confirmButton = {
-            Button(
+            TactileButton(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onConfirm(selectedList.toList())
@@ -576,7 +577,7 @@ fun FlavorWheelPickerDialog(initialSelected: List<String>, onDismissRequest: () 
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismissRequest) {
+            TactileTextButton(onClick = onDismissRequest) {
                 Text("Cancel")
             }
         }
