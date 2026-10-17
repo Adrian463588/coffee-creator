@@ -1,0 +1,77 @@
+{
+  "capturedLocalDate": "2026-10-18",
+  "captureScope": "read-only repository and device metadata; no application data or SAF content accessed",
+  "git": {
+    "branch": "main",
+    "head": "6d429df9299d438daefbdac769b5300988d83f9c",
+    "tree": "b714b993b253b7d1cad388f906403a4085b50539",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "behind": 0,
+    "worktreeInitiallyClean": true,
+    "latestTag": "v1.14.5",
+    "latestTagCommit": "c483c91",
+    "remote": "https://github.com/Adrian463588/coffee-creator.git"
+  },
+  "android": {
+    "applicationId": "com.coffeecreator.app",
+    "versionName": "1.14.5",
+    "versionCode": 30,
+    "minSdk": 26,
+    "targetSdk": 35,
+    "agp": "8.6.0",
+    "kotlin": "2.0.20",
+    "roomDependency": "2.6.1",
+    "roomSchemaVersion": 2,
+    "gradleProjects": [":app", ":benchmark"]
+  },
+  "deviceReadOnlyProbe": {
+    "adbSerial": "RRCN3008VYE",
+    "model": "SM-G988B",
+    "androidRelease": "13",
+    "api": 33,
+    "installedPackageVersion": "1.14.5",
+    "lastUpdateTime": "2026-10-18 03:18:51",
+    "mutated": false
+  },
+  "dataBaseline": {
+    "disposableSeededProfileAvailable": false,
+    "databaseRecordCountsAndIds": "NOT_CAPTURED: no disposable profile established; installed user data was not accessed",
+    "saFDocumentAndAssetListing": "NOT_CAPTURED: user-owned SAF tree was not accessed",
+    "localModelAssets": "NOT_CAPTURED: user-owned and app-private assets were not inspected"
+  },
+  "historyReview": {
+    "releaseTagCount": 31,
+    "adjacentTagRangesReviewed": 30,
+    "sourceOrTestPathDeletionRanges": 2,
+    "findings": [
+      {
+        "range": "v1.0.0..v1.1.0",
+        "deletedProductionScreenPaths": 10,
+        "observation": "Nine screen destinations plus the old Screen route file were consolidated into the current CoffeeApp/BrewSection source; current destination presence is observed, historical behavior parity is NOT_RUN."
+      },
+      {
+        "range": "v1.9.5..v1.9.6",
+        "deletedProductionCatalogPaths": 1,
+        "deletedTestPaths": 1,
+        "observation": "CuratedCoffeeCatalog recipe corpus was removed from production and similar data moved to a test-only synthetic fixture; current catalog identity/content parity is unresolved (D-013)."
+      }
+    ],
+    "otherAdjacentTagRangesWithDeletedAppSourceOrTestPaths": 0
+  },
+  "executionBaseline": {
+    "gradleProjectsCommand": "./gradlew.bat projects",
+    "gradleProjectsResult": "PASS; root, :app, :benchmark; build successful",
+    "allTasksDiscovered": true,
+    "allTasksCommand": "./gradlew.bat tasks --all",
+    "allTasksResult": "PASS; Gradle BUILD SUCCESSFUL",
+    "testsExecutedAtBaselineCapture": 0,
+    "deviceTestsExecutedAtBaselineCapture": 0,
+    "existingTestReports": "app/build/test-results/testDebugUnitTest contains 39 suites / 322 test cases timestamped 2026-10-17T20:18:32Z; historical receipt only, not run against this audit baseline"
+  },
+  "auditWorktree": {
+    "onlyUntrackedPathAtCapture": "docs/qa/",
+    "productionSourceChanged": false
+  },
+  "evidenceLimit": "Repository metadata and installed package metadata do not prove feature behavior, app database contents, SAF grants, device runtime acceptance, or current public release assets."
+}
