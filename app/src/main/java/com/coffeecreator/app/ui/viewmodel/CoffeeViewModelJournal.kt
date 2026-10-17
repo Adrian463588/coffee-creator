@@ -13,6 +13,7 @@ import com.coffeecreator.app.core.journal.ImportConflictItem
 import com.coffeecreator.app.core.journal.ImportConflictPreview
 import com.coffeecreator.app.core.journal.ImportRecordStatus
 import com.coffeecreator.app.core.model.Recipe
+import com.coffeecreator.app.core.recipes.champion.ChampionRecipe
 import com.coffeecreator.app.core.reliability.LogLevel
 import java.time.Instant
 import java.time.LocalDate
@@ -235,6 +236,24 @@ fun CoffeeViewModel.refreshStreakAndStats() {
     val now = LocalDate.now()
     val stats = BrewAnalyticsEngine.calculateMonthlyStats(entries, now.year, now.monthValue)
     mutableState.update { it.copy(brewStreak = streak, monthlyStats = stats) }
+}
+
+fun CoffeeViewModel.logChampionRecipeToJournal(recipe: ChampionRecipe, customNotes: String = "", beanName: String? = null) {
+    val entry = recipe.toBrewJournalEntry(beanName = beanName, customNotes = customNotes)
+    saveJournalEntry(entry)
+    mutableState.update { it.copy(notice = "Logged '${recipe.name}' to Journal.") }
+}
+
+fun CoffeeViewModel.brewChampionRecipe(recipe: ChampionRecipe) {
+    val r = recipe.toRecipe()
+    initBrewSession(r)
+    mutableState.update { it.copy(notice = "Armed '${recipe.name}' on brew timer.") }
+}
+
+fun CoffeeViewModel.saveChampionRecipeAsTemplate(recipe: ChampionRecipe) = task("Saving champion recipe template") {
+    val r = recipe.toRecipe()
+    graph.repository.saveRecipe(r)
+    mutableState.update { it.copy(notice = "Saved template '${recipe.name}' to Recipe Library.") }
 }
 
 // ========================================================================

@@ -196,10 +196,17 @@ import com.coffeecreator.app.core.sensory.MaskingMode
 import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
 import com.coffeecreator.app.core.sensory.SessionStatus
+import com.coffeecreator.app.core.recipes.champion.ChampionRecipe
+import com.coffeecreator.app.core.recipes.champion.RecipeCategory
+import com.coffeecreator.app.core.recipes.champion.RecipeVerificationStatus
+import com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalog
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
 import com.coffeecreator.app.ui.viewmodel.RecipeDraft
+import com.coffeecreator.app.ui.viewmodel.brewChampionRecipe
+import com.coffeecreator.app.ui.viewmodel.logChampionRecipeToJournal
+import com.coffeecreator.app.ui.viewmodel.saveChampionRecipeAsTemplate
 import com.coffeecreator.app.ui.viewmodel.addBagToBean
 import com.coffeecreator.app.ui.viewmodel.addDetailedBean
 import com.coffeecreator.app.ui.viewmodel.addDraftStep
@@ -3093,6 +3100,7 @@ private fun beanForm(bean: CoffeeBean) = mapOf(
 )
 private enum class JournalTab {
     BREWS,
+    CHAMPION_RECIPES,
     DIAL_IN,
     COMPARISON,
     ANALYTICS,
@@ -3101,10 +3109,309 @@ private enum class JournalTab {
 }
 
 @Composable
+private fun ChampionRecipeCard(
+    recipe: ChampionRecipe,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    onLogToJournal: () -> Unit,
+    onBrewOnTimer: () -> Unit,
+    onSaveTemplate: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val (catLabel, catBg, catFg) = when (recipe.category) {
+                        RecipeCategory.COMPETITION -> Triple("🏆 Competition", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+                        RecipeCategory.SIGNATURE -> Triple("✍️ Signature", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                        RecipeCategory.STANDARD -> Triple("☕ Traditional", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Surface(shape = RoundedCornerShape(6.dp), color = catBg) {
+                        Text(
+                            text = catLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = catFg,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    val (verLabel, verBg, verFg) = when (recipe.verificationStatus) {
+                        RecipeVerificationStatus.OFFICIAL -> Triple("OFFICIAL", MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
+                        RecipeVerificationStatus.DOCUMENTED_RECREATION -> Triple("RECREATION", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
+                        RecipeVerificationStatus.SECONDARY_ADAPTATION -> Triple("ADAPTED", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+                        RecipeVerificationStatus.NEEDS_VERIFICATION -> Triple("STANDARD", MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f), MaterialTheme.colorScheme.outline)
+                    }
+                    Surface(shape = RoundedCornerShape(6.dp), color = verBg) {
+                        Text(
+                            text = verLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = verFg,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                recipe.podium?.let { podium ->
+                    Text(
+                        text = "${podium.competitionName} '${podium.year.toString().takeLast(2)} · #${podium.rank}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = recipe.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "By ${recipe.baristaOrCreator} · ${recipe.equipment} · ${recipe.method}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("DOSE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            "${recipe.doseGrams}g",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("WATER", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            "${recipe.waterGrams}g",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("RATIO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            recipe.ratio,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("TEMP", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            "${recipe.waterTemperatureCelsius.toInt()}°C",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("TIME", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        val m = recipe.totalTimeSeconds / 60
+                        val s = recipe.totalTimeSeconds % 60
+                        Text(
+                            if (m > 0) "${m}m ${s}s" else "${s}s",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = "Grind: ${recipe.grindSize} · ${recipe.notes}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (recipe.tags.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    recipe.tags.forEach { tag ->
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        ) {
+                            Text(
+                                text = "#$tag",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (recipe.steps.isNotEmpty()) {
+                val rotationAngle by animateFloatAsState(
+                    targetValue = if (isExpanded) 180f else 0f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    label = "chevron_rotation"
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onToggleExpand
+                        )
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Pour Routine (${recipe.steps.size} steps)",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = if (isExpanded) "Collapse steps" else "Expand steps",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.rotate(rotationAngle)
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = expandVertically(spring(dampingRatio = Spring.DampingRatioLowBouncy)) + fadeIn(),
+                    exit = shrinkVertically(spring(dampingRatio = Spring.DampingRatioLowBouncy)) + fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                RoundedCornerShape(6.dp)
+                            )
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        recipe.steps.forEach { step ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    val m = step.startOffsetSeconds / 60
+                                    val s = step.startOffsetSeconds % 60
+                                    val timeStr = "%02d:%02d".format(java.util.Locale.US, m, s)
+                                    Text(
+                                        text = timeStr,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "${step.action} (${step.waterGrams}g -> ${step.cumulativeWaterGrams}g accum)",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    if (step.description.isNotBlank()) {
+                                        Text(
+                                            text = step.description,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TactileButton(
+                    onClick = onLogToJournal,
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.weight(1.2f).height(36.dp).testTag("champion:log:${recipe.id}")
+                ) {
+                    Icon(Icons.Default.Book, null, Modifier.size(16.dp).padding(end = 4.dp))
+                    Text("Log Brew", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
+                }
+
+                FilledTonalButton(
+                    onClick = onBrewOnTimer,
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.weight(1.1f).height(36.dp).testTag("champion:brew:${recipe.id}")
+                ) {
+                    Icon(Icons.Default.PlayArrow, null, Modifier.size(16.dp).padding(end = 4.dp))
+                    Text("Brew Timer", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
+                }
+
+                OutlinedButton(
+                    onClick = onSaveTemplate,
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.height(36.dp).testTag("champion:save:${recipe.id}")
+                ) {
+                    Icon(Icons.Default.Star, null, Modifier.size(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe) -> Unit) {
     val context = LocalContext.current
     var activeTab by rememberSaveable { mutableStateOf(JournalTab.BREWS) }
     var query by rememberSaveable { mutableStateOf("") }
+    var championQuery by rememberSaveable { mutableStateOf("") }
+    var selectedChampionCategory by rememberSaveable { mutableStateOf<RecipeCategory?>(null) }
+    var selectedChampionMethod by rememberSaveable { mutableStateOf("All") }
+    var expandedChampionRecipeId by rememberSaveable { mutableStateOf<String?>(null) }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     var selectedMethodFilter by rememberSaveable { mutableStateOf("All") }
     var comparing by rememberSaveable { mutableStateOf<String?>(null) }
@@ -3147,6 +3454,18 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                     },
                     leadingIcon = { Icon(Icons.Default.Book, null, Modifier.padding(end = 4.dp)) },
                     modifier = Modifier.testTag("journal:tab_brews").heightIn(min = 48.dp)
+                )
+                TactileFilterChip(
+                    selected = activeTab == JournalTab.CHAMPION_RECIPES,
+                    onClick = { activeTab = JournalTab.CHAMPION_RECIPES },
+                    label = {
+                        Text(
+                            "World Recipes (80)",
+                            fontWeight = if (activeTab == JournalTab.CHAMPION_RECIPES) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.Star, null, Modifier.padding(end = 4.dp)) },
+                    modifier = Modifier.testTag("journal:tab_champion_recipes").heightIn(min = 48.dp)
                 )
                 TactileFilterChip(
                     selected = activeTab == JournalTab.DIAL_IN,
@@ -3261,19 +3580,33 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Button(
                             onClick = { model.repeatLastBrew() },
-                            modifier = Modifier.weight(1f).testTag("journal:repeat_last_brew")
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1.2f).height(38.dp).testTag("journal:repeat_last_brew")
                         ) {
-                            Text("⚡ Repeat Last Brew")
+                            Text("⚡ Repeat Last", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
+                        }
+                        FilledTonalButton(
+                            onClick = { activeTab = JournalTab.CHAMPION_RECIPES },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1.1f).height(38.dp).testTag("journal:nav_champion_recipes")
+                        ) {
+                            Icon(Icons.Default.Star, null, Modifier.size(16.dp).padding(end = 4.dp))
+                            Text("World (80)", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
                         OutlinedButton(
                             onClick = { model.exportJournalCsv(context) },
-                            modifier = Modifier.testTag("journal:export_csv_quick")
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.height(38.dp).testTag("journal:export_csv_quick")
                         ) {
-                            Text("Export CSV")
+                            Text("Export CSV", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
@@ -3297,8 +3630,17 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                     item {
                         InfoCard(
                             "Your brew history is empty",
-                            "Complete a timer session or add a brew log with the values you observed."
-                        )
+                            "Complete a timer session or add a brew log with the values you observed.\nOr explore 80 World Champion and Signature recipes to log your first brew!"
+                        ) {
+                            TactileButton(
+                                onClick = { activeTab = JournalTab.CHAMPION_RECIPES },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.testTag("journal:explore_champion_recipes_cta")
+                            ) {
+                                Icon(Icons.Default.Star, null, Modifier.padding(end = 6.dp))
+                                Text("Explore 80 World Champion Recipes")
+                            }
+                        }
                     }
                 }
 
@@ -3384,6 +3726,148 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             }
                         }
                     }
+                }
+            }
+
+            JournalTab.CHAMPION_RECIPES -> {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(Modifier.weight(1f)) {
+                            Field(
+                                "Search 80 recipes (e.g. Kasuya, V60, Hoffmann)",
+                                championQuery,
+                                { championQuery = it },
+                                "champion:search"
+                            )
+                        }
+                        if (championQuery.isNotBlank() || selectedChampionCategory != null || selectedChampionMethod != "All") {
+                            TextButton(
+                                onClick = {
+                                    championQuery = ""
+                                    selectedChampionCategory = null
+                                    selectedChampionMethod = "All"
+                                },
+                                modifier = Modifier.testTag("champion:reset_filters")
+                            ) {
+                                Text("Reset")
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TactileFilterChip(
+                            selected = selectedChampionCategory == null,
+                            onClick = { selectedChampionCategory = null },
+                            label = { Text("All (80)", fontWeight = if (selectedChampionCategory == null) FontWeight.SemiBold else FontWeight.Normal) },
+                            modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_cat_all")
+                        )
+                        TactileFilterChip(
+                            selected = selectedChampionCategory == RecipeCategory.COMPETITION,
+                            onClick = { selectedChampionCategory = RecipeCategory.COMPETITION },
+                            label = { Text("🏆 Competition (21)", fontWeight = if (selectedChampionCategory == RecipeCategory.COMPETITION) FontWeight.SemiBold else FontWeight.Normal) },
+                            modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_cat_competition")
+                        )
+                        TactileFilterChip(
+                            selected = selectedChampionCategory == RecipeCategory.SIGNATURE,
+                            onClick = { selectedChampionCategory = RecipeCategory.SIGNATURE },
+                            label = { Text("✍️ Signature (14)", fontWeight = if (selectedChampionCategory == RecipeCategory.SIGNATURE) FontWeight.SemiBold else FontWeight.Normal) },
+                            modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_cat_signature")
+                        )
+                        TactileFilterChip(
+                            selected = selectedChampionCategory == RecipeCategory.STANDARD,
+                            onClick = { selectedChampionCategory = RecipeCategory.STANDARD },
+                            label = { Text("☕ Traditional (45)", fontWeight = if (selectedChampionCategory == RecipeCategory.STANDARD) FontWeight.SemiBold else FontWeight.Normal) },
+                            modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_cat_traditional")
+                        )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("All", "V60", "AeroPress", "Switch", "Origami / Flat Bed", "Espresso", "Cold Brew / Drip", "Immersion / Press", "Heritage / Pot").forEach { method ->
+                            TactileFilterChip(
+                                selected = selectedChampionMethod == method,
+                                onClick = { selectedChampionMethod = method },
+                                label = { Text(method, fontWeight = if (selectedChampionMethod == method) FontWeight.SemiBold else FontWeight.Normal) },
+                                modifier = Modifier.heightIn(min = 44.dp).testTag("champion:filter_method_$method")
+                            )
+                        }
+                    }
+                }
+
+                val filteredChampionRecipes = WorldChampionRecipeCatalog.entries.filter { recipe ->
+                    val matchesCategory = selectedChampionCategory == null || recipe.category == selectedChampionCategory
+                    val matchesMethod = when (selectedChampionMethod) {
+                        "All" -> true
+                        "V60" -> recipe.equipment.contains("V60", ignoreCase = true) || recipe.method.contains("V60", ignoreCase = true)
+                        "AeroPress" -> recipe.equipment.contains("AeroPress", ignoreCase = true) || recipe.method.contains("AeroPress", ignoreCase = true)
+                        "Switch" -> recipe.equipment.contains("Switch", ignoreCase = true)
+                        "Origami / Flat Bed" -> recipe.equipment.contains("Origami", ignoreCase = true) || recipe.equipment.contains("Orea", ignoreCase = true) || recipe.equipment.contains("Kalita", ignoreCase = true) || recipe.equipment.contains("Wave", ignoreCase = true)
+                        "Espresso" -> recipe.equipment.contains("Espresso", ignoreCase = true) || recipe.method.contains("Espresso", ignoreCase = true)
+                        "Cold Brew / Drip" -> recipe.method.contains("Cold", ignoreCase = true)
+                        "Immersion / Press" -> recipe.equipment.contains("French Press", ignoreCase = true) || recipe.equipment.contains("Clever", ignoreCase = true) || recipe.method.contains("Immersion", ignoreCase = true)
+                        "Heritage / Pot" -> recipe.equipment.contains("Phin", ignoreCase = true) || recipe.equipment.contains("Moka", ignoreCase = true) || recipe.equipment.contains("Tubruk", ignoreCase = true) || recipe.equipment.contains("Ibrik", ignoreCase = true) || recipe.equipment.contains("Cezve", ignoreCase = true) || recipe.equipment.contains("Jebena", ignoreCase = true)
+                        else -> recipe.method.contains(selectedChampionMethod, ignoreCase = true) || recipe.equipment.contains(selectedChampionMethod, ignoreCase = true)
+                    }
+                    val matchesQuery = championQuery.isBlank() ||
+                        recipe.name.contains(championQuery, ignoreCase = true) ||
+                        recipe.baristaOrCreator.contains(championQuery, ignoreCase = true) ||
+                        recipe.method.contains(championQuery, ignoreCase = true) ||
+                        recipe.equipment.contains(championQuery, ignoreCase = true) ||
+                        recipe.tags.any { it.contains(championQuery, ignoreCase = true) }
+
+                    matchesCategory && matchesMethod && matchesQuery
+                }
+
+                item {
+                    Text(
+                        "Showing ${filteredChampionRecipes.size} of 80 recipes",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+
+                if (filteredChampionRecipes.isEmpty()) {
+                    item {
+                        InfoCard("No recipes match criteria", "Try adjusting your query or category filters.")
+                    }
+                }
+
+                items(filteredChampionRecipes, key = { it.id }) { recipe ->
+                    ChampionRecipeCard(
+                        recipe = recipe,
+                        isExpanded = expandedChampionRecipeId == recipe.id,
+                        onToggleExpand = {
+                            expandedChampionRecipeId = if (expandedChampionRecipeId == recipe.id) null else recipe.id
+                        },
+                        onLogToJournal = {
+                            model.logChampionRecipeToJournal(recipe)
+                        },
+                        onBrewOnTimer = {
+                            model.brewChampionRecipe(recipe)
+                            edit(recipe.toRecipe())
+                        },
+                        onSaveTemplate = {
+                            model.saveChampionRecipeAsTemplate(recipe)
+                        },
+                        modifier = Modifier.testTag("champion:card:${recipe.id}")
+                    )
                 }
             }
 
