@@ -155,6 +155,14 @@ import java.time.ZoneOffset
 import java.util.Locale
 import kotlinx.coroutines.launch
 
+private const val CUPPING_TIMER_TICK_INTERVAL_MILLIS = 1_000L
+private const val LEGACY_CUPPING_HIGH_REFERENCE_SCORE = 90.0f
+private const val LEGACY_CUPPING_MID_REFERENCE_SCORE = 85.0f
+private const val LEGACY_CUPPING_LOW_REFERENCE_SCORE = 80.0f
+private const val EXERCISE_TEMPERATURE_MIN_CELSIUS = 40.0
+private const val EXERCISE_TEMPERATURE_MAX_CELSIUS = 65.0
+private const val PANEL_MCD_REFERENCE_THRESHOLD = 0.35
+
 private fun String.toTitleCase(): String = replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
 
 @Composable
@@ -783,7 +791,7 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
 
     LaunchedEffect(isTimerRunning) {
         while (isTimerRunning) {
-            kotlinx.coroutines.delay(1000L)
+            kotlinx.coroutines.delay(CUPPING_TIMER_TICK_INTERVAL_MILLIS)
             timerSeconds++
         }
     }
@@ -1324,9 +1332,9 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
                         Text(
                             text = legTotalScore?.let { score ->
                                 when {
-                                    score >= 90.0f -> "Historical reference band: 90+"
-                                    score >= 85.0f -> "Historical reference band: 85–89.99"
-                                    score >= 80.0f -> "Historical reference band: 80–84.99"
+                                    score >= LEGACY_CUPPING_HIGH_REFERENCE_SCORE -> "Historical reference band: 90+"
+                                    score >= LEGACY_CUPPING_MID_REFERENCE_SCORE -> "Historical reference band: 85–89.99"
+                                    score >= LEGACY_CUPPING_LOW_REFERENCE_SCORE -> "Historical reference band: 80–84.99"
                                     else -> "Historical reference band: below 80"
                                 }
                             } ?: "Historical reference band: NOT_RECORDED",
@@ -2381,7 +2389,7 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        (1..5).forEach { rating ->
+                        for (rating in 1..5) {
                             TactileFilterChip(
                                 selected = selectedConfidence == rating,
                                 onClick = { selectedConfidence = rating },
@@ -3048,7 +3056,10 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    } else if (servingTemp < 40.0 || servingTemp > 65.0) {
+                    } else if (
+                        servingTemp < EXERCISE_TEMPERATURE_MIN_CELSIUS ||
+                        servingTemp > EXERCISE_TEMPERATURE_MAX_CELSIUS
+                    ) {
                         Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.errorContainer) {
                             Text(
                                 (
@@ -5083,16 +5094,16 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                                     )
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
-                                        color = if (mcd <= 0.35) {
+                                        color = if (mcd <= PANEL_MCD_REFERENCE_THRESHOLD) {
                                             MaterialTheme.colorScheme.primaryContainer
                                         } else {
                                             MaterialTheme.colorScheme.errorContainer
                                         }
                                     ) {
                                         Text(
-                                            if (mcd <= 0.35) "PASS" else "RE-CALIBRATE",
+                                            if (mcd <= PANEL_MCD_REFERENCE_THRESHOLD) "PASS" else "RE-CALIBRATE",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = if (mcd <= 0.35) {
+                                            color = if (mcd <= PANEL_MCD_REFERENCE_THRESHOLD) {
                                                 MaterialTheme.colorScheme.onPrimaryContainer
                                             } else {
                                                 MaterialTheme.colorScheme.onErrorContainer

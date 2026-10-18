@@ -351,10 +351,24 @@ private const val TRANSITION_FADE_OUT_MILLIS = 100
 private const val WIDE_INPUT_WEIGHT = 1.5f
 private const val TIMER_RESTART_ACTION_WEIGHT = 1.1f
 private const val TIMER_FINISH_ACTION_WEIGHT = 1.4f
+private const val PRIMARY_ACTION_WEIGHT = 1.2f
+private const val SECONDARY_ACTION_WEIGHT = 1.1f
 private const val POUR_INCREMENT_SMALL_GRAMS = 10.0
 private const val POUR_INCREMENT_MEDIUM_GRAMS = 25.0
 private const val POUR_INCREMENT_LARGE_GRAMS = 50.0
 private const val POUR_INCREMENT_FULL_GRAMS = 100.0
+private val handGrinderBadgeContainerColor = Color(0xFF8D6E63)
+private val electricGrinderBadgeContainerColor = Color(0xFF3F51B5)
+private val handGrinderBadgeContentColor = Color(0xFFD7CCC8)
+private val electricGrinderBadgeContentColor = Color(0xFFC5CAE9)
+private val verifiedEquipmentColor = Color(0xFF2E7D32)
+private val pendingEquipmentColor = Color(0xFFEF6C00)
+private val verifiedEquipmentContentColor = Color(0xFF81C784)
+private val pendingEquipmentContentColor = Color(0xFFFFB74D)
+private val filterOnlyBadgeContainerColor = Color(0xFFC62828)
+private val filterOnlyBadgeContentColor = Color(0xFFEF9A9A)
+private val valveBadgeContainerColor = Color(0xFF7B1FA2)
+private val valveBadgeContentColor = Color(0xFFCE93D8)
 private val SIMULATED_POUR_INCREMENT_GRAMS = listOf(
     POUR_INCREMENT_SMALL_GRAMS,
     POUR_INCREMENT_MEDIUM_GRAMS,
@@ -718,7 +732,7 @@ private fun GrindRangeTile(
             if (isWarning) {
                 MaterialTheme.colorScheme.error.copy(alpha = 0.30f)
             } else if (isVerified) {
-                Color(0xFF2E7D32).copy(alpha = 0.35f)
+                verifiedEquipmentColor.copy(alpha = 0.35f)
             } else {
                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
             }
@@ -747,7 +761,7 @@ private fun GrindRangeTile(
                         text = "✓",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2E7D32)
+                        color = verifiedEquipmentColor
                     )
                 }
             }
@@ -2678,37 +2692,35 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                 MicroBadgePill(
                                     text = grinder.type.name,
                                     containerColor = if (grinder.type == GrinderType.HAND) {
-                                        Color(
-                                            0xFF8D6E63
-                                        ).copy(alpha = 0.20f)
+                                        handGrinderBadgeContainerColor.copy(alpha = 0.20f)
                                     } else {
-                                        Color(0xFF3F51B5).copy(alpha = 0.20f)
+                                        electricGrinderBadgeContainerColor.copy(alpha = 0.20f)
                                     },
-                                    contentColor = if (grinder.type == GrinderType.HAND) Color(0xFFD7CCC8) else Color(0xFFC5CAE9)
+                                    contentColor = if (grinder.type == GrinderType.HAND) {
+                                        handGrinderBadgeContentColor
+                                    } else {
+                                        electricGrinderBadgeContentColor
+                                    }
                                 )
                                 MicroBadgePill(text = grinder.adjustmentUnit.name.replace("_", " "))
                                 MicroBadgePill(
                                     text = grinder.evidenceStatus.name.replace("_", " "),
                                     containerColor = if (grinder.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) {
-                                        Color(
-                                            0xFF2E7D32
-                                        ).copy(alpha = 0.20f)
+                                        verifiedEquipmentColor.copy(alpha = 0.20f)
                                     } else {
-                                        Color(0xFFEF6C00).copy(alpha = 0.20f)
+                                        pendingEquipmentColor.copy(alpha = 0.20f)
                                     },
                                     contentColor = if (grinder.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) {
-                                        Color(
-                                            0xFF81C784
-                                        )
+                                        verifiedEquipmentContentColor
                                     } else {
-                                        Color(0xFFFFB74D)
+                                        pendingEquipmentContentColor
                                     }
                                 )
                                 if (!grinder.isEspressoCapable) {
                                     MicroBadgePill(
                                         text = "Filter Only",
-                                        containerColor = Color(0xFFC62828).copy(alpha = 0.20f),
-                                        contentColor = Color(0xFFEF9A9A)
+                                        containerColor = filterOnlyBadgeContainerColor.copy(alpha = 0.20f),
+                                        contentColor = filterOnlyBadgeContentColor
                                     )
                                 }
                             }
@@ -2743,7 +2755,7 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                 Text(
                                     text = "Verified Range: ${grinder.verifiedRangeMedium}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFF81C784)
+                                    color = verifiedEquipmentContentColor
                                 )
                             }
                             if (grinder.variants.isNotEmpty()) {
@@ -2892,25 +2904,21 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                 MicroBadgePill(
                                     text = dripper.evidenceStatus.name.replace("_", " "),
                                     containerColor = if (dripper.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) {
-                                        Color(
-                                            0xFF2E7D32
-                                        ).copy(alpha = 0.20f)
+                                        verifiedEquipmentColor.copy(alpha = 0.20f)
                                     } else {
-                                        Color(0xFFEF6C00).copy(alpha = 0.20f)
+                                        pendingEquipmentColor.copy(alpha = 0.20f)
                                     },
                                     contentColor = if (dripper.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) {
-                                        Color(
-                                            0xFF81C784
-                                        )
+                                        verifiedEquipmentContentColor
                                     } else {
-                                        Color(0xFFFFB74D)
+                                        pendingEquipmentContentColor
                                     }
                                 )
                                 if (isValve) {
                                     MicroBadgePill(
                                         text = "Valve Equipped",
-                                        containerColor = Color(0xFF7B1FA2).copy(alpha = 0.20f),
-                                        contentColor = Color(0xFFCE93D8)
+                                        containerColor = valveBadgeContainerColor.copy(alpha = 0.20f),
+                                        contentColor = valveBadgeContentColor
                                     )
                                 }
                             }
@@ -2973,13 +2981,15 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                         MicroBadgePill(
                                             text = c.statusText,
                                             containerColor = if (c.statusText == "RECOMMENDED_FIT") {
-                                                Color(
-                                                    0xFF2E7D32
-                                                ).copy(alpha = 0.20f)
+                                                verifiedEquipmentColor.copy(alpha = 0.20f)
                                             } else {
-                                                Color(0xFFEF6C00).copy(alpha = 0.20f)
+                                                pendingEquipmentColor.copy(alpha = 0.20f)
                                             },
-                                            contentColor = if (c.statusText == "RECOMMENDED_FIT") Color(0xFF81C784) else Color(0xFFFFB74D)
+                                            contentColor = if (c.statusText == "RECOMMENDED_FIT") {
+                                                verifiedEquipmentContentColor
+                                            } else {
+                                                pendingEquipmentContentColor
+                                            }
                                         )
                                         Text(
                                             text = "Filter ($testFilterId): ${c.recommendationNote}",
@@ -4181,7 +4191,7 @@ private fun ChampionRecipeCard(
                     onClick = onLogToJournal,
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.weight(1.2f).height(36.dp).testTag("champion:log:${recipe.id}")
+                    modifier = Modifier.weight(PRIMARY_ACTION_WEIGHT).height(36.dp).testTag("champion:log:${recipe.id}")
                 ) {
                     Icon(Icons.Default.Book, null, Modifier.size(16.dp).padding(end = 4.dp))
                     Text("Log Brew", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
@@ -4191,7 +4201,7 @@ private fun ChampionRecipeCard(
                     onClick = onBrewOnTimer,
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    modifier = Modifier.weight(1.1f).height(36.dp).testTag("champion:brew:${recipe.id}")
+                    modifier = Modifier.weight(SECONDARY_ACTION_WEIGHT).height(36.dp).testTag("champion:brew:${recipe.id}")
                 ) {
                     Icon(Icons.Default.PlayArrow, null, Modifier.size(16.dp).padding(end = 4.dp))
                     Text("Brew Timer", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
@@ -4394,7 +4404,7 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             onClick = { model.repeatLastBrew() },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.weight(1.2f).heightIn(min = 44.dp).testTag("journal:repeat_last_brew")
+                            modifier = Modifier.weight(PRIMARY_ACTION_WEIGHT).heightIn(min = 44.dp).testTag("journal:repeat_last_brew")
                         ) {
                             Text("⚡ Repeat Last", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
@@ -4402,7 +4412,7 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             onClick = { activeTab = JournalTab.CHAMPION_RECIPES },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.weight(1.1f).heightIn(min = 44.dp).testTag("journal:nav_champion_recipes")
+                            modifier = Modifier.weight(SECONDARY_ACTION_WEIGHT).heightIn(min = 44.dp).testTag("journal:nav_champion_recipes")
                         ) {
                             Icon(Icons.Default.Star, null, Modifier.size(16.dp).padding(end = 4.dp))
                             Text("World (80)", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
