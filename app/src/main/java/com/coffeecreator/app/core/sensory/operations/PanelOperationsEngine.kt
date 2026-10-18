@@ -12,6 +12,16 @@ import kotlin.math.sqrt
  * Free from Android, Room, or UI dependencies.
  */
 object PanelOperationsEngine {
+    private const val NUMERIC_EPSILON = 1e-9
+    private const val KAPPA_SLIGHT_MAX = 0.20
+    private const val KAPPA_FAIR_MAX = 0.40
+    private const val KAPPA_MODERATE_MAX = 0.60
+    private const val KAPPA_SUBSTANTIAL_MAX = 0.80
+    private const val HIGH_CALIBRATION_MCD_MAX = 0.35
+    private const val BLIND_SAMPLE_CODE_MIN_VALUE = 100
+    private const val BLIND_SAMPLE_CODE_COUNT = 900
+    private const val DETERMINISTIC_DISCREPANCY_TOLERANCE = 0.05
+    private const val DECIMAL_ROUNDING_SCALE = 10_000.0
 
     // ========================================================================
     // 1. Panel Agreement & Calibration Statistics (S4-059)
@@ -44,7 +54,7 @@ object PanelOperationsEngine {
         }
 
         // Zero-variance guard: If either rater has invariant scores, correlation is undefined.
-        if (sxx < 1e-9 || syy < 1e-9) {
+        if (sxx < NUMERIC_EPSILON || syy < NUMERIC_EPSILON) {
             return null
         }
 
@@ -79,7 +89,7 @@ object PanelOperationsEngine {
         var i = 0
         while (i < n) {
             var j = i
-            while (j + 1 < n && abs(indexed[j + 1].first - indexed[i].first) < 1e-9) {
+            while (j + 1 < n && abs(indexed[j + 1].first - indexed[i].first) < NUMERIC_EPSILON) {
                 j++
             }
             // Tied group from i to j (0-indexed). 1-based ranks are (i + 1) to (j + 1).
@@ -181,10 +191,10 @@ object PanelOperationsEngine {
         }
 
         // Guard against perfect chance agreement
-        if (abs(pBar - 1.0) < 1e-9 && abs(peBar - 1.0) < 1e-9) {
+        if (abs(pBar - 1.0) < NUMERIC_EPSILON && abs(peBar - 1.0) < NUMERIC_EPSILON) {
             return 1.0
         }
-        if (abs(1.0 - peBar) < 1e-9) {
+        if (abs(1.0 - peBar) < NUMERIC_EPSILON) {
             return null
         }
 
@@ -199,10 +209,10 @@ object PanelOperationsEngine {
         return when {
             kappa == null -> "INDETERMINATE"
             kappa < 0.0 -> "POOR"
-            kappa <= 0.20 -> "SLIGHT"
-            kappa <= 0.40 -> "FAIR"
-            kappa <= 0.60 -> "MODERATE"
-            kappa <= 0.80 -> "SUBSTANTIAL"
+            kappa <= KAPPA_SLIGHT_MAX -> "SLIGHT"
+            kappa <= KAPPA_FAIR_MAX -> "FAIR"
+            kappa <= KAPPA_MODERATE_MAX -> "MODERATE"
+            kappa <= KAPPA_SUBSTANTIAL_MAX -> "SUBSTANTIAL"
             else -> "ALMOST_PERFECT"
         }
     }
@@ -236,7 +246,7 @@ object PanelOperationsEngine {
         if (raterCount < 3) {
             caveats.add("Small panel size (N=$raterCount < 3): Statistical power is constrained.")
         }
-        if (stdDev < 1e-9 && raterCount >= 2) {
+        if (stdDev < NUMERIC_EPSILON && raterCount >= 2) {
             caveats.add("Zero variance detected: All raters assigned identical scores.")
         }
 
@@ -270,7 +280,7 @@ object PanelOperationsEngine {
             fleissKappa = fleissKappa,
             categoricalAgreementLabel = catLabel,
             caveats = caveats,
-            isHighCalibration = panelMcd <= 0.35
+            isHighCalibration = panelMcd <= HIGH_CALIBRATION_MCD_MAX
         )
     }
 
@@ -289,7 +299,7 @@ object PanelOperationsEngine {
         for (sampleId in sampleIds) {
             var code: String
             do {
-                code = (100 + random.nextInt(900)).toString()
+                code = (BLIND_SAMPLE_CODE_MIN_VALUE + random.nextInt(BLIND_SAMPLE_CODE_COUNT)).toString()
             } while (assignedCodes.contains(code))
 
             assignedCodes.add(code)
@@ -364,7 +374,8 @@ object PanelOperationsEngine {
      * Verifies that pure Kotlin deterministic calculations override any conflicting LLM claims.
      */
     fun validateDeterministicDecoupling(calculatedValue: Double, reportedClaim: Double?): DeterministicValidationResult {
-        val discrepancy = reportedClaim != null && abs(calculatedValue - reportedClaim) > 0.05
+        val discrepancy = reportedClaim != null &&
+            abs(calculatedValue - reportedClaim) > DETERMINISTIC_DISCREPANCY_TOLERANCE
         return DeterministicValidationResult(
             isDecoupled = true,
             engineCalculation = roundToFourDecimals(calculatedValue),
@@ -451,6 +462,6 @@ object PanelOperationsEngine {
     }
 
     private fun roundToFourDecimals(value: Double): Double {
-        return (value * 10000.0).roundToInt() / 10000.0
+        return (value * DECIMAL_ROUNDING_SCALE).roundToInt() / DECIMAL_ROUNDING_SCALE
     }
 }
