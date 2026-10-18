@@ -51,4 +51,6 @@ The audit baseline above is preserved as originally recorded. On remediation sou
 
 ## Scoped CVA storage follow-up — 2026-10-18
 
+Implementation commit under test: `25e45e4a96b3bad6f5ccb54de2261670f9e67cd9`.
+
 Branch `codex/s4-cva-persistence` (base `e861739573fb98bc4f01b658e9830dc5a44a9c01`) adds Room-backed typed CVA sessions, additive backup v4 compatibility, assessment/preparation bounds, strict amendment history, and current-revision JSON/CSV export validation. Full JVM tests: **42 suites / 383 tests / 0 failures / 0 errors / 0 skipped**. `lintDebug`: task passes with 120 findings (94 warnings, 26 informational). Detekt: **FAIL**, 534 weighted findings. Test-source KtLint: **PASS**. Main-source KtLint: **FAIL**, 2,115-line repository report; the modified validation and export guard lines no longer appear in the report. `assembleDebug`: **PASS**, local APK 106,778,097 bytes, SHA-256 `14a32a0f8244aafe96d0f986efb46b6217fea19c0085c7ce86a3f4b3b6bc6203`. ADB and instrumentation remain NOT_RUN per user instruction. The UI session workflow is not wired; requirement-level acceptance remains **0/221**, master BDD/E2E **0/297**, and release verdict **NOT_READY**. D-016 through D-020 are fixed on this branch. Full commands and evidence: [CVA_DURABLE_STORAGE_SLICE_2026-10-18.md](CVA_DURABLE_STORAGE_SLICE_2026-10-18.md).

@@ -2,6 +2,7 @@
 
 **Worktree / branch:** `D:\SEMESTER13\KodeProject\CoffeCreator-worktrees\s4-cva-persistence`, `codex/s4-cva-persistence`
 **Base SHA:** `e861739573fb98bc4f01b658e9830dc5a44a9c01`
+**Implementation commit under test:** `25e45e4a96b3bad6f5ccb54de2261670f9e67cd9`
 **App baseline:** `1.14.5` / versionCode `30`
 **Disposition:** slice tests/build pass with existing static-check failures; overall product **NOT_READY**.
 
