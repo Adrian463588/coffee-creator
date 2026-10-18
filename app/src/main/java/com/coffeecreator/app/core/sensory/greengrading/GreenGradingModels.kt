@@ -410,8 +410,7 @@ object StandardGreenGradingEngine {
         sample: GreenLotSample,
         limits: BuyerAcceptanceLimits,
         sieveAnalysis: SieveAnalysisResult? = null
-    ): BuyerContractEvaluationResult =
-        GreenGradingEvaluation.evaluateBuyerContract(sample, limits, sieveAnalysis)
+    ): BuyerContractEvaluationResult = GreenGradingEvaluation.evaluateBuyerContract(sample, limits, sieveAnalysis)
 
     fun computeSha256(input: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -895,12 +894,13 @@ private object GreenGradingEvaluation {
         return moistureValid
     }
 
-    private fun missingPhysicalRequirements(
-        sample: GreenLotSample,
-        moisture: Double?,
-        odor: GreenBeanOdor?
-    ): List<String> = buildList {
-        if (!sample.sampleMassGrams.isFinite() || sample.sampleMassGrams != HISTORICAL_REFERENCE_SAMPLE_MASS_GRAMS) add("350 g reference sample mass")
+    private fun missingPhysicalRequirements(sample: GreenLotSample, moisture: Double?, odor: GreenBeanOdor?): List<String> = buildList {
+        if (
+            !sample.sampleMassGrams.isFinite() ||
+            sample.sampleMassGrams != HISTORICAL_REFERENCE_SAMPLE_MASS_GRAMS
+        ) {
+            add("350 g reference sample mass")
+        }
         if (!sample.defectInspectionComplete) add("defect inspection")
         if (!sample.moisture.isMeasured || moisture == null) add("moisture measurement")
         if (odor == null) add("odor inspection")
@@ -974,11 +974,7 @@ private object GreenGradingEvaluation {
         )
     }
 
-    private fun appendContractInspectionFailures(
-        sample: GreenLotSample,
-        unsupportedDefectTally: Boolean,
-        failures: MutableList<String>
-    ) {
+    private fun appendContractInspectionFailures(sample: GreenLotSample, unsupportedDefectTally: Boolean, failures: MutableList<String>) {
         if (unsupportedDefectTally) {
             failures.add("Unsupported defect evidence is OUT_OF_SCOPE for this contract's equivalence rules")
         }

@@ -80,7 +80,7 @@ Ketinggian dan garis lintang mengatur fluktuasi suhu harian. Suhu dingin malam h
         asciiDiagram = """
     [High Elevation >1500m] ---> Slow Maturation ---> Dense Seed + High Sucrose + Complex Acids
     [Low Elevation  <800m]  ---> Fast Maturation ---> Lower Density + Faster Yield
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Allotetraploid",
@@ -190,7 +190,7 @@ Pemisahan biji kopi dari kulit buah dan lendir (mucilage) sebelum dikeringkan hi
     Washed  : Cherry -> Pulp Removed -> Wash Mucilage -> Clean Bean Drying
     Natural : Cherry -> Intact Fruit Drying -> Delayed Dry Hulling
     Honey   : Cherry -> Pulp Removed -> Sticky Mucilage Drying
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Mucilage",
@@ -304,7 +304,7 @@ Evaluasi sensori mengukur respons biologis manusia terhadap rangsangan fisik.
             ).trimIndent(),
         asciiDiagram = """
     Physical Stimulus -> Olfactory/Gustatory Receptors -> Neural Transduction -> Cognitive Interpretation
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Psychophysics",
@@ -421,7 +421,7 @@ Mukosa penciuman manusia memiliki sekitar 6 juta neuron reseptor olfaktori.
         asciiDiagram = """
     Nose -> Nasal Cavity -> Olfactory Bulb (Orthonasal)
     Mouth -> Pharynx -> Nasopharynx -> Olfactory Bulb (Retronasal)
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Retronasal",
@@ -563,7 +563,7 @@ Mitos bahwa manis hanya di ujung lidah dan pahit di pangkal telah dibantah secar
     Lidah Manusia:
     Semua papila (fungiform, foliate, circumvallate) merasakan:
     [MANIS + ASAM + ASIN + PAHIT + UMAMI] secara merata.
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "OTOP1",
@@ -796,7 +796,7 @@ Asam menentukan kecerahan rasa kopi specialty:
             ).trimIndent(),
         asciiDiagram = """
     Green Bean (Citric + Malic + Chlorogenic) ---> Roasting Heat ---> Quinic + Acetic Formed; Citric Degraded
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "pKa",
@@ -895,7 +895,7 @@ Kopi sangrai memiliki lebih dari 800 senyawa volatil yang dikelompokkan ke dalam
     Green Precursors (Sugars + Amino Acids)
         |---> 130-180°C: Maillard & Strecker ---> Nutty, Caramel, Cocoa Pyrazines
         |---> >200°C: Fiber Pyrolysis        ---> Spicy, Clove, Smoky Guaiacols
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Maillard Reaction",
@@ -990,7 +990,7 @@ Memori bau dapat dilatih secara konsisten melalui tiga langkah:
             ).trimIndent(),
         asciiDiagram = """
     Physical Vial -> 3 Gentle Sniffs -> Category Guess -> Check Answer -> Spaced Repetition (Day 1, 3, 7)
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Spaced Repetition",
@@ -1104,7 +1104,7 @@ Coffee Creator menggabungkan 84 deskriptor referensi global dengan 137 deskripto
             ).trimIndent(),
         asciiDiagram = """
     Category (Fruity) -> Subcategory (Berry) -> Specific Descriptor (Blackberry)
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Sensory Lexicon",
@@ -1217,7 +1217,7 @@ Untuk memastikan pengujian dapat diulang dengan akurat:
             ).trimIndent(),
         asciiDiagram = """
     Weigh 11.0g -> Grind ~850µm -> Smell Fragrance -> Pour 200mL 93°C -> 4:00 Min Break Crust
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Agtron",
@@ -1326,7 +1326,7 @@ Pada form 2004, evaluator yang tidak suka rasa bunga bisa memberi skor rendah pa
             ).trimIndent(),
         asciiDiagram = """
     Coffee Sample -> [Physical] -> [Descriptive (Objective)] -> [Affective (Subjective)] -> [Extrinsic]
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "CVA",
@@ -1423,7 +1423,7 @@ The descriptive form measures **sensory intensity** independently of hedonic app
 0.0 --------- 1.0 --------- 2.0 --------- 3.0 --------- 4.0 --------- 5.0
 None         Low          Mild          Moderate       High       Extreme
 ```
-            """.trimIndent(),
+        """.trimIndent(),
         contentMarkdownId = (
             """
 # Protokol CVA Deskriptif (SCA-103)
@@ -1437,7 +1437,7 @@ Formulir deskriptif mengukur **kekuatan rangsangan rasa**:
         asciiDiagram = """
     Intensity 0.0 [None] ------------------------> 5.0 [Extreme]
     * High intensity is an objective measurement, not necessarily a badge of high quality.
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "CATA",
@@ -1524,7 +1524,7 @@ The Affective form records the **hedonic quality impression**:
 - **Defects Penalty**:
   - *Taint* (-2.0 points per defective cup): Noticeable off-flavor that detracts but does not overwhelm.
   - *Fault* (-4.0 points per defective cup): Overwhelming, repulsive defect (mold, chemical, phenol).
-            """.trimIndent(),
+        """.trimIndent(),
         contentMarkdownId = """
 # Protokol CVA Afektif (SCA-104)
 
@@ -1534,10 +1534,10 @@ Formulir Afektif mencatat **apresiasi kualitas rasa**:
 - **Pengurangan Cacat**:
   - *Taint* (-2 poin per cangkir cacat): Bau menyimpang ringan yang mengurangi kenikmatan.
   - *Fault* (-4 poin per cangkir cacat): Cacat parah menusuk (jamur, fenolik, busuk).
-            """.trimIndent(),
+        """.trimIndent(),
         asciiDiagram = """
     6.00 [Good] ---> 7.00 [Very Good] ---> 8.00 [Excellent] ---> 9.00-10.00 [Outstanding]
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Hedonic Scale",
@@ -1616,7 +1616,7 @@ Extrinsic attributes represent the informational and contextual value of coffee:
 [Blind Tasting Phase]  --->  [Lock Sensory Scores]  --->  [Reveal Extrinsic Info]
 (Origin Concealed)           (Scores Immutable)          (Holistic Value Assessment)
 ```
-            """.trimIndent(),
+        """.trimIndent(),
         contentMarkdownId = """
 # Penilaian CVA Ekstrinsik (SCA-105)
 
@@ -1625,10 +1625,10 @@ Atribut ekstrinsik mewakili nilai informasi dan kontekstual:
 - **Metadata Agronomi**: Varietas, metode proses, ketinggian MASL.
 - **Sertifikasi**: Fair Trade, Organik, Rainforest Alliance.
 - **Transparansi Perdagangan**: Harga beli di tingkat petani (farmgate price).
-            """.trimIndent(),
+        """.trimIndent(),
         asciiDiagram = """
     Concealed Origin -> Sensory Scores Committed -> Extrinsic Audit Reveal
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Extrinsic Attribute",
@@ -1724,7 +1724,7 @@ Under the SCA 2004 washed Arabica grading standard:
 - Zero (0) Category 1 defects.
 - Maximum five (5) Category 2 full defect equivalents.
 - Moisture content strictly between 9.0% and 13.0% (ideally 10.0–12.0%).
-            """.trimIndent(),
+        """.trimIndent(),
         contentMarkdownId = """
 # Standar Grading Cacat Biji Kopi Arabika (Sampel 350g)
 
@@ -1746,7 +1746,7 @@ Berdasarkan standar fisik SCA:
 - Nol (0) cacat Kategori 1.
 - Maksimal lima (5) ekuivalen cacat penuh Kategori 2.
 - Kadar air harus di antara 9.0% hingga 13.0%.
-            """.trimIndent(),
+        """.trimIndent(),
         asciiDiagram = (
             """
     350g Sample -> Inspect Category 1 (Must be 0) -> Inspect Category 2 (<=5) -> Check Moisture (9-13%) ->""" +
@@ -1861,7 +1861,7 @@ Uji Triangulasi adalah standar internasional (ISO 4120) untuk menguji kepekaan m
         asciiDiagram = """
     Cup 1 [294]    Cup 2 [815]    Cup 3 [602]
          A              B              A       ---> Odd Cup is #2
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Null Hypothesis",
@@ -1958,7 +1958,7 @@ Panel cupping profesional rutin melakukan kalibrasi:
             ).trimIndent(),
         asciiDiagram = """
     Individual Cuppers -> Independent Blind Scoring -> Panel Aggregation -> Consensus Discussion
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Inter-Rater Reliability",
@@ -2057,7 +2057,7 @@ Kesalahan sangrai tidak boleh disalahartikan sebagai kualitas bawaan biji hijau:
     Underdeveloped Roast: Light core + grassy astringent taste
     Baked Roast         : Stalled RoR curve + flat lifeless cup
     Scorched Roast      : Burn spots on bean surface + acrid smoke taste
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Quaker",
@@ -2153,7 +2153,7 @@ Nilai cupping menentukan harga kontrak dan kelangsungan hidup petani kopi:
             ).trimIndent(),
         asciiDiagram = """
     Session Draft -> Complete -> Lock Session (SHA-256 Hash) -> Amendments require Audited Justification
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Audit Trail",
@@ -2262,7 +2262,7 @@ SCA secara tegas menyatakan **TIDAK ADA rumus matematika** untuk mengubah nilai 
         asciiDiagram = """
     2004 Legacy Form (100-pt Single Sheet) =/= CVA (4 Independent Perspectives)
     [Never attempt automated numeric conversion between protocols]
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "Legacy Protocol",
@@ -2370,7 +2370,7 @@ Program Q Grader yang dikelola oleh **Coffee Quality Institute (CQI)** adalah st
             ).trimIndent(),
         asciiDiagram = """
     Mobile Practice (Coffee Creator) ---> Build Acuity ---> Official In-Person Exam (CQI Accredited Lab)
-            """.trimIndent(),
+        """.trimIndent(),
         glossary = listOf(
             GlossaryEntry(
                 "CQI",
