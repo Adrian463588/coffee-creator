@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -75,13 +74,16 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -146,6 +148,7 @@ import com.coffeecreator.app.core.sensory.training.TriangleStatisticsEngine
 import com.coffeecreator.app.ui.components.TactileButton
 import com.coffeecreator.app.ui.components.TactileCard
 import com.coffeecreator.app.ui.components.TactileFilterChip
+import com.coffeecreator.app.ui.components.tactileClickable
 import java.io.IOException
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -172,8 +175,12 @@ fun SensoryAcademySection(modifier: Modifier = Modifier) {
                 lesson.id.contains(searchQuery, ignoreCase = true) ||
                 lesson.titleEn.contains(searchQuery, ignoreCase = true) ||
                 lesson.titleId.contains(searchQuery, ignoreCase = true) ||
-                lesson.glossary.any { it.termEn.contains(searchQuery, ignoreCase = true) || it.termId.contains(searchQuery,
-                    ignoreCase = true) }
+                lesson.glossary.any {
+                    it.termEn.contains(searchQuery, ignoreCase = true) || it.termId.contains(
+                        searchQuery,
+                        ignoreCase = true
+                    )
+                }
             matchesCategory && matchesQuery
         }
     }
@@ -202,8 +209,11 @@ fun SensoryAcademySection(modifier: Modifier = Modifier) {
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (useIndonesian) "Kurikulum ilmiah botani, biologi gustatori, CVA & grading"
-                                else "Scientific syllabus: botany, gustatory anatomy, CVA & grading",
+                            text = if (useIndonesian) {
+                                "Kurikulum ilmiah botani, biologi gustatori, CVA & grading"
+                            } else {
+                                "Scientific syllabus: botany, gustatory anatomy, CVA & grading"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -279,10 +289,16 @@ fun SensoryAcademySection(modifier: Modifier = Modifier) {
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("sensory:btn_organic_acids"),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (showOrganicAcidAtlas) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = if (showOrganicAcidAtlas) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurface
+                            containerColor = if (showOrganicAcidAtlas) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                            },
+                            contentColor = if (showOrganicAcidAtlas) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
                     ) {
@@ -299,10 +315,16 @@ fun SensoryAcademySection(modifier: Modifier = Modifier) {
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("sensory:btn_aroma_taxonomy"),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (showAromaTaxonomy) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = if (showAromaTaxonomy) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurface
+                            containerColor = if (showAromaTaxonomy) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                            },
+                            contentColor = if (showAromaTaxonomy) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
                     ) {
@@ -327,19 +349,26 @@ fun SensoryAcademySection(modifier: Modifier = Modifier) {
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = if (useIndonesian) "Atlas 7 Asam Organik Kopi & Standar Kalibrasi"
-                            else "Coffee Organic Acid Atlas & Calibration Reference",
+                        text = if (useIndonesian) {
+                            "Atlas 7 Asam Organik Kopi & Standar Kalibrasi"
+                        } else {
+                            "Coffee Organic Acid Atlas & Calibration Reference"
+                        },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = if (useIndonesian) {
-                            ("Koreksi ilmiah: Asam bukanlah rasa dasar ke-6. Asam (sourness) adalah rasa dasar; 'acidity' adalah " +
-                                "persepsi multimodal kompleks.")
+                            (
+                                "Koreksi ilmiah: Asam bukanlah rasa dasar ke-6. Asam (sourness) adalah rasa dasar; 'acidity' adalah " +
+                                    "persepsi multimodal kompleks."
+                                )
                         } else {
-                            ("Scientific correction: Acid is not a 6th basic taste. Sourness is the basic taste; 'acidity' is a " +
-                                "complex multimodal perception.")
+                            (
+                                "Scientific correction: Acid is not a 6th basic taste. Sourness is the basic taste; 'acidity' is a " +
+                                    "complex multimodal perception."
+                                )
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -382,11 +411,13 @@ fun SensoryAcademySection(modifier: Modifier = Modifier) {
                                 )
                                 Text(
                                     "Prep Reference: " +
-                                        (if (useIndonesian) {
-                                            acid.safeReferencePreparationNotesId
-                                        } else {
-                                            acid.safeReferencePreparationNotesEn
-                                        }),
+                                        (
+                                            if (useIndonesian) {
+                                                acid.safeReferencePreparationNotesId
+                                            } else {
+                                                acid.safeReferencePreparationNotesEn
+                                            }
+                                            ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.secondary
                                 )
@@ -413,8 +444,11 @@ fun SensoryAcademySection(modifier: Modifier = Modifier) {
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = if (useIndonesian) "Taksonomi Aroma Independen (Kompatibel Le Nez du Café 60)"
-                            else "Generic Aroma Taxonomy (Le Nez du Café 60 Compatible)",
+                        text = if (useIndonesian) {
+                            "Taksonomi Aroma Independen (Kompatibel Le Nez du Café 60)"
+                        } else {
+                            "Generic Aroma Taxonomy (Le Nez du Café 60 Compatible)"
+                        },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.tertiary
@@ -864,8 +898,11 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
 
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = if (protocol == CuppingProtocol.SCA_2004_LEGACY) MaterialTheme.colorScheme.tertiaryContainer
-                            else MaterialTheme.colorScheme.primaryContainer,
+                        color = if (protocol == CuppingProtocol.SCA_2004_LEGACY) {
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.primaryContainer
+                        },
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
@@ -876,8 +913,11 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (protocol == CuppingProtocol.SCA_2004_LEGACY) MaterialTheme.colorScheme.onTertiaryContainer
-                                else MaterialTheme.colorScheme.onPrimaryContainer
+                            color = if (protocol == CuppingProtocol.SCA_2004_LEGACY) {
+                                MaterialTheme.colorScheme.onTertiaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            }
                         )
                     }
                 }
@@ -925,8 +965,10 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
                         ) {
                             Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
                             Text(
-                                ("HISTORICAL LEGACY FORM: Superseded by CVA standards. Scores must not be equated to modern CVA " +
-                                    "evaluations."),
+                                (
+                                    "HISTORICAL LEGACY FORM: Superseded by CVA standards. Scores must not be equated to modern CVA " +
+                                        "evaluations."
+                                    ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -1127,19 +1169,32 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
                     }
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = if (!cupGridRecorded) MaterialTheme.colorScheme.surfaceVariant
-                            else if (cleanCupCount == 5) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.errorContainer,
+                        color = if (!cupGridRecorded) {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        } else if (cleanCupCount == 5) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.errorContainer
+                        },
                         modifier = Modifier.padding(4.dp)
                     ) {
                         Text(
-                            text = if (!cupGridRecorded) "NOT_RECORDED" else if (cleanCupCount == 5) "5/5 Clean"
-                                else "$cleanCupCount/5 Clean (-${multiCupDefectPenalty.toInt()} pts)",
+                            text = if (!cupGridRecorded) {
+                                "NOT_RECORDED"
+                            } else if (cleanCupCount == 5) {
+                                "5/5 Clean"
+                            } else {
+                                "$cleanCupCount/5 Clean (-${multiCupDefectPenalty.toInt()} pts)"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (!cupGridRecorded) MaterialTheme.colorScheme.onSurfaceVariant
-                                else if (cleanCupCount == 5) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onErrorContainer,
+                            color = if (!cupGridRecorded) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else if (cleanCupCount == 5) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onErrorContainer
+                            },
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -1244,8 +1299,11 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
                         }
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (legTotalScore == null) MaterialTheme.colorScheme.surfaceVariant
-                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            color = if (legTotalScore == null) {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                            },
                             modifier = Modifier.padding(4.dp)
                         ) {
                             Text(
@@ -1636,8 +1694,10 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
                                 ) {
                                     Text(
                                         totalAffective?.let {
-                                            String.format(Locale.getDefault(),
-                                                "Custom research subtotal %.2f; seven ratings minus cup defects", it)
+                                            String.format(
+                                                Locale.getDefault(),
+                                                "Custom research subtotal %.2f; seven ratings minus cup defects", it
+                                            )
                                         } ?: "No standardized total for this protocol",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
@@ -1707,8 +1767,10 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
                                             color = MaterialTheme.colorScheme.error
                                         )
                                         Text(
-                                            ("No sample identity or extrinsic metadata is attached. Reveal is unavailable until " +
-                                                "mappings and an audit record can be saved."),
+                                            (
+                                                "No sample identity or extrinsic metadata is attached. Reveal is unavailable until " +
+                                                    "mappings and an audit record can be saved."
+                                                ),
                                             style = MaterialTheme.typography.bodySmall
                                         )
                                         Button(
@@ -1897,8 +1959,11 @@ fun SensoryCvaCuppingSection(modifier: Modifier = Modifier) {
                                 val isSelected = selectedDescriptors.contains(desc.name)
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.surfaceContainer,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainer
+                                    },
                                     border = BorderStroke(
                                         1.dp,
                                         if (isSelected) {
@@ -2283,15 +2348,21 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                                     if (drillSubmitted) {
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = if (isOddCup) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.surfaceVariant,
+                                            color = if (isOddCup) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.surfaceVariant
+                                            },
                                             modifier = Modifier.padding(top = 2.dp)
                                         ) {
                                             Text(
                                                 if (isOddCup) "ODD ($sampleLabel)" else sampleLabel,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = if (isOddCup) MaterialTheme.colorScheme.onPrimary
-                                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                color = if (isOddCup) {
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                },
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                             )
                                         }
@@ -2340,8 +2411,11 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (correct) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.errorContainer
+                                containerColor = if (correct) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.errorContainer
+                                }
                             )
                         ) {
                             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2352,8 +2426,10 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                                     color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                                 )
                                 Text(
-                                    ("Practice order: ${drillPermutation.name}. Answer key: Cup ${oddCupIdx + 1}. This feedback " +
-                                        "is not persisted. Confidence: $selectedConfidence/5."),
+                                    (
+                                        "Practice order: ${drillPermutation.name}. Answer key: Cup ${oddCupIdx + 1}. This feedback " +
+                                            "is not persisted. Confidence: $selectedConfidence/5."
+                                        ),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -2444,8 +2520,11 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
 
                                 Surface(
                                     shape = RoundedCornerShape(4.dp),
-                                    color = if (binomialStat.isSignificantAlpha05) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.error,
+                                    color = if (binomialStat.isSignificantAlpha05) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.error
+                                    },
                                     modifier = Modifier.padding(vertical = 2.dp)
                                 ) {
                                     Text(
@@ -2456,15 +2535,20 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (binomialStat.isSignificantAlpha05) MaterialTheme.colorScheme.onPrimary
-                                            else MaterialTheme.colorScheme.onError,
+                                        color = if (binomialStat.isSignificantAlpha05) {
+                                            MaterialTheme.colorScheme.onPrimary
+                                        } else {
+                                            MaterialTheme.colorScheme.onError
+                                        },
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
 
                                 Text(
-                                    ("Scientific Caveat: Assumes independent Bernoulli trials with zero carryover. Rapid serial " +
-                                        "cupping introduces sensory fatigue and cross-cup adaptation."),
+                                    (
+                                        "Scientific Caveat: Assumes independent Bernoulli trials with zero carryover. Rapid serial " +
+                                            "cupping introduces sensory fatigue and cross-cup adaptation."
+                                        ),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -2516,9 +2600,11 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        ("Detection: ${tasteRef.detectionThresholdGramsPerLiter} g/L | Low: " +
-                                            "${tasteRef.lowIntensityGramsPerLiter} g/L | High: " +
-                                            "${tasteRef.highIntensityGramsPerLiter} g/L"),
+                                        (
+                                            "Detection: ${tasteRef.detectionThresholdGramsPerLiter} g/L | Low: " +
+                                                "${tasteRef.lowIntensityGramsPerLiter} g/L | High: " +
+                                                "${tasteRef.highIntensityGramsPerLiter} g/L"
+                                            ),
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                     Text(
@@ -2611,30 +2697,36 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                             )
                             Text(
                                 "Detection Threshold: " +
-                                    (if (thresholdCalc == null) {
-                                        "NOT_RECORDED"
-                                    } else {
-                                        thresholdCalc.detectionThresholdGramsPerLiter?.let {
-                                            String.format(Locale.ROOT, "%.4f g/L", it)
-                                        } ?: "Not detected"
-                                    }),
+                                    (
+                                        if (thresholdCalc == null) {
+                                            "NOT_RECORDED"
+                                        } else {
+                                            thresholdCalc.detectionThresholdGramsPerLiter?.let {
+                                                String.format(Locale.ROOT, "%.4f g/L", it)
+                                            } ?: "Not detected"
+                                        }
+                                        ),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
                                 "Recognition Threshold: " +
-                                    (if (thresholdCalc == null) {
-                                        "NOT_RECORDED"
-                                    } else {
-                                        thresholdCalc.recognitionThresholdGramsPerLiter?.let {
-                                            String.format(Locale.ROOT, "%.4f g/L", it)
-                                        } ?: "Not recognized"
-                                    }),
+                                    (
+                                        if (thresholdCalc == null) {
+                                            "NOT_RECORDED"
+                                        } else {
+                                            thresholdCalc.recognitionThresholdGramsPerLiter?.let {
+                                                String.format(Locale.ROOT, "%.4f g/L", it)
+                                            } ?: "Not recognized"
+                                        }
+                                        ),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
                                 "Disclaimer: " +
-                                    (thresholdCalc?.nonClinicalDisclaimer
-                                        ?: "No complete response sequence has been entered; no threshold is calculated."),
+                                    (
+                                        thresholdCalc?.nonClinicalDisclaimer
+                                            ?: "No complete response sequence has been entered; no threshold is calculated."
+                                        ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -2717,8 +2809,11 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isCorrect) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.errorContainer
+                                containerColor = if (isCorrect) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.errorContainer
+                                }
                             )
                         ) {
                             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2836,8 +2931,11 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
 
                     // Flight validation & safety checklist
                     Text(
-                        if (acidFoodGradeVerified) "Supplier food-grade statement recorded by user; not independently verified."
-                            else "Food-grade status: NOT_VERIFIED — no supplier evidence attached.",
+                        if (acidFoodGradeVerified) {
+                            "Supplier food-grade statement recorded by user; not independently verified."
+                        } else {
+                            "Food-grade status: NOT_VERIFIED — no supplier evidence attached."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2845,8 +2943,10 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                         Text(if (acidFoodGradeVerified) "Clear self-reported status" else "Mark supplier statement as self-reported")
                     }
                     Text(
-                        ("Scientific Note: Acid chemistry vs perceived sourness: organic acids modulate multimodal mouthfeel and " +
-                            "salivary stimulation; sourness cannot be predicted solely by pH."),
+                        (
+                            "Scientific Note: Acid chemistry vs perceived sourness: organic acids modulate multimodal mouthfeel and " +
+                                "salivary stimulation; sourness cannot be predicted solely by pH."
+                            ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2897,8 +2997,10 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                     }
 
                     Text(
-                        ("Causal Inference Caveat: Sensory profile reflects multi-variable roast dynamics; does not prove single " +
-                            "roast flaw without roaster curves."),
+                        (
+                            "Causal Inference Caveat: Sensory profile reflects multi-variable roast dynamics; does not prove single " +
+                                "roast flaw without roaster curves."
+                            ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2949,8 +3051,10 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                     } else if (servingTemp < 40.0 || servingTemp > 65.0) {
                         Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.errorContainer) {
                             Text(
-                                ("Entered temperature is outside this exercise's 40°C–65°C reference range; this is not a safety " +
-                                    "determination."),
+                                (
+                                    "Entered temperature is outside this exercise's 40°C–65°C reference range; this is not a safety " +
+                                        "determination."
+                                    ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.padding(6.dp)
@@ -3009,8 +3113,11 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                                     }
                                 ),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.surfaceContainer
+                                    containerColor = if (isSelected) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainer
+                                    }
                                 )
                             ) {
                                 Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -3081,8 +3188,10 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        ("Never auto-mark a practical sensory exercise PASS based solely on reading or virtual quizzes. Requires " +
-                            "physical tasting verification."),
+                        (
+                            "Never auto-mark a practical sensory exercise PASS based solely on reading or virtual quizzes. Requires " +
+                                "physical tasting verification."
+                            ),
                         style = MaterialTheme.typography.bodySmall
                     )
 
@@ -3108,8 +3217,10 @@ fun SensoryTrainingLabSection(modifier: Modifier = Modifier) {
                                 color = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                             Text(
-                                ("Coffee Creator Sensory Lab provides self-directed practice and scientific training only. Does " +
-                                    "NOT confer official SCA or CQI Q-Grader/R-Grader certification."),
+                                (
+                                    "Coffee Creator Sensory Lab provides self-directed practice and scientific training only. Does " +
+                                        "NOT confer official SCA or CQI Q-Grader/R-Grader certification."
+                                    ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer
                             )
@@ -3449,8 +3560,10 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            ("${currentSample.standardRef.name}. Educational reference only; source rights and current " +
-                                "applicability are unverified."),
+                            (
+                                "${currentSample.standardRef.name}. Educational reference only; source rights and current " +
+                                    "applicability are unverified."
+                                ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -3536,8 +3649,11 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                                 if (currentSample.moisture.isMeasured) "${currentSample.moisture.moisturePercent}%" else "NOT_MEASURED",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (gradingEvaluation.moistureWithinStandardRange) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface
+                                color = if (gradingEvaluation.moistureWithinStandardRange) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                }
                             )
                             Text(
                                 "(9.0% - 13.0%)",
@@ -3556,8 +3672,10 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.tertiaryContainer
         ) {
             Text(
-                ("Unsaved screen draft. Leaving this screen may discard entries; export creates a file but does not save the " +
-                    "draft in the app."),
+                (
+                    "Unsaved screen draft. Leaving this screen may discard entries; export creates a file but does not save the " +
+                        "draft in the app."
+                    ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.padding(12.dp)
@@ -3778,8 +3896,11 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    if (evidencePhotoUris.isEmpty()) "No lot evidence photo attached; required for export."
-                                        else "${evidencePhotoUris.size} lot evidence photo(s) attached.",
+                                    if (evidencePhotoUris.isEmpty()) {
+                                        "No lot evidence photo attached; required for export."
+                                    } else {
+                                        "${evidencePhotoUris.size} lot evidence photo(s) attached."
+                                    },
                                     style = MaterialTheme.typography.labelSmall,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -3906,8 +4027,11 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                                     )}g (${if (sieveAnalysis.isMassBalanceValid) "PASS <=1.5g" else "FAIL >1.5g"})",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (sieveAnalysis.isMassBalanceValid) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.error
+                                    color = if (sieveAnalysis.isMassBalanceValid) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.error
+                                    }
                                 )
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -4096,8 +4220,10 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                             )
                         }
                         Text(
-                            ("Record actual readings and the method/instrument used. Storage and density limits depend on the " +
-                                "selected contract."),
+                            (
+                                "Record actual readings and the method/instrument used. Storage and density limits depend on the " +
+                                    "selected contract."
+                                ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -4351,16 +4477,21 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                         // Buyer contract result pill
                         if (contractResult == null) {
                             Text(
-                                ("PENDING_INPUT — provide a sourced contract, valid measurements, a 350 g reference sample, and a " +
-                                    "completed defect inspection."),
+                                (
+                                    "PENDING_INPUT — provide a sourced contract, valid measurements, a 350 g reference sample, and a " +
+                                        "completed defect inspection."
+                                    ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         } else {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (contractResult.isAccepted) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.errorContainer,
+                                color = if (contractResult.isAccepted) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.errorContainer
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.padding(10.dp)) {
@@ -4432,8 +4563,10 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    ("No combined grade is available: the CVA score mapping and content rights have not been " +
-                                        "verified. This screen does not issue an official grade or certification."),
+                                    (
+                                        "No combined grade is available: the CVA score mapping and content rights have not been " +
+                                            "verified. This screen does not issue an official grade or certification."
+                                        ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -4445,8 +4578,10 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                         // Export Actions
                         Text("S4-050 Complete QC Report Export", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         Text(
-                            ("After writing, the app reports the exact payload SHA-256. CSV does not embed it; this digest is not " +
-                                "a digital signature or a persisted audit log."),
+                            (
+                                "After writing, the app reports the exact payload SHA-256. CSV does not embed it; this digest is not " +
+                                    "a digital signature or a persisted audit log."
+                                ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -4467,11 +4602,13 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                                         evaluationTimestampEpochMs = System.currentTimeMillis(),
                                         evidencePhotoUris = evidencePhotoUris,
                                         standardVersion =
-                                            "${currentSample.standardRef.id}:${currentSample.standardRef.version} (unverified)",
+                                        "${currentSample.standardRef.id}:${currentSample.standardRef.version} (unverified)",
                                         equipmentCalibrationSummary = equipmentCalibrationSummaryInput.trim()
                                     )
-                                    exportPayload = StandardGreenGradingEngine.generateGreenQcJson(currentSample,
-                                        gradingEvaluation, audit, sieveAnalysis)
+                                    exportPayload = StandardGreenGradingEngine.generateGreenQcJson(
+                                        currentSample,
+                                        gradingEvaluation, audit, sieveAnalysis
+                                    )
                                     jsonExportPicker.launch("coffee-creator-green-qc.json")
                                 },
                                 enabled = exportReady,
@@ -4491,11 +4628,13 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
                                         evaluationTimestampEpochMs = System.currentTimeMillis(),
                                         evidencePhotoUris = evidencePhotoUris,
                                         standardVersion =
-                                            "${currentSample.standardRef.id}:${currentSample.standardRef.version} (unverified)",
+                                        "${currentSample.standardRef.id}:${currentSample.standardRef.version} (unverified)",
                                         equipmentCalibrationSummary = equipmentCalibrationSummaryInput.trim()
                                     )
-                                    exportPayload = StandardGreenGradingEngine.generateGreenQcCsv(currentSample, gradingEvaluation,
-                                        audit, sieveAnalysis)
+                                    exportPayload = StandardGreenGradingEngine.generateGreenQcCsv(
+                                        currentSample, gradingEvaluation,
+                                        audit, sieveAnalysis
+                                    )
                                     csvExportPicker.launch("coffee-creator-green-qc.csv")
                                 },
                                 enabled = exportReady,
@@ -4529,9 +4668,11 @@ fun SensoryGreenGradingSection(modifier: Modifier = Modifier) {
             ) {
                 Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                 Text(
-                    ("Out-of-scope guard (S4-047 / S4-051): the historical 2004 reference in this app is unverified and limited " +
-                        "to explicitly selected Washed Coffea Arabica. Other species/processes remain UNDETERMINED_OUT_OF_SCOPE. " +
-                        "Missing measurements remain NOT_MEASURED."),
+                    (
+                        "Out-of-scope guard (S4-047 / S4-051): the historical 2004 reference in this app is unverified and limited " +
+                            "to explicitly selected Washed Coffea Arabica. Other species/processes remain UNDETERMINED_OUT_OF_SCOPE. " +
+                            "Missing measurements remain NOT_MEASURED."
+                        ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -4588,14 +4729,20 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (useIndonesian) "Operasi Profesional, AI & Panel (Sprint 04 Epic E)"
-                                else "Pro Operations, AI & Panel (Sprint 04 Epic E)",
+                            text = if (useIndonesian) {
+                                "Operasi Profesional, AI & Panel (Sprint 04 Epic E)"
+                            } else {
+                                "Pro Operations, AI & Panel (Sprint 04 Epic E)"
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (useIndonesian) "Panel buta, kalibrasi inter-rater, pemisahan deterministik, privasi offline"
-                                else "Blind panel, inter-rater calibration, deterministic rules, offline privacy",
+                            text = if (useIndonesian) {
+                                "Panel buta, kalibrasi inter-rater, pemisahan deterministik, privasi offline"
+                            } else {
+                                "Blind panel, inter-rater calibration, deterministic rules, offline privacy"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -4708,14 +4855,30 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
 
                         Text(
                             text = if (currentRole == SensoryPanelRole.SESSION_HOST) {
-                                (if (useIndonesian) ("Peran Host: pembukaan identitas tersedia setelah sesi panel tersimpan " +
-                                    "dengan pemetaan sampel.")
-                                        else "Host Role: identity reveal requires a saved panel session with sample mappings.")
+                                (
+                                    if (useIndonesian) {
+                                        (
+                                            "Peran Host: pembukaan identitas tersedia setelah sesi panel tersimpan " +
+                                                "dengan pemetaan sampel."
+                                            )
+                                    } else {
+                                        "Host Role: identity reveal requires a saved panel session with sample mappings."
+                                    }
+                                    )
                             } else {
-                                (if (useIndonesian) ("Peran Penilai: kode buta hanya tersedia setelah sesi tersimpan; tidak ada " +
-                                    "identitas contoh yang ditampilkan.")
-                                        else ("Assessor Role: blind codes are available only from a saved session; no sample " +
-                                            "identities are supplied here."))
+                                (
+                                    if (useIndonesian) {
+                                        (
+                                            "Peran Penilai: kode buta hanya tersedia setelah sesi tersimpan; tidak ada " +
+                                                "identitas contoh yang ditampilkan."
+                                            )
+                                    } else {
+                                        (
+                                            "Assessor Role: blind codes are available only from a saved session; no sample " +
+                                                "identities are supplied here."
+                                            )
+                                    }
+                                    )
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -4731,8 +4894,10 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("NO_SAVED_PANEL_SESSION", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                 Text(
-                                    ("Sample identities and reveal actions are unavailable until panel mappings and a durable " +
-                                        "audit record are stored."),
+                                    (
+                                        "Sample identities and reveal actions are unavailable until panel mappings and a durable " +
+                                            "audit record are stored."
+                                        ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -4747,8 +4912,11 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                         }
 
                         Text(
-                            if (useIndonesian) "Pembukaan darurat dinonaktifkan sampai audit log sesi dapat disimpan."
-                                else "Emergency reveal is disabled until session audit logs can be persisted.",
+                            if (useIndonesian) {
+                                "Pembukaan darurat dinonaktifkan sampai audit log sesi dapat disimpan."
+                            } else {
+                                "Emergency reveal is disabled until session audit logs can be persisted."
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -4766,8 +4934,11 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                 ) {
                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            text = if (useIndonesian) "Statistik Kesepakatan & Kalibrasi Panel (S4-059)"
-                                else "Panel Agreement & Calibration Statistics (S4-059)",
+                            text = if (useIndonesian) {
+                                "Statistik Kesepakatan & Kalibrasi Panel (S4-059)"
+                            } else {
+                                "Panel Agreement & Calibration Statistics (S4-059)"
+                            },
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -4912,14 +5083,20 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                                     )
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
-                                        color = if (mcd <= 0.35) MaterialTheme.colorScheme.primaryContainer
-                                            else MaterialTheme.colorScheme.errorContainer
+                                        color = if (mcd <= 0.35) {
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.errorContainer
+                                        }
                                     ) {
                                         Text(
                                             if (mcd <= 0.35) "PASS" else "RE-CALIBRATE",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = if (mcd <= 0.35) MaterialTheme.colorScheme.onPrimaryContainer
-                                                else MaterialTheme.colorScheme.onErrorContainer,
+                                            color = if (mcd <= 0.35) {
+                                                MaterialTheme.colorScheme.onPrimaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.onErrorContainer
+                                            },
                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                         )
                                     }
@@ -4945,8 +5122,11 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if (useIndonesian) "Kaitan Historis Tanpa Timpa Data (S4-055)"
-                                    else "Historical Linkage Without Mutation (S4-055)",
+                                text = if (useIndonesian) {
+                                    "Kaitan Historis Tanpa Timpa Data (S4-055)"
+                                } else {
+                                    "Historical Linkage Without Mutation (S4-055)"
+                                },
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -4959,11 +5139,15 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
 
                         Text(
                             text = if (useIndonesian) {
-                                ("Menghubungkan sesi cupping ke biji kopi, batch sangrai, resep seduh, dan grinder tanpa merusak " +
-                                    "log riwayat asli.")
+                                (
+                                    "Menghubungkan sesi cupping ke biji kopi, batch sangrai, resep seduh, dan grinder tanpa merusak " +
+                                        "log riwayat asli."
+                                    )
                             } else {
-                                ("Links cupping evaluation to coffee beans, roast batches, recipes, and grinders without " +
-                                    "modifying historical records.")
+                                (
+                                    "Links cupping evaluation to coffee beans, roast batches, recipes, and grinders without " +
+                                        "modifying historical records."
+                                    )
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -4971,11 +5155,15 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
 
                         Text(
                             text = if (useIndonesian) {
-                                ("Belum ada sesi cupping tersimpan untuk ditautkan. Tautan tidak dibuat sampai rekaman dan ID " +
-                                    "bean, roast, resep, serta alat tersedia.")
+                                (
+                                    "Belum ada sesi cupping tersimpan untuk ditautkan. Tautan tidak dibuat sampai rekaman dan ID " +
+                                        "bean, roast, resep, serta alat tersedia."
+                                    )
                             } else {
-                                ("No saved cupping session is available to link. Link creation is unavailable until the session " +
-                                    "and bean, roast, recipe, and equipment IDs are persisted.")
+                                (
+                                    "No saved cupping session is available to link. Link creation is unavailable until the session " +
+                                        "and bean, roast, recipe, and equipment IDs are persisted."
+                                    )
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -5004,8 +5192,11 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                 ) {
                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            text = if (useIndonesian) "Pemisahan AI & Mesin Deterministik (S4-056, S4-057)"
-                                else "Deterministic Math & AI Governance (S4-056, S4-057)",
+                            text = if (useIndonesian) {
+                                "Pemisahan AI & Mesin Deterministik (S4-056, S4-057)"
+                            } else {
+                                "Deterministic Math & AI Governance (S4-056, S4-057)"
+                            },
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -5106,18 +5297,25 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                 ) {
                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            text = if (useIndonesian) "Akomodasi Sensori & Peringatan Alergen (S4-062)"
-                                else "Sensory Accommodations & Allergen Alerts (S4-062)",
+                            text = if (useIndonesian) {
+                                "Akomodasi Sensori & Peringatan Alergen (S4-062)"
+                            } else {
+                                "Sensory Accommodations & Allergen Alerts (S4-062)"
+                            },
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = if (useIndonesian) {
-                                ("Pengaturan ini belum terhubung ke penilaian latihan atau pemeriksaan keamanan. Tidak ada " +
-                                    "akomodasi atau penyaringan alergen yang diterapkan.")
+                                (
+                                    "Pengaturan ini belum terhubung ke penilaian latihan atau pemeriksaan keamanan. Tidak ada " +
+                                        "akomodasi atau penyaringan alergen yang diterapkan."
+                                    )
                             } else {
-                                ("These settings are not connected to practice scoring or reference-solution safety checks in " +
-                                    "this build. No accommodation or allergen filtering is active.")
+                                (
+                                    "These settings are not connected to practice scoring or reference-solution safety checks in " +
+                                        "this build. No accommodation or allergen filtering is active."
+                                    )
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -5137,9 +5335,14 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    if (useIndonesian) ("Menekankan sensasi tactile body dan rasa dasar; melepas kewajiban " +
-                                        "penilaian fragrance kering.")
-                                            else "Emphasizes body/mouthfeel and basic taste; relaxes dry fragrance obligation.",
+                                    if (useIndonesian) {
+                                        (
+                                            "Menekankan sensasi tactile body dan rasa dasar; melepas kewajiban " +
+                                                "penilaian fragrance kering."
+                                            )
+                                    } else {
+                                        "Emphasizes body/mouthfeel and basic taste; relaxes dry fragrance obligation."
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -5165,8 +5368,11 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    if (useIndonesian) "Menandai deskriptor aroma yang berpotensi memicu distorsi persepsi."
-                                        else "Flags aroma descriptors with distortion risks.",
+                                    if (useIndonesian) {
+                                        "Menandai deskriptor aroma yang berpotensi memicu distorsi persepsi."
+                                    } else {
+                                        "Flags aroma descriptors with distortion risks."
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -5242,19 +5448,26 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                 ) {
                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            text = if (useIndonesian) "Privasi & Ekspor Tertutup Kriptografis (S4-060, S4-065)"
-                                else "Privacy & Sealed Cryptographic Export (S4-060, S4-065)",
+                            text = if (useIndonesian) {
+                                "Privasi & Ekspor Tertutup Kriptografis (S4-060, S4-065)"
+                            } else {
+                                "Privacy & Sealed Cryptographic Export (S4-060, S4-065)"
+                            },
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
 
                         Text(
                             text = if (useIndonesian) {
-                                ("Zero Cloud: Data tidak pernah diunggah otomatis. Ekspor lokal membutuhkan persetujuan eksplisit " +
-                                    "pengguna dengan opsi redaksi PII.")
+                                (
+                                    "Zero Cloud: Data tidak pernah diunggah otomatis. Ekspor lokal membutuhkan persetujuan eksplisit " +
+                                        "pengguna dengan opsi redaksi PII."
+                                    )
                             } else {
-                                ("Zero Cloud: Data is never automatically uploaded. Local exports strictly require user consent " +
-                                    "with PII redaction options.")
+                                (
+                                    "Zero Cloud: Data is never automatically uploaded. Local exports strictly require user consent " +
+                                        "with PII redaction options."
+                                    )
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -5271,8 +5484,11 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                                 modifier = Modifier.testTag("operations:consent_checkbox")
                             )
                             Text(
-                                if (useIndonesian) "Saya memberikan izin untuk mengekspor data cupping lokal"
-                                    else "I grant consent for local cupping data export",
+                                if (useIndonesian) {
+                                    "Saya memberikan izin untuk mengekspor data cupping lokal"
+                                } else {
+                                    "I grant consent for local cupping data export"
+                                },
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -5288,8 +5504,11 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                                 modifier = Modifier.testTag("operations:redact_pricing_checkbox")
                             )
                             Text(
-                                if (useIndonesian) "Redaksi harga komersial & kontrak supplier (Disarankan)"
-                                    else "Redact commercial supplier pricing & lot contracts (Recommended)",
+                                if (useIndonesian) {
+                                    "Redaksi harga komersial & kontrak supplier (Disarankan)"
+                                } else {
+                                    "Redact commercial supplier pricing & lot contracts (Recommended)"
+                                },
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -5305,8 +5524,11 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                                 modifier = Modifier.testTag("operations:redact_names_checkbox")
                             )
                             Text(
-                                if (useIndonesian) "Anonimkan nama asli penilai menjadi nama samaran (Pseudonym)"
-                                    else "Anonymize assessor real names to pseudonyms",
+                                if (useIndonesian) {
+                                    "Anonimkan nama asli penilai menjadi nama samaran (Pseudonym)"
+                                } else {
+                                    "Anonymize assessor real names to pseudonyms"
+                                },
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -5322,9 +5544,17 @@ fun SensoryOperationsSection(modifier: Modifier = Modifier) {
                             Text(if (useIndonesian) "Belum ada sesi cupping tersimpan" else "No saved cupping session to export")
                         }
                         Text(
-                            if (useIndonesian) ("Ekspor akan aktif setelah sesi disimpan secara lokal dan pengguna memberi " +
-                                "persetujuan.") else ("Export is " +
-                                "unavailable until a cupping session is saved locally and the user grants consent."),
+                            if (useIndonesian) {
+                                (
+                                    "Ekspor akan aktif setelah sesi disimpan secara lokal dan pengguna memberi " +
+                                        "persetujuan."
+                                    )
+                            } else {
+                                (
+                                    "Export is " +
+                                        "unavailable until a cupping session is saved locally and the user grants consent."
+                                    )
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

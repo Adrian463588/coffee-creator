@@ -3051,8 +3051,8 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     item {
                         InfoCard(
                             "No Owned Grinders Registered",
-                    "Select any grinder from the '44 Grinders Catalog' tab and tap '+ Add to Owned' " +
-                        "to track custom zero point calibration and burr wear."
+                            "Select any grinder from the '44 Grinders Catalog' tab and tap '+ Add to Owned' " +
+                                "to track custom zero point calibration and burr wear."
                         )
                     }
                 }

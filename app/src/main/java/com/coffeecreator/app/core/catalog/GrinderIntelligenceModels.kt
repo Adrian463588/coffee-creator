@@ -101,7 +101,8 @@ data class DialInAdvice(
     val proposedAction: String,
     val controlVariable: String = "Grind Size",
     val scientificReason: String,
-    val isDeterministic: Boolean = false // Never make deterministic flavor promises
+    // Never make deterministic flavor promises.
+    val isDeterministic: Boolean = false
 )
 
 data class GrindMeasurementEntry(
@@ -760,7 +761,8 @@ object GrinderIntelligenceCatalog {
             adjustmentMechanism = "Klik (External)",
             rawCoarseRange = "80 - 92 Klik",
             rawMediumRange = "54 - 72 Klik",
-            rawFineRange = "15 - 40 Kilk", // Preserves source raw typo "Kilk"
+            // Preserves source raw typo "Kilk".
+            rawFineRange = "15 - 40 Kilk",
             normalizedFine = "15 - 40 Klik",
             isEspressoCapable = true,
             evidenceStatus = EvidenceStatus.USER_SUPPLIED_UNVERIFIED
@@ -810,10 +812,10 @@ object GrinderIntelligenceCatalog {
         val m = method.lowercase(Locale.ROOT)
         val range = when {
             m.contains("espresso") || m.contains("fine") || m.contains("ristretto") -> grinder.normalizedFine
-                m.contains("coarse") ||
-                    m.contains("cold brew") ||
-                    m.contains("french press") ||
-                    m.contains("tubruk") -> grinder.normalizedCoarse
+            m.contains("coarse") ||
+                m.contains("cold brew") ||
+                m.contains("french press") ||
+                m.contains("tubruk") -> grinder.normalizedCoarse
             else -> grinder.normalizedMedium // Pour Over, V60, Kalita, Aeropress, Cupping default to medium
         }
 

@@ -576,10 +576,10 @@ object StandardGreenGradingEngine {
 
         // Moisture check
         val moisture = sample.moisture.moisturePercent
-            val moisturePass = sample.moisture.isMeasured &&
-                moisture != null &&
-                moisture >= limits.minMoisturePercent &&
-                moisture <= limits.maxMoisturePercent
+        val moisturePass = sample.moisture.isMeasured &&
+            moisture != null &&
+            moisture >= limits.minMoisturePercent &&
+            moisture <= limits.maxMoisturePercent
         evaluations["Moisture Content"] = moisturePass
         if (!sample.moisture.isMeasured || moisture == null) {
             failures.add("Moisture is NOT_MEASURED; required by contract")
@@ -604,8 +604,8 @@ object StandardGreenGradingEngine {
             evaluations["Screen 16+ Retention"] = screenPass
             if (!screenPass) {
                 failures.add(
-                "Screen 16+ retention (${sieveAnalysis.cumulativeRetentionScreen16Plus}%) below " +
-                    "contract minimum (${limits.minScreen16PlusPercent}%)"
+                    "Screen 16+ retention (${sieveAnalysis.cumulativeRetentionScreen16Plus}%) below " +
+                        "contract minimum (${limits.minScreen16PlusPercent}%)"
                 )
             }
         } else {

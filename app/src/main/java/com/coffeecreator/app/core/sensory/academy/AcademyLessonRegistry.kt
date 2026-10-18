@@ -34,17 +34,18 @@ object AcademyLessonRegistry {
                 "Ketinggian memperlambat pematangan ceri, memicu sintesis asam organik dan akumulasi sukrosa.",
                 "Terroir adalah interaksi lingkungan, bukan jaminan deterministik profil cangkir."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Coffee Botany and Genetics
 
 Coffee belongs to the genus *Coffea* in the family Rubiaceae. While over 120 species exist, commercial""" +
-                """ production centers on:
+                    """ production centers on:
 1. **Coffea arabica** (~60% global volume): Indigenous to Ethiopia and South Sudan. Allotetraploid""" +
-                """ ($2n=4x=44$), predominantly self-pollinating. Characterized by higher sucrose (6–9%), lower caffeine""" +
-                """ (0.9–1.5%), and diverse organic acid profiles.
+                    """ ($2n=4x=44$), predominantly self-pollinating. Characterized by higher sucrose (6–9%), lower caffeine""" +
+                    """ (0.9–1.5%), and diverse organic acid profiles.
 2. **Coffea canephora** (Robusta, ~40% global volume): Indigenous to Western/Central sub-Saharan Africa.""" +
-                """ Diploid ($2n=2x=22$), outcrossing. Higher caffeine (1.8–2.7%), higher chlorogenic acids (CGA), and robust""" +
-                """ disease resistance.
+                    """ Diploid ($2n=2x=22$), outcrossing. Higher caffeine (1.8–2.7%), higher chlorogenic acids (CGA), and robust""" +
+                    """ disease resistance.
 
 ```
 +-------------------------------------------------------------+
@@ -60,21 +61,24 @@ Coffee belongs to the genus *Coffea* in the family Rubiaceae. While over 120 spe
 ```
 
 Altitude and latitude dictate temperature fluctuations. Diurnal temperature swings at high elevations (>1,500""" +
-                """ MASL) decelerate bean respiration, accumulating dense structural carbohydrates and enzymatic precursors that""" +
-                """ translate to vibrant malic and citric acidity.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ MASL) decelerate bean respiration, accumulating dense structural carbohydrates and enzymatic precursors that""" +
+                    """ translate to vibrant malic and citric acidity.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Botani dan Genetika Kopi
 
 Kopi termasuk dalam genus *Coffea* famili Rubiaceae. Spesies komersial utama meliputi:
 1. **Coffea arabica** (~60% produksi dunia): Asli dari Etiopia dan Sudan Selatan. Alotetraploid ($2n=44$),""" +
-                """ menyerbuk sendiri. Sukrosa tinggi (6–9%), kafein rendah (0.9–1.5%), dan profil asam organik kaya.
+                    """ menyerbuk sendiri. Sukrosa tinggi (6–9%), kafein rendah (0.9–1.5%), dan profil asam organik kaya.
 2. **Coffea canephora** (Robusta, ~40%): Diploid ($2n=22$), penyerbukan silang. Kafein tinggi (1.8–2.7%), asam""" +
-                """ klorogenat tinggi, dan tahan penyakit.
+                    """ klorogenat tinggi, dan tahan penyakit.
 
 Ketinggian dan garis lintang mengatur fluktuasi suhu harian. Suhu dingin malam hari memperlambat respirasi""" +
-                """ buah, mengonsentrasikan sukrosa dan prekursor asam organik yang menghasilkan rasa manis dan asam buah segar.
-            """).trimIndent(),
+                    """ buah, mengonsentrasikan sukrosa dan prekursor asam organik yang menghasilkan rasa manis dan asam buah segar.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     [High Elevation >1500m] ---> Slow Maturation ---> Dense Seed + High Sucrose + Complex Acids
     [Low Elevation  <800m]  ---> Fast Maturation ---> Lower Density + Faster Yield
@@ -152,7 +156,8 @@ Ketinggian dan garis lintang mengatur fluktuasi suhu harian. Suhu dingin malam h
                 "Proses Alami menjemur buah utuh; transfer massa mikrob menghasilkan ester dan body tebal.",
                 "Over-fermentasi menghasilkan asam asetat berlebih, etil asetat, dan cacat butirat."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Post-Harvest Processing Workflows
 
 ```
@@ -167,19 +172,22 @@ Ketinggian dan garis lintang mengatur fluktuasi suhu harian. Suhu dingin malam h
 ```
 
 Microorganisms (yeasts such as *Saccharomyces cerevisiae*, lactic acid bacteria like *Leuconostoc*, and acetic""" +
-                """ bacteria) ferment the pectin-rich mesocarp. Controlled fermentation enriches cup complexity; uncontrolled""" +
-                """ fermentation leads to over-ripe, oniony, or nail-polish-remover (ethyl acetate) taints.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ bacteria) ferment the pectin-rich mesocarp. Controlled fermentation enriches cup complexity; uncontrolled""" +
+                    """ fermentation leads to over-ripe, oniony, or nail-polish-remover (ethyl acetate) taints.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Alur Pengolahan Pascapanen
 
 Pemisahan biji kopi dari kulit buah dan lendir (mucilage) sebelum dikeringkan hingga kadar air 10–12%.
 1. **Washed (Basah)**: Lendir didegradasi melalui fermentasi air (12–36 jam) lalu dicuci bersih. Menghasilkan""" +
-                """ rasa bersih (clean cup) dan keasaman sitrat/malat cerah.
+                    """ rasa bersih (clean cup) dan keasaman sitrat/malat cerah.
 2. **Natural (Kering)**: Buah dijemur utuh di atas para-para (15–30 hari). Mikroba berinteraksi dengan pulp""" +
-                """ buah, menghasilkan aroma buah matang, ester, dan body tebal.
+                    """ buah, menghasilkan aroma buah matang, ester, dan body tebal.
 3. **Honey**: Kulit buah dikupas, lendir dibiarkan menempel sebagian/seluruhnya selama penjemuran.
-            """).trimIndent(),
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Washed  : Cherry -> Pulp Removed -> Wash Mucilage -> Clean Bean Drying
     Natural : Cherry -> Intact Fruit Drying -> Delayed Dry Hulling
@@ -252,15 +260,16 @@ Pemisahan biji kopi dari kulit buah dan lendir (mucilage) sebelum dikeringkan hi
                 "Ambang rekognisi: konsentrasi lebih tinggi saat modalitas rasa teridentifikasi spesifik.",
                 "Bias ekspektasi: mengetahui harga atau reputasi produsen mengubah persepsi rasa di otak."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Sensory Psychophysics
 
 Sensory evaluation measures human biological responses to physical stimuli. Psychophysics defines two""" +
-                """ fundamental thresholds:
+                    """ fundamental thresholds:
 1. **Absolute Detection Threshold**: The lowest concentration of a tastant or odorant that produces a sensory""" +
-                """ response significantly different from pure solvent (water), even if the observer cannot name the taste.
+                    """ response significantly different from pure solvent (water), even if the observer cannot name the taste.
 2. **Recognition Threshold**: The higher concentration at which the specific sensory modality (e.g., "sour",""" +
-                """ "sweet", "jasmine") is accurately named.
+                    """ "sweet", "jasmine") is accurately named.
 
 ```
 +-------------------------------------------------------------+
@@ -274,24 +283,27 @@ Sensory evaluation measures human biological responses to physical stimuli. Psyc
 - **Halo Effect**: A dazzling aroma leads cuppers to overestimate body, sweetness, and aftertaste.
 - **Position Bias**: Samples tasted first or last on a table receive statistically distorted scores.
 - **Expectation Bias**: Knowing an Ethiopian lot is an auction lot elevates subjective affective pleasure.""" +
-                """ Blinding is mandatory.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ Blinding is mandatory.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Psikofisika Sensori
 
 Evaluasi sensori mengukur respons biologis manusia terhadap rangsangan fisik.
 1. **Ambang Deteksi (Detection Threshold)**: Konsentrasi paling rendah di mana indra mendeteksi ada rasa,""" +
-                """ meski belum bisa menyebut namanya.
+                    """ meski belum bisa menyebut namanya.
 2. **Ambang Rekognisi (Recognition Threshold)**: Konsentrasi lebih tinggi saat rasa dapat dinamai secara pasti""" +
-                """ (misalnya: "asam sitrat", "manis").
+                    """ (misalnya: "asam sitrat", "manis").
 
 ### Bias Kognitif Saat Cupping
 - **Efek Halo**: Aroma kering yang sangat harum membuat evaluator bias melebih-lebihkan skor rasa, kebersihan,""" +
-                """ dan body.
+                    """ dan body.
 - **Bias Posisi**: Cangkir pertama dan terakhir pada meja sering mendapat perhatian berbeda.
 - **Bias Ekspektasi**: Mengetahui nama varietas bergengsi atau harga lelang mempengaruhi otak. Itulah sebabnya""" +
-                """ blind cupping mutlak diperlukan.
-            """).trimIndent(),
+                    """ blind cupping mutlak diperlukan.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Physical Stimulus -> Olfactory/Gustatory Receptors -> Neural Transduction -> Cognitive Interpretation
             """.trimIndent(),
@@ -372,11 +384,12 @@ Evaluasi sensori mengukur respons biologis manusia terhadap rangsangan fisik.
                 "Retronasal: uap volatil naik dari rongga mulut melalui faring saat menelan/menyeruput.",
                 "Lebih dari 80% yang kita sebut 'rasa' (flavor) sebenarnya adalah penciuman retronasal, bukan reseptor lidah."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Orthonasal vs Retronasal Olfaction
 
 Human olfactory epithelium contains approximately 6 million olfactory receptor neurons expressing ~400""" +
-                """ functional receptor types.
+                    """ functional receptor types.
 
 ```
        [Orthonasal Path] (Inhalation through nose)
@@ -389,21 +402,24 @@ Human olfactory epithelium contains approximately 6 million olfactory receptor n
 ```
 
 1. **Orthonasal Olfaction**: Occurs when sniffing the dry grounds (Fragrance) or the crust of brewing coffee""" +
-                """ (Aroma). Volatiles enter directly through the external nares.
+                    """ (Aroma). Volatiles enter directly through the external nares.
 2. **Retronasal Olfaction**: Occurs during ingestion. Vigorous slurping atomizes the coffee liquid into""" +
-                """ micro-droplets inside the mouth, warming volatiles and expelling them up through the nasopharynx to the""" +
-                """ olfactory cleft during expiration.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ micro-droplets inside the mouth, warming volatiles and expelling them up through the nasopharynx to the""" +
+                    """ olfactory cleft during expiration.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Penciuman Ortonasal vs Retronasal
 
 Mukosa penciuman manusia memiliki sekitar 6 juta neuron reseptor olfaktori.
 1. **Penciuman Ortonasal**: Menghirup aroma langsung melalui hidung. Ini digunakan saat mencium bubuk kopi""" +
-                """ kering (Fragrance) dan lapisan atas cangkir basah (Aroma).
+                    """ kering (Fragrance) dan lapisan atas cangkir basah (Aroma).
 2. **Penciuman Retronasal**: Terjadi di dalam rongga mulut. Seruputan (slurp) yang kuat memecah cairan kopi""" +
-                """ menjadi butiran aerosol halus, menghangatkan senyawa volatil, dan mendorongnya naik melewati faring menuju""" +
-                """ rongga hidung belakang saat mengembuskan napas.
-            """).trimIndent(),
+                    """ menjadi butiran aerosol halus, menghangatkan senyawa volatil, dan mendorongnya naik melewati faring menuju""" +
+                    """ rongga hidung belakang saat mengembuskan napas.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Nose -> Nasal Cavity -> Olfactory Bulb (Orthonasal)
     Mouth -> Pharynx -> Nasopharynx -> Olfactory Bulb (Retronasal)
@@ -492,7 +508,8 @@ Mukosa penciuman manusia memiliki sekitar 6 juta neuron reseptor olfaktori.
                     " air liur + aroma buah retronasal.",
                 "Semua bagian lidah yang memiliki kuncup pengecap mampu merasakan kelima rasa dasar."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # The Five Basic Tastes & The Nature of Acidity
 
 Scientific consensus recognizes **FIVE basic tastes**:
@@ -519,10 +536,12 @@ Scientific consensus recognizes **FIVE basic tastes**:
 
 ### Dispelling the "Tongue Map" Myth
 The 1901 D.P. Hänig diagram misinterpreted relative sensitivities. Modern physiology proves that taste buds""" +
-                """ containing all receptor types are distributed across fungiform, foliate, and circumvallate papillae""" +
-                """ throughout the tongue, soft palate, and epiglottis.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ containing all receptor types are distributed across fungiform, foliate, and circumvallate papillae""" +
+                    """ throughout the tongue, soft palate, and epiglottis.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Lima Rasa Dasar & Hakikat Keasaman Kopi
 
 Konsensus ilmiah fisiologi mengakui **LIMA rasa dasar**:
@@ -534,13 +553,14 @@ Konsensus ilmiah fisiologi mengakui **LIMA rasa dasar**:
 
 ### Koreksi Ilmiah: Mengapa "Acid" Bukan Rasa Keenam?
 Kadang orang menyebut "asam" dan "acid" seolah dua hal berbeda. Sebenarnya rasa dasarnya adalah **Sour (rasa""" +
-                """ asam)**. Sedangkan istilah **Acidity** dalam kopi adalah persepsi multimodal yang menggabungkan rasa asam di""" +
-                """ lidah, pelepasan air liur segar, dan aroma buah-buahan retronasal.
+                    """ asam)**. Sedangkan istilah **Acidity** dalam kopi adalah persepsi multimodal yang menggabungkan rasa asam di""" +
+                    """ lidah, pelepasan air liur segar, dan aroma buah-buahan retronasal.
 
 ### Runtuhnya Mitos Peta Lidah
 Mitos bahwa manis hanya di ujung lidah dan pahit di pangkal telah dibantah secara medis. Semua kuncup pengecap""" +
-                """ di seluruh lidah mampu merasakan kelima rasa dasar.
-            """).trimIndent(),
+                    """ di seluruh lidah mampu merasakan kelima rasa dasar.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Lidah Manusia:
     Semua papila (fungiform, foliate, circumvallate) merasakan:
@@ -639,30 +659,36 @@ Mitos bahwa manis hanya di ujung lidah dan pahit di pangkal telah dibantah secar
                 "Viskositas berkorelasi dengan padatan terlarut (TDS) dan koloid minyak tersuspensi.",
                 "Astringensi (sepat) terjadi saat polifenol mengendapkan protein pelumas air liur, menimbulkan rasa kering."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Mouthfeel and Trigeminal Chemesthesis
 
 Mouthfeel is not perceived by taste buds, but by mechanoreceptors, thermoreceptors, and nociceptors innervated""" +
-                """ by the **trigeminal nerve (CN V)**:
+                    """ by the **trigeminal nerve (CN V)**:
 - **Viscosity**: Perceived fluid resistance between tongue and hard palate, driven by extracted carbohydrates""" +
-                """ and suspended micro-colloids.
+                    """ and suspended micro-colloids.
 - **Body Texture Spectrum**: Watery -> Tea-like -> Silky -> Velvety -> Creamy -> Syrupy -> Oily.
 - **Astringency**: A puckering, drying tactile sensation caused by polyphenolic tannins binding to and""" +
-                """ precipitating lubricating salivary proteins.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ precipitating lubricating salivary proteins.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Mouthfeel dan Saraf Trigeminal
 
 Mouthfeel bukanlah rasa di lidah, melainkan sensasi fisik rabaan yang dirasakan oleh saraf trigeminal:
 - **Viskositas**: Kekentalan cairan antara lidah dan langit-langit mulut.
 - **Spektrum Tekstur**: Encer -> Seperti Teh -> Sutra -> Beludru -> Berisi (Creamy) -> Kental Sirup ->""" +
-                """ Berminyak.
+                    """ Berminyak.
 - **Astringensi (Sepat)**: Sensasi kering kesat akibat polifenol mengendapkan protein pelumas air liur.
-            """).trimIndent(),
-            asciiDiagram = ("""
+            """
+                ).trimIndent(),
+            asciiDiagram = (
+                """
     Soluble Solids (TDS) + Suspended Lipids ---> Tactile Mechanoreceptors (CN V) ---> Perceived Body /""" +
-                """ Viscosity
-            """).trimIndent(),
+                    """ Viscosity
+            """
+                ).trimIndent(),
             glossary = listOf(
                 GlossaryEntry(
                     "Astringency",
@@ -735,7 +761,8 @@ Mouthfeel bukanlah rasa di lidah, melainkan sensasi fisik rabaan yang dirasakan 
                 "Sitrat: lemon cerah; Malat: apel hijau segar; Tartarat: anggur kesat; Asetat: cuka tajam.",
                 "Dilarang mencicipi bahan kimia reagen laboratorium; hanya gunakan bahan bersertifikat food grade (FCC/USP)."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Organic Acids in Brewed Coffee
 
 Organic and inorganic acids determine the vibrant brightness of specialty coffee:
@@ -745,13 +772,15 @@ Organic and inorganic acids determine the vibrant brightness of specialty coffee
 4. **Acetic Acid** (C2H4O2): Volatile vinegar aroma formed by fermentation and sugar pyrolysis.
 5. **Lactic Acid** (C3H6O3): Soft, buttery, creamy acidity.
 6. **Quinic Acid** (C7H12O6): Bitter-sour astringency derived from thermal breakdown of chlorogenic acids""" +
-                """ during roasting.
+                    """ during roasting.
 
 > [!WARNING]
 > Sensory observations reflect human perception, NOT laboratory mass spectrometry. Never claim that a""" +
-                """ lemon-like sourness guarantees high citric acid without laboratory chromatography.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ lemon-like sourness guarantees high citric acid without laboratory chromatography.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Asam Organik dalam Seduhan Kopi
 
 Asam menentukan kecerahan rasa kopi specialty:
@@ -764,8 +793,9 @@ Asam menentukan kecerahan rasa kopi specialty:
 
 > [!WARNING]
 > Pengecapan lidah adalah persepsi manusia, bukan alat kromatografi laboratorium. Jangan pernah mengklaim rasa""" +
-                """ lemon pasti berarti kandungan sitrat tinggi tanpa uji lab kimia.
-            """).trimIndent(),
+                    """ lemon pasti berarti kandungan sitrat tinggi tanpa uji lab kimia.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Green Bean (Citric + Malic + Chlorogenic) ---> Roasting Heat ---> Quinic + Acetic Formed; Citric Degraded
             """.trimIndent(),
@@ -836,29 +866,33 @@ Asam menentukan kecerahan rasa kopi specialty:
                 "Sugar Browning: kacang, karamel, cokelat (pirazin, furan hasil reaksi Maillard).",
                 "Distilasi Kering: rempah, asap, tembakau (fenol, piridina hasil pirolisis sangrai gelap)."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Coffee Volatile Chemical Families
 
 Roasted coffee contains over 800 volatile compounds. These are grouped into three primary thermal classes:
 1. **Enzymatic (Biological Precursors)**: Flowery, fruity, herbal notes synthesized during cherry growth and""" +
-                """ post-harvest fermentation. Volatiles: *linalool* (floral), *hexanal* (grassy), *beta-damascenone* (fruity).
+                    """ post-harvest fermentation. Volatiles: *linalool* (floral), *hexanal* (grassy), *beta-damascenone* (fruity).
 2. **Sugar Browning (Maillard Reactions)**: Formed when amino acids react with reducing sugars at 130–180°C.""" +
-                """ Volatiles: *2-ethyl-3,5-dimethylpyrazine* (roasted hazelnut), *furaneol* (caramel), *furfuryl mercaptan*""" +
-                """ (roasty coffee aroma).
+                    """ Volatiles: *2-ethyl-3,5-dimethylpyrazine* (roasted hazelnut), *furaneol* (caramel), *furfuryl mercaptan*""" +
+                    """ (roasty coffee aroma).
 3. **Dry Distillation (Destructive Pyrolysis)**: Formed above 200°C by thermal decomposition of wood fibers""" +
-                """ and trigonelline. Volatiles: *guaiacol* (smoky/spicy), *pyridine* (burnt).
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ and trigonelline. Volatiles: *guaiacol* (smoky/spicy), *pyridine* (burnt).
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Keluarga Senyawa Volatil Kopi
 
 Kopi sangrai memiliki lebih dari 800 senyawa volatil yang dikelompokkan ke dalam tiga fase termal:
 1. **Enzimatik**: Aroma bunga dan buah dari biokimia buah dan fermentasi. Contoh: *linalool* (bunga),""" +
-                """ *beta-damascenon* (buah berry).
+                    """ *beta-damascenon* (buah berry).
 2. **Sugar Browning (Karamelisasi & Reaksi Maillard)**: Asam amino bereaksi dengan gula pada 130–180°C.""" +
-                """ Contoh: *pirazin* (kacang panggang), *furfuril merkaptan* (aroma kopi sangrai).
+                    """ Contoh: *pirazin* (kacang panggang), *furfuril merkaptan* (aroma kopi sangrai).
 3. **Distilasi Kering**: Pirolisis serat selulosa di atas 200°C. Menghasilkan aroma rempah, tembakau, dan""" +
-                """ asap.
-            """).trimIndent(),
+                    """ asap.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Green Precursors (Sugars + Amino Acids)
         |---> 130-180°C: Maillard & Strecker ---> Nutty, Caramel, Cocoa Pyrazines
@@ -926,32 +960,36 @@ Kopi sangrai memiliki lebih dari 800 senyawa volatil yang dikelompokkan ke dalam
                 "Ponsel tidak bisa mengeluarkan bau; latihan fisik dengan botol aroma atau bahan makanan asli adalah mutlak.",
                 "Coffee Creator menyediakan deskriptor generik dan penomoran botol kustom tanpa menyalin materi berhak cipta."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Olfactory Training Methodology
 
 Olfactory sensory neurons regenerate every 30–60 days, and cognitive scent memory responds remarkably to""" +
-                """ structured practice:
+                    """ structured practice:
 1. **Blind Sniffing**: Take 3 short, gentle bunny sniffs from a physical vial or food sample without viewing""" +
-                """ the label.
+                    """ the label.
 2. **Verbal Encoding**: Mentally anchor the aroma with personal memories, category classification, and formal""" +
-                """ descriptor names.
+                    """ descriptor names.
 3. **Physical Kit Companion**: Users who own commercial 60-aroma kits (such as Le Nez du Café) can assign""" +
-                """ their physical vial numbers to our generic taxonomy for randomized drills.
+                    """ their physical vial numbers to our generic taxonomy for randomized drills.
 
 > [!NOTE]
 > Coffee Creator contains no unlicensed proprietary booklet content, photographs, or proprietary exercises""" +
-                """ from commercial kit publishers.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ from commercial kit publishers.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Metodologi Pelatihan Penciuman
 
 Memori bau dapat dilatih secara konsisten melalui tiga langkah:
 1. **Mencium Buta (Blind Sniffing)**: Hirup 3 kali secara lembut tanpa melihat label botol atau sampel""" +
-                """ makanan.
+                    """ makanan.
 2. **Pengkodean Verbal**: Hubungkan bau dengan memori pengalaman, kelompok aroma, dan nama deskriptor resmi.
 3. **Pendamping Kit Fisik**: Pengguna yang memiliki kit aroma fisik (seperti Le Nez du Café 60) dapat""" +
-                """ memetakan nomor botol fisik mereka ke dalam taksonomi aplikasi untuk latihan acak.
-            """).trimIndent(),
+                    """ memetakan nomor botol fisik mereka ke dalam taksonomi aplikasi untuk latihan acak.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Physical Vial -> 3 Gentle Sniffs -> Category Guess -> Check Answer -> Spaced Repetition (Day 1, 3, 7)
             """.trimIndent(),
@@ -1022,11 +1060,12 @@ Memori bau dapat dilatih secara konsisten melalui tiga langkah:
                 "Deskriptor terikat pada referensi kalibrasi makanan/kimiawi standar.",
                 "Roda Rasa Kopi Indonesia memperluas kosakata dengan cita rasa tropis nusantara."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # The Architecture of Flavor Taxonomies
 
 In 2016, the Specialty Coffee Association (SCA) and World Coffee Research (WCR) published the redesigned""" +
-                """ Coffee Taster's Flavor Wheel, underpinned by the WCR Sensory Lexicon.
+                    """ Coffee Taster's Flavor Wheel, underpinned by the WCR Sensory Lexicon.
 
 ```
 +-------------------------------------------------------------+
@@ -1040,10 +1079,12 @@ In 2016, the Specialty Coffee Association (SCA) and World Coffee Research (WCR) 
 
 ### Local Cultural Extensions
 While the SCA wheel establishes a global lingua franca, local markets require culturally authentic anchors.""" +
-                """ Coffee Creator includes the **Indonesian 221-Descriptor Extension**, introducing tropical references like""" +
-                """ *Pandan, Gula Aren, Salak, Manggis, Rambutan,* and *Temulawak* alongside official SCA references.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ Coffee Creator includes the **Indonesian 221-Descriptor Extension**, introducing tropical references like""" +
+                    """ *Pandan, Gula Aren, Salak, Manggis, Rambutan,* and *Temulawak* alongside official SCA references.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Arsitektur Taksonomi Rasa
 
 Roda Rasa Kopi membagi cita rasa ke dalam 9 kategori utama:
@@ -1059,9 +1100,10 @@ Roda Rasa Kopi membagi cita rasa ke dalam 9 kategori utama:
 
 ### Ekstensi Rasa Nusantara (221 Deskriptor)
 Coffee Creator menggabungkan 84 deskriptor referensi global dengan 137 deskriptor lokal Indonesia (Pandan,""" +
-                """ Gula Aren, Salak, Manggis, Cengkih, Kayu Manis), memungkinkan penilaian yang relevan bagi barista dan petani""" +
-                """ Indonesia.
-            """).trimIndent(),
+                    """ Gula Aren, Salak, Manggis, Cengkih, Kayu Manis), memungkinkan penilaian yang relevan bagi barista dan petani""" +
+                    """ Indonesia.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Category (Fruity) -> Subcategory (Berry) -> Specific Descriptor (Blackberry)
             """.trimIndent(),
@@ -1137,18 +1179,19 @@ Coffee Creator menggabungkan 84 deskriptor referensi global dengan 137 deskripto
                 "Tingkat sangrai: Agtron 63 biji utuh, 58 biji giling (+/- 1 unit), disangrai 8–24 jam sebelumnya.",
                 "Standar air: Bersih, tidak berbau, 75–175 ppm TDS, pH netral 7.0, suhu 93°C saat dituang."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Standardized Sample Preparation (SCA-102)
 
 To ensure repeatability, every parameter is tightly controlled:
 - **Coffee-to-Water Ratio**: $55\,\text{g/L} \pm 2\,\text{g/L}$. For a 200 mL vessel, use exactly""" +
-                """ $11.0\,\text{g} \pm 0.1\,\text{g}$ of coffee.
+                    """ $11.0\,\text{g} \pm 0.1\,\text{g}$ of coffee.
 - **Grind Particle Size**: 70–75% passes through a US Standard Size 20 sieve (~850 microns). Slightly coarser""" +
-                """ than drip filter.
+                    """ than drip filter.
 - **Vessel Specification**: Tempered glass or ceramic, 200–260 mL volume, identical dimensions across all""" +
-                """ samples.
+                    """ samples.
 - **Pour Technique**: Water at $93.0^\circ\text{C}$ poured directly and vigorously over ground coffee to""" +
-                """ ensure complete wetting.
+                    """ ensure complete wetting.
 
 ```
 +-------------------------------------------------------------+
@@ -1160,17 +1203,20 @@ To ensure repeatability, every parameter is tightly controlled:
 | Rest Period : 8 to 24 hours post-roasting                   |
 +-------------------------------------------------------------+
 ```
-            """).trimIndent(),
-            contentMarkdownId = ("""
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Preparasi Sampel Terstandar (SCA-102)
 
 Untuk memastikan pengujian dapat diulang dengan akurat:
 - **Rasio Kopi-Air**: 55 g/L (+/- 2 g/L). Untuk mangkuk 200 mL, gunakan tepat 11.0 gram kopi.
 - **Ukuran Gilingan**: 70–75% lolos saringan US #20 (~850 mikron), sedikit lebih kasar dari seduh saring""" +
-                """ filter.
+                    """ filter.
 - **Wadah**: Keramik atau kaca tahan panas, volume 200–260 mL dengan bentuk identik.
 - **Air**: Suhu 93°C, TDS 75–175 ppm, dituang langsung membasahi seluruh bubuk secara merata.
-            """).trimIndent(),
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Weigh 11.0g -> Grind ~850µm -> Smell Fragrance -> Pour 200mL 93°C -> 4:00 Min Break Crust
             """.trimIndent(),
@@ -1241,11 +1287,12 @@ Untuk memastikan pengujian dapat diulang dengan akurat:
                 "CVA memisahkan 'Seperti apa rasanya?' (Deskriptif) dari 'Seberapa Anda menyukainya?' (Afektif).",
                 "Nilai ekstrinsik (sertifikasi, kisah petani) dinilai terpisah untuk mencegah bias bawah sadar."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # The Coffee Value Assessment (CVA) Revolution
 
 Adopted globally by the SCA in 2024, the Coffee Value Assessment (CVA) fundamentally modernizes coffee""" +
-                """ evaluation:
+                    """ evaluation:
 
 ```
 +-------------------------------------------------------------+
@@ -1260,10 +1307,12 @@ Adopted globally by the SCA in 2024, the Coffee Value Assessment (CVA) fundament
 
 ### Why the Change?
 In the 2004 system, a cupper who disliked floral notes might score an exceptional Geisha poorly, confusing""" +
-                """ personal preference with objective quality. CVA ensures that intense floral character is recorded accurately""" +
-                """ on the Descriptive sheet, while subjective scoring occurs independently on the Affective sheet.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ personal preference with objective quality. CVA ensures that intense floral character is recorded accurately""" +
+                    """ on the Descriptive sheet, while subjective scoring occurs independently on the Affective sheet.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Revolusi Coffee Value Assessment (CVA)
 
 Pada tahun 2024, SCA memperbarui protokol penilaian kopi melalui CVA:
@@ -1274,8 +1323,9 @@ Pada tahun 2024, SCA memperbarui protokol penilaian kopi melalui CVA:
 
 ### Mengapa Berubah?
 Pada form 2004, evaluator yang tidak suka rasa bunga bisa memberi skor rendah pada kopi Geisha juara. CVA""" +
-                """ memisahkan fakta rasa deskriptif dari preferensi subjektif.
-            """).trimIndent(),
+                    """ memisahkan fakta rasa deskriptif dari preferensi subjektif.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Coffee Sample -> [Physical] -> [Descriptive (Objective)] -> [Affective (Subjective)] -> [Extrinsic]
             """.trimIndent(),
@@ -1376,14 +1426,16 @@ The descriptive form measures **sensory intensity** independently of hedonic app
 None         Low          Mild          Moderate       High       Extreme
 ```
             """.trimIndent(),
-            contentMarkdownId = ("""
+            contentMarkdownId = (
+                """
 # Protokol CVA Deskriptif (SCA-103)
 
 Formulir deskriptif mengukur **kekuatan rangsangan rasa**:
 - **Skala**: 0.0 (Tidak ada) hingga 5.0 (Sangat kuat).
 - Atribut yang dinilai: Fragrance bubuk kering, Aroma crust basah, Flavor seruputan, Aftertaste, Intensitas""" +
-                """ Asam, Intensitas Manis, dan Mouthfeel.
-            """).trimIndent(),
+                    """ Asam, Intensitas Manis, dan Mouthfeel.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Intensity 0.0 [None] ------------------------> 5.0 [Extreme]
     * High intensity is an objective measurement, not necessarily a badge of high quality.
@@ -1697,10 +1749,12 @@ Berdasarkan standar fisik SCA:
 - Maksimal lima (5) ekuivalen cacat penuh Kategori 2.
 - Kadar air harus di antara 9.0% hingga 13.0%.
             """.trimIndent(),
-            asciiDiagram = ("""
+            asciiDiagram = (
+                """
     350g Sample -> Inspect Category 1 (Must be 0) -> Inspect Category 2 (<=5) -> Check Moisture (9-13%) ->""" +
-                """ Specialty Grade 1
-            """).trimIndent(),
+                    """ Specialty Grade 1
+            """
+                ).trimIndent(),
             glossary = listOf(
                 GlossaryEntry(
                     "Full Black",
@@ -1767,12 +1821,13 @@ Berdasarkan standar fisik SCA:
                 "Peluang tebakan murni secara acak (hipotesis nol) adalah tepat 1/3 (~33.3%).",
                 "Rumus Binomial: P(X >= k) = sum_{i=k}^n C(n,i) * (1/3)^i * (2/3)^(n-i)."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Triangle Discrimination Testing
 
 The Triangle Test is the international gold standard for sensory discrimination (ISO 4120 / ASTM E1885):
 - **Setup**: Three coded samples are presented simultaneously. Two are identical (Reference A), one is""" +
-                """ different (Contrast B).
+                    """ different (Contrast B).
 - **The 6 Permutations**:
   1. `A - A - B` (Odd cup: 3)
   2. `A - B - A` (Odd cup: 2)
@@ -1788,11 +1843,13 @@ The Triangle Test is the international gold standard for sensory discrimination 
 
 ### Statistical Significance (Binomial Test)
 Because guessing yields a 1/3 success rate, statistical significance requires demonstrating performance well""" +
-                """ above chance:
+                    """ above chance:
 - For n=6 trials: 5 correct required (p = 0.0178) for alpha = 0.05.
 - For n=18 trials: 10 correct required (p = 0.0377) for alpha = 0.05.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Pengujian Diskriminasi Triangulasi
 
 Uji Triangulasi adalah standar internasional (ISO 4120) untuk menguji kepekaan membedakan dua produk:
@@ -1800,8 +1857,9 @@ Uji Triangulasi adalah standar internasional (ISO 4120) untuk menguji kepekaan m
 - Terdapat 6 kombinasi seimbang: AAB, ABA, BAA, BBA, BAB, ABB.
 - Peluang menebak benar secara kebetulan adalah 1 banding 3 (33.3%).
 - Untuk membuktikan kemampuan diskriminasi pada 6 kali uji coba, peserta wajib menebak benar minimal 5 dari 6""" +
-                """ kali (p < 0.05).
-            """).trimIndent(),
+                    """ kali (p < 0.05).
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Cup 1 [294]    Cup 2 [815]    Cup 3 [602]
          A              B              A       ---> Odd Cup is #2
@@ -1872,30 +1930,34 @@ Uji Triangulasi adalah standar internasional (ISO 4120) untuk menguji kepekaan m
                 "Uji keterulangan menyajikan sampel duplikat buta kepada evaluator yang sama untuk menguji konsistensi nilainya.",
                 "Pembersih lidah terbaik: air murni suhu ruang dan biskuit tawar tanpa garam."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Sensory Panel Management
 
 Professional cupping panels calibrate regularly to align descriptive vocabulary and scoring scales:
 - **Intra-Rater Repeatability**: Assessor evaluates blind duplicate cups of the same coffee. Scores should""" +
-                """ fall within $\pm 0.5$ points.
+                    """ fall within $\pm 0.5$ points.
 - **Inter-Rater Consensus**: Difference between panel members. High agreement exhibits low standard deviation""" +
-                """ across all attributes ($\sigma < 0.75$).
+                    """ across all attributes ($\sigma < 0.75$).
 - **Mitigating Palate Fatigue**:
   - Limit sessions to a maximum of 3 tables (18–24 samples) per day.
   - Rinse with lukewarm filtered water between bowls; avoid carbonated beverages or spicy foods before""" +
-                """ cupping.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ cupping.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Manajemen Panel Sensori
 
 Panel cupping profesional rutin melakukan kalibrasi:
 - **Konsistensi Personal (Intra-Rater)**: Evaluator menilai sampel duplikat yang disamarkan tanpa tahu itu""" +
-                """ kopi yang sama. Nilainya harus konsisten dalam rentang $\pm 0.5$ poin.
+                    """ kopi yang sama. Nilainya harus konsisten dalam rentang $\pm 0.5$ poin.
 - **Kesepakatan Antar-Penilai (Inter-Rater)**: Standar deviasi antar anggota panel harus rapat ($\sigma <""" +
-                """ 0.75$).
+                    """ 0.75$).
 - **Mengatasi Kelelahan Lidah**: Batasi maksimal 18–24 sampel per hari. Selalu kumur dengan air murni suhu""" +
-                """ ruang di antara cangkir.
-            """).trimIndent(),
+                    """ ruang di antara cangkir.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Individual Cuppers -> Independent Blind Scoring -> Panel Aggregation -> Consensus Discussion
             """.trimIndent(),
@@ -1963,31 +2025,35 @@ Panel cupping profesional rutin melakukan kalibrasi:
                 "Scorched: drum terlalu panas; permukaan biji gosong bertotol, rasa abu dan asap arang.",
                 "Quakers: biji muda kurang gula yang tidak bisa cokelat saat disangrai; rasa kulit kacang dan jerami."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Roasting Defects in Sensory Evaluation
 
 Roasting errors must not be conflated with the intrinsic green coffee quality:
 1. **Underdeveloped**: Internal core fails to reach complete pyrolysis. Leaves unreacted chlorogenic acids.""" +
-                """ Sensory: *raw green peas, grassy, drying peanut skin, puckering sourness*.
+                    """ Sensory: *raw green peas, grassy, drying peanut skin, puckering sourness*.
 2. **Baked**: Heat transfer stalls during the roast profile, stretching out time without temperature""" +
-                """ advancement. Destroys acidity and aromatics. Sensory: *flat, cardboard, dry toast, lack of sweetness*.
+                    """ advancement. Destroys acidity and aromatics. Sensory: *flat, cardboard, dry toast, lack of sweetness*.
 3. **Scorched & Faced**: Charging into an overly hot drum or excessive contact heat burns the bean exterior""" +
-                """ while the interior lags. Sensory: *smoky, bitter charcoal, acrid pungency*.
+                    """ while the interior lags. Sensory: *smoky, bitter charcoal, acrid pungency*.
 4. **Quakers**: Caused by immature cherries with insufficient carbohydrates to undergo the Maillard reaction.""" +
-                """ Remain pale light tan post-roast. Sensory: *peanut shell, paper, dry straw*.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ Remain pale light tan post-roast. Sensory: *peanut shell, paper, dry straw*.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Cacat Penyangraian dalam Evaluasi Sensori
 
 Kesalahan sangrai tidak boleh disalahartikan sebagai kualitas bawaan biji hijau:
 1. **Underdeveloped**: Panas gagal mematangkan bagian tengah biji. Rasa: *rumput segar, kacang tanah mentah,""" +
-                """ keasaman menusuk tak sedap*.
+                    """ keasaman menusuk tak sedap*.
 2. **Baked**: Profil sangrai terhenti (stalled) terlalu lama. Gula dan aroma rusak. Rasa: *roti tawar hambar,""" +
-                """ kardus, hampa tanpa rasa manis*.
+                    """ kardus, hampa tanpa rasa manis*.
 3. **Scorched (Gosong Permukaan)**: Drum pemanggang terlalu panas. Rasa: *arang pahit, asap menusuk*.
 4. **Quaker**: Berasal dari biji mentah (immature) yang kekurangan gula sehingga warnanya tetap pucat kuning""" +
-                """ saat disangrai. Rasa: *kulit kacang tanah, kertas, jerami kering*.
-            """).trimIndent(),
+                    """ saat disangrai. Rasa: *kulit kacang tanah, kertas, jerami kering*.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Normal Roast        : Even golden-brown color + sweet caramelization
     Underdeveloped Roast: Light core + grassy astringent taste
@@ -2061,28 +2127,32 @@ Kesalahan sangrai tidak boleh disalahartikan sebagai kualitas bawaan biji hijau:
                 "Revisi wajib mencatat identitas pelaku, stempel waktu, dan alasan yang jelas.",
                 "Nilai cupping mempengaruhi harga jual dan nafkah petani; penilaian harus objektif dan dapat dipertanggungjawabkan."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Data Integrity & Professional Ethics
 
 In the global specialty coffee trade, cupping scores dictate contract pricing and producer livelihoods:
 1. **Audit Trails**: In Coffee Creator, locking a session produces a SHA-256 cryptographic digest. Any change""" +
-                """ creates an explicit `SessionAmendment` record documenting who made the change, when, and why.
+                    """ creates an explicit `SessionAmendment` record documenting who made the change, when, and why.
 2. **Commercial Neutrality**: Blind codes prevent bias towards prestigious estates or against emerging""" +
-                """ smallholders.
+                    """ smallholders.
 3. **Inclusive Assessment**:
    - Provide high-contrast text and screen reader support for visually impaired cuppers.
    - Do not require color discrimination as the sole feedback channel.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Integritas Data & Etika Profesional
 
 Nilai cupping menentukan harga kontrak dan kelangsungan hidup petani kopi:
 1. **Jejak Audit**: Mengunci sesi menghasilkan tanda tangan digital SHA-256. Setiap koreksi lanjutan dicatat""" +
-                """ dalam riwayat revisi (amendment) yang transparan.
+                    """ dalam riwayat revisi (amendment) yang transparan.
 2. **Netralitas Perdagangan**: Penomoran buta mencegah perlakuan istimewa pada perkebunan besar.
 3. **Aksesibilitas Inklusif**: Menyediakan pembaca layar (TalkBack), kontras tinggi, dan tidak bergantung pada""" +
-                """ warna saja.
-            """).trimIndent(),
+                    """ warna saja.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Session Draft -> Complete -> Lock Session (SHA-256 Hash) -> Amendments require Audited Justification
             """.trimIndent(),
@@ -2158,35 +2228,39 @@ Nilai cupping menentukan harga kontrak dan kelangsungan hidup petani kopi:
                 "CVA memisahkan fakta deskriptif dari apresiasi afektif; tidak ada rumus konversi langsung 1 banding 1.",
                 "Coffee Creator mempertahankan form 2004 sebagai protokol arsip berlabel LEGACY."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Legacy 2004 Cupping vs Modern CVA
 
 The historic 2004 SCA Cupping Form served the specialty coffee industry for two decades. However, sensory""" +
-                """ science revealed core structural flaws:
+                    """ science revealed core structural flaws:
 - **Conflation of Scales**: Descriptors (e.g. "citrus") were directly tied to numerical point scores.
 - **The "80-Point Specialty Cliff"**: Coffees below 80 points were labeled non-specialty, creating artificial""" +
-                """ economic penalties.
+                    """ economic penalties.
 - **Inability to Separate Preference**: Cuppers unconsciously penalized unfamiliar or experimental processing""" +
-                """ profiles.
+                    """ profiles.
 
 ### No Cross-Protocol Conversion Rule
 There is **NO valid mathematical equation** to convert an 85.5 score from the 2004 form into CVA. They measure""" +
-                """ different sensory constructs.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ different sensory constructs.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Form Cupping Warisan 2004 vs CVA Modern
 
 Formulir SCA 2004 telah berjasa besar selama 20 tahun. Namun sains sensori modern menemukan beberapa kelemahan""" +
-                """ mendasar:
+                    """ mendasar:
 - **Pencampuran Skala**: Kata deskriptif langsung terikat pada angka nilai.
 - **Jurang Skor 80 Poin**: Kopi di bawah 80 langsung dianggap non-specialty.
 - **Ketidakmampuan Memisahkan Selera**: Evaluator sering memotong nilai kopi yang karakternya tidak ia sukai""" +
-                """ secara pribadi.
+                    """ secara pribadi.
 
 ### Tidak Ada Konversi Skor Otomatis
 SCA secara tegas menyatakan **TIDAK ADA rumus matematika** untuk mengubah nilai 86 pada form 2004 menjadi skor""" +
-                """ CVA. Keduanya mengukur konsep yang berbeda.
-            """).trimIndent(),
+                    """ CVA. Keduanya mengukur konsep yang berbeda.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     2004 Legacy Form (100-pt Single Sheet) =/= CVA (4 Independent Perspectives)
     [Never attempt automated numeric conversion between protocols]
@@ -2258,11 +2332,12 @@ SCA secara tegas menyatakan **TIDAK ADA rumus matematika** untuk mengubah nilai 
                 "Materi ujian: Uji olfaktori, ambang rasa sensori, triangulasi, kalibrasi cupping, grading biji hijau.",
                 "Coffee Creator adalah sarana latihan mandiri; aplikasi tidak memberikan sertifikat atau gelar profesional resmi."
             ),
-            contentMarkdownEn = ("""
+            contentMarkdownEn = (
+                """
 # Understanding the Q Grader Program
 
 The Q Coffee System, administered by the **Coffee Quality Institute (CQI)**, is the premier international""" +
-                """ professional credential for sensory evaluation:
+                    """ professional credential for sensory evaluation:
 - **Course & Exam Components**:
   1. *Sensory Skills*: Identifying basic taste modalities and complex mixtures of sweet, sour, and salty.
   2. *Cupping Calibration*: Scoring flights across multiple tables within panel consensus tolerances.
@@ -2272,14 +2347,16 @@ The Q Coffee System, administered by the **Coffee Quality Institute (CQI)**, is 
 
 > [!IMPORTANT]
 > **Regulatory Notice**: Practicing on Coffee Creator builds sensory skill and familiarity, but does **NOT**""" +
-                """ grant CQI Q Grader or R Grader credentials. Official certification requires passing sanctioned exams at an""" +
-                """ accredited lab.
-            """).trimIndent(),
-            contentMarkdownId = ("""
+                    """ grant CQI Q Grader or R Grader credentials. Official certification requires passing sanctioned exams at an""" +
+                    """ accredited lab.
+            """
+                ).trimIndent(),
+            contentMarkdownId = (
+                """
 # Mengenal Program Q Grader
 
 Program Q Grader yang dikelola oleh **Coffee Quality Institute (CQI)** adalah standar sertifikasi penilai mutu""" +
-                """ sensori kopi internasional:
+                    """ sensori kopi internasional:
 - **Materi Ujian**:
   1. *Keterampilan Sensori*: Mengidentifikasi larutan rasa manis, asam, asin pada berbagai konsentrasi.
   2. *Kalibrasi Cupping*: Konsistensi nilai cupping bersama instruktur dan panel.
@@ -2289,9 +2366,10 @@ Program Q Grader yang dikelola oleh **Coffee Quality Institute (CQI)** adalah st
 
 > [!IMPORTANT]
 > **Pemberitahuan Resmi**: Latihan pada aplikasi Coffee Creator melatih kepekaan dan pemahaman Anda, namun""" +
-                """ **BUKAN** pengganti sertifikasi resmi CQI Q Grader. Sertifikat resmi hanya bisa didapatkan melalui ujian""" +
-                """ langsung di lab terakreditasi.
-            """).trimIndent(),
+                    """ **BUKAN** pengganti sertifikasi resmi CQI Q Grader. Sertifikat resmi hanya bisa didapatkan melalui ujian""" +
+                    """ langsung di lab terakreditasi.
+            """
+                ).trimIndent(),
             asciiDiagram = """
     Mobile Practice (Coffee Creator) ---> Build Acuity ---> Official In-Person Exam (CQI Accredited Lab)
             """.trimIndent(),
