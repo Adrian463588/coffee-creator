@@ -81,7 +81,8 @@ data class ProtocolSpec(
             retrievedAt = "2026-10-17",
             fieldMappingVersion = "1.0",
             licenseStatus = "Historical Standard Reference",
-            officialDisclaimer = "HISTORICAL LEGACY FORM: Superseded by CVA standards. Scores must not be equated to modern CVA evaluations."
+            officialDisclaimer = "HISTORICAL LEGACY FORM: Superseded by CVA standards. " +
+                "Scores must not be equated to modern CVA evaluations."
         )
 
         val CUSTOM = ProtocolSpec(
@@ -118,10 +119,13 @@ data class CuppingSamplePreparation(
     val roastLevelAgtron: Double? = null,
     val roastDateEpochMs: Long? = null,
     val roastRestDays: Int = 3,
-    val waterTdsPpm: Double = 125.0, // SCA standard: 75-150 ppm
-    val waterTempCelsius: Double = 93.5, // SCA standard: 92.2 - 94.4°C
+    // SCA standard: 75-150 ppm
+    val waterTdsPpm: Double = 125.0,
+    // SCA standard: 92.2 - 94.4°C
+    val waterTempCelsius: Double = 93.5,
     val grindMicrons: Int? = 850,
-    val brewRatio: Double = 0.055, // 55g/L standard SCA (1:18.18)
+    // 55g/L standard SCA (1:18.18)
+    val brewRatio: Double = 0.055,
     val doseGrams: Double = 11.0,
     val waterVolumeMl: Double = 200.0,
     val cupCount: Int = 5,
@@ -130,7 +134,8 @@ data class CuppingSamplePreparation(
 
 data class BlindSample(
     val sampleId: String,
-    val blindCode: String, // 3-digit opaque code e.g. "824"
+    // 3-digit opaque code e.g. "824"
+    val blindCode: String,
     val actualLotId: String,
     val actualBeanName: String = "",
     val revealState: BlindRevealState = BlindRevealState.CONCEALED,
@@ -186,7 +191,7 @@ enum class BodyTextureType {
 enum class CupDefectCategory(val penaltyPerCup: BigDecimal) {
     NONE(BigDecimal.ZERO),
     TAINT(BigDecimal("2.00")), // Noticeable off-flavor that does not overwhelm
-    FAULT(BigDecimal("4.00"))  // Overwhelming, repulsive defect (mold, phenolic, potato)
+    FAULT(BigDecimal("4.00")) // Overwhelming, repulsive defect (mold, phenolic, potato)
 }
 
 enum class CupDefectCharacter(val labelEn: String, val labelId: String) {
@@ -199,11 +204,13 @@ enum class CupDefectCharacter(val labelEn: String, val labelId: String) {
 }
 
 data class SingleCupEvaluation(
-    val cupIndex: Int, // 1 to 5
+    // 1 to 5
+    val cupIndex: Int,
     val isClean: Boolean = true,
     val defectCategory: CupDefectCategory = CupDefectCategory.NONE,
     val defectCharacter: CupDefectCharacter? = null,
-    val defectIntensity: Double = 0.0, // 1.0 to 5.0
+    // 1.0 to 5.0
+    val defectIntensity: Double = 0.0,
     val notes: String = ""
 )
 
@@ -217,9 +224,12 @@ data class MultiCupEvaluationGrid(
 }
 
 data class CupDefectRecord(
-    val cupIndex: Int, // 1 to 5
-    val defectType: String, // e.g. "Taint", "Fault", "Mold", "Ferment"
-    val intensity: Double, // 1.0 to 5.0
+    // 1 to 5
+    val cupIndex: Int,
+    // e.g. "Taint", "Fault", "Mold", "Ferment"
+    val defectType: String,
+    // 1.0 to 5.0
+    val intensity: Double,
     val description: String
 )
 
@@ -228,21 +238,33 @@ data class CupDefectRecord(
 // ============================================================================
 
 data class DescriptiveAssessment(
-    val fragranceDryIntensity: Double = 0.0,        // 0.0 to 5.0
-    val fragranceAromaCrustIntensity: Double = 0.0, // 0.0 to 5.0
-    val fragranceBreakIntensity: Double = 0.0,      // 0.0 to 5.0
-    val flavorIntensity: Double = 0.0,             // 0.0 to 5.0
-    val aftertasteIntensity: Double = 0.0,         // 0.0 to 5.0
-    val aftertastePersistence: Double = 0.0,       // 0.0 to 5.0
-    val acidityIntensity: Double = 0.0,            // 0.0 to 5.0
+    // 0.0 to 5.0
+    val fragranceDryIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val fragranceAromaCrustIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val fragranceBreakIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val flavorIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val aftertasteIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val aftertastePersistence: Double = 0.0,
+    // 0.0 to 5.0
+    val acidityIntensity: Double = 0.0,
     val acidityTypes: List<AcidityType> = emptyList(),
-    val sweetnessIntensity: Double = 0.0,          // 0.0 to 5.0
-    val bitternessIntensity: Double = 0.0,         // 0.0 to 5.0
-    val mouthfeelIntensity: Double = 0.0,          // 0.0 to 5.0
+    // 0.0 to 5.0
+    val sweetnessIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val bitternessIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val mouthfeelIntensity: Double = 0.0,
     val mouthfeelBodyType: BodyTextureType = BodyTextureType.SILKY,
-    val finishDuration: Double = 0.0,              // 0.0 to 5.0
+    // 0.0 to 5.0
+    val finishDuration: Double = 0.0,
     val descriptors: List<String> = emptyList(),
-    val selectedDescriptorIds: List<String> = emptyList(), // References 221-descriptor wheel IDs
+    // References 221-descriptor wheel IDs
+    val selectedDescriptorIds: List<String> = emptyList(),
     val cupDefects: List<CupDefectRecord> = emptyList(),
     val sensoryNotes: String = "",
     val evidenceStatus: EvidenceStatus = EvidenceStatus.UNKNOWN
@@ -278,8 +300,8 @@ data class AffectiveAssessment(
 ) {
     val totalScore: BigDecimal
         get() = fragranceAffectiveScore + flavorAffectiveScore + aftertasteAffectiveScore +
-                acidityAffectiveScore + sweetnessAffectiveScore + mouthfeelAffectiveScore +
-                overallAffectiveScore - defectDeduction
+            acidityAffectiveScore + sweetnessAffectiveScore + mouthfeelAffectiveScore +
+            overallAffectiveScore - defectDeduction
 }
 
 data class ExtrinsicAssessment(
@@ -304,18 +326,24 @@ data class ExtrinsicAssessment(
 // ============================================================================
 
 data class Legacy2004CuppingSheet(
-    val fragranceScore: BigDecimal = BigDecimal.ZERO, // 6.00 to 10.00 when assessed
+    // 6.00 to 10.00 when assessed
+    val fragranceScore: BigDecimal = BigDecimal.ZERO,
     val flavorScore: BigDecimal = BigDecimal.ZERO,
     val aftertasteScore: BigDecimal = BigDecimal.ZERO,
     val acidityScore: BigDecimal = BigDecimal.ZERO,
     val bodyScore: BigDecimal = BigDecimal.ZERO,
     val balanceScore: BigDecimal = BigDecimal.ZERO,
-    val uniformityCheckboxes: List<Boolean> = List(5) { false }, // 2.0 pts each
-    val cleanCupCheckboxes: List<Boolean> = List(5) { false },   // 2.0 pts each
-    val sweetnessCheckboxes: List<Boolean> = List(5) { false },  // 2.0 pts each
+    // 2.0 pts each
+    val uniformityCheckboxes: List<Boolean> = List(5) { false },
+    // 2.0 pts each
+    val cleanCupCheckboxes: List<Boolean> = List(5) { false },
+    // 2.0 pts each
+    val sweetnessCheckboxes: List<Boolean> = List(5) { false },
     val overallScore: BigDecimal = BigDecimal.ZERO,
-    val taintCupCount: Int = 0, // -2 pts each
-    val faultCupCount: Int = 0, // -4 pts each
+    // -2 pts each
+    val taintCupCount: Int = 0,
+    // -4 pts each
+    val faultCupCount: Int = 0,
     val notes: String = ""
 ) {
     val uniformityScore: BigDecimal get() = BigDecimal(uniformityCheckboxes.count { it } * 2)
@@ -324,8 +352,8 @@ data class Legacy2004CuppingSheet(
     val defectDeduction: BigDecimal get() = BigDecimal(taintCupCount * 2 + faultCupCount * 4)
 
     val totalScore: BigDecimal get() = fragranceScore + flavorScore + aftertasteScore +
-            acidityScore + bodyScore + balanceScore + uniformityScore +
-            cleanCupScore + sweetnessScore + overallScore - defectDeduction
+        acidityScore + bodyScore + balanceScore + uniformityScore +
+        cleanCupScore + sweetnessScore + overallScore - defectDeduction
 }
 
 // ============================================================================

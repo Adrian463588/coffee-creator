@@ -29,8 +29,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -40,8 +38,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import com.coffeecreator.app.ui.components.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -69,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import com.coffeecreator.app.core.sensory.FlavorCategory
 import com.coffeecreator.app.core.sensory.FlavorDescriptor
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
+import com.coffeecreator.app.ui.components.*
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin

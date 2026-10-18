@@ -489,11 +489,7 @@ fun CoffeeViewModel.setDripperBottomVariant(bottomVariant: String) {
     }
 }
 
-fun CoffeeViewModel.calculateDialInAdvice(
-    brewTimeSec: Int,
-    targetTimeSec: Int = 180,
-    sensoryFeedback: String = ""
-) {
+fun CoffeeViewModel.calculateDialInAdvice(brewTimeSec: Int, targetTimeSec: Int = 180, sensoryFeedback: String = "") {
     val advice = com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog.dialInRecommendation(
         brewTimeSec,
         targetTimeSec,
@@ -524,6 +520,9 @@ fun CoffeeViewModel.logBrewDiagnostic(
     mutableState.update {
         it.copy(brewDiagnosticsHistory = it.brewDiagnosticsHistory + record)
     }
-    diagnosticBuffer.log(LogLevel.INFO, "DIAGNOSTIC", "Logged diagnostic for brew $brewJournalId (drawdown: ${totalDrawdownSeconds}s, clogging: $clogging)")
+    diagnosticBuffer.log(
+        LogLevel.INFO,
+        "DIAGNOSTIC",
+        "Logged diagnostic for brew $brewJournalId (drawdown: ${totalDrawdownSeconds}s, clogging: $clogging)"
+    )
 }
-

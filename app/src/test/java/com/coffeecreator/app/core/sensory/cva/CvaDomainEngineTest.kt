@@ -48,6 +48,36 @@ class CvaDomainEngineTest {
     }
 
     @Test
+    fun givenBlindCodeCapacity_whenSessionCreated_thenAllCodesRemainUnique() {
+        val lots = (0 until 900).map { index -> "lot_$index" to "Coffee $index" }
+
+        val session = service.createSession(
+            protocol = CuppingProtocol.CUSTOM_RESEARCH,
+            assessorId = "assessor-1",
+            assessorPseudonym = "Panelist",
+            lots = lots
+        )
+
+        val blindCodes = session.samples.map { it.blindSample.blindCode }
+        assertEquals(900, blindCodes.size)
+        assertEquals(900, blindCodes.toSet().size)
+    }
+
+    @Test
+    fun givenMoreThanBlindCodeCapacity_whenSessionCreated_thenRejected() {
+        val lots = (0..900).map { index -> "lot_$index" to "Coffee $index" }
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.createSession(
+                protocol = CuppingProtocol.CUSTOM_RESEARCH,
+                assessorId = "assessor-1",
+                assessorPseudonym = "Panelist",
+                lots = lots
+            )
+        }
+    }
+
+    @Test
     fun givenPreparationOrNotesChange_whenHashComputed_thenDigestChanges() {
         val session = service.createSession(
             protocol = CuppingProtocol.CUSTOM_RESEARCH,
@@ -283,12 +313,41 @@ class CvaDomainEngineTest {
 
     @Test
     fun testCuppingStepperMilestones() {
+        assertEquals(0, CuppingMilestone.DRY_FRAGRANCE.secondsTarget)
+        assertEquals(30, CuppingMilestone.WATER_POUR.secondsTarget)
+        assertEquals(240, CuppingMilestone.CRUST_BREAK.secondsTarget)
+        assertEquals(480, CuppingMilestone.HOT_CUPPING.secondsTarget)
+        assertEquals(720, CuppingMilestone.WARM_CUPPING.secondsTarget)
+        assertEquals(1080, CuppingMilestone.COOL_CUPPING.secondsTarget)
         assertEquals(CuppingMilestone.DRY_FRAGRANCE, CuppingStepperEngine.getActiveMilestone(10))
-        assertEquals(CuppingMilestone.WATER_POUR, CuppingStepperEngine.getActiveMilestone(60))
-        assertEquals(CuppingMilestone.CRUST_BREAK, CuppingStepperEngine.getActiveMilestone(245))
-        assertEquals(CuppingMilestone.HOT_CUPPING, CuppingStepperEngine.getActiveMilestone(500))
-        assertEquals(CuppingMilestone.WARM_CUPPING, CuppingStepperEngine.getActiveMilestone(800))
-        assertEquals(CuppingMilestone.COOL_CUPPING, CuppingStepperEngine.getActiveMilestone(1200))
+        assertEquals(
+            CuppingMilestone.DRY_FRAGRANCE,
+            CuppingStepperEngine.getActiveMilestone(29)
+        )
+        assertEquals(
+            CuppingMilestone.WATER_POUR,
+            CuppingStepperEngine.getActiveMilestone(CuppingMilestone.WATER_POUR.secondsTarget)
+        )
+        assertEquals(CuppingMilestone.WATER_POUR, CuppingStepperEngine.getActiveMilestone(239))
+        assertEquals(
+            CuppingMilestone.CRUST_BREAK,
+            CuppingStepperEngine.getActiveMilestone(CuppingMilestone.CRUST_BREAK.secondsTarget)
+        )
+        assertEquals(CuppingMilestone.CRUST_BREAK, CuppingStepperEngine.getActiveMilestone(479))
+        assertEquals(
+            CuppingMilestone.HOT_CUPPING,
+            CuppingStepperEngine.getActiveMilestone(CuppingMilestone.HOT_CUPPING.secondsTarget)
+        )
+        assertEquals(CuppingMilestone.HOT_CUPPING, CuppingStepperEngine.getActiveMilestone(719))
+        assertEquals(
+            CuppingMilestone.WARM_CUPPING,
+            CuppingStepperEngine.getActiveMilestone(CuppingMilestone.WARM_CUPPING.secondsTarget)
+        )
+        assertEquals(CuppingMilestone.WARM_CUPPING, CuppingStepperEngine.getActiveMilestone(1079))
+        assertEquals(
+            CuppingMilestone.COOL_CUPPING,
+            CuppingStepperEngine.getActiveMilestone(CuppingMilestone.COOL_CUPPING.secondsTarget)
+        )
     }
 
     @Test
@@ -466,7 +525,27 @@ class CvaDomainEngineTest {
         assertEquals("Evaluator \"A\"\nCafé", JsonParser.parseString(json).asJsonObject.get("assessor").asString)
 
         val csv = CvaReportExportService.exportToNativeCsv(session)
-        assertTrue(csv.contains("SessionId,Protocol,Assessor,BlindCode"))
+        assertEquals(
+            listOf(
+                "SessionId",
+                "Protocol",
+                "Assessor",
+                "BlindCode",
+                "Revealed",
+                "ActualBean",
+                "FlavorIntensity",
+                "AcidityIntensity",
+                "SweetnessIntensity",
+                "MouthfeelIntensity",
+                "CleanCups",
+                "AffectiveScore",
+                "PreparationJson",
+                "AssessmentJson",
+                "AmendmentsJson",
+                "RowPayloadSha256"
+            ).joinToString(","),
+            csv.lineSequence().first()
+        )
         assertTrue(csv.contains(session.id))
         assertTrue(csv.contains("\"Evaluator \"\"A\"\"\nCafé\""))
     }

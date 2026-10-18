@@ -1,7 +1,5 @@
 package com.coffeecreator.app.core.catalog
 
-import java.math.BigDecimal
-import java.math.RoundingMode
 import java.util.Locale
 
 // ============================================================================
@@ -45,7 +43,8 @@ data class GrinderModelRecord(
     val modelName: String,
     val type: GrinderType,
     val adjustmentUnit: AdjustmentUnit,
-    val adjustmentMechanism: String, // e.g. "Putaran (External)", "Klik (Internal)"
+    // e.g. "Putaran (External)", "Klik (Internal)"
+    val adjustmentMechanism: String,
     val rawCoarseRange: String,
     val rawMediumRange: String,
     val rawFineRange: String,
@@ -76,7 +75,8 @@ data class UserGrinderProfile(
     val customName: String,
     val selectedVariantId: String? = null,
     val zeroCalibrationOffset: Double = 0.0,
-    val burrCondition: String = "SEASONED", // "NEW", "SEASONED", "WORN"
+    // "NEW", "SEASONED", "WORN"
+    val burrCondition: String = "SEASONED",
     val calibrationNotes: String = "",
     val calibratedAtEpochMs: Long = System.currentTimeMillis()
 )
@@ -97,7 +97,8 @@ data class GrinderCompatibilityResult(
 )
 
 data class DialInAdvice(
-    val proposedAction: String, // e.g. "Adjust 1-2 clicks coarser"
+    // e.g. "Adjust 1-2 clicks coarser"
+    val proposedAction: String,
     val controlVariable: String = "Grind Size",
     val scientificReason: String,
     val isDeterministic: Boolean = false // Never make deterministic flavor promises
@@ -809,7 +810,10 @@ object GrinderIntelligenceCatalog {
         val m = method.lowercase(Locale.ROOT)
         val range = when {
             m.contains("espresso") || m.contains("fine") || m.contains("ristretto") -> grinder.normalizedFine
-            m.contains("coarse") || m.contains("cold brew") || m.contains("french press") || m.contains("tubruk") -> grinder.normalizedCoarse
+                m.contains("coarse") ||
+                    m.contains("cold brew") ||
+                    m.contains("french press") ||
+                    m.contains("tubruk") -> grinder.normalizedCoarse
             else -> grinder.normalizedMedium // Pour Over, V60, Kalita, Aeropress, Cupping default to medium
         }
 
@@ -853,11 +857,7 @@ object GrinderIntelligenceCatalog {
         }
     }
 
-    fun dialInRecommendation(
-        brewTimeSec: Int,
-        targetTimeSec: Int = 180,
-        sensoryFeedback: String = ""
-    ): DialInAdvice {
+    fun dialInRecommendation(brewTimeSec: Int, targetTimeSec: Int = 180, sensoryFeedback: String = ""): DialInAdvice {
         val feedback = sensoryFeedback.lowercase(Locale.ROOT)
         val timeDelta = brewTimeSec - targetTimeSec
 
@@ -865,13 +865,15 @@ object GrinderIntelligenceCatalog {
             feedback.contains("bitter") || feedback.contains("astringent") || feedback.contains("harsh") || timeDelta > 45 -> {
                 DialInAdvice(
                     proposedAction = "Adjust grind 1-2 clicks / 0.2 rotations coarser",
-                    scientificReason = "Drawdown duration or bitter/astringent extraction indicates over-extraction or bed clogging. A coarser grind reduces surface area and speeds percolation."
+                scientificReason = "Drawdown duration or bitter/astringent extraction indicates over-extraction or bed clogging. " +
+                    "A coarser grind reduces surface area and speeds percolation."
                 )
             }
             feedback.contains("sour") || feedback.contains("watery") || feedback.contains("weak") || timeDelta < -40 -> {
                 DialInAdvice(
                     proposedAction = "Adjust grind 1-2 clicks / 0.2 rotations finer",
-                    scientificReason = "Fast drawdown or sour, hollow flavor indicates under-extraction. A finer grind increases contact surface area and retards fluid flow."
+                scientificReason = "Fast drawdown or sour, hollow flavor indicates under-extraction. " +
+                    "A finer grind increases contact surface area and retards fluid flow."
                 )
             }
             else -> {

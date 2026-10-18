@@ -224,7 +224,9 @@ object PanelOperationsEngine {
         val stdDev = if (raterCount > 1) {
             val variance = scores.map { (it - mean) * (it - mean) }.sum() / (raterCount - 1)
             sqrt(variance)
-        } else 0.0
+        } else {
+            0.0
+        }
 
         // Single sample MCD is simply |score - mean|
         val assessorMcds = scoresByAssessor.mapValues { roundToFourDecimals(abs(it.value - mean)) }
@@ -361,10 +363,7 @@ object PanelOperationsEngine {
     /**
      * Verifies that pure Kotlin deterministic calculations override any conflicting LLM claims.
      */
-    fun validateDeterministicDecoupling(
-        calculatedValue: Double,
-        reportedClaim: Double?
-    ): DeterministicValidationResult {
+    fun validateDeterministicDecoupling(calculatedValue: Double, reportedClaim: Double?): DeterministicValidationResult {
         val discrepancy = reportedClaim != null && abs(calculatedValue - reportedClaim) > 0.05
         return DeterministicValidationResult(
             isDecoupled = true,
@@ -396,8 +395,8 @@ object PanelOperationsEngine {
 
         val claimLower = responseClaim.lowercase()
         val hasCredentialViolation = claimLower.contains("official q grader certified") ||
-                claimLower.contains("licensed q grader certificate awarded") ||
-                claimLower.contains("sca official certification granted")
+            claimLower.contains("licensed q grader certificate awarded") ||
+            claimLower.contains("sca official certification granted")
 
         if (hasCredentialViolation) {
             ungrounded.add("CLAIM_CREDENTIAL_FABRICATION_BLOCKED")
@@ -429,10 +428,7 @@ object PanelOperationsEngine {
      * Applies privacy redactions (scrubbing supplier pricing, lot PII, and cupper real names)
      * based on user consent before sharing.
      */
-    fun redactPiiForExport(
-        rawPayload: String,
-        consent: DataExportConsent
-    ): String {
+    fun redactPiiForExport(rawPayload: String, consent: DataExportConsent): String {
         if (!consent.consentGranted) {
             return """{"error": "USER_CONSENT_REQUIRED", "export_aborted": true}"""
         }

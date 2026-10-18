@@ -69,8 +69,18 @@ Ketinggian dan garis lintang mengatur fluktuasi suhu harian. Suhu dingin malam h
     [Low Elevation  <800m]  ---> Fast Maturation ---> Lower Density + Faster Yield
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Allotetraploid", "Alotetraploid", "Organism with four sets of chromosomes derived from hybridization.", "Organisme dengan 4 set kromosom dari hibridisasi."),
-                GlossaryEntry("Cultivar", "Kultivar", "Plant variety produced by selective horticultural breeding.", "Varietas tanaman hasil seleksi budidaya manusia.")
+                GlossaryEntry(
+                    "Allotetraploid",
+                    "Alotetraploid",
+                    "Organism with four sets of chromosomes derived from hybridization.",
+                    "Organisme dengan 4 set kromosom dari hibridisasi."
+                ),
+                GlossaryEntry(
+                    "Cultivar",
+                    "Kultivar",
+                    "Plant variety produced by selective horticultural breeding.",
+                    "Varietas tanaman hasil seleksi budidaya manusia."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -90,7 +100,12 @@ Ketinggian dan garis lintang mengatur fluktuasi suhu harian. Suhu dingin malam h
             accessibilityNotesEn = "Diagram contrasts genetic traits of Arabica and Canephora in a clear vertical box.",
             accessibilityNotesId = "Diagram membandingkan karakteristik genetik Arabika dan Canephora dalam kotak vertikal.",
             citations = listOf(
-                AcademyCitation("Coffee: Botany, Biochemistry and Production", "Clifford, M. N. & Willson, K. C.", 1985, "https://doi.org/10.1007/978-1-4615-6657-1")
+                AcademyCitation(
+                    "Coffee: Botany, Biochemistry and Production",
+                    "Clifford, M. N. & Willson, K. C.",
+                    1985,
+                    "https://doi.org/10.1007/978-1-4615-6657-1"
+                )
             )
         ),
 
@@ -154,7 +169,12 @@ Pemisahan biji kopi dari kulit buah dan lendir (mucilage) sebelum dikeringkan hi
     Honey   : Cherry -> Pulp Removed -> Sticky Mucilage Drying
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Mucilage", "Musilase", "Sugary, pectin-rich hydrogel layer between coffee skin and parchment.", "Lapisan gel berlendir kaya pektin dan gula antara kulit buah dan kulit tanduk.")
+                GlossaryEntry(
+                    "Mucilage",
+                    "Musilase",
+                    "Sugary, pectin-rich hydrogel layer between coffee skin and parchment.",
+                    "Lapisan gel berlendir kaya pektin dan gula antara kulit buah dan kulit tanduk."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -174,7 +194,12 @@ Pemisahan biji kopi dari kulit buah dan lendir (mucilage) sebelum dikeringkan hi
             accessibilityNotesEn = "Diagram details the 3 distinct pathways from fresh cherry to dry parchment.",
             accessibilityNotesId = "Diagram merinci 3 jalur pemrosesan dari ceri segar hingga biji kering.",
             citations = listOf(
-                AcademyCitation("Fermentation and Processing of Coffee", "Schwan, R. F. & Fleet, G. H.", 2014, "https://doi.org/10.1201/b17536")
+                AcademyCitation(
+                    "Fermentation and Processing of Coffee",
+                    "Schwan, R. F. & Fleet, G. H.",
+                    2014,
+                    "https://doi.org/10.1201/b17536"
+                )
             )
         ),
 
@@ -244,7 +269,12 @@ Evaluasi sensori mengukur respons biologis manusia terhadap rangsangan fisik.
     Physical Stimulus -> Olfactory/Gustatory Receptors -> Neural Transduction -> Cognitive Interpretation
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Psychophysics", "Psikofisika", "Scientific study of relationships between physical stimuli and sensory sensations.", "Kajian ilmiah hubungan antara stimulus fisik dan sensasi sensori.")
+                GlossaryEntry(
+                    "Psychophysics",
+                    "Psikofisika",
+                    "Scientific study of relationships between physical stimuli and sensory sensations.",
+                    "Kajian ilmiah hubungan antara stimulus fisik dan sensasi sensori."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -252,8 +282,18 @@ Evaluasi sensori mengukur respons biologis manusia terhadap rangsangan fisik.
                     promptEn = "What is the difference between detection threshold and recognition threshold?",
                     promptId = "Apa perbedaan antara ambang deteksi dan ambang rekognisi?",
                     options = listOf(
-                        QuizOption("A", "Detection perceives a stimulus is present; recognition identifies its specific quality", "Deteksi menyadari adanya rangsangan; rekognisi mengidentifikasi jenis rasanya", true),
-                        QuizOption("B", "Recognition occurs at lower concentration than detection", "Rekognisi terjadi pada konsentrasi lebih rendah dari deteksi", false),
+                        QuizOption(
+                            "A",
+                            "Detection perceives a stimulus is present; recognition identifies its specific quality",
+                            "Deteksi menyadari adanya rangsangan; rekognisi mengidentifikasi jenis rasanya",
+                            true
+                        ),
+                        QuizOption(
+                            "B",
+                            "Recognition occurs at lower concentration than detection",
+                            "Rekognisi terjadi pada konsentrasi lebih rendah dari deteksi",
+                            false
+                        ),
                         QuizOption("C", "Detection threshold is always zero", "Ambang deteksi selalu bernilai nol", false),
                         QuizOption("D", "They are identical biological terms", "Keduanya adalah istilah biologis yang sama", false)
                     ),
@@ -264,7 +304,12 @@ Evaluasi sensori mengukur respons biologis manusia terhadap rangsangan fisik.
             accessibilityNotesEn = "Diagram demonstrates linear progression from physical stimulus to cognitive interpretation.",
             accessibilityNotesId = "Diagram menunjukkan alur linear dari stimulus fisik ke persepsi kognitif.",
             citations = listOf(
-                AcademyCitation("Sensory Evaluation of Food: Principles and Practices", "Lawless, H. T. & Heymann, H.", 2010, "https://doi.org/10.1007/978-1-4419-6488-5")
+                AcademyCitation(
+                    "Sensory Evaluation of Food: Principles and Practices",
+                    "Lawless, H. T. & Heymann, H.",
+                    2010,
+                    "https://doi.org/10.1007/978-1-4419-6488-5"
+                )
             )
         ),
 
@@ -328,8 +373,18 @@ Mukosa penciuman manusia memiliki sekitar 6 juta neuron reseptor olfaktori.
     Mouth -> Pharynx -> Nasopharynx -> Olfactory Bulb (Retronasal)
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Retronasal", "Retronasal", "Perception of odors originating from oral cavity during eating/drinking.", "Persepsi aroma yang berasal dari rongga mulut saat makan/minum."),
-                GlossaryEntry("Orthonasal", "Ortonasal", "Perception of odors inhaled through the external nostrils.", "Persepsi bau yang dihirup melalui lubang hidung luar.")
+                GlossaryEntry(
+                    "Retronasal",
+                    "Retronasal",
+                    "Perception of odors originating from oral cavity during eating/drinking.",
+                    "Persepsi aroma yang berasal dari rongga mulut saat makan/minum."
+                ),
+                GlossaryEntry(
+                    "Orthonasal",
+                    "Ortonasal",
+                    "Perception of odors inhaled through the external nostrils.",
+                    "Persepsi bau yang dihirup melalui lubang hidung luar."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -337,8 +392,18 @@ Mukosa penciuman manusia memiliki sekitar 6 juta neuron reseptor olfaktori.
                     promptEn = "Why do professional coffee tasters slurp coffee vigorously from the cupping spoon?",
                     promptId = "Mengapa pencicip kopi profesional menyeruput kopi dengan kuat dari sendok cupping?",
                     options = listOf(
-                        QuizOption("A", "To aerate the liquid and drive volatile compounds into the retronasal pathway", "Untuk mengaerasikan cairan dan mendorong senyawa volatil ke jalur retronasal", true),
-                        QuizOption("B", "To cool the coffee instantly to room temperature", "Untuk mendinginkan kopi seketika ke suhu ruang", false),
+                        QuizOption(
+                            "A",
+                            "To aerate the liquid and drive volatile compounds into the retronasal pathway",
+                            "Untuk mengaerasikan cairan dan mendorong senyawa volatil ke jalur retronasal",
+                            true
+                        ),
+                        QuizOption(
+                            "B",
+                            "To cool the coffee instantly to room temperature",
+                            "Untuk mendinginkan kopi seketika ke suhu ruang",
+                            false
+                        ),
                         QuizOption("C", "To dilute coffee with mouth saliva", "Untuk mengencerkan kopi dengan air liur", false),
                         QuizOption("D", "To prevent burning the tongue tip", "Agar ujung lidah tidak tersengat panas", false)
                     ),
@@ -437,8 +502,18 @@ Mitos bahwa manis hanya di ujung lidah dan pahit di pangkal telah dibantah secar
     [MANIS + ASAM + ASIN + PAHIT + UMAMI] secara merata.
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("OTOP1", "OTOP1", "Otopetrin-1: proton-selective ion channel mediating cellular sour taste perception.", "Kanal ion selektif proton penerima rasa asam pada sel pengecap."),
-                GlossaryEntry("Basic Taste", "Rasa Dasar", "Primary gustatory modality recognized by dedicated cellular receptors.", "Modalitas pengecapan utama yang didukung oleh reseptor seluler spesifik.")
+                GlossaryEntry(
+                    "OTOP1",
+                    "OTOP1",
+                    "Otopetrin-1: proton-selective ion channel mediating cellular sour taste perception.",
+                    "Kanal ion selektif proton penerima rasa asam pada sel pengecap."
+                ),
+                GlossaryEntry(
+                    "Basic Taste",
+                    "Rasa Dasar",
+                    "Primary gustatory modality recognized by dedicated cellular receptors.",
+                    "Modalitas pengecapan utama yang didukung oleh reseptor seluler spesifik."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -446,10 +521,30 @@ Mitos bahwa manis hanya di ujung lidah dan pahit di pangkal telah dibantah secar
                     promptEn = "Is 'Acid' a distinct sixth basic taste alongside sweet, sour, salty, bitter, and umami?",
                     promptId = "Apakah 'Acid/Keasaman' adalah rasa dasar keenam yang terpisah dari manis, asam, asin, pahit, dan umami?",
                     options = listOf(
-                        QuizOption("A", "No, sourness is the basic taste; acidity is a culinary/sensory perception of sourness and aroma", "Tidak, rasa dasarnya adalah rasa asam; acidity adalah persepsi sensori asam dan aroma", true),
-                        QuizOption("B", "Yes, coffee contains unique acid receptors separate from sour receptors", "Ya, kopi memiliki reseptor asam terpisah dari reseptor masam", false),
-                        QuizOption("C", "Yes, umami replaced salt, making acid the fifth taste", "Ya, umami menggantikan garam sehingga acid jadi rasa kelima", false),
-                        QuizOption("D", "No, there are only four basic tastes in science", "Tidak, hanya ada empat rasa dasar dalam sains", false)
+                        QuizOption(
+                            "A",
+                            "No, sourness is the basic taste; acidity is a culinary/sensory perception of sourness and aroma",
+                            "Tidak, rasa dasarnya adalah rasa asam; acidity adalah persepsi sensori asam dan aroma",
+                            true
+                        ),
+                        QuizOption(
+                            "B",
+                            "Yes, coffee contains unique acid receptors separate from sour receptors",
+                            "Ya, kopi memiliki reseptor asam terpisah dari reseptor masam",
+                            false
+                        ),
+                        QuizOption(
+                            "C",
+                            "Yes, umami replaced salt, making acid the fifth taste",
+                            "Ya, umami menggantikan garam sehingga acid jadi rasa kelima",
+                            false
+                        ),
+                        QuizOption(
+                            "D",
+                            "No, there are only four basic tastes in science",
+                            "Tidak, hanya ada empat rasa dasar dalam sains",
+                            false
+                        )
                     ),
                     explanationEn = "There are exactly five basic tastes: sweet, sour, salty, bitter, and umami. 'Acid' is the English chemical term for proton donors perceived as the sour taste.",
                     explanationId = "Terdapat lima rasa dasar yang terbukti secara ilmiah: manis, asam, asin, pahit, dan umami. 'Acid' merujuk pada senyawa asam yang direspons oleh reseptor rasa asam."
@@ -458,7 +553,12 @@ Mitos bahwa manis hanya di ujung lidah dan pahit di pangkal telah dibantah secar
             accessibilityNotesEn = "Diagram emphasizes that all 5 tastes are distributed across the entire tongue without localized zones.",
             accessibilityNotesId = "Diagram menegaskan kelima rasa dasar tersebar merata di seluruh permukaan lidah.",
             citations = listOf(
-                AcademyCitation("The Cells and Logic for Mammalian Sour Taste Detection", "Tuo, J., et al.", 2019, "https://doi.org/10.1016/j.cell.2019.08.020")
+                AcademyCitation(
+                    "The Cells and Logic for Mammalian Sour Taste Detection",
+                    "Tuo, J., et al.",
+                    2019,
+                    "https://doi.org/10.1016/j.cell.2019.08.020"
+                )
             )
         ),
 
@@ -512,7 +612,12 @@ Mouthfeel bukanlah rasa di lidah, melainkan sensasi fisik rabaan yang dirasakan 
     Soluble Solids (TDS) + Suspended Lipids ---> Tactile Mechanoreceptors (CN V) ---> Perceived Body / Viscosity
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Astringency", "Astringensi", "Tactile drying and puckering sensation caused by loss of oral lubrication.", "Sensasi kesat dan kering di mulut akibat hilangnya pelumas air liur.")
+                GlossaryEntry(
+                    "Astringency",
+                    "Astringensi",
+                    "Tactile drying and puckering sensation caused by loss of oral lubrication.",
+                    "Sensasi kesat dan kering di mulut akibat hilangnya pelumas air liur."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -520,8 +625,18 @@ Mouthfeel bukanlah rasa di lidah, melainkan sensasi fisik rabaan yang dirasakan 
                     promptEn = "What causes the drying, puckering sensation known as astringency in coffee?",
                     promptId = "Apa yang menyebabkan sensasi kesat mengeringkan (astringensi) pada kopi?",
                     options = listOf(
-                        QuizOption("A", "Precipitation of lubricating salivary proteins by polyphenols", "Pengendapan protein pelumas air liur oleh senyawa polifenol", true),
-                        QuizOption("B", "Excessive sugar concentration coating the tongue", "Konsentrasi gula berlebih yang melapisi lidah", false),
+                        QuizOption(
+                            "A",
+                            "Precipitation of lubricating salivary proteins by polyphenols",
+                            "Pengendapan protein pelumas air liur oleh senyawa polifenol",
+                            true
+                        ),
+                        QuizOption(
+                            "B",
+                            "Excessive sugar concentration coating the tongue",
+                            "Konsentrasi gula berlebih yang melapisi lidah",
+                            false
+                        ),
                         QuizOption("C", "Extreme cold temperature stimulating cold receptors", "Suhu yang terlalu dingin", false),
                         QuizOption("D", "Activation of umami receptors", "Aktivasi reseptor umami", false)
                     ),
@@ -598,7 +713,12 @@ Asam menentukan kecerahan rasa kopi specialty:
     Green Bean (Citric + Malic + Chlorogenic) ---> Roasting Heat ---> Quinic + Acetic Formed; Citric Degraded
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("pKa", "pKa", "Logarithmic acid dissociation constant measuring acid strength.", "Ukuran kuantitatif kekuatan asam dalam mendonasikan proton.")
+                GlossaryEntry(
+                    "pKa",
+                    "pKa",
+                    "Logarithmic acid dissociation constant measuring acid strength.",
+                    "Ukuran kuantitatif kekuatan asam dalam mendonasikan proton."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -618,7 +738,12 @@ Asam menentukan kecerahan rasa kopi specialty:
             accessibilityNotesEn = "Diagram contrasts acid transformation from green seed to roasted bean.",
             accessibilityNotesId = "Diagram membandingkan transformasi asam dari biji hijau ke biji sangrai.",
             citations = listOf(
-                AcademyCitation("Acids in Coffee: A Review of Sensory and Chemical Profiles", "Balzer, H. H.", 2001, "https://doi.org/10.1002/9780470690499")
+                AcademyCitation(
+                    "Acids in Coffee: A Review of Sensory and Chemical Profiles",
+                    "Balzer, H. H.",
+                    2001,
+                    "https://doi.org/10.1002/9780470690499"
+                )
             )
         ),
 
@@ -674,7 +799,12 @@ Kopi sangrai memiliki lebih dari 800 senyawa volatil yang dikelompokkan ke dalam
         |---> >200°C: Fiber Pyrolysis        ---> Spicy, Clove, Smoky Guaiacols
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Maillard Reaction", "Reaksi Maillard", "Chemical reaction between amino acids and reducing sugars under heat.", "Reaksi kimia antara asam amino dan gula pereduksi saat dipanaskan.")
+                GlossaryEntry(
+                    "Maillard Reaction",
+                    "Reaksi Maillard",
+                    "Chemical reaction between amino acids and reducing sugars under heat.",
+                    "Reaksi kimia antara asam amino dan gula pereduksi saat dipanaskan."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -751,7 +881,12 @@ Memori bau dapat dilatih secara konsisten melalui tiga langkah:
     Physical Vial -> 3 Gentle Sniffs -> Category Guess -> Check Answer -> Spaced Repetition (Day 1, 3, 7)
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Spaced Repetition", "Pengulangan Berkala", "Learning technique incorporating increasing intervals of time between reviews.", "Teknik belajar dengan jeda waktu yang meningkat untuk menguatkan memori jangka panjang.")
+                GlossaryEntry(
+                    "Spaced Repetition",
+                    "Pengulangan Berkala",
+                    "Learning technique incorporating increasing intervals of time between reviews.",
+                    "Teknik belajar dengan jeda waktu yang meningkat untuk menguatkan memori jangka panjang."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -759,7 +894,12 @@ Memori bau dapat dilatih secara konsisten melalui tiga langkah:
                     promptEn = "Can virtual app reading replace smelling physical aromatic references?",
                     promptId = "Bisakah membaca aplikasi menggantikan latihan mencium referensi aroma fisik secara langsung?",
                     options = listOf(
-                        QuizOption("A", "No, olfactory memory requires direct biological stimulation of receptor neurons", "Tidak, memori penciuman mutlak membutuhkan stimulasi fisik neuron reseptor", true),
+                        QuizOption(
+                            "A",
+                            "No, olfactory memory requires direct biological stimulation of receptor neurons",
+                            "Tidak, memori penciuman mutlak membutuhkan stimulasi fisik neuron reseptor",
+                            true
+                        ),
                         QuizOption("B", "Yes, visual reading builds identical olfactory memory", "Ya, membaca saja sudah cukup", false),
                         QuizOption("C", "Yes, digital sounds stimulate olfactory bulbs", "Ya, suara digital merangsang penciuman", false),
                         QuizOption("D", "No, but only synthetic vials work", "Tidak, tetapi hanya vial sintetis yang berguna", false)
@@ -844,7 +984,12 @@ Coffee Creator menggabungkan 84 deskriptor referensi global dengan 137 deskripto
     Category (Fruity) -> Subcategory (Berry) -> Specific Descriptor (Blackberry)
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Sensory Lexicon", "Leksikon Sensori", "Standardized dictionary of sensory descriptors defined by empirical references.", "Kamus standar deskriptor rasa yang didefinisikan dengan referensi empiris.")
+                GlossaryEntry(
+                    "Sensory Lexicon",
+                    "Leksikon Sensori",
+                    "Standardized dictionary of sensory descriptors defined by empirical references.",
+                    "Kamus standar deskriptor rasa yang didefinisikan dengan referensi empiris."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -852,7 +997,12 @@ Coffee Creator menggabungkan 84 deskriptor referensi global dengan 137 deskripto
                     promptEn = "How is the SCA Flavor Wheel designed to be read?",
                     promptId = "Bagaimana cara membaca Roda Rasa Kopi SCA yang benar?",
                     options = listOf(
-                        QuizOption("A", "From the center outward: start broad, then refine to specific descriptors", "Dari tengah ke luar: mulai dari kategori umum, lalu ke deskriptor spesifik", true),
+                        QuizOption(
+                            "A",
+                            "From the center outward: start broad, then refine to specific descriptors",
+                            "Dari tengah ke luar: mulai dari kategori umum, lalu ke deskriptor spesifik",
+                            true
+                        ),
                         QuizOption("B", "From outer ring to center", "Dari luar ke dalam", false),
                         QuizOption("C", "Clockwise starting from 12 o'clock only", "Searah jarum jam dari arah jam 12 saja", false),
                         QuizOption("D", "Randomly based on color preference", "Secara acak berdasarkan warna", false)
@@ -864,7 +1014,12 @@ Coffee Creator menggabungkan 84 deskriptor referensi global dengan 137 deskripto
             accessibilityNotesEn = "Diagram shows concentric hierarchy moving from broad category to specific flavor descriptor.",
             accessibilityNotesId = "Diagram memperlihatkan hierarki konsentris dari kategori umum ke deskriptor spesifik.",
             citations = listOf(
-                AcademyCitation("World Coffee Research Sensory Lexicon 2.0", "World Coffee Research", 2017, "https://worldcoffeeresearch.org/resources/sensory-lexicon")
+                AcademyCitation(
+                    "World Coffee Research Sensory Lexicon 2.0",
+                    "World Coffee Research",
+                    2017,
+                    "https://worldcoffeeresearch.org/resources/sensory-lexicon"
+                )
             )
         ),
 
@@ -931,7 +1086,12 @@ Untuk memastikan pengujian dapat diulang dengan akurat:
     Weigh 11.0g -> Grind ~850µm -> Smell Fragrance -> Pour 200mL 93°C -> 4:00 Min Break Crust
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Agtron", "Agtron", "Commercial spectrophotometer scale measuring roasted coffee color reflectance.", "Skala spektrofotometri untuk mengukur pantulan warna sangrai kopi.")
+                GlossaryEntry(
+                    "Agtron",
+                    "Agtron",
+                    "Commercial spectrophotometer scale measuring roasted coffee color reflectance.",
+                    "Skala spektrofotometri untuk mengukur pantulan warna sangrai kopi."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -951,7 +1111,12 @@ Untuk memastikan pengujian dapat diulang dengan akurat:
             accessibilityNotesEn = "Diagram provides step-by-step visual sequence of sample prep and 4-minute break.",
             accessibilityNotesId = "Diagram memberikan urutan langkah penyiapan sampel dan break 4 menit.",
             citations = listOf(
-                AcademyCitation("SCA-102: Cupping Sample Preparation Standard", "Specialty Coffee Association", 2024, "https://sca.coffee/research/coffee-standards")
+                AcademyCitation(
+                    "SCA-102: Cupping Sample Preparation Standard",
+                    "Specialty Coffee Association",
+                    2024,
+                    "https://sca.coffee/research/coffee-standards"
+                )
             )
         ),
 
@@ -1020,8 +1185,18 @@ Pada form 2004, evaluator yang tidak suka rasa bunga bisa memberi skor rendah pa
     Coffee Sample -> [Physical] -> [Descriptive (Objective)] -> [Affective (Subjective)] -> [Extrinsic]
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("CVA", "CVA", "Coffee Value Assessment: modern four-perspective SCA sensory framework.", "Kerangka penilaian sensori modern SCA berbasis empat perspektif."),
-                GlossaryEntry("Affective", "Afektif", "Evaluation based on personal feelings, preferences, and hedonic liking.", "Penilaian berdasarkan perasaan pribadi, preferensi, dan tingkat kesukaan.")
+                GlossaryEntry(
+                    "CVA",
+                    "CVA",
+                    "Coffee Value Assessment: modern four-perspective SCA sensory framework.",
+                    "Kerangka penilaian sensori modern SCA berbasis empat perspektif."
+                ),
+                GlossaryEntry(
+                    "Affective",
+                    "Afektif",
+                    "Evaluation based on personal feelings, preferences, and hedonic liking.",
+                    "Penilaian berdasarkan perasaan pribadi, preferensi, dan tingkat kesukaan."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1029,7 +1204,12 @@ Pada form 2004, evaluator yang tidak suka rasa bunga bisa memberi skor rendah pa
                     promptEn = "What is the key scientific reason CVA separates Descriptive from Affective assessment?",
                     promptId = "Apa alasan ilmiah utama CVA memisahkan penilaian Deskriptif dan Afektif?",
                     options = listOf(
-                        QuizOption("A", "To prevent personal taste preference from distorting objective sensory descriptors", "Untuk mencegah preferensi pribadi mengaburkan deskripsi sensori objektif", true),
+                        QuizOption(
+                            "A",
+                            "To prevent personal taste preference from distorting objective sensory descriptors",
+                            "Untuk mencegah preferensi pribadi mengaburkan deskripsi sensori objektif",
+                            true
+                        ),
                         QuizOption("B", "To make cupping sessions twice as long", "Agar sesi cupping lebih lama", false),
                         QuizOption("C", "To eliminate the need for trained cuppers", "Agar tidak butuh evaluator terlatih", false),
                         QuizOption("D", "Because descriptive words have no meaning", "Karena kata deskriptif tidak memiliki makna", false)
@@ -1041,7 +1221,12 @@ Pada form 2004, evaluator yang tidak suka rasa bunga bisa memberi skor rendah pa
             accessibilityNotesEn = "Diagram contrasts the 4 CVA perspective pillars cleanly.",
             accessibilityNotesId = "Diagram menampilkan 4 pilar perspektif CVA secara terpisah.",
             citations = listOf(
-                AcademyCitation("The SCA Coffee Value Assessment: An Overview", "Specialty Coffee Association", 2023, "https://sca.coffee/value-assessment/")
+                AcademyCitation(
+                    "The SCA Coffee Value Assessment: An Overview",
+                    "Specialty Coffee Association",
+                    2023,
+                    "https://sca.coffee/value-assessment/"
+                )
             )
         ),
 
@@ -1106,7 +1291,12 @@ Formulir deskriptif mengukur **kekuatan rangsangan rasa**:
     * High intensity is an objective measurement, not necessarily a badge of high quality.
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("CATA", "CATA", "Check-All-That-Apply: sensory profiling method where assessors select all applicable descriptors.", "Metode profil sensori di mana evaluator menandai semua deskriptor yang terdeteksi.")
+                GlossaryEntry(
+                    "CATA",
+                    "CATA",
+                    "Check-All-That-Apply: sensory profiling method where assessors select all applicable descriptors.",
+                    "Metode profil sensori di mana evaluator menandai semua deskriptor yang terdeteksi."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1114,8 +1304,18 @@ Formulir deskriptif mengukur **kekuatan rangsangan rasa**:
                     promptEn = "In CVA Descriptive assessment, does an Acidity score of 4.5 mean the acidity is high quality?",
                     promptId = "Pada CVA Deskriptif, apakah nilai keasaman 4.5 berarti keasamannya berkualitas tinggi?",
                     options = listOf(
-                        QuizOption("A", "No, it indicates the acidity intensity is high; quality is rated on the Affective sheet", "Tidak, itu hanya menunjukkan keasaman sangat intens; kualitas dinilai pada lembar Afektif", true),
-                        QuizOption("B", "Yes, higher scores always mean better coffee", "Ya, nilai tinggi selalu berarti kopi lebih enak", false),
+                        QuizOption(
+                            "A",
+                            "No, it indicates the acidity intensity is high; quality is rated on the Affective sheet",
+                            "Tidak, itu hanya menunjukkan keasaman sangat intens; kualitas dinilai pada lembar Afektif",
+                            true
+                        ),
+                        QuizOption(
+                            "B",
+                            "Yes, higher scores always mean better coffee",
+                            "Ya, nilai tinggi selalu berarti kopi lebih enak",
+                            false
+                        ),
                         QuizOption("C", "Yes, 4.5 qualifies the coffee as Specialty Grade 1", "Ya, 4.5 otomatis specialty grade 1", false),
                         QuizOption("D", "No, 4.5 indicates a defect", "Tidak, 4.5 berarti ada cacat", false)
                     ),
@@ -1126,7 +1326,12 @@ Formulir deskriptif mengukur **kekuatan rangsangan rasa**:
             accessibilityNotesEn = "Diagram displays the 0 to 5 continuous slider scale.",
             accessibilityNotesId = "Diagram menampilkan skala geser kontinu 0 hingga 5.",
             citations = listOf(
-                AcademyCitation("SCA-103: Descriptive Assessment Standard", "Specialty Coffee Association", 2024, "https://sca.coffee/value-assessment/")
+                AcademyCitation(
+                    "SCA-103: Descriptive Assessment Standard",
+                    "Specialty Coffee Association",
+                    2024,
+                    "https://sca.coffee/value-assessment/"
+                )
             )
         ),
 
@@ -1184,7 +1389,12 @@ Formulir Afektif mencatat **apresiasi kualitas rasa**:
     6.00 [Good] ---> 7.00 [Very Good] ---> 8.00 [Excellent] ---> 9.00-10.00 [Outstanding]
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Hedonic Scale", "Skala Hedonik", "Psychological scale measuring degrees of liking or pleasure.", "Skala psikologis pengukur tingkat kesukaan atau kenikmatan.")
+                GlossaryEntry(
+                    "Hedonic Scale",
+                    "Skala Hedonik",
+                    "Psychological scale measuring degrees of liking or pleasure.",
+                    "Skala psikologis pengukur tingkat kesukaan atau kenikmatan."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1204,7 +1414,12 @@ Formulir Afektif mencatat **apresiasi kualitas rasa**:
             accessibilityNotesEn = "Diagram visualizes 6.00 to 10.00 rating thresholds.",
             accessibilityNotesId = "Diagram menampilkan ambang batas penilaian dari 6.00 hingga 10.00.",
             citations = listOf(
-                AcademyCitation("SCA-104: Affective Assessment Standard", "Specialty Coffee Association", 2024, "https://sca.coffee/value-assessment/")
+                AcademyCitation(
+                    "SCA-104: Affective Assessment Standard",
+                    "Specialty Coffee Association",
+                    2024,
+                    "https://sca.coffee/value-assessment/"
+                )
             )
         ),
 
@@ -1265,7 +1480,12 @@ Atribut ekstrinsik mewakili nilai informasi dan kontekstual:
     Concealed Origin -> Sensory Scores Committed -> Extrinsic Audit Reveal
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Extrinsic Attribute", "Atribut Ekstrinsik", "Product characteristics that are not part of the physical product itself (e.g. price, brand, origin).", "Karakteristik produk yang bukan bagian fisik dari zat produk itu sendiri (harga, asal, sertifikasi).")
+                GlossaryEntry(
+                    "Extrinsic Attribute",
+                    "Atribut Ekstrinsik",
+                    "Product characteristics that are not part of the physical product itself (e.g. price, brand, origin).",
+                    "Karakteristik produk yang bukan bagian fisik dari zat produk itu sendiri (harga, asal, sertifikasi)."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1273,7 +1493,12 @@ Atribut ekstrinsik mewakili nilai informasi dan kontekstual:
                     promptEn = "When should extrinsic information be revealed to cuppers in a standardized CVA session?",
                     promptId = "Kapan informasi ekstrinsik boleh diungkap kepada evaluator dalam sesi CVA terstandar?",
                     options = listOf(
-                        QuizOption("A", "Only after blind sensory scores have been submitted and locked", "Hanya setelah penilaian sensori buta selesai diisi dan dikunci", true),
+                        QuizOption(
+                            "A",
+                            "Only after blind sensory scores have been submitted and locked",
+                            "Hanya setelah penilaian sensori buta selesai diisi dan dikunci",
+                            true
+                        ),
                         QuizOption("B", "Before smelling the dry fragrance", "Sebelum mencium fragrance bubuk kering", false),
                         QuizOption("C", "While waiting for the 4-minute crust break", "Saat menunggu 4 menit break crust", false),
                         QuizOption("D", "Whenever the cupper requests it", "Kapan pun evaluator memintanya", false)
@@ -1285,7 +1510,12 @@ Atribut ekstrinsik mewakili nilai informasi dan kontekstual:
             accessibilityNotesEn = "Diagram shows mandatory gate sequence between blind scoring and extrinsic reveal.",
             accessibilityNotesId = "Diagram menunjukkan urutan wajib antara penilaian buta dan pembukaan data ekstrinsik.",
             citations = listOf(
-                AcademyCitation("SCA-105: Extrinsic Assessment Standard", "Specialty Coffee Association", 2024, "https://sca.coffee/value-assessment/")
+                AcademyCitation(
+                    "SCA-105: Extrinsic Assessment Standard",
+                    "Specialty Coffee Association",
+                    2024,
+                    "https://sca.coffee/value-assessment/"
+                )
             )
         ),
 
@@ -1367,7 +1597,12 @@ Berdasarkan standar fisik SCA:
     350g Sample -> Inspect Category 1 (Must be 0) -> Inspect Category 2 (<=5) -> Check Moisture (9-13%) -> Specialty Grade 1
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Full Black", "Hitam Penuh", "Bean turned completely black from microflora fermentation and enzymatic breakdown.", "Biji yang seluruhnya menghitam akibat fermentasi berlebih dan jamur.")
+                GlossaryEntry(
+                    "Full Black",
+                    "Hitam Penuh",
+                    "Bean turned completely black from microflora fermentation and enzymatic breakdown.",
+                    "Biji yang seluruhnya menghitam akibat fermentasi berlebih dan jamur."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1387,7 +1622,12 @@ Berdasarkan standar fisik SCA:
             accessibilityNotesEn = "Diagram illustrates grading decision tree from 350g sample inspection.",
             accessibilityNotesId = "Diagram menampilkan pohon keputusan penilaian dari sampel 350g.",
             citations = listOf(
-                AcademyCitation("SCA Green Arabica Coffee Defect Guide", "Specialty Coffee Association of America", 2004, "https://sca.coffee/education/how-to-prepare")
+                AcademyCitation(
+                    "SCA Green Arabica Coffee Defect Guide",
+                    "Specialty Coffee Association of America",
+                    2004,
+                    "https://sca.coffee/education/how-to-prepare"
+                )
             )
         ),
 
@@ -1458,7 +1698,12 @@ Uji Triangulasi adalah standar internasional (ISO 4120) untuk menguji kepekaan m
          A              B              A       ---> Odd Cup is #2
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Null Hypothesis", "Hipotesis Nol", "Statistical assumption that any observed difference is due to chance alone.", "Asumsi statistik bahwa hasil yang diperoleh hanya karena faktor kebetulan tebakan murni.")
+                GlossaryEntry(
+                    "Null Hypothesis",
+                    "Hipotesis Nol",
+                    "Statistical assumption that any observed difference is due to chance alone.",
+                    "Asumsi statistik bahwa hasil yang diperoleh hanya karena faktor kebetulan tebakan murni."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1478,7 +1723,12 @@ Uji Triangulasi adalah standar internasional (ISO 4120) untuk menguji kepekaan m
             accessibilityNotesEn = "Diagram displays 3 cups with opaque 3-digit randomized identification numbers.",
             accessibilityNotesId = "Diagram menampilkan 3 cangkir dengan kode acak 3 digit.",
             citations = listOf(
-                AcademyCitation("ISO 4120: Sensory Analysis — Methodology — Triangle Test", "International Organization for Standardization", 2021, "https://www.iso.org/standard/76256.html")
+                AcademyCitation(
+                    "ISO 4120: Sensory Analysis — Methodology — Triangle Test",
+                    "International Organization for Standardization",
+                    2021,
+                    "https://www.iso.org/standard/76256.html"
+                )
             )
         ),
 
@@ -1534,7 +1784,12 @@ Panel cupping profesional rutin melakukan kalibrasi:
     Individual Cuppers -> Independent Blind Scoring -> Panel Aggregation -> Consensus Discussion
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Inter-Rater Reliability", "Reliabilitas Antar-Penilai", "Degree of agreement among independent observers.", "Tingkat kesepakatan nilai di antara pengamat yang independen.")
+                GlossaryEntry(
+                    "Inter-Rater Reliability",
+                    "Reliabilitas Antar-Penilai",
+                    "Degree of agreement among independent observers.",
+                    "Tingkat kesepakatan nilai di antara pengamat yang independen."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1615,7 +1870,12 @@ Kesalahan sangrai tidak boleh disalahartikan sebagai kualitas bawaan biji hijau:
     Scorched Roast      : Burn spots on bean surface + acrid smoke taste
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Quaker", "Quaker", "Immature coffee bean that fails to roast to normal dark color due to lack of reducing sugars.", "Biji kopi muda yang warnanya tetap pucat saat disangrai karena kekurangan gula pereduksi.")
+                GlossaryEntry(
+                    "Quaker",
+                    "Quaker",
+                    "Immature coffee bean that fails to roast to normal dark color due to lack of reducing sugars.",
+                    "Biji kopi muda yang warnanya tetap pucat saat disangrai karena kekurangan gula pereduksi."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1623,7 +1883,12 @@ Kesalahan sangrai tidak boleh disalahartikan sebagai kualitas bawaan biji hijau:
                     promptEn = "What sensory character is typical of a 'baked' roast defect?",
                     promptId = "Karakter sensori apa yang khas pada cacat sangrai 'baked'?",
                     options = listOf(
-                        QuizOption("A", "Dull, flat, bread-like taste with loss of sweetness and acidity", "Rasa datar hambar mirip roti tawar dengan hilangnya rasa manis dan asam", true),
+                        QuizOption(
+                            "A",
+                            "Dull, flat, bread-like taste with loss of sweetness and acidity",
+                            "Rasa datar hambar mirip roti tawar dengan hilangnya rasa manis dan asam",
+                            true
+                        ),
                         QuizOption("B", "Vibrant tropical fruit acidity", "Keasaman buah tropis cerah", false),
                         QuizOption("C", "Intense floral aroma", "Aroma bunga yang tajam", false),
                         QuizOption("D", "Sweet creamy vanilla", "Manis krim vanila", false)
@@ -1691,7 +1956,12 @@ Nilai cupping menentukan harga kontrak dan kelangsungan hidup petani kopi:
     Session Draft -> Complete -> Lock Session (SHA-256 Hash) -> Amendments require Audited Justification
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Audit Trail", "Jejak Audit", "Chronological record providing documentary evidence of sequence of activities.", "Catatan kronologis yang memberikan bukti dokumenter dari setiap perubahan data.")
+                GlossaryEntry(
+                    "Audit Trail",
+                    "Jejak Audit",
+                    "Chronological record providing documentary evidence of sequence of activities.",
+                    "Catatan kronologis yang memberikan bukti dokumenter dari setiap perubahan data."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1699,7 +1969,12 @@ Nilai cupping menentukan harga kontrak dan kelangsungan hidup petani kopi:
                     promptEn = "Why must cupping score sheets have an immutable audit trail upon locking?",
                     promptId = "Mengapa lembar nilai cupping harus memiliki jejak audit yang tidak bisa diubah setelah dikunci?",
                     options = listOf(
-                        QuizOption("A", "To prevent retroactive manipulation of commercial grading data that affects contracts", "Untuk mencegah manipulasi nilai mutu komersial yang mempengaruhi kontrak dagang", true),
+                        QuizOption(
+                            "A",
+                            "To prevent retroactive manipulation of commercial grading data that affects contracts",
+                            "Untuk mencegah manipulasi nilai mutu komersial yang mempengaruhi kontrak dagang",
+                            true
+                        ),
                         QuizOption("B", "To make it impossible to correct obvious typos", "Agar salah ketik tidak bisa diperbaiki", false),
                         QuizOption("C", "Because paper forms cannot be erased", "Karena kertas tidak bisa dihapus", false),
                         QuizOption("D", "To hide errors from the client", "Untuk menyembunyikan kesalahan", false)
@@ -1711,7 +1986,12 @@ Nilai cupping menentukan harga kontrak dan kelangsungan hidup petani kopi:
             accessibilityNotesEn = "Diagram emphasizes cryptographic lock state and revision tracking.",
             accessibilityNotesId = "Diagram menegaskan status penguncian digital dan pelacakan revisi.",
             citations = listOf(
-                AcademyCitation("Ethical Cupping Practices and Supply Chain Transparency", "Specialty Coffee Association", 2022, "https://sca.coffee/research")
+                AcademyCitation(
+                    "Ethical Cupping Practices and Supply Chain Transparency",
+                    "Specialty Coffee Association",
+                    2022,
+                    "https://sca.coffee/research"
+                )
             )
         ),
 
@@ -1772,7 +2052,12 @@ SCA secara tegas menyatakan **TIDAK ADA rumus matematika** untuk mengubah nilai 
     [Never attempt automated numeric conversion between protocols]
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("Legacy Protocol", "Protokol Warisan", "Historical standard that has been officially superseded by updated methodologies.", "Standar historis yang secara resmi telah digantikan oleh metodologi terbaru.")
+                GlossaryEntry(
+                    "Legacy Protocol",
+                    "Protokol Warisan",
+                    "Historical standard that has been officially superseded by updated methodologies.",
+                    "Standar historis yang secara resmi telah digantikan oleh metodologi terbaru."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1780,7 +2065,12 @@ SCA secara tegas menyatakan **TIDAK ADA rumus matematika** untuk mengubah nilai 
                     promptEn = "Can an 86-point score from the legacy 2004 form be automatically converted to a CVA score?",
                     promptId = "Bisakah nilai 86 poin dari formulir lama 2004 dikonversi secara otomatis ke skor CVA?",
                     options = listOf(
-                        QuizOption("A", "No, because the protocols measure fundamentally different sensory constructs", "Tidak, karena kedua protokol mengukur konsep sensori yang berbeda secara fundamental", true),
+                        QuizOption(
+                            "A",
+                            "No, because the protocols measure fundamentally different sensory constructs",
+                            "Tidak, karena kedua protokol mengukur konsep sensori yang berbeda secara fundamental",
+                            true
+                        ),
                         QuizOption("B", "Yes, by adding exactly 5 points", "Ya, dengan menambah 5 poin", false),
                         QuizOption("C", "Yes, using a linear percentage multiplier", "Ya, menggunakan perkalian persentase", false),
                         QuizOption("D", "Yes, CVA is identical to the 2004 form", "Ya, CVA identik dengan form 2004", false)
@@ -1858,7 +2148,12 @@ Program Q Grader yang dikelola oleh **Coffee Quality Institute (CQI)** adalah st
     Mobile Practice (Coffee Creator) ---> Build Acuity ---> Official In-Person Exam (CQI Accredited Lab)
             """.trimIndent(),
             glossary = listOf(
-                GlossaryEntry("CQI", "CQI", "Coffee Quality Institute: non-profit organization managing the Q Coffee certification system.", "Organisasi nirlaba pengelola sistem sertifikasi kopi Q Grader dunia.")
+                GlossaryEntry(
+                    "CQI",
+                    "CQI",
+                    "Coffee Quality Institute: non-profit organization managing the Q Coffee certification system.",
+                    "Organisasi nirlaba pengelola sistem sertifikasi kopi Q Grader dunia."
+                )
             ),
             practiceQuestions = listOf(
                 AcademyQuizQuestion(
@@ -1866,8 +2161,18 @@ Program Q Grader yang dikelola oleh **Coffee Quality Institute (CQI)** adalah st
                     promptEn = "Does completing all exercises in this app make you a certified Q Grader?",
                     promptId = "Apakah menyelesaikan semua latihan di aplikasi ini otomatis membuat Anda menjadi Q Grader bersertifikat?",
                     options = listOf(
-                        QuizOption("A", "No, official certification requires in-person examination at a CQI-accredited laboratory", "Tidak, sertifikasi resmi mewajibkan ujian tatap muka di lab terakreditasi CQI", true),
-                        QuizOption("B", "Yes, this app issues valid CQI digital certificates", "Ya, aplikasi ini mengeluarkan sertifikat CQI resmi", false),
+                        QuizOption(
+                            "A",
+                            "No, official certification requires in-person examination at a CQI-accredited laboratory",
+                            "Tidak, sertifikasi resmi mewajibkan ujian tatap muka di lab terakreditasi CQI",
+                            true
+                        ),
+                        QuizOption(
+                            "B",
+                            "Yes, this app issues valid CQI digital certificates",
+                            "Ya, aplikasi ini mengeluarkan sertifikat CQI resmi",
+                            false
+                        ),
                         QuizOption("C", "Yes, upon scoring 100% on the quizzes", "Ya, jika nilai kuis 100%", false),
                         QuizOption("D", "Yes, recognized by international export agencies", "Ya, diakui oleh dinas ekspor", false)
                     ),

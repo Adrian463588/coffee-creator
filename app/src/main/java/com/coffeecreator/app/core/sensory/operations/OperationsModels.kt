@@ -39,7 +39,8 @@ data class AssessorProfile(
  * Anonymized blind sample mapping with 3-digit randomized code (S4-058).
  */
 data class BlindSampleMapping(
-    val blindCode: String, // 3-digit code e.g. "482"
+    // 3-digit code e.g. "482"
+    val blindCode: String,
     val actualCoffeeBeanId: String,
     val actualRoastBatchId: String? = null,
     val actualRecipeId: String? = null,
@@ -133,7 +134,7 @@ data class SensoryAccessibilityProfile(
     companion object {
         const val MEDICAL_DISCLAIMER =
             "DISCLAIMER: Sensory accessibility settings are for testing accommodations only. " +
-            "This application does not provide clinical diagnosis or medical evaluation for olfactory or gustatory impairments."
+                "This application does not provide clinical diagnosis or medical evaluation for olfactory or gustatory impairments."
     }
 }
 
@@ -162,7 +163,7 @@ data class CitationVerificationResult(
     companion object {
         const val NON_CERTIFICATION_DISCLAIMER =
             "DISCLAIMER: Coffee Creator is an independent educational and laboratory tool. " +
-            "It does NOT confer official SCA or CQI Q Grader / R Grader certification."
+                "It does NOT confer official SCA or CQI Q Grader / R Grader certification."
     }
 }
 

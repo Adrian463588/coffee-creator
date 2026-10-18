@@ -32,7 +32,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -88,15 +87,11 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -108,7 +103,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -127,7 +121,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -169,22 +162,17 @@ import com.coffeecreator.app.core.brew.ProximityState
 import com.coffeecreator.app.core.catalog.BagInventoryItem
 import com.coffeecreator.app.core.catalog.BagStatus
 import com.coffeecreator.app.core.catalog.CatalogPhotoTarget
-import com.coffeecreator.app.core.catalog.BrewerGeometry
 import com.coffeecreator.app.core.catalog.ConflictResolutionStrategy
 import com.coffeecreator.app.core.catalog.DetailedBeanRecord
 import com.coffeecreator.app.core.catalog.DripperIntelligenceCatalog
-import com.coffeecreator.app.core.catalog.DripperModelRecord
 import com.coffeecreator.app.core.catalog.EquipmentCategory
 import com.coffeecreator.app.core.catalog.EquipmentItem
 import com.coffeecreator.app.core.catalog.EvidenceStatus
-import com.coffeecreator.app.core.catalog.FlowClass
 import com.coffeecreator.app.core.catalog.GrinderIntelligenceCatalog
-import com.coffeecreator.app.core.catalog.GrinderModelRecord
 import com.coffeecreator.app.core.catalog.GrinderType
 import com.coffeecreator.app.core.catalog.ProcessMethod
 import com.coffeecreator.app.core.catalog.RoastLevel
 import com.coffeecreator.app.core.catalog.RoastRestCalculator
-import com.coffeecreator.app.core.catalog.UserGrinderProfile
 import com.coffeecreator.app.core.catalog.ValveState
 import com.coffeecreator.app.core.filesystem.BuiltInAssets
 import com.coffeecreator.app.core.filesystem.CatalogPhotoCapture
@@ -212,24 +200,16 @@ import com.coffeecreator.app.core.sensory.MaskingMode
 import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
 import com.coffeecreator.app.core.sensory.SessionStatus
-import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.components.*
+import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
 import com.coffeecreator.app.ui.viewmodel.RecipeDraft
 import com.coffeecreator.app.ui.viewmodel.addBagToBean
 import com.coffeecreator.app.ui.viewmodel.addDetailedBean
 import com.coffeecreator.app.ui.viewmodel.addDraftStep
-import com.coffeecreator.app.ui.viewmodel.addUserGrinderProfile
-import com.coffeecreator.app.ui.viewmodel.calculateDialInAdvice
-import com.coffeecreator.app.ui.viewmodel.deleteUserGrinderProfile
-import com.coffeecreator.app.ui.viewmodel.logBrewDiagnostic
-import com.coffeecreator.app.ui.viewmodel.selectDripperModel
-import com.coffeecreator.app.ui.viewmodel.selectGrinderModel
-import com.coffeecreator.app.ui.viewmodel.setDripperBottomVariant
-import com.coffeecreator.app.ui.viewmodel.setValveState
-import com.coffeecreator.app.ui.viewmodel.updateGrinderZeroOffset
 import com.coffeecreator.app.ui.viewmodel.addLine
+import com.coffeecreator.app.ui.viewmodel.addUserGrinderProfile
 import com.coffeecreator.app.ui.viewmodel.applyOvatAdjustmentToDraft
 import com.coffeecreator.app.ui.viewmodel.auditIngredientSafety
 import com.coffeecreator.app.ui.viewmodel.brewChampionRecipe
@@ -256,6 +236,7 @@ import com.coffeecreator.app.ui.viewmodel.deleteDetailedBean
 import com.coffeecreator.app.ui.viewmodel.deleteEquipmentItem
 import com.coffeecreator.app.ui.viewmodel.deleteGrinder
 import com.coffeecreator.app.ui.viewmodel.deleteJournalEntry
+import com.coffeecreator.app.ui.viewmodel.deleteUserGrinderProfile
 import com.coffeecreator.app.ui.viewmodel.disconnectScale
 import com.coffeecreator.app.ui.viewmodel.dismissAiRecipe
 import com.coffeecreator.app.ui.viewmodel.dismissEquipmentOcrDraft
@@ -311,9 +292,12 @@ import com.coffeecreator.app.ui.viewmodel.selectBaristaPersonaPreset
 import com.coffeecreator.app.ui.viewmodel.selectComparisonSlot
 import com.coffeecreator.app.ui.viewmodel.selectCuppingSample
 import com.coffeecreator.app.ui.viewmodel.selectCuppingSession
+import com.coffeecreator.app.ui.viewmodel.selectDripperModel
+import com.coffeecreator.app.ui.viewmodel.selectGrinderModel
 import com.coffeecreator.app.ui.viewmodel.sendChat
 import com.coffeecreator.app.ui.viewmodel.setLanguage
 import com.coffeecreator.app.ui.viewmodel.setUnitPreferences
+import com.coffeecreator.app.ui.viewmodel.setValveState
 import com.coffeecreator.app.ui.viewmodel.shareRecipe
 import com.coffeecreator.app.ui.viewmodel.skipBrewStep
 import com.coffeecreator.app.ui.viewmodel.startBrewSession
@@ -706,8 +690,6 @@ private fun LivePulseIndicator(isActive: Boolean, modifier: Modifier = Modifier,
     }
 }
 
-
-
 @Composable
 private fun GrindRangeTile(
     label: String,
@@ -725,9 +707,13 @@ private fun GrindRangeTile(
         },
         border = BorderStroke(
             1.dp,
-            if (isWarning) MaterialTheme.colorScheme.error.copy(alpha = 0.30f)
-            else if (isVerified) Color(0xFF2E7D32).copy(alpha = 0.35f)
-            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            if (isWarning) {
+                MaterialTheme.colorScheme.error.copy(alpha = 0.30f)
+            } else if (isVerified) {
+                Color(0xFF2E7D32).copy(alpha = 0.35f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            }
         ),
         modifier = modifier
     ) {
@@ -773,11 +759,7 @@ private fun GrindRangeTile(
 }
 
 @Composable
-private fun InteractiveValveSwitch(
-    isOpen: Boolean,
-    onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun InteractiveValveSwitch(isOpen: Boolean, onToggle: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
@@ -1225,9 +1207,15 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                     model.selectGrinderModel(selectedId, fields.getValue("method"))
                                                     val grinder = state.grinderCatalog.find { it.id == selectedId }
                                                     if (grinder != null) {
-                                                        val guidance = GrinderIntelligenceCatalog.getStartingRange(grinder.id, fields.getValue("method"))
+                                                        val guidance = GrinderIntelligenceCatalog.getStartingRange(
+                                                            grinder.id,
+                                                            fields.getValue("method")
+                                                        )
                                                         model.updateField("equipment", grinder.modelName)
-                                                        model.updateField("grind", "${guidance.recommendedRange} (${grinder.adjustmentMechanism})")
+                                                        model.updateField(
+                                                            "grind",
+                                                            "${guidance.recommendedRange} (${grinder.adjustmentMechanism})"
+                                                        )
                                                     }
                                                 }
                                             },
@@ -1243,7 +1231,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                     val dripper = state.dripperCatalog.find { it.id == selectedId }
                                                     if (dripper != null) {
                                                         val existing = fields.getValue("equipment")
-                                                        val newEquip = if (existing.isNotBlank() && !existing.contains(dripper.name)) "$existing + ${dripper.name}" else dripper.name
+                    val newEquip = if (existing.isNotBlank() && !existing.contains(dripper.name)) {
+                        "$existing + ${dripper.name}"
+                    } else {
+                        dripper.name
+                    }
                                                         model.updateField("equipment", newEquip)
                                                     }
                                                 }
@@ -1257,7 +1249,10 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                                             ) {
-                                                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Column(
+                                                    modifier = Modifier.padding(10.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
                                                     Row(
                                                         verticalAlignment = Alignment.CenterVertically,
                                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -2651,7 +2646,9 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+                            .animateContentSize(
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
+                            ),
                         shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
@@ -2672,14 +2669,32 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                             ) {
                                 MicroBadgePill(
                                     text = grinder.type.name,
-                                    containerColor = if (grinder.type == GrinderType.HAND) Color(0xFF8D6E63).copy(alpha = 0.20f) else Color(0xFF3F51B5).copy(alpha = 0.20f),
+                                    containerColor = if (grinder.type == GrinderType.HAND) {
+                                        Color(
+                                            0xFF8D6E63
+                                        ).copy(alpha = 0.20f)
+                                    } else {
+                                        Color(0xFF3F51B5).copy(alpha = 0.20f)
+                                    },
                                     contentColor = if (grinder.type == GrinderType.HAND) Color(0xFFD7CCC8) else Color(0xFFC5CAE9)
                                 )
                                 MicroBadgePill(text = grinder.adjustmentUnit.name.replace("_", " "))
                                 MicroBadgePill(
                                     text = grinder.evidenceStatus.name.replace("_", " "),
-                                    containerColor = if (grinder.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) Color(0xFF2E7D32).copy(alpha = 0.20f) else Color(0xFFEF6C00).copy(alpha = 0.20f),
-                                    contentColor = if (grinder.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) Color(0xFF81C784) else Color(0xFFFFB74D)
+                                    containerColor = if (grinder.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) {
+                                        Color(
+                                            0xFF2E7D32
+                                        ).copy(alpha = 0.20f)
+                                    } else {
+                                        Color(0xFFEF6C00).copy(alpha = 0.20f)
+                                    },
+                                    contentColor = if (grinder.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) {
+                                        Color(
+                                            0xFF81C784
+                                        )
+                                    } else {
+                                        Color(0xFFFFB74D)
+                                    }
                                 )
                                 if (!grinder.isEspressoCapable) {
                                     MicroBadgePill(
@@ -2799,7 +2814,11 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                         },
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Text(if (selectedZeroGrinderId == grinder.id) "Hide Zero Guide" else "Zero Calibration Guide", maxLines = 1, softWrap = false)
+                                        Text(
+                                            if (selectedZeroGrinderId == grinder.id) "Hide Zero Guide" else "Zero Calibration Guide",
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
                                     }
                                 }
                                 TactileFilledTonalButton(
@@ -2838,7 +2857,9 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+                            .animateContentSize(
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
+                            ),
                         shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
@@ -2862,8 +2883,20 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                 MicroBadgePill(text = dripper.flowMode.name.replace("_", " "))
                                 MicroBadgePill(
                                     text = dripper.evidenceStatus.name.replace("_", " "),
-                                    containerColor = if (dripper.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) Color(0xFF2E7D32).copy(alpha = 0.20f) else Color(0xFFEF6C00).copy(alpha = 0.20f),
-                                    contentColor = if (dripper.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) Color(0xFF81C784) else Color(0xFFFFB74D)
+                                    containerColor = if (dripper.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) {
+                                        Color(
+                                            0xFF2E7D32
+                                        ).copy(alpha = 0.20f)
+                                    } else {
+                                        Color(0xFFEF6C00).copy(alpha = 0.20f)
+                                    },
+                                    contentColor = if (dripper.evidenceStatus == EvidenceStatus.MANUFACTURER_VERIFIED) {
+                                        Color(
+                                            0xFF81C784
+                                        )
+                                    } else {
+                                        Color(0xFFFFB74D)
+                                    }
                                 )
                                 if (isValve) {
                                     MicroBadgePill(
@@ -2931,7 +2964,13 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                     ) {
                                         MicroBadgePill(
                                             text = c.statusText,
-                                            containerColor = if (c.statusText == "RECOMMENDED_FIT") Color(0xFF2E7D32).copy(alpha = 0.20f) else Color(0xFFEF6C00).copy(alpha = 0.20f),
+                                            containerColor = if (c.statusText == "RECOMMENDED_FIT") {
+                                                Color(
+                                                    0xFF2E7D32
+                                                ).copy(alpha = 0.20f)
+                                            } else {
+                                                Color(0xFFEF6C00).copy(alpha = 0.20f)
+                                            },
                                             contentColor = if (c.statusText == "RECOMMENDED_FIT") Color(0xFF81C784) else Color(0xFFFFB74D)
                                         )
                                         Text(
@@ -2949,11 +2988,18 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                                     },
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text(if (testFilterDripperId == dripper.id) "Hide Filter Check" else "Check Filter Fit", maxLines = 1, softWrap = false)
+                                    Text(
+                                        if (testFilterDripperId == dripper.id) "Hide Filter Check" else "Check Filter Fit",
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
                                 }
                                 TactileButton(
                                     onClick = {
-                                        model.selectDripperModel(dripper.id, if (isValve) dripperValveStateToggle else ValveState.NOT_APPLICABLE)
+                                        model.selectDripperModel(
+                                            dripper.id,
+                                            if (isValve) dripperValveStateToggle else ValveState.NOT_APPLICABLE
+                                        )
                                     },
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
@@ -2995,14 +3041,20 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
                 }
                 if (state.userGrinderProfiles.isEmpty()) {
                     item {
-                        InfoCard("No Owned Grinders Registered", "Select any grinder from the '44 Grinders Catalog' tab and tap '+ Add to Owned' to track custom zero point calibration and burr wear.")
+                        InfoCard(
+                            "No Owned Grinders Registered",
+                    "Select any grinder from the '44 Grinders Catalog' tab and tap '+ Add to Owned' " +
+                        "to track custom zero point calibration and burr wear."
+                        )
                     }
                 }
                 items(state.userGrinderProfiles, key = { "profile-${it.id}" }) { profile ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+                            .animateContentSize(
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
+                            ),
                         shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
@@ -4704,7 +4756,9 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f))
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                            )
                         ) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(
@@ -4712,16 +4766,30 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("🎯 OVAT Recommendation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        "🎯 OVAT Recommendation",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                     MicroBadgePill(
                                         text = "${rec.targetVariable.name} → ${rec.direction.name}",
                                         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
                                         contentColor = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                                Text("Adjustment: ${rec.suggestedMagnitude}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum"))
+                                Text(
+                                    "Adjustment: ${rec.suggestedMagnitude}",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontFeatureSettings = "tnum"
+                                    )
+                                )
                                 Text("Physical Mechanism: ${rec.physicalReasoning}", style = MaterialTheme.typography.bodySmall)
-                                Text("Expected Impact: ${rec.expectedImpact}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "Expected Impact: ${rec.expectedImpact}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -4752,7 +4820,9 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)),
+                            .animateContentSize(
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
+                            ),
                         shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)

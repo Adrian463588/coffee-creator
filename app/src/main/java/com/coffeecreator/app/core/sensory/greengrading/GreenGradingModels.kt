@@ -25,7 +25,8 @@ enum class DefectTier(val labelEn: String, val labelId: String) {
 
 enum class GreenDefectType(
     val tier: DefectTier,
-    val standardEquivalentRatio: Int, // e.g. 5 beans = 1 full defect
+    // e.g. 5 beans = 1 full defect
+    val standardEquivalentRatio: Int,
     val nameEn: String,
     val nameId: String,
     val isPhysicalHazard: Boolean = false
@@ -65,8 +66,11 @@ data class DefectTallyRecord(
         }
         val expectedEquivalence = rawCount.toDouble() / defectType.standardEquivalentRatio
         require(
-            if (standardSupported) abs(equivalentFullDefects - expectedEquivalence) <= 1e-9
-            else equivalentFullDefects == 0.0
+            if (standardSupported) {
+                abs(equivalentFullDefects - expectedEquivalence) <= 1e-9
+            } else {
+                equivalentFullDefects == 0.0
+            }
         ) {
             "Defect equivalence must match the raw count and selected standard support"
         }
@@ -97,7 +101,8 @@ data class SieveAnalysisResult(
     val fractions: List<SieveFraction>,
     val totalRecoveredMassGrams: Double,
     val massBalanceMismatchGrams: Double,
-    val isMassBalanceValid: Boolean, // Mismatch <= 1.5g per ISO 4150
+    // Mismatch <= 1.5g per ISO 4150
+    val isMassBalanceValid: Boolean,
     val cumulativeRetentionScreen16Plus: Double,
     val shakerDurationSeconds: Int = 180,
     val methodologyNote: String = "ISO 4150:2010 Green coffee — Size analysis — Manual and mechanical sieving"
@@ -256,7 +261,8 @@ enum class PhysicalGradeClassification(val label: String) {
 }
 
 data class PhysicalGradingEvaluation(
-    val standardApplied: String, // e.g. "SCA Washed Arabica 2004 Reference"
+    // e.g. "SCA Washed Arabica 2004 Reference"
+    val standardApplied: String,
     val sampleMassGrams: Double,
     val totalCategory1Equivalents: Double,
     val totalCategory2Equivalents: Double,
@@ -266,7 +272,8 @@ data class PhysicalGradingEvaluation(
     val moistureWithinStandardRange: Boolean,
     val odorClean: Boolean,
     val evaluationNotes: List<String>,
-    val disclaimer: String = "Educational comparison to a historical reference only. Source rights and current applicability are unverified; this is not an official grade or certification."
+    val disclaimer: String = "Educational comparison to a historical reference only. " +
+        "Source rights and current applicability are unverified; this is not an official grade or certification."
 )
 
 data class DualSpecialtyEvaluation(
@@ -293,7 +300,12 @@ data class BuyerAcceptanceLimits(
         require(contractName.isNotBlank() && sourceReference.isNotBlank()) { "Contract name and source are required" }
         require(maxCategory1FullDefects >= 0) { "Category 1 limit cannot be negative" }
         require(maxTotalEquivalentDefects.isFinite() && maxTotalEquivalentDefects >= 0.0) { "Defect limit must be finite and non-negative" }
-        require(minMoisturePercent.isFinite() && maxMoisturePercent.isFinite() && minMoisturePercent in 0.0..maxMoisturePercent && maxMoisturePercent <= 100.0) {
+        require(
+            minMoisturePercent.isFinite() &&
+                maxMoisturePercent.isFinite() &&
+                minMoisturePercent in 0.0..maxMoisturePercent &&
+                maxMoisturePercent <= 100.0
+        ) {
             "Moisture limits must be finite and within 0-100%"
         }
         require(maxWaterActivityAw.isFinite() && maxWaterActivityAw in 0.0..1.0) { "Water activity limit must be within 0-1" }
@@ -337,7 +349,11 @@ object StandardGreenGradingEngine {
                 isSpecialtyPhysicalEligible = false,
                 moistureWithinStandardRange = false,
                 odorClean = sample.odor?.isOrganolepticallyClean == true,
-                evaluationNotes = listOf("This reference applies only to explicitly selected Coffea Arabica and washed process. Current selection is ${sample.species?.label ?: "UNKNOWN"} / ${sample.processMethod?.label ?: "UNKNOWN"}.")
+                evaluationNotes = listOf(
+            "This reference applies only to explicitly selected Coffea Arabica and " +
+                "washed process. Current selection is ${sample.species?.label ?: "UNKNOWN"} / " +
+                "${sample.processMethod?.label ?: "UNKNOWN"}."
+                )
             )
         }
 
@@ -363,7 +379,8 @@ object StandardGreenGradingEngine {
                 totalFullDefectsEquivalents = totalDefects,
                 grade = PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE,
                 isSpecialtyPhysicalEligible = false,
-                moistureWithinStandardRange = sample.moisture.isMeasured && sample.moisture.moisturePercent?.let { it in 9.0..13.0 } == true,
+                    moistureWithinStandardRange = sample.moisture.isMeasured &&
+                        sample.moisture.moisturePercent?.let { it in 9.0..13.0 } == true,
                 odorClean = sample.odor?.isOrganolepticallyClean == true,
                 evaluationNotes = notes
             )
@@ -375,7 +392,10 @@ object StandardGreenGradingEngine {
         if (odor == null) {
             notes.add("Odor inspection is PENDING_REVIEW.")
         } else if (!odorClean) {
-            notes.add("ODOR_CONTAMINATION_DISQUALIFIED: Sample has unacceptable odor '${odor.label}'. Immediately disqualified from Specialty Grade.")
+            notes.add(
+            "ODOR_CONTAMINATION_DISQUALIFIED: Sample has unacceptable odor '${odor.label}'. " +
+                "Immediately disqualified from Specialty Grade."
+            )
         }
 
         // Moisture check: Standard Arabica Washed is 9.0% to 13.0% (ideally 10-12%)
@@ -487,17 +507,11 @@ object StandardGreenGradingEngine {
         )
     }
 
-    fun calculateSieveFractions(
-        sampleMassGrams: Double,
-        sieveMasses: Map<ScreenSieveNumber, Double>
-    ): List<SieveFraction> {
+    fun calculateSieveFractions(sampleMassGrams: Double, sieveMasses: Map<ScreenSieveNumber, Double>): List<SieveFraction> {
         return calculateSieveAnalysis(sampleMassGrams, sieveMasses).fractions
     }
 
-    fun calculateBulkDensity(
-        massGrams: Double,
-        volumeLiters: Double = 1.0
-    ): BulkDensityAssessment {
+    fun calculateBulkDensity(massGrams: Double, volumeLiters: Double = 1.0): BulkDensityAssessment {
         require(massGrams.isFinite() && massGrams > 0.0) { "Measured mass must be finite and greater than zero" }
         require(volumeLiters.isFinite() && volumeLiters > 0.0) { "Measured volume must be finite and greater than zero" }
         val densityGramsPerLiter = massGrams / volumeLiters
@@ -509,12 +523,10 @@ object StandardGreenGradingEngine {
         )
     }
 
-    fun evaluateDualSpecialty(
-        physicalEvaluation: PhysicalGradingEvaluation,
-        sensoryCvaScore: Double?
-    ): DualSpecialtyEvaluation {
+    fun evaluateDualSpecialty(physicalEvaluation: PhysicalGradingEvaluation, sensoryCvaScore: Double?): DualSpecialtyEvaluation {
         val validSensoryScore = sensoryCvaScore?.takeIf { it.isFinite() && it in 0.0..100.0 }
-        val guidance = "Physical reference grading and sensory observations remain separate. No approved protocol mapping is configured for a combined status."
+        val guidance = "Physical reference grading and sensory observations remain separate. " +
+            "No approved protocol mapping is configured for a combined status."
 
         return DualSpecialtyEvaluation(
             physicalGrade = physicalEvaluation.grade,
@@ -564,7 +576,10 @@ object StandardGreenGradingEngine {
 
         // Moisture check
         val moisture = sample.moisture.moisturePercent
-        val moisturePass = sample.moisture.isMeasured && moisture != null && moisture >= limits.minMoisturePercent && moisture <= limits.maxMoisturePercent
+            val moisturePass = sample.moisture.isMeasured &&
+                moisture != null &&
+                moisture >= limits.minMoisturePercent &&
+                moisture <= limits.maxMoisturePercent
         evaluations["Moisture Content"] = moisturePass
         if (!sample.moisture.isMeasured || moisture == null) {
             failures.add("Moisture is NOT_MEASURED; required by contract")
@@ -578,23 +593,34 @@ object StandardGreenGradingEngine {
             val awPass = aw <= limits.maxWaterActivityAw
             evaluations["Water Activity (aw)"] = awPass
             if (!awPass) failures.add("Water activity ($aw) exceeds max contract limit (${limits.maxWaterActivityAw})")
-        } else failures.add("Water activity is NOT_MEASURED; required by contract")
+        } else {
+            failures.add("Water activity is NOT_MEASURED; required by contract")
+        }
 
         // Sieve check if available
         if (sieveAnalysis != null) {
             if (!sieveAnalysis.isMassBalanceValid) failures.add("Sieve mass balance is invalid")
             val screenPass = sieveAnalysis.cumulativeRetentionScreen16Plus >= limits.minScreen16PlusPercent
             evaluations["Screen 16+ Retention"] = screenPass
-            if (!screenPass) failures.add("Screen 16+ retention (${sieveAnalysis.cumulativeRetentionScreen16Plus}%) below contract minimum (${limits.minScreen16PlusPercent}%)")
-        } else failures.add("Sieve analysis is NOT_MEASURED; required by contract")
+            if (!screenPass) {
+                failures.add(
+                "Screen 16+ retention (${sieveAnalysis.cumulativeRetentionScreen16Plus}%) below " +
+                    "contract minimum (${limits.minScreen16PlusPercent}%)"
+                )
+            }
+        } else {
+            failures.add("Sieve analysis is NOT_MEASURED; required by contract")
+        }
 
         // Density check if available
         val density = sample.bulkDensity.bulkDensityGramsPerLiter
         if (sample.bulkDensity.isMeasured && density != null) {
             val densityPass = density >= limits.minBulkDensityGramsPerLiter
             evaluations["Bulk Density"] = densityPass
-            if (!densityPass) failures.add("Bulk density (${density} g/L) below contract minimum (${limits.minBulkDensityGramsPerLiter} g/L)")
-        } else failures.add("Bulk density is NOT_MEASURED; required by contract")
+            if (!densityPass) failures.add("Bulk density ($density g/L) below contract minimum (${limits.minBulkDensityGramsPerLiter} g/L)")
+        } else {
+            failures.add("Bulk density is NOT_MEASURED; required by contract")
+        }
 
         val isAccepted = failures.isEmpty()
         if (isAccepted) {
@@ -896,19 +922,15 @@ object StandardGreenGradingEngine {
         appendCsvRow(parameter, providedValue ?: "NOT_PROVIDED", unit, providedStatus(providedValue))
     }
 
-    private fun defectInspectionStatus(sample: GreenLotSample): String =
-        if (sample.defectInspectionComplete) "COMPLETE" else "NOT_MEASURED"
+    private fun defectInspectionStatus(sample: GreenLotSample): String = if (sample.defectInspectionComplete) "COMPLETE" else "NOT_MEASURED"
 
-    private fun measurementStatus(isMeasured: Boolean): String =
-        if (isMeasured) "MEASURED" else "NOT_MEASURED"
+    private fun measurementStatus(isMeasured: Boolean): String = if (isMeasured) "MEASURED" else "NOT_MEASURED"
 
-    private fun providedStatus(value: String?): String =
-        if (value.isNullOrBlank()) "NOT_PROVIDED" else "RECORDED"
+    private fun providedStatus(value: String?): String = if (value.isNullOrBlank()) "NOT_PROVIDED" else "RECORDED"
 
     private fun selectionStatus(value: Any?): String = if (value == null) "NOT_SELECTED" else "SELECTED"
 
-    private fun stringArrayJson(values: List<String>): String =
-        values.joinToString(",", prefix = "[", postfix = "]") { jsonValue(it) }
+    private fun stringArrayJson(values: List<String>): String = values.joinToString(",", prefix = "[", postfix = "]") { jsonValue(it) }
 
     private fun jsonValue(value: String?): String = value?.let { "\"${escapeJson(it)}\"" } ?: "null"
 

@@ -9,12 +9,19 @@ import java.security.MessageDigest
 import java.util.UUID
 import kotlin.random.Random
 
+private const val MAX_SAMPLE_COUNT = 900
+private const val CSV_HEADER =
+    "SessionId,Protocol,Assessor,BlindCode,Revealed,ActualBean,FlavorIntensity,AcidityIntensity," +
+        "SweetnessIntensity,MouthfeelIntensity,CleanCups,AffectiveScore,PreparationJson,AssessmentJson," +
+        "AmendmentsJson,RowPayloadSha256\n"
+
 interface CvaSessionService {
     fun createSession(
         protocol: CuppingProtocol,
         assessorId: String,
         assessorPseudonym: String,
-        lots: List<Pair<String, String>>, // lotId to beanName
+        // lotId to beanName
+        lots: List<Pair<String, String>>,
         prep: CuppingSamplePreparation = CuppingSamplePreparation()
     ): CuppingSession
 
@@ -24,12 +31,7 @@ interface CvaSessionService {
     fun updatePhysical(session: CuppingSession, blindCode: String, physical: PhysicalAssessment): CuppingSession
     fun updateMultiCupGrid(session: CuppingSession, blindCode: String, grid: MultiCupEvaluationGrid): CuppingSession
     fun updateLegacySheet(session: CuppingSession, blindCode: String, legacy: Legacy2004CuppingSheet): CuppingSession
-    fun revealExtrinsic(
-        session: CuppingSession,
-        blindCode: String,
-        actorId: String,
-        reason: String
-    ): CuppingSession
+    fun revealExtrinsic(session: CuppingSession, blindCode: String, actorId: String, reason: String): CuppingSession
     fun lockSession(session: CuppingSession, assessorSignature: String): CuppingSession
     fun amendSession(session: CuppingSession, amendedBy: String, reason: String): CuppingSession
 }
@@ -43,7 +45,9 @@ class StandardCvaSessionService : CvaSessionService {
         lots: List<Pair<String, String>>,
         prep: CuppingSamplePreparation
     ): CuppingSession {
-        require(lots.size <= 900) { "At most 900 samples can use unique three-digit blind codes." }
+        require(lots.size <= MAX_SAMPLE_COUNT) {
+            "At most $MAX_SAMPLE_COUNT samples can use unique three-digit blind codes."
+        }
         val spec = when (protocol) {
             CuppingProtocol.SCA_CVA_CURRENT -> ProtocolSpec.SCA_CVA
             CuppingProtocol.SCA_2004_LEGACY -> ProtocolSpec.SCA_2004
@@ -89,95 +93,82 @@ class StandardCvaSessionService : CvaSessionService {
         return updated.copy(currentSha256Checksum = updated.computeSha256())
     }
 
-    override fun updateDescriptive(
-        session: CuppingSession,
-        blindCode: String,
-        descriptive: DescriptiveAssessment
-    ): CuppingSession {
+    override fun updateDescriptive(session: CuppingSession, blindCode: String, descriptive: DescriptiveAssessment): CuppingSession {
         require(session.state != SessionState.LOCKED) { "Cannot modify locked session without creating an amendment." }
         val updatedSamples = session.samples.map { s ->
             if (s.blindSample.blindCode == blindCode) {
                 s.copy(descriptive = descriptive, isCompleted = isSampleComplete(descriptive, s.affective))
-            } else s
+            } else {
+                s
+            }
         }
         val updated = session.copy(samples = updatedSamples, state = SessionState.IN_PROGRESS)
         return updated.copy(currentSha256Checksum = updated.computeSha256())
     }
 
-    override fun updateAffective(
-        session: CuppingSession,
-        blindCode: String,
-        affective: AffectiveAssessment
-    ): CuppingSession {
+    override fun updateAffective(session: CuppingSession, blindCode: String, affective: AffectiveAssessment): CuppingSession {
         require(session.state != SessionState.LOCKED) { "Cannot modify locked session without creating an amendment." }
         val updatedSamples = session.samples.map { s ->
             if (s.blindSample.blindCode == blindCode) {
                 s.copy(affective = affective, isCompleted = isSampleComplete(s.descriptive, affective))
-            } else s
+            } else {
+                s
+            }
         }
         val updated = session.copy(samples = updatedSamples, state = SessionState.IN_PROGRESS)
         return updated.copy(currentSha256Checksum = updated.computeSha256())
     }
 
-    override fun updatePhysical(
-        session: CuppingSession,
-        blindCode: String,
-        physical: PhysicalAssessment
-    ): CuppingSession {
+    override fun updatePhysical(session: CuppingSession, blindCode: String, physical: PhysicalAssessment): CuppingSession {
         require(session.state != SessionState.LOCKED) { "Cannot modify locked session without creating an amendment." }
         val updatedSamples = session.samples.map { s ->
             if (s.blindSample.blindCode == blindCode) {
                 s.copy(physical = physical)
-            } else s
+            } else {
+                s
+            }
         }
         val updated = session.copy(samples = updatedSamples)
         return updated.copy(currentSha256Checksum = updated.computeSha256())
     }
 
-    override fun updateMultiCupGrid(
-        session: CuppingSession,
-        blindCode: String,
-        grid: MultiCupEvaluationGrid
-    ): CuppingSession {
+    override fun updateMultiCupGrid(session: CuppingSession, blindCode: String, grid: MultiCupEvaluationGrid): CuppingSession {
         require(session.state != SessionState.LOCKED) { "Cannot modify locked session without creating an amendment." }
         val updatedSamples = session.samples.map { s ->
             if (s.blindSample.blindCode == blindCode) {
                 s.copy(multiCupGrid = grid)
-            } else s
+            } else {
+                s
+            }
         }
         val updated = session.copy(samples = updatedSamples)
         return updated.copy(currentSha256Checksum = updated.computeSha256())
     }
 
-    override fun updateLegacySheet(
-        session: CuppingSession,
-        blindCode: String,
-        legacy: Legacy2004CuppingSheet
-    ): CuppingSession {
+    override fun updateLegacySheet(session: CuppingSession, blindCode: String, legacy: Legacy2004CuppingSheet): CuppingSession {
         require(session.state != SessionState.LOCKED) { "Cannot modify locked session without creating an amendment." }
         val updatedSamples = session.samples.map { s ->
             if (s.blindSample.blindCode == blindCode) {
                 s.copy(legacySheet = legacy, isCompleted = true)
-            } else s
+            } else {
+                s
+            }
         }
         val updated = session.copy(samples = updatedSamples, state = SessionState.IN_PROGRESS)
         return updated.copy(currentSha256Checksum = updated.computeSha256())
     }
 
-    override fun revealExtrinsic(
-        session: CuppingSession,
-        blindCode: String,
-        actorId: String,
-        reason: String
-    ): CuppingSession {
+    override fun revealExtrinsic(session: CuppingSession, blindCode: String, actorId: String, reason: String): CuppingSession {
         require(session.state != SessionState.LOCKED) { "Cannot reveal a locked session without creating an amendment." }
         require(actorId.isNotBlank()) { "Assessor identity is required to reveal blinded sample identity." }
         require(actorId.trim() == session.assessorId) { "Only the assigned session assessor can reveal sample identity." }
         require(reason.isNotBlank()) { "An explicit reason is required to reveal blinded sample identity." }
         val target = session.samples.firstOrNull { it.blindSample.blindCode == blindCode }
             ?: throw IllegalArgumentException("Unknown blind sample code.")
-        require(target.blindSample.revealState == BlindRevealState.CONCEALED &&
-                target.blindSample.revealAuditHistory.orEmpty().isEmpty()) {
+        require(
+            target.blindSample.revealState == BlindRevealState.CONCEALED &&
+                target.blindSample.revealAuditHistory.orEmpty().isEmpty()
+        ) {
             "Sample identity has already been revealed; its audit record cannot be overwritten."
         }
         val now = System.currentTimeMillis()
@@ -195,7 +186,9 @@ class StandardCvaSessionService : CvaSessionService {
                     )
                 )
                 s.copy(blindSample = updatedBlind)
-            } else s
+            } else {
+                s
+            }
         }
         val updated = session.copy(samples = updatedSamples)
         return updated.copy(currentSha256Checksum = updated.computeSha256())
@@ -204,14 +197,18 @@ class StandardCvaSessionService : CvaSessionService {
     override fun lockSession(session: CuppingSession, assessorSignature: String): CuppingSession {
         require(session.state != SessionState.LOCKED) { "Session is already locked." }
         require(assessorSignature.isNotBlank()) { "Assessor signature is required to lock session." }
-        require(session.samplePreparation.preparationEvidence in setOf(
-            EvidenceStatus.MEASURED,
-            EvidenceStatus.OBSERVED,
-            EvidenceStatus.REPORTED
-        )) { "Preparation evidence must be recorded before locking." }
-        require(session.samples.isNotEmpty() && session.samples.all { sample ->
-            sample.isCompleted && isSampleComplete(sample.descriptive, sample.affective)
-        }) {
+        require(
+            session.samplePreparation.preparationEvidence in setOf(
+                EvidenceStatus.MEASURED,
+                EvidenceStatus.OBSERVED,
+                EvidenceStatus.REPORTED
+            )
+        ) { "Preparation evidence must be recorded before locking." }
+        require(
+            session.samples.isNotEmpty() && session.samples.all { sample ->
+                sample.isCompleted && isSampleComplete(sample.descriptive, sample.affective)
+            }
+        ) {
             "Every sample needs completed descriptive and affective observations before locking."
         }
         val now = System.currentTimeMillis()
@@ -256,10 +253,26 @@ class StandardCvaSessionService : CvaSessionService {
 enum class CuppingMilestone(val title: String, val secondsTarget: Int, val promptNote: String) {
     DRY_FRAGRANCE("Dry Grounds Fragrance", 0, "Evaluate dry aroma immediately after grinding (within 15 min of grinding)."),
     WATER_POUR("Hot Water Pour (93.5°C)", 30, "Pour 200mL boiling water (93.5°C) to rim; let steep undisturbed for 4:00 min."),
-    CRUST_BREAK("Crust Break & Aroma Burst", 240, "At 4:00 min, break crust with 3 gentle stirs using cupping spoon. Sniff deep aroma burst."),
-    HOT_CUPPING("Round 1: Hot Cupping (~70°C)", 480, "Skim foam. At 8:00-10:00 min (~70°C), slurp sample to evaluate flavor, aftertaste, and acidity."),
-    WARM_CUPPING("Round 2: Warm Cupping (~60°C)", 720, "At 10:00-15:00 min (~60°C), evaluate peak sweetness, acidity character, and balance."),
-    COOL_CUPPING("Round 3: Cool Cupping (~40°C)", 1080, "At 18:00-25:00 min (~40°C), evaluate body texture, clean cup, defects, and sweetness persistence.")
+    CRUST_BREAK(
+        "Crust Break & Aroma Burst",
+        240,
+        "At 4:00 min, break crust with 3 gentle stirs using cupping spoon. Sniff deep aroma burst."
+    ),
+    HOT_CUPPING(
+        "Round 1: Hot Cupping (~70°C)",
+        480,
+        "Skim foam. At 8:00-10:00 min (~70°C), slurp sample to evaluate flavor, aftertaste, and acidity."
+    ),
+    WARM_CUPPING(
+        "Round 2: Warm Cupping (~60°C)",
+        720,
+        "At 10:00-15:00 min (~60°C), evaluate peak sweetness, acidity character, and balance."
+    ),
+    COOL_CUPPING(
+        "Round 3: Cool Cupping (~40°C)",
+        1080,
+        "At 18:00-25:00 min (~40°C), evaluate body texture, clean cup, defects, and sweetness persistence."
+    )
 }
 
 object CuppingStepperEngine {
@@ -267,11 +280,11 @@ object CuppingStepperEngine {
 
     fun getActiveMilestone(elapsedSeconds: Int): CuppingMilestone {
         return when {
-            elapsedSeconds < 30 -> CuppingMilestone.DRY_FRAGRANCE
-            elapsedSeconds < 240 -> CuppingMilestone.WATER_POUR
-            elapsedSeconds < 480 -> CuppingMilestone.CRUST_BREAK
-            elapsedSeconds < 720 -> CuppingMilestone.HOT_CUPPING
-            elapsedSeconds < 1080 -> CuppingMilestone.WARM_CUPPING
+            elapsedSeconds < CuppingMilestone.WATER_POUR.secondsTarget -> CuppingMilestone.DRY_FRAGRANCE
+            elapsedSeconds < CuppingMilestone.CRUST_BREAK.secondsTarget -> CuppingMilestone.WATER_POUR
+            elapsedSeconds < CuppingMilestone.HOT_CUPPING.secondsTarget -> CuppingMilestone.CRUST_BREAK
+            elapsedSeconds < CuppingMilestone.WARM_CUPPING.secondsTarget -> CuppingMilestone.HOT_CUPPING
+            elapsedSeconds < CuppingMilestone.COOL_CUPPING.secondsTarget -> CuppingMilestone.WARM_CUPPING
             else -> CuppingMilestone.COOL_CUPPING
         }
     }
@@ -485,19 +498,21 @@ object CvaReportExportService {
         requireValidCurrentPreparation(session)
         val report = exportPayload(session)
         val checksum = sha256(canonicalJson(report))
-        return canonicalJson(report.toMutableMap().apply {
-            put("checksumSha256", checksum)
-            put(
-                "checksumScope",
-                "SHA-256 of canonical JSON payload excluding checksumSha256 and checksumScope; not a digital signature."
-            )
-        })
+        return canonicalJson(
+            report.toMutableMap().apply {
+                put("checksumSha256", checksum)
+                put(
+                    "checksumScope",
+                    "SHA-256 of canonical JSON payload excluding checksumSha256 and checksumScope; not a digital signature."
+                )
+            }
+        )
     }
 
     fun exportToNativeCsv(session: CuppingSession): String {
         requireValidCurrentPreparation(session)
         return buildString {
-            append("SessionId,Protocol,Assessor,BlindCode,Revealed,ActualBean,FlavorIntensity,AcidityIntensity,SweetnessIntensity,MouthfeelIntensity,CleanCups,AffectiveScore,PreparationJson,AssessmentJson,AmendmentsJson,RowPayloadSha256\n")
+            append(CSV_HEADER)
             val amendmentsJson = gson.toJson(exportableAmendments(session))
             session.samples.forEach { s ->
                 val revealed = s.blindSample.revealState == BlindRevealState.REVEALED_AUDITED
@@ -573,43 +588,42 @@ object CvaReportExportService {
         )
     }
 
-    private fun exportableAmendments(session: CuppingSession): List<Map<String, Any?>> =
-        session.amendmentHistory.map { amendment ->
-            val previousSnapshot = runCatching {
-                gson.fromJson(amendment.previousSnapshotJson, CuppingSession::class.java)
-            }.getOrNull() ?: throw IllegalArgumentException(
-                "Amendment ${amendment.amendmentId} has no valid previous snapshot; export was stopped."
-            )
-            require(
-                previousSnapshot.id == session.id && CvaValidationEngine.isValidLockedSession(previousSnapshot)
-            ) {
-                "Amendment ${amendment.amendmentId} previous snapshot is invalid or does not match this session."
-            }
-            val verifiedSourceChecksum = runCatching {
-                require(previousSnapshot.currentSha256Checksum == amendment.previousSnapshotSha256)
-                require(previousSnapshot.toSnapshotJson() == amendment.previousSnapshotJson)
-                previousSnapshot.computeSha256()
-            }.getOrElse {
-                throw IllegalArgumentException(
-                    "Amendment ${amendment.amendmentId} previous snapshot could not be verified.",
-                    it
-                )
-            }
-            require(verifiedSourceChecksum == amendment.previousSnapshotSha256) {
-                "Amendment ${amendment.amendmentId} previous snapshot checksum does not match."
-            }
-            val safePreviousSnapshot = previousSnapshot?.let(::exportableSnapshot)
-            linkedMapOf(
-                "amendmentId" to amendment.amendmentId,
-                "revision" to amendment.revision,
-                "amendedAtEpochMs" to amendment.amendedAtEpochMs,
-                "amendedBy" to amendment.amendedBy,
-                "reason" to amendment.reason,
-                "sourceSnapshotSha256" to amendment.previousSnapshotSha256,
-                "previousSnapshotSha256" to safePreviousSnapshot?.let { sha256(canonicalJson(it)) },
-                "previousSnapshot" to safePreviousSnapshot
+    private fun exportableAmendments(session: CuppingSession): List<Map<String, Any?>> = session.amendmentHistory.map { amendment ->
+        val previousSnapshot = runCatching {
+            gson.fromJson(amendment.previousSnapshotJson, CuppingSession::class.java)
+        }.getOrNull() ?: throw IllegalArgumentException(
+            "Amendment ${amendment.amendmentId} has no valid previous snapshot; export was stopped."
+        )
+        require(
+            previousSnapshot.id == session.id && CvaValidationEngine.isValidLockedSession(previousSnapshot)
+        ) {
+            "Amendment ${amendment.amendmentId} previous snapshot is invalid or does not match this session."
+        }
+        val verifiedSourceChecksum = runCatching {
+            require(previousSnapshot.currentSha256Checksum == amendment.previousSnapshotSha256)
+            require(previousSnapshot.toSnapshotJson() == amendment.previousSnapshotJson)
+            previousSnapshot.computeSha256()
+        }.getOrElse {
+            throw IllegalArgumentException(
+                "Amendment ${amendment.amendmentId} previous snapshot could not be verified.",
+                it
             )
         }
+        require(verifiedSourceChecksum == amendment.previousSnapshotSha256) {
+            "Amendment ${amendment.amendmentId} previous snapshot checksum does not match."
+        }
+        val safePreviousSnapshot = previousSnapshot?.let(::exportableSnapshot)
+        linkedMapOf(
+            "amendmentId" to amendment.amendmentId,
+            "revision" to amendment.revision,
+            "amendedAtEpochMs" to amendment.amendedAtEpochMs,
+            "amendedBy" to amendment.amendedBy,
+            "reason" to amendment.reason,
+            "sourceSnapshotSha256" to amendment.previousSnapshotSha256,
+            "previousSnapshotSha256" to safePreviousSnapshot?.let { sha256(canonicalJson(it)) },
+            "previousSnapshot" to safePreviousSnapshot
+        )
+    }
 
     private fun exportableSnapshot(session: CuppingSession): Map<String, Any?> = linkedMapOf(
         "sessionId" to session.id,
@@ -634,10 +648,9 @@ object CvaReportExportService {
         }
     )
 
-    private fun sha256(value: String): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest(value.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
+    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(value.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
 
     private fun canonicalJson(value: Any): String = canonicalize(gson.toJsonTree(value))
 

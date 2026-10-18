@@ -150,10 +150,7 @@ object TriangleStatisticsEngine {
     /**
      * ASTM E679 Ascending Concentration Best-Estimate Threshold (BET) calculus.
      */
-    fun calculateBestEstimateThreshold(
-        steps: List<AscendingConcentrationStep>,
-        taste: BasicTaste
-    ): TasteThresholdResult {
+    fun calculateBestEstimateThreshold(steps: List<AscendingConcentrationStep>, taste: BasicTaste): TasteThresholdResult {
         if (steps.isEmpty()) {
             return TasteThresholdResult(taste, null, null)
         }
