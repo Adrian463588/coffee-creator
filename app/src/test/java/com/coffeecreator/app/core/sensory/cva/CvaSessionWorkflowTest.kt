@@ -42,6 +42,7 @@ class CvaSessionWorkflowTest : CvaDomainEngineTestSupport() {
         assertEquals(setOf("Blackcurrant", "Cane Sugar"), delta.uniqueDescriptorsA.toSet())
         assertEquals(setOf("Jasmine", "Peach"), delta.uniqueDescriptorsB.toSet())
     }
+
     @Test
     fun testOneClickBrewJournalMapping() {
         val lots = listOf("lot_01" to "Rwanda Huye Mountain")
@@ -96,6 +97,7 @@ class CvaSessionWorkflowTest : CvaDomainEngineTestSupport() {
         assertEquals(198.0, journalEntry.waterGrams, 0.0)
         assertNull(journalEntry.beverageMassGrams)
     }
+
     @Test
     fun testProtocolBoundsValidation() {
         assertTrue(CvaValidationEngine.validateDescriptiveIntensity(4.5))
@@ -110,6 +112,7 @@ class CvaSessionWorkflowTest : CvaDomainEngineTestSupport() {
         assertFalse(CvaValidationEngine.validateWaterTemperature(105.0))
         assertFalse(CvaValidationEngine.validateWaterTemperature(75.0))
     }
+
     @Test
     fun testExtrinsicAuditReveal() {
         val lots = listOf("lot_01" to "Panama Geisha Natural")
@@ -134,6 +137,7 @@ class CvaSessionWorkflowTest : CvaDomainEngineTestSupport() {
         assertNotNull(sample.blindSample.revealTimestampEpochMs)
         assertEquals("usr_01", sample.blindSample.revealAuditHistory.single().actorId)
     }
+
     @Test
     fun testLockAndAmendmentWorkflow() {
         val lots = listOf("lot_01" to "Sumatra Mandheling")
@@ -164,6 +168,7 @@ class CvaSessionWorkflowTest : CvaDomainEngineTestSupport() {
         assertEquals("Correcting typo in grind size documentation", amended.amendmentHistory.first().reason)
         assertEquals(locked.toSnapshotJson(), amended.amendmentHistory.first().previousSnapshotJson)
     }
+
     @Test
     fun givenUnmeasuredPreparation_whenJournalBridgeRequested_thenEntryIsRejected() {
         val session = service.createSession(
@@ -180,6 +185,7 @@ class CvaSessionWorkflowTest : CvaDomainEngineTestSupport() {
             )
         }
     }
+
     @Test
     fun givenIncompleteSample_whenJournalBridgeRequested_thenEntryIsRejected() {
         val session = service.updatePreparation(
@@ -192,6 +198,7 @@ class CvaSessionWorkflowTest : CvaDomainEngineTestSupport() {
             incomplete.toBrewJournalEntry(session, measuredWaterMassGrams = 200.0, measuredDurationSeconds = 240)
         }
     }
+
     @Test
     fun givenBlindSample_whenJournalBridgeRequested_thenLotIdentityIsNotLinkedOrExposed() {
         val session = completedSession()
@@ -202,6 +209,7 @@ class CvaSessionWorkflowTest : CvaDomainEngineTestSupport() {
         assertEquals("Sample #${sample.blindSample.blindCode}", entry.beanName)
         assertFalse(entry.generalNotes.contains(sample.blindSample.actualLotId))
     }
+
     @Test
     fun givenInvalidRatingOverride_whenJournalBridgeRequested_thenEntryIsRejected() {
         val session = completedSession()

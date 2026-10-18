@@ -54,6 +54,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
         assertTrue(csv.contains(session.id))
         assertTrue(csv.contains("\"Evaluator \"\"A\"\"\nCafé\""))
     }
+
     @Test
     fun givenExportedReport_whenChecksumFieldsAreRemoved_thenCanonicalPayloadMatchesDigest() {
         val session = completedSession()
@@ -64,6 +65,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
 
         assertEquals(sha256(canonicalJson(report)), digest)
     }
+
     @Test
     fun givenConcealedSampleWithGreenLotReference_whenExported_thenIdentityAndGreenLotReferenceAreRedacted() {
         val session = completedSession()
@@ -78,6 +80,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
         assertFalse(json.contains(session.samples.single().blindSample.actualLotId))
         assertFalse(json.contains("private-green-lot-id"))
     }
+
     @Test
     fun givenLegacySampleWithoutRevealState_whenExported_thenIdentityDefaultsToConcealed() {
         val session = completedSession()
@@ -92,6 +95,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
         assertFalse(json.contains("private-lot"))
         assertFalse(json.contains("Private coffee"))
     }
+
     @Test
     fun givenAmendedSession_whenExported_thenPriorSnapshotIsIncludedAndBlindIdentityRemainsRedacted() {
         val locked = service.lockSession(completedSession(), "assessor confirmation")
@@ -116,6 +120,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
             amendment.get("sourceSnapshotSha256").asString
         )
     }
+
     @Test
     fun givenAmendmentWithoutValidSnapshot_whenExported_thenIncompleteAuditIsRejected() {
         val session = completedSession().copy(
@@ -136,6 +141,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
             CvaReportExportService.exportToNativeJson(session)
         }
     }
+
     @Test
     fun givenTamperedAmendmentSnapshot_whenExported_thenChecksumMismatchIsRejected() {
         val locked = service.lockSession(completedSession(), "assessor confirmation")
@@ -152,6 +158,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
             CvaReportExportService.exportToNativeJson(tamperedSession)
         }
     }
+
     @Test
     fun givenAlteredAmendmentSnapshotChecksum_whenExported_thenStoredProofIsRejected() {
         val locked = service.lockSession(completedSession(), "assessor confirmation")
@@ -168,6 +175,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
             CvaReportExportService.exportToNativeJson(tamperedSession)
         }
     }
+
     @Test
     fun givenRehashedInvalidAmendmentSnapshot_whenExported_thenDomainValidationRejectsIt() {
         val locked = service.lockSession(completedSession(), "assessor confirmation")
@@ -189,6 +197,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
             CvaReportExportService.exportToNativeJson(forgedExport)
         }
     }
+
     @Test
     fun givenInvalidPreparation_whenAmendmentExported_thenRejected() {
         val locked = service.lockSession(completedSession(), "assessor confirmation")
@@ -221,6 +230,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
             }
         }
     }
+
     @Test
     fun givenInvalidCurrentPreparation_whenExported_thenRejected() {
         val locked = service.lockSession(completedSession(), "assessor confirmation")
@@ -236,6 +246,7 @@ class CvaReportExportTest : CvaDomainEngineTestSupport() {
             CvaReportExportService.exportToNativeCsv(invalidCurrentRevision)
         }
     }
+
     @Test
     fun givenCsvExport_whenChecksumColumnIsRemoved_thenRowPayloadMatchesDigest() {
         val csv = CvaReportExportService.exportToNativeCsv(completedSession())

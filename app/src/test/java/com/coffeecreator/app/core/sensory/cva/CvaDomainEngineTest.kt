@@ -35,6 +35,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         }
         assertTrue(session.currentSha256Checksum.isNotBlank())
     }
+
     @Test
     fun givenBlindCodeCapacity_whenSessionCreated_thenAllCodesRemainUnique() {
         val lots = (0 until 900).map { index -> "lot_$index" to "Coffee $index" }
@@ -50,6 +51,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         assertEquals(900, blindCodes.size)
         assertEquals(900, blindCodes.toSet().size)
     }
+
     @Test
     fun givenMoreThanBlindCodeCapacity_whenSessionCreated_thenRejected() {
         val lots = (0..900).map { index -> "lot_$index" to "Coffee $index" }
@@ -63,6 +65,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
             )
         }
     }
+
     @Test
     fun givenPreparationOrNotesChange_whenHashComputed_thenDigestChanges() {
         val session = service.createSession(
@@ -84,6 +87,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         assertNotEquals(session.computeSha256(), changedNotes.computeSha256())
         assertEquals(session.computeSha256(), session.computeSha256())
     }
+
     @Test
     fun givenNewAssessments_whenConstructed_thenEvidenceStartsUnknown() {
         assertEquals(EvidenceStatus.NOT_MEASURED, CuppingSamplePreparation().preparationEvidence)
@@ -92,6 +96,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         assertEquals(BigDecimal.ZERO, AffectiveAssessment().totalScore)
         assertEquals("", CuppingEquipment().grinderModel)
     }
+
     @Test
     fun givenNoCompletedSamples_whenLockRequested_thenLockIsRejected() {
         val session = service.createSession(
@@ -105,6 +110,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
             service.lockSession(session, "assessor confirmation")
         }
     }
+
     @Test
     fun givenLockedSession_whenExtrinsicRevealRequested_thenRevealIsRejected() {
         val session = completedSession()
@@ -114,6 +120,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
             service.revealExtrinsic(locked, locked.samples.first().blindSample.blindCode, "assessor-1", "Review")
         }
     }
+
     @Test
     fun givenAlreadyRevealedSample_whenRevealRequestedAgain_thenOriginalRevealAuditCannotBeOverwritten() {
         val session = completedSession()
@@ -124,6 +131,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
             service.revealExtrinsic(revealed, code, "assessor-2", "Replace original reason")
         }
     }
+
     @Test
     fun givenDifferentAssessor_whenRevealRequested_thenRevealIsRejected() {
         val session = completedSession()
@@ -133,6 +141,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
             service.revealExtrinsic(session, code, "other-assessor", "Unauthorized request")
         }
     }
+
     @Test
     fun testControlledPreparationAndEquipmentMetadata() {
         val equip = CuppingEquipment(
@@ -163,6 +172,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         assertEquals("Mahlkönig EK43S", session.samplePreparation.equipment.grinderModel)
         assertEquals(5, session.samplePreparation.equipment.bowlCountPerSample)
     }
+
     @Test
     fun testPerspectiveSeparationDescriptiveVsAffective() {
         val lots = listOf("lot_01" to "Colombia Huila")
@@ -193,6 +203,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         assertEquals(BigDecimal.ZERO, sample.affective.acidityAffectiveScore)
         assertEquals(BigDecimal.ZERO, sample.affective.totalScore)
     }
+
     @Test
     fun test221DescriptorWheelIntegration() {
         val lots = listOf("lot_01" to "Panama Boquete")
@@ -215,6 +226,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         assertTrue(sample.descriptive.selectedDescriptorIds.contains("desc_lemon"))
         assertTrue(sample.descriptive.selectedDescriptorIds.contains("desc_jasmine"))
     }
+
     @Test
     fun testMultiCupEvaluationGridAndDefectPenalties() {
         val lots = listOf("lot_01" to "Ethiopia Sidama")
@@ -253,6 +265,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         assertEquals(4, sample.multiCupGrid.cleanCupCount)
         assertEquals(BigDecimal("2.00"), sample.multiCupGrid.totalDefectDeduction)
     }
+
     @Test
     fun testLegacy2004CuppingSheetCalculation() {
         val legacy = Legacy2004CuppingSheet(
@@ -275,6 +288,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         assertEquals(BigDecimal("10"), legacy.uniformityScore)
         assertEquals(BigDecimal("10"), legacy.cleanCupScore)
     }
+
     @Test
     fun givenNewLegacySheet_whenConstructed_thenScoresAndCupObservationsRemainUnknown() {
         val sheet = Legacy2004CuppingSheet()
@@ -285,6 +299,7 @@ class CvaDomainEngineTest : CvaDomainEngineTestSupport() {
         assertTrue(sheet.cleanCupCheckboxes.none { it })
         assertTrue(sheet.sweetnessCheckboxes.none { it })
     }
+
     @Test
     fun testCuppingStepperMilestones() {
         assertEquals(0, CuppingMilestone.DRY_FRAGRANCE.secondsTarget)
