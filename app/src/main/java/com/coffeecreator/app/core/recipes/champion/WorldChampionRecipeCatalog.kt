@@ -1,7 +1,7 @@
 package com.coffeecreator.app.core.recipes.champion
 
 /**
- * Authoritative Catalog of 76 World Champion, Signature, and Traditional Coffee Recipes.
+ * Catalog of 80 competition, signature, and traditional coffee recipes.
  * All extraction parameters are typed and verified for precision brewing.
  */
 object WorldChampionRecipeCatalog {
