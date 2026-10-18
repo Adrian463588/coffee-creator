@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.engine.DomainValidationTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.016">
+  <properties/>
+  <testcase name="given new recipe when creating then no measurement or equipment is invented" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.0"/>
+  <testcase name="given unknown or nonfood ingredient when validating recipe then use is rejected" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.001"/>
+  <testcase name="given invalid metadata when importing then malformed catalog data is rejected" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.001"/>
+  <testcase name="given Indonesian decimal when parsing then decimal comma is exact" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.005"/>
+  <testcase name="given observed descriptor intensity when recording then descriptor and assessor metadata persist" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.001"/>
+  <testcase name="given invalid quantities when validating recipe then invalid records cannot be saved" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.004"/>
+  <testcase name="given missing bean facts when creating then unknown metadata remains unknown" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.0"/>
+  <testcase name="given ambiguous or nonnumeric input when parsing then no silent coercion occurs" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.001"/>
+  <testcase name="given typed exact quantities when calculating then scale and method provenance are retained" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.0"/>
+  <testcase name="given supplier dosage limit when validating then total solution dosage is bounded" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.001"/>
+  <testcase name="given volume ingredient without density when validating then conversion is refused" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.0"/>
+  <testcase name="given ingredient allergen when saving then explicit acknowledgement is required" classname="com.coffeecreator.app.core.engine.DomainValidationTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

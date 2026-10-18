@@ -82,3 +82,7 @@ The latest existing public release remains [v1.14.5](https://github.com/Adrian46
 9. Correct the v1.14.5 release note's repository owner and asset size from verified GitHub metadata, recheck URL/digest, then qualify or correct v1.14.3/v1.14.4 historical behavior claims against tagged source and evidence (D-014/D-015).
 
 Fixes must be separate, narrow worktree slices with failing regression tests first, then focused and full regression runs. Preserve all legacy workflows and data through each slice.
+
+## Follow-up evidence — CVA persistence slice (2026-10-18)
+
+Branch `codex/s4-cva-persistence` adds and unit-tests Room-backed typed CVA aggregates, schema-v4 backup support, v2/v3 row preservation, nested assessment/preparation validation, strict amendment history rules, and current-revision JSON/CSV export checks. The complete JVM suite passed 383/383 tests and debug assembly passed; Android Lint has 120 findings, Detekt fails at 534 weighted findings, test-source KtLint passes, and main-source KtLint still has a 2,115-line repository report. No schema migration was needed. D-003 is partial: repository persistence exists, but the Compose form and journal workflow are not connected. Device, SAF-provider, historic-database migration, and process-death gates remain NOT_RUN. D-016 through D-020 are fixed on the branch but await integration. The overall verdict remains **NOT_READY**. See [CVA_DURABLE_STORAGE_SLICE_2026-10-18.md](CVA_DURABLE_STORAGE_SLICE_2026-10-18.md).

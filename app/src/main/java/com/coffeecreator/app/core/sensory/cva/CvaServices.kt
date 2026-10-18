@@ -245,36 +245,8 @@ class StandardCvaSessionService : CvaSessionService {
         return amended.copy(currentSha256Checksum = amended.computeSha256())
     }
 
-    private fun isSampleComplete(descriptive: DescriptiveAssessment, affective: AffectiveAssessment): Boolean {
-        val descriptiveIntensities = listOf(
-            descriptive.fragranceDryIntensity,
-            descriptive.fragranceAromaCrustIntensity,
-            descriptive.fragranceBreakIntensity,
-            descriptive.flavorIntensity,
-            descriptive.aftertasteIntensity,
-            descriptive.aftertastePersistence,
-            descriptive.acidityIntensity,
-            descriptive.sweetnessIntensity,
-            descriptive.bitternessIntensity,
-            descriptive.mouthfeelIntensity,
-            descriptive.finishDuration
-        )
-        val affectiveScores = listOf(
-            affective.fragranceAffectiveScore,
-            affective.flavorAffectiveScore,
-            affective.aftertasteAffectiveScore,
-            affective.acidityAffectiveScore,
-            affective.sweetnessAffectiveScore,
-            affective.mouthfeelAffectiveScore,
-            affective.overallAffectiveScore
-        )
-        return descriptive.evidenceStatus == EvidenceStatus.OBSERVED &&
-                affective.evidenceStatus == EvidenceStatus.OBSERVED &&
-                descriptiveIntensities.all(CvaValidationEngine::validateDescriptiveIntensity) &&
-                descriptiveIntensities.any { it > 0.0 } &&
-                affectiveScores.all(CvaValidationEngine::validateAffectiveScore) &&
-                affective.defectDeduction >= BigDecimal.ZERO && affective.totalScore > BigDecimal.ZERO
-    }
+    private fun isSampleComplete(descriptive: DescriptiveAssessment, affective: AffectiveAssessment): Boolean =
+        CvaValidationEngine.isCompleteAssessment(descriptive, affective)
 }
 
 // ============================================================================
@@ -339,6 +311,44 @@ object CvaComparisonEngine {
 // ============================================================================
 
 object CvaValidationEngine {
+    private const val MAX_CUP_COUNT = 5
+    private const val MIN_CUP_INDEX = 1
+    private const val MAX_CUP_INDEX = 5
+    private const val MAX_CUP_DEFECT_INTENSITY = 5.0
+    private val UNRECORDED_SCORE = BigDecimal.ZERO
+    private val LEGACY_MIN_SCORE = BigDecimal("6.00")
+    private val LEGACY_MAX_SCORE = BigDecimal("10.00")
+
+    fun isCompleteAssessment(descriptive: DescriptiveAssessment, affective: AffectiveAssessment): Boolean {
+        val descriptiveIntensities = listOf(
+            descriptive.fragranceDryIntensity,
+            descriptive.fragranceAromaCrustIntensity,
+            descriptive.fragranceBreakIntensity,
+            descriptive.flavorIntensity,
+            descriptive.aftertasteIntensity,
+            descriptive.aftertastePersistence,
+            descriptive.acidityIntensity,
+            descriptive.sweetnessIntensity,
+            descriptive.bitternessIntensity,
+            descriptive.mouthfeelIntensity,
+            descriptive.finishDuration
+        )
+        val affectiveScores = listOf(
+            affective.fragranceAffectiveScore,
+            affective.flavorAffectiveScore,
+            affective.aftertasteAffectiveScore,
+            affective.acidityAffectiveScore,
+            affective.sweetnessAffectiveScore,
+            affective.mouthfeelAffectiveScore,
+            affective.overallAffectiveScore
+        )
+        return descriptive.evidenceStatus == EvidenceStatus.OBSERVED &&
+            affective.evidenceStatus == EvidenceStatus.OBSERVED &&
+            descriptiveIntensities.all(::validateDescriptiveIntensity) &&
+            descriptiveIntensities.any { it > 0.0 } &&
+            affectiveScores.all(::validateAffectiveScore) &&
+            affective.defectDeduction >= BigDecimal.ZERO && affective.totalScore > BigDecimal.ZERO
+    }
 
     fun validateDescriptiveIntensity(value: Double): Boolean {
         return value in 0.0..5.0
@@ -346,6 +356,117 @@ object CvaValidationEngine {
 
     fun validateAffectiveScore(score: BigDecimal): Boolean {
         return score in BigDecimal("6.00")..BigDecimal("10.00")
+    }
+
+    fun isValidAssessment(sample: SampleAssessment): Boolean {
+        return isValidPhysicalAssessment(sample.physical) &&
+            isValidDescriptiveAssessment(sample.descriptive) &&
+            isValidAffectiveAssessment(sample.affective) &&
+            isValidMultiCupGrid(sample.multiCupGrid) &&
+            isValidLegacySheet(sample.legacySheet)
+    }
+
+    fun isValidPreparation(preparation: CuppingSamplePreparation): Boolean {
+        val requiredInputsArePositive = listOf(
+            preparation.waterTdsPpm,
+            preparation.brewRatio,
+            preparation.doseGrams,
+            preparation.waterVolumeMl
+        ).all { it.isFinite() && it > 0.0 }
+        val agtronIsValid = preparation.roastLevelAgtron?.let { it.isFinite() && it in 0.0..100.0 } ?: true
+        return requiredInputsArePositive &&
+            validateWaterTemperature(preparation.waterTempCelsius) &&
+            preparation.cupCount > 0 && preparation.roastRestDays >= 0 &&
+            (preparation.roastDateEpochMs == null || preparation.roastDateEpochMs >= 0L) &&
+            agtronIsValid &&
+            (preparation.grindMicrons == null || preparation.grindMicrons > 0) &&
+            (preparation.equipment.grindMicrons == null || preparation.equipment.grindMicrons > 0) &&
+            (preparation.equipment.bowlCountPerSample == null || preparation.equipment.bowlCountPerSample > 0)
+    }
+
+    fun isValidLockedSession(session: CuppingSession): Boolean {
+        return session.state == SessionState.LOCKED &&
+            session.lockedAtEpochMs != null && session.lockedAtEpochMs >= session.createdAtEpochMs &&
+            !session.assessorSignature.isNullOrBlank() && session.samples.isNotEmpty() &&
+            session.amendmentHistory.isEmpty() &&
+            session.samplePreparation.preparationEvidence in
+            setOf(EvidenceStatus.MEASURED, EvidenceStatus.OBSERVED, EvidenceStatus.REPORTED) &&
+            isValidPreparation(session.samplePreparation) &&
+            session.samples.all { sample ->
+                sample.isCompleted && isValidAssessment(sample) &&
+                    isCompleteAssessment(sample.descriptive, sample.affective)
+            }
+    }
+
+    private fun isValidPhysicalAssessment(physical: PhysicalAssessment): Boolean =
+        (physical.quakersCountIn100g == null || physical.quakersCountIn100g >= 0) &&
+            listOfNotNull(
+                physical.beanRoastColorAgtron,
+                physical.groundRoastColorAgtron,
+                physical.moisturePercent,
+                physical.moistureUncertaintyPercent
+            ).all { it.isFinite() && it in 0.0..100.0 }
+
+    private fun isValidDescriptiveAssessment(descriptive: DescriptiveAssessment): Boolean {
+        val intensities = listOf(
+            descriptive.fragranceDryIntensity,
+            descriptive.fragranceAromaCrustIntensity,
+            descriptive.fragranceBreakIntensity,
+            descriptive.flavorIntensity,
+            descriptive.aftertasteIntensity,
+            descriptive.aftertastePersistence,
+            descriptive.acidityIntensity,
+            descriptive.sweetnessIntensity,
+            descriptive.bitternessIntensity,
+            descriptive.mouthfeelIntensity,
+            descriptive.finishDuration
+        )
+        return intensities.all(::validateDescriptiveIntensity) &&
+            descriptive.cupDefects.all { defect ->
+                defect.cupIndex in MIN_CUP_INDEX..MAX_CUP_INDEX &&
+                    defect.intensity.isFinite() && defect.intensity in 1.0..MAX_CUP_DEFECT_INTENSITY
+            }
+    }
+
+    private fun isValidAffectiveAssessment(affective: AffectiveAssessment): Boolean {
+        val scores = listOf(
+            affective.fragranceAffectiveScore,
+            affective.flavorAffectiveScore,
+            affective.aftertasteAffectiveScore,
+            affective.acidityAffectiveScore,
+            affective.sweetnessAffectiveScore,
+            affective.mouthfeelAffectiveScore,
+            affective.overallAffectiveScore
+        )
+        return scores.all { it == UNRECORDED_SCORE || validateAffectiveScore(it) } &&
+            affective.defectDeduction >= UNRECORDED_SCORE && affective.totalScore >= UNRECORDED_SCORE
+    }
+
+    private fun isValidMultiCupGrid(grid: MultiCupEvaluationGrid): Boolean {
+        return grid.cups.size <= MAX_CUP_COUNT &&
+            grid.cups.map { it.cupIndex }.toSet().size == grid.cups.size &&
+            grid.cups.all { cup ->
+                cup.cupIndex in MIN_CUP_INDEX..MAX_CUP_INDEX &&
+                    cup.defectIntensity.isFinite() && cup.defectIntensity in 0.0..MAX_CUP_DEFECT_INTENSITY
+            }
+    }
+
+    private fun isValidLegacySheet(sheet: Legacy2004CuppingSheet): Boolean {
+        val scores = listOf(
+            sheet.fragranceScore,
+            sheet.flavorScore,
+            sheet.aftertasteScore,
+            sheet.acidityScore,
+            sheet.bodyScore,
+            sheet.balanceScore,
+            sheet.overallScore
+        )
+        val checkboxGroups = listOf(sheet.uniformityCheckboxes, sheet.cleanCupCheckboxes, sheet.sweetnessCheckboxes)
+        return scores.all { score ->
+            (score == UNRECORDED_SCORE || score in LEGACY_MIN_SCORE..LEGACY_MAX_SCORE) && score.scale() <= 2
+        } && checkboxGroups.all { it.size == MAX_CUP_COUNT } &&
+            sheet.taintCupCount in 0..MAX_CUP_COUNT && sheet.faultCupCount in 0..MAX_CUP_COUNT &&
+            sheet.taintCupCount + sheet.faultCupCount <= MAX_CUP_COUNT
     }
 
     fun validateWaterTemperature(celsius: Double): Boolean {
@@ -361,6 +482,7 @@ object CvaReportExportService {
     private val gson = GsonBuilder().serializeNulls().disableHtmlEscaping().create()
 
     fun exportToNativeJson(session: CuppingSession): String {
+        requireValidCurrentPreparation(session)
         val report = exportPayload(session)
         val checksum = sha256(canonicalJson(report))
         return canonicalJson(report.toMutableMap().apply {
@@ -373,6 +495,7 @@ object CvaReportExportService {
     }
 
     fun exportToNativeCsv(session: CuppingSession): String {
+        requireValidCurrentPreparation(session)
         return buildString {
             append("SessionId,Protocol,Assessor,BlindCode,Revealed,ActualBean,FlavorIntensity,AcidityIntensity,SweetnessIntensity,MouthfeelIntensity,CleanCups,AffectiveScore,PreparationJson,AssessmentJson,AmendmentsJson,RowPayloadSha256\n")
             val amendmentsJson = gson.toJson(exportableAmendments(session))
@@ -403,6 +526,12 @@ object CvaReportExportService {
                     .append(csvCell(sha256(payload)))
                     .append('\n')
             }
+        }
+    }
+
+    private fun requireValidCurrentPreparation(session: CuppingSession) {
+        require(CvaValidationEngine.isValidPreparation(session.samplePreparation)) {
+            "Current session preparation is invalid; export was stopped."
         }
     }
 
@@ -451,10 +580,16 @@ object CvaReportExportService {
             }.getOrNull() ?: throw IllegalArgumentException(
                 "Amendment ${amendment.amendmentId} has no valid previous snapshot; export was stopped."
             )
-            require(previousSnapshot.id == session.id && previousSnapshot.samples.orEmpty().isNotEmpty()) {
-                "Amendment ${amendment.amendmentId} previous snapshot does not match this session."
+            require(
+                previousSnapshot.id == session.id && CvaValidationEngine.isValidLockedSession(previousSnapshot)
+            ) {
+                "Amendment ${amendment.amendmentId} previous snapshot is invalid or does not match this session."
             }
-            val verifiedSourceChecksum = runCatching(previousSnapshot::computeSha256).getOrElse {
+            val verifiedSourceChecksum = runCatching {
+                require(previousSnapshot.currentSha256Checksum == amendment.previousSnapshotSha256)
+                require(previousSnapshot.toSnapshotJson() == amendment.previousSnapshotJson)
+                previousSnapshot.computeSha256()
+            }.getOrElse {
                 throw IllegalArgumentException(
                     "Amendment ${amendment.amendmentId} previous snapshot could not be verified.",
                     it

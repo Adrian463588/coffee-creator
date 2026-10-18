@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" tests="25" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.06">
+  <properties/>
+  <testcase name="givenFormulaPrefixedLotId_whenExportingCsv_thenCellIsMarkedAsText" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.025"/>
+  <testcase name="testSieveAnalysisDistributionAndMassBalanceRecovery" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.004"/>
+  <testcase name="testOutOfScopeGuardForCanephoraOrNatural" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <testcase name="testChainOfCustodyDataRetention" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.002"/>
+  <testcase name="givenInconsistentBuyerMoistureLimits_whenCreated_thenValidationRejectsThem" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.002"/>
+  <testcase name="givenValueWithNotMeasuredFlag_whenConstructingAssessment_thenRejectsContradictoryState" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.001"/>
+  <testcase name="testBulkDensityAndWaterActivityAssessment" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <testcase name="givenUnsupportedNonzeroDefectTally_whenCheckingBuyerContract_thenNeverAccepts" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.005"/>
+  <testcase name="testCategory1DefectDisqualifiesSpecialty" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.001"/>
+  <testcase name="givenQuotedLotMetadata_whenExportingJson_thenStringsAreEscapedBeforeHashing" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.002"/>
+  <testcase name="testBuyerSpecificationContractPassFail" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.002"/>
+  <testcase name="testSpecialtyGrade1CleanSample" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <testcase name="testFoulOdorImmediateDisqualification" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <testcase name="givenNonFiniteSensoryScore_whenCombiningAssessments_thenNoSpecialtyClaimIsProduced" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.002"/>
+  <testcase name="givenNoMoistureMeasurementAndNoDefects_whenGrading_thenClassificationRemainsUndetermined" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <testcase name="testUnmeasuredMoistureHandlingNotMeasured" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <testcase name="givenUnsupportedNonzeroDefectTally_whenGrading_thenClassificationStaysPending" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <testcase name="givenTraceableQcRecord_whenExported_thenIncludesEvidenceAndProvenance" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.005"/>
+  <testcase name="testGreenQcJsonCsvExportAndSha256AuditSeal" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.001"/>
+  <testcase name="givenObservedBeanColor_whenExportingGreenQc_thenIncludesTheHumanObservation" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.003"/>
+  <testcase name="givenMissingRequiredObservation_whenGrading_thenNoDefinitiveClassificationIsReturned" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <testcase name="givenBuyerLimitsWithoutCompletedDefectInspection_whenEvaluated_thenContractDoesNotPass" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.001"/>
+  <testcase name="givenDefectEquivalenceThatDisagreesWithRawCount_whenConstructingTally_thenRejectsIt" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.002"/>
+  <testcase name="testEpistemologicalDecouplingPhysicalVsSensory" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <testcase name="givenUnselectedSpeciesOrProcess_whenGrading_thenResultStaysOutOfScope" classname="com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

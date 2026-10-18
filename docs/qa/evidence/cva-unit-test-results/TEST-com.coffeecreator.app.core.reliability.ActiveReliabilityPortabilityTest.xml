@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.018">
+  <properties/>
+  <testcase name="testLanguageAndUnitConversionInvariants" classname="com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest" time="0.003"/>
+  <testcase name="testSafModelManifestValidationAndRediscovery" classname="com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest" time="0.002"/>
+  <testcase name="testGracefulDegradationStateMachine" classname="com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest" time="0.002"/>
+  <testcase name="testAdaptiveLayoutThresholdsAndAccessibility" classname="com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest" time="0.0"/>
+  <testcase name="testCircularDiagnosticLogBufferAndPiiScrubbing" classname="com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest" time="0.006"/>
+  <testcase name="testMonotonicTimerDriftBounds" classname="com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest" time="0.0"/>
+  <testcase name="testCryptographicFullBackupAndTamperDetection" classname="com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest" time="0.003"/>
+  <testcase name="testResumableDownloadRangeAndEtag" classname="com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

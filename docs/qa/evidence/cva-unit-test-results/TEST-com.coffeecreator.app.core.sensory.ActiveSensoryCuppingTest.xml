@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.082">
+  <properties/>
+  <testcase name="testCuppingSessionLifecycleAndBlindMasking" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.01"/>
+  <testcase name="testMultiEvaluatorConsensusAndAgreementMetrics" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.017"/>
+  <testcase name="testOfflineQcReportAndReceipt" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.024"/>
+  <testcase name="testCuppingSampleToJournalEntryMapping" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.002"/>
+  <testcase name="testSensoryScoreAggregationAndDefectDeduction" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.0"/>
+  <testcase name="testAllFourCuppingTemplatesScoringMath" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.0"/>
+  <testcase name="testExpandedWheelTaxonomyAndDefects" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.014"/>
+  <testcase name="testCalibrationReferencesAndSafetyBoundaries" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.0"/>
+  <testcase name="testMultiPhaseTemperatureObservations" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.001"/>
+  <testcase name="testFlavorTaxonomySearchAndAccessibility" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.001"/>
+  <testcase name="testEpistemologicalProvenanceBadges" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.002"/>
+  <testcase name="testCva16AttributeScoringProtocolMath" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.0"/>
+  <testcase name="testComplete221DescriptorTaxonomyCountsAndBilingualLookup" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.003"/>
+  <testcase name="testPhysicalGreenAndRoastedGrading" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.002"/>
+  <testcase name="testCuppingSheetTemplates" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.001"/>
+  <testcase name="testRoastRestDegassingKineticsAndObservations" classname="com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

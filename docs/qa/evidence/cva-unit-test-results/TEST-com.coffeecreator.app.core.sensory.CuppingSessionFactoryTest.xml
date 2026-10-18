@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.sensory.CuppingSessionFactoryTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.005">
+  <properties/>
+  <testcase name="validate_attribute_scores_requires_complete_in_range_values" classname="com.coffeecreator.app.core.sensory.CuppingSessionFactoryTest" time="0.002"/>
+  <testcase name="create_requires_named_evaluators_and_samples" classname="com.coffeecreator.app.core.sensory.CuppingSessionFactoryTest" time="0.001"/>
+  <testcase name="create_keeps_unprovided_bean_metadata_unknown" classname="com.coffeecreator.app.core.sensory.CuppingSessionFactoryTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

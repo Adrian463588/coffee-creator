@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.data.CvaRepoTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:04" hostname="REDRABBIT" time="10.858">
+  <properties/>
+  <testcase name="givenLockedCva_whenAmended_thenPriorSnapshotRemainsVerified" classname="com.coffeecreator.app.core.data.CvaRepoTest" time="9.349"/>
+  <testcase name="givenDraftHistory_whenWrite_rejected" classname="com.coffeecreator.app.core.data.CvaRepoTest" time="0.327"/>
+  <testcase name="givenInvalidCvaFields_whenSaved_thenRejectedAtomically" classname="com.coffeecreator.app.core.data.CvaRepoTest" time="0.286"/>
+  <testcase name="legacyRestorePreservesCva" classname="com.coffeecreator.app.core.data.CvaRepoTest" time="0.264"/>
+  <testcase name="v4RestoreReplacesCva" classname="com.coffeecreator.app.core.data.CvaRepoTest" time="0.224"/>
+  <testcase name="givenDraft_whenReopened_thenStable" classname="com.coffeecreator.app.core.data.CvaRepoTest" time="0.233"/>
+  <testcase name="failedWritesPreserveOriginal" classname="com.coffeecreator.app.core.data.CvaRepoTest" time="0.173"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

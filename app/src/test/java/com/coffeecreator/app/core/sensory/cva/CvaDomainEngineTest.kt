@@ -632,6 +632,94 @@ class CvaDomainEngineTest {
     }
 
     @Test
+    fun givenAlteredAmendmentSnapshotChecksum_whenExported_thenStoredProofIsRejected() {
+        val locked = service.lockSession(completedSession(), "assessor confirmation")
+        val amended = service.amendSession(locked, "assessor-1", "Corrected notes")
+        val amendment = amended.amendmentHistory.single()
+        val snapshotWithAlteredChecksum = JsonParser.parseString(amendment.previousSnapshotJson).asJsonObject.apply {
+            addProperty("currentSha256Checksum", "0".repeat(64))
+        }
+        val tamperedSession = amended.copy(
+            amendmentHistory = listOf(amendment.copy(previousSnapshotJson = snapshotWithAlteredChecksum.toString()))
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            CvaReportExportService.exportToNativeJson(tamperedSession)
+        }
+    }
+
+    @Test
+    fun givenRehashedInvalidAmendmentSnapshot_whenExported_thenDomainValidationRejectsIt() {
+        val locked = service.lockSession(completedSession(), "assessor confirmation")
+        val amended = service.amendSession(locked, "assessor-1", "Corrected notes")
+        val originalAmendment = amended.amendmentHistory.single()
+        val invalidSnapshot = locked.copy(
+            samples = locked.samples.map { sample ->
+                sample.copy(affective = sample.affective.copy(fragranceAffectiveScore = BigDecimal("11.00")))
+            }
+        ).let { it.copy(currentSha256Checksum = it.computeSha256()) }
+        val forgedAmendment = originalAmendment.copy(
+            previousSnapshotSha256 = invalidSnapshot.currentSha256Checksum,
+            previousSnapshotJson = invalidSnapshot.toSnapshotJson()
+        )
+        val forgedExport = amended.copy(amendmentHistory = listOf(forgedAmendment))
+            .let { it.copy(currentSha256Checksum = it.computeSha256()) }
+
+        assertThrows(IllegalArgumentException::class.java) {
+            CvaReportExportService.exportToNativeJson(forgedExport)
+        }
+    }
+
+    @Test
+    fun givenInvalidPreparation_whenAmendmentExported_thenRejected() {
+        val locked = service.lockSession(completedSession(), "assessor confirmation")
+        val amended = service.amendSession(locked, "assessor-1", "Corrected notes")
+        val originalAmendment = amended.amendmentHistory.single()
+        val invalidPreparations = listOf(
+            locked.samplePreparation.copy(waterTdsPpm = -1.0),
+            locked.samplePreparation.copy(doseGrams = -1.0),
+            locked.samplePreparation.copy(cupCount = 0),
+            locked.samplePreparation.copy(roastRestDays = -1),
+            locked.samplePreparation.copy(roastLevelAgtron = 101.0),
+            locked.samplePreparation.copy(roastDateEpochMs = -1L),
+            locked.samplePreparation.copy(grindMicrons = 0),
+            locked.samplePreparation.copy(equipment = locked.samplePreparation.equipment.copy(grindMicrons = -1)),
+            locked.samplePreparation.copy(equipment = locked.samplePreparation.equipment.copy(bowlCountPerSample = 0))
+        )
+
+        invalidPreparations.forEach { preparation ->
+            val invalidSnapshot = locked.copy(samplePreparation = preparation)
+                .let { it.copy(currentSha256Checksum = it.computeSha256()) }
+            val forgedAmendment = originalAmendment.copy(
+                previousSnapshotSha256 = invalidSnapshot.currentSha256Checksum,
+                previousSnapshotJson = invalidSnapshot.toSnapshotJson()
+            )
+            val forgedExport = amended.copy(amendmentHistory = listOf(forgedAmendment))
+                .let { it.copy(currentSha256Checksum = it.computeSha256()) }
+
+            assertThrows(IllegalArgumentException::class.java) {
+                CvaReportExportService.exportToNativeJson(forgedExport)
+            }
+        }
+    }
+
+    @Test
+    fun givenInvalidCurrentPreparation_whenExported_thenRejected() {
+        val locked = service.lockSession(completedSession(), "assessor confirmation")
+        val amended = service.amendSession(locked, "assessor-1", "Corrected notes")
+        val invalidCurrentRevision = amended.copy(
+            samplePreparation = amended.samplePreparation.copy(cupCount = 0)
+        ).let { it.copy(currentSha256Checksum = it.computeSha256()) }
+
+        assertThrows(IllegalArgumentException::class.java) {
+            CvaReportExportService.exportToNativeJson(invalidCurrentRevision)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            CvaReportExportService.exportToNativeCsv(invalidCurrentRevision)
+        }
+    }
+
+    @Test
     fun givenCsvExport_whenChecksumColumnIsRemoved_thenRowPayloadMatchesDigest() {
         val csv = CvaReportExportService.exportToNativeCsv(completedSession())
         val lines = csv.trimEnd().split('\n')

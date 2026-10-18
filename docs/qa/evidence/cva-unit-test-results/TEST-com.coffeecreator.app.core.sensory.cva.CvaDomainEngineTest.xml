@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" tests="35" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.177">
+  <properties/>
+  <testcase name="givenConcealedSampleWithGreenLotReference_whenExported_thenIdentityAndGreenLotReferenceAreRedacted" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.017"/>
+  <testcase name="testSessionCreationWithProtocolsAndBlindCodes" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.002"/>
+  <testcase name="givenIncompleteSample_whenJournalBridgeRequested_thenEntryIsRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.003"/>
+  <testcase name="givenCsvExport_whenChecksumColumnIsRemoved_thenRowPayloadMatchesDigest" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.006"/>
+  <testcase name="testProtocolBoundsValidation" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.0"/>
+  <testcase name="givenInvalidPreparation_whenAmendmentExported_thenRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.022"/>
+  <testcase name="givenLegacySampleWithoutRevealState_whenExported_thenIdentityDefaultsToConcealed" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.003"/>
+  <testcase name="testSideBySideComparisonEngine" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.002"/>
+  <testcase name="givenNoCompletedSamples_whenLockRequested_thenLockIsRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.012"/>
+  <testcase name="givenUnmeasuredPreparation_whenJournalBridgeRequested_thenEntryIsRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.003"/>
+  <testcase name="testOneClickBrewJournalMapping" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.005"/>
+  <testcase name="givenDifferentAssessor_whenRevealRequested_thenRevealIsRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.005"/>
+  <testcase name="testExportToNativeJsonAndCsv" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.005"/>
+  <testcase name="givenAmendmentWithoutValidSnapshot_whenExported_thenIncompleteAuditIsRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.004"/>
+  <testcase name="givenRehashedInvalidAmendmentSnapshot_whenExported_thenDomainValidationRejectsIt" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.011"/>
+  <testcase name="givenPreparationOrNotesChange_whenHashComputed_thenDigestChanges" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.003"/>
+  <testcase name="givenNewLegacySheet_whenConstructed_thenScoresAndCupObservationsRemainUnknown" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.0"/>
+  <testcase name="givenInvalidCurrentPreparation_whenExported_thenRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.006"/>
+  <testcase name="givenInvalidRatingOverride_whenJournalBridgeRequested_thenEntryIsRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.003"/>
+  <testcase name="givenAlreadyRevealedSample_whenRevealRequestedAgain_thenOriginalRevealAuditCannotBeOverwritten" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.004"/>
+  <testcase name="testLockAndAmendmentWorkflow" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.006"/>
+  <testcase name="test221DescriptorWheelIntegration" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.002"/>
+  <testcase name="givenLockedSession_whenExtrinsicRevealRequested_thenRevealIsRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.005"/>
+  <testcase name="testPerspectiveSeparationDescriptiveVsAffective" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.001"/>
+  <testcase name="givenTamperedAmendmentSnapshot_whenExported_thenChecksumMismatchIsRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.009"/>
+  <testcase name="givenNewAssessments_whenConstructed_thenEvidenceStartsUnknown" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.0"/>
+  <testcase name="givenAlteredAmendmentSnapshotChecksum_whenExported_thenStoredProofIsRejected" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.007"/>
+  <testcase name="givenBlindSample_whenJournalBridgeRequested_thenLotIdentityIsNotLinkedOrExposed" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.003"/>
+  <testcase name="testCuppingStepperMilestones" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.003"/>
+  <testcase name="testLegacy2004CuppingSheetCalculation" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.0"/>
+  <testcase name="testExtrinsicAuditReveal" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.002"/>
+  <testcase name="givenAmendedSession_whenExported_thenPriorSnapshotIsIncludedAndBlindIdentityRemainsRedacted" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.011"/>
+  <testcase name="givenExportedReport_whenChecksumFieldsAreRemoved_thenCanonicalPayloadMatchesDigest" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.006"/>
+  <testcase name="testControlledPreparationAndEquipmentMetadata" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.001"/>
+  <testcase name="testMultiCupEvaluationGridAndDefectPenalties" classname="com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

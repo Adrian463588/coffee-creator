@@ -8,6 +8,7 @@ import com.coffeecreator.app.core.model.ModelAsset
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.SensoryObservation
 import com.coffeecreator.app.core.model.StoredSensoryEstimate
+import com.coffeecreator.app.core.sensory.cva.CuppingSession
 import kotlinx.coroutines.flow.StateFlow
 
 /** Domain-facing contracts contain no Android, Room, HTTP or UI types. */
@@ -52,4 +53,12 @@ interface ModelAssetRepository {
     val safDirectoryUri: StateFlow<String?>
     suspend fun upsertModel(model: ModelAsset)
     suspend fun setSafDirectoryUri(uri: String?)
+}
+
+/** Durable Sprint 04 sessions stay separate from legacy S2 cupping records. */
+interface CvaSessionRepository {
+    val cvaSessions: StateFlow<List<CuppingSession>>
+    suspend fun createCvaSession(session: CuppingSession)
+    suspend fun updateCvaSession(session: CuppingSession)
+    suspend fun findCvaSession(id: String): CuppingSession?
 }

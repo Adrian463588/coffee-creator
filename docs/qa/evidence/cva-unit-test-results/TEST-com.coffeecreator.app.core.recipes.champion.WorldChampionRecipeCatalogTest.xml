@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalogTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.015">
+  <properties/>
+  <testcase name="Search and filtering works reliably across all dimensions" classname="com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalogTest" time="0.01"/>
+  <testcase name="Every champion recipe has valid physical extraction quantities and attributes" classname="com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalogTest" time="0.001"/>
+  <testcase name="Converting champion recipe to Recipe builds valid brew steps and target ratio" classname="com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalogTest" time="0.002"/>
+  <testcase name="Catalog contains exactly 80 recipes across competition, signature and traditional categories" classname="com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalogTest" time="0.0"/>
+  <testcase name="Converting champion recipe to BrewJournalEntry retains provenance, rating and exact units" classname="com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalogTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

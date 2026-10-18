@@ -1,0 +1,49 @@
+JUnit XML archived from :app:testDebugUnitTest; 2026-10-18.
+Suites: 42
+Total tests: 383
+Failures: 0
+Errors: 0
+Skipped: 0
+
+com.coffeecreator.app.core.ai.ActivePersonalizationRagTest: tests=17; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.ai.EmbeddingContractTest: tests=7; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.ai.HybridRagEngineTest: tests=6; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.ai.MeasurementAuthorityTest: tests=1; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.ai.NativeRuntimeContractTest: tests=11; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.ai.RagEvidencePolicyTest: tests=6; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.ai.ToolExecutorTest: tests=11; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest: tests=19; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest: tests=18; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest: tests=14; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.data.BackupCodecTest: tests=19; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.data.CvaRepoTest: tests=7; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.data.DataRepositoryTest: tests=6; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.data.RecoveryRegressionTest: tests=3; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.data.ReferenceCatalogTest: tests=4; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.data.ReferenceSeedMigrationTest: tests=2; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.data.SeedDataTest: tests=1; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.engine.CoffeeScienceEngineTest: tests=8; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest: tests=7; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.engine.DomainValidationTest: tests=12; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.engine.JsonInputPolicyTest: tests=2; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.engine.RecipeComposerScienceTest: tests=19; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.engine.SensoryRulesEngineTest: tests=3; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.filesystem.BagPhotoInputPolicyTest: tests=3; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.filesystem.BuiltInAssetsTest: tests=5; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.filesystem.SafTextDocumentWriterTest: tests=2; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.filesystem.TransferPolicyTest: tests=7; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.journal.ActiveBrewJournalAnalyticsTest: tests=19; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.journal.BrewCompletionRecordFactoryTest: tests=1; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalogTest: tests=5; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.reliability.ActiveReliabilityPortabilityTest: tests=8; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.sensory.academy.AcademyCurriculumTest: tests=4; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.sensory.ActiveSensoryCuppingTest: tests=16; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.sensory.CuppingSessionFactoryTest: tests=3; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.sensory.cva.CvaDomainEngineTest: tests=35; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.sensory.greengrading.GreenGradingEngineTest: tests=25; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.sensory.operations.PanelOperationsEngineTest: tests=13; failures=0; errors=0; skipped=0
+com.coffeecreator.app.core.sensory.training.TriangleStatisticsEngineTest: tests=9; failures=0; errors=0; skipped=0
+com.coffeecreator.app.ui.BrewLocalTest: tests=11; failures=0; errors=0; skipped=0
+com.coffeecreator.app.ui.CompactBrewLocalTest: tests=1; failures=0; errors=0; skipped=0
+com.coffeecreator.app.ui.SensoryTruthLocalTest: tests=10; failures=0; errors=0; skipped=0
+com.coffeecreator.app.ui.viewmodel.CoffeeDurableSnapshotExtractionYieldTest: tests=3; failures=0; errors=0; skipped=0

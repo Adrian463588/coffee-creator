@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.ai.RagEvidencePolicyTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:03" hostname="REDRABBIT" time="0.008">
+  <properties/>
+  <testcase name="givenGenericConceptQuestion_whenActualIsAnAdjective_thenDoNotInventPersonalContext" classname="com.coffeecreator.app.core.ai.RagEvidencePolicyTest" time="0.001"/>
+  <testcase name="givenCommonEarlyRowsAndRareLateRecords_whenRanked_thenRelevantRecordWins" classname="com.coffeecreator.app.core.ai.RagEvidencePolicyTest" time="0.002"/>
+  <testcase name="givenGenericConceptExcerpt_whenActualQuestionHasAnOwner_thenStillRequireRecordedEvidence" classname="com.coffeecreator.app.core.ai.RagEvidencePolicyTest" time="0.001"/>
+  <testcase name="givenObservations_whenAskedForGuaranteedFutureScore_thenNoDeterministicPrediction" classname="com.coffeecreator.app.core.ai.RagEvidencePolicyTest" time="0.001"/>
+  <testcase name="givenMethodGuidance_whenAskedForUnrecordedPersonalTds_thenAbstain" classname="com.coffeecreator.app.core.ai.RagEvidencePolicyTest" time="0.001"/>
+  <testcase name="givenActualIdentifiedObservation_whenAskedForMeasuredData_thenRecordCanSupportRetrieval" classname="com.coffeecreator.app.core.ai.RagEvidencePolicyTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

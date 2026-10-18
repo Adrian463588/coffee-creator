@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.ai.ToolExecutorTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:03" hostname="REDRABBIT" time="0.275">
+  <properties/>
+  <testcase name="givenSaveTool_whenValidated_thenReturnDraftAndRequireConfirmation" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.206"/>
+  <testcase name="givenUnknownIngredient_whenSafetyAudited_thenFailClosedWithoutLocalEvidence" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.005"/>
+  <testcase name="givenModelClaimsBalancedWithoutSensoryEvidence_whenFeedbackToolCalled_thenReject" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.005"/>
+  <testcase name="givenFeedbackRequestWithoutRecipeFacts_whenExecuted_thenRejectInsteadOfUsingSampleRecipe" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.006"/>
+  <testcase name="givenUnknownToolOrMalformedJson_whenRequested_thenRejectWithoutExecution" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.021"/>
+  <testcase name="givenNoInventoryRecords_whenRecommendationRequested_thenAbstain" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.005"/>
+  <testcase name="givenExplicitMeasurements_whenTypedToolCalled_thenGoldenMathPreserved" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.007"/>
+  <testcase name="givenUnrepresentableFeedbackInteger_whenCalled_thenRejectWithoutWraparound" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.005"/>
+  <testcase name="givenFeedbackDurationOutsideIntegerRange_whenCalled_thenRejectBeforeConversion" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.005"/>
+  <testcase name="givenRegistry_whenInspected_thenContainsAllPrdToolsAndNoNetworkTools" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.001"/>
+  <testcase name="givenMissingOrWrongOrExtraArguments_whenCalled_thenRejectInsteadOfInventingDefaults" classname="com.coffeecreator.app.core.ai.ToolExecutorTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

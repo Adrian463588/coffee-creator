@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:04" hostname="REDRABBIT" time="0.041">
+  <properties/>
+  <testcase name="testOreaV4InterchangeableBottoms" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.008"/>
+  <testcase name="testElectricGrindersExcludedFromHandFilter" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.005"/>
+  <testcase name="testB75GeometryFlatAndFast" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.0"/>
+  <testcase name="testToolExecutorGrinderAndDripperTools" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.01"/>
+  <testcase name="testFilterGrinderEspressoWarning" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.001"/>
+  <testcase name="testZeroDoseThrowsException" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.0"/>
+  <testcase name="testDialInAssistantReversibleRecommendations" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.0"/>
+  <testcase name="testDeterministicStagedPours" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.002"/>
+  <testcase name="testGrinderSettingsAreTypedAndIndependent" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.001"/>
+  <testcase name="testSwitchValveOpenClosedModes" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.0"/>
+  <testcase name="testUnknownDripperFlowDoesNotFabricateNumericRate" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.001"/>
+  <testcase name="testMugenCoarserThanV60" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.0"/>
+  <testcase name="testAll44GrindersAnd26DrippersImportedLosslessly" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.0"/>
+  <testcase name="testGrinderProfileTransferJson" classname="com.coffeecreator.app.core.catalog.GrinderAndDripperIntelligenceTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

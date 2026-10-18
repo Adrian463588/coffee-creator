@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.data.RecoveryRegressionTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:21" hostname="REDRABBIT" time="0.017">
+  <properties/>
+  <testcase name="givenManualRecipeWithoutBean_whenBackedUp_thenNullBeanRemainsAbsent" classname="com.coffeecreator.app.core.data.RecoveryRegressionTest" time="0.01"/>
+  <testcase name="givenEstimatedProfile_whenRestored_thenItCannotBecomeAnObservedMeasurement" classname="com.coffeecreator.app.core.data.RecoveryRegressionTest" time="0.005"/>
+  <testcase name="givenVersionTwoBackup_whenRestored_thenEstimatesMigrateToAnEmptySeparateCollection" classname="com.coffeecreator.app.core.data.RecoveryRegressionTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

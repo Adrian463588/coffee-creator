@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:03" hostname="REDRABBIT" time="0.09">
+  <properties/>
+  <testcase name="testRoastBatchDtrAndBlendFormulation" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.004"/>
+  <testcase name="testBagInventoryDeductionAndStatusTransitions" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.005"/>
+  <testcase name="testFrozenBagCannotBeBrewedUntilThawed" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.004"/>
+  <testcase name="testFoodGradeIngredientValidation" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.001"/>
+  <testcase name="givenEquipmentLabel_whenParsed_thenOnlyExplicitBrandAndModelAreDrafted" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.013"/>
+  <testcase name="testBeanRecordCreationAndMetadata" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.002"/>
+  <testcase name="givenUnlabeledMassAndDate_whenParsed_thenTheyRemainUnknown" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.005"/>
+  <testcase name="testGrinderRecordsAndBurrGeometry" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.003"/>
+  <testcase name="givenNonPositiveBagMass_whenParsed_thenNoDefaultInventoryMassIsInvented" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.004"/>
+  <testcase name="testOfflineBagOcrParser" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.005"/>
+  <testcase name="testWaterChemistryCalculationsAndPresets" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.002"/>
+  <testcase name="testCatalogImportExportWithConflictStrategies" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.029"/>
+  <testcase name="testSearchFilteringAndFavorites" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.0"/>
+  <testcase name="givenBagTextWithoutMassOrRoastDate_whenParsed_thenUnknownFieldsStayUnknown" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.001"/>
+  <testcase name="testRoastRestFreshnessHeuristic" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.008"/>
+  <testcase name="givenUnlabeledEquipmentText_whenParsed_thenBrandModelAndCategoryStayUnknown" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.001"/>
+  <testcase name="testEquipmentCatalogHierarchy" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.0"/>
+  <testcase name="testGreenCoffeePhysicalQcAndDefects" classname="com.coffeecreator.app.core.catalog.ActiveCatalogEquipmentTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

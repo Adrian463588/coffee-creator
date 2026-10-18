@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.001">
+  <properties/>
+  <testcase name="given halfway-adjacent dilution when rounding then only final rounding occurs" classname="com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest" time="0.0"/>
+  <testcase name="given microgram solute when calculating ppm then tiny concentration remains visible" classname="com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest" time="0.0"/>
+  <testcase name="given nonfinite measurements when calculating then failure replaces a crash" classname="com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest" time="0.0"/>
+  <testcase name="given nonfinite blend share when validating then failure replaces a crash" classname="com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest" time="0.0"/>
+  <testcase name="given impossible dissolved mass when calculating then physical bounds reject it" classname="com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest" time="0.0"/>
+  <testcase name="given halfway-adjacent yield when rounding then only final rounding occurs" classname="com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest" time="0.0"/>
+  <testcase name="given milligram conversion when density is known then mass is not rounded to zero" classname="com.coffeecreator.app.core.engine.CoffeeScienceRegressionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
