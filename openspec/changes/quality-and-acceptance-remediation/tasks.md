@@ -9,4 +9,4 @@
 - [ ] Recompute requirement-level evidence only for requirement-linked assertions actually executed; preserve device cases as `NOT_RUN`.
 - [x] Update QA execution evidence and release verdict without inflating coverage; unresolved product defects remain open.
 - [x] Complete independent read-only diff review; no likely feature/data-loss blocker found.
-- [ ] Commit and push the scoped result after evidence review.
+- [x] Commit and push the scoped result after evidence review.
