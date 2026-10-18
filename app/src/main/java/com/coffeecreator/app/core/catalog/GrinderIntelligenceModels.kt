@@ -2,6 +2,9 @@ package com.coffeecreator.app.core.catalog
 
 import java.util.Locale
 
+private const val SLOW_BREW_TIME_DELTA_THRESHOLD_SECONDS = 45
+private const val FAST_BREW_TIME_DELTA_THRESHOLD_SECONDS = -40
+
 // ============================================================================
 // Sprint 03: Grinder Intelligence Domain Models & Catalog (GR-01 .. GR-12)
 // Pure Kotlin/JVM, zero Android UI dependencies.
@@ -864,14 +867,16 @@ object GrinderIntelligenceCatalog {
         val timeDelta = brewTimeSec - targetTimeSec
 
         return when {
-            feedback.contains("bitter") || feedback.contains("astringent") || feedback.contains("harsh") || timeDelta > 45 -> {
+            feedback.contains("bitter") || feedback.contains("astringent") || feedback.contains("harsh") ||
+                timeDelta > SLOW_BREW_TIME_DELTA_THRESHOLD_SECONDS -> {
                 DialInAdvice(
                     proposedAction = "Adjust grind 1-2 clicks / 0.2 rotations coarser",
                     scientificReason = "Drawdown duration or bitter/astringent extraction indicates over-extraction or bed clogging. " +
                         "A coarser grind reduces surface area and speeds percolation."
                 )
             }
-            feedback.contains("sour") || feedback.contains("watery") || feedback.contains("weak") || timeDelta < -40 -> {
+            feedback.contains("sour") || feedback.contains("watery") || feedback.contains("weak") ||
+                timeDelta < FAST_BREW_TIME_DELTA_THRESHOLD_SECONDS -> {
                 DialInAdvice(
                     proposedAction = "Adjust grind 1-2 clicks / 0.2 rotations finer",
                     scientificReason = "Fast drawdown or sour, hollow flavor indicates under-extraction. " +

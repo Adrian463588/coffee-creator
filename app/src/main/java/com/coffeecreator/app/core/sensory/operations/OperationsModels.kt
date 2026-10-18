@@ -2,6 +2,8 @@ package com.coffeecreator.app.core.sensory.operations
 
 import java.util.UUID
 
+private const val HIGH_CALIBRATION_MAX_MEAN_CONSENSUS_DEVIATION = 0.35
+
 /**
  * Roles in a structured blind or calibrated coffee sensory panel (S4-058).
  */
@@ -96,7 +98,8 @@ data class PanelAgreementReport(
     val fleissKappa: Double? = null,
     val categoricalAgreementLabel: String? = null,
     val caveats: List<String> = emptyList(),
-    val isHighCalibration: Boolean = panelMeanConsensusDeviation <= 0.35
+    val isHighCalibration: Boolean =
+        panelMeanConsensusDeviation <= HIGH_CALIBRATION_MAX_MEAN_CONSENSUS_DEVIATION
 )
 
 /**

@@ -3,6 +3,10 @@ package com.coffeecreator.app.core.sensory.greengrading
 import java.security.MessageDigest
 import kotlin.math.abs
 
+private const val DEFECT_EQUIVALENCE_FLOAT_TOLERANCE = 1e-9
+private const val HISTORICAL_GRADE_3_MAX_DEFECT_EQUIVALENTS = 23.0
+private const val HISTORICAL_GRADE_4_MAX_DEFECT_EQUIVALENTS = 86.0
+
 enum class GreenCoffeeSpecies(val label: String) {
     COFFEA_ARABICA("Coffea Arabica"),
     COFFEA_CANEPHORA("Coffea Canephora (Robusta)"),
@@ -67,7 +71,7 @@ data class DefectTallyRecord(
         val expectedEquivalence = rawCount.toDouble() / defectType.standardEquivalentRatio
         require(
             if (standardSupported) {
-                abs(equivalentFullDefects - expectedEquivalence) <= 1e-9
+                abs(equivalentFullDefects - expectedEquivalence) <= DEFECT_EQUIVALENCE_FLOAT_TOLERANCE
             } else {
                 equivalentFullDefects == 0.0
             }
@@ -446,11 +450,11 @@ object StandardGreenGradingEngine {
             } else {
                 notes.add("Historical reference band: Grade 2 (<= 8 full defect equivalents); not an official grade.")
             }
-        } else if (totalDefects <= 23.0 && odorClean) {
+        } else if (totalDefects <= HISTORICAL_GRADE_3_MAX_DEFECT_EQUIVALENTS && odorClean) {
             grade = PhysicalGradeClassification.EXCHANGE_GRADE_3
             isSpecialtyEligible = false
             notes.add("Historical reference band: Grade 3 (9-23 full defect equivalents); not an official grade.")
-        } else if (totalDefects <= 86.0 && odorClean) {
+        } else if (totalDefects <= HISTORICAL_GRADE_4_MAX_DEFECT_EQUIVALENTS && odorClean) {
             grade = PhysicalGradeClassification.BELOW_STANDARD_GRADE_4
             isSpecialtyEligible = false
             notes.add("Historical reference band: Grade 4 (24-86 full defect equivalents); not an official grade.")
