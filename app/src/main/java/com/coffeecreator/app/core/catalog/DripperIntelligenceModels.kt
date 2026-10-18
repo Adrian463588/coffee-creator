@@ -528,8 +528,8 @@ object DripperIntelligenceCatalog {
             FilterCompatibilityResult(
                 isCompatible = false,
                 statusText = "GEOMETRY MISMATCH",
-                    recommendationNote = "Filter shape (${filter.shape}) does not match dripper bed (${dripper.geometry}). " +
-                        "May require adaptor or fold."
+                recommendationNote = "Filter shape (${filter.shape}) does not match dripper bed (${dripper.geometry}). " +
+                    "May require adaptor or fold."
             )
         }
     }

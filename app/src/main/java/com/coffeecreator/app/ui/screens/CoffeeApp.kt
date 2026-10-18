@@ -1239,11 +1239,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                                     val dripper = state.dripperCatalog.find { it.id == selectedId }
                                                     if (dripper != null) {
                                                         val existing = fields.getValue("equipment")
-                    val newEquip = if (existing.isNotBlank() && !existing.contains(dripper.name)) {
-                        "$existing + ${dripper.name}"
-                    } else {
-                        dripper.name
-                    }
+                                                        val newEquip = if (existing.isNotBlank() && !existing.contains(dripper.name)) {
+                                                            "$existing + ${dripper.name}"
+                                                        } else {
+                                                            dripper.name
+                                                        }
                                                         model.updateField("equipment", newEquip)
                                                     }
                                                 }

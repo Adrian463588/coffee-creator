@@ -350,9 +350,9 @@ object StandardGreenGradingEngine {
                 moistureWithinStandardRange = false,
                 odorClean = sample.odor?.isOrganolepticallyClean == true,
                 evaluationNotes = listOf(
-            "This reference applies only to explicitly selected Coffea Arabica and " +
-                "washed process. Current selection is ${sample.species?.label ?: "UNKNOWN"} / " +
-                "${sample.processMethod?.label ?: "UNKNOWN"}."
+                    "This reference applies only to explicitly selected Coffea Arabica and " +
+                        "washed process. Current selection is ${sample.species?.label ?: "UNKNOWN"} / " +
+                        "${sample.processMethod?.label ?: "UNKNOWN"}."
                 )
             )
         }
@@ -379,8 +379,8 @@ object StandardGreenGradingEngine {
                 totalFullDefectsEquivalents = totalDefects,
                 grade = PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE,
                 isSpecialtyPhysicalEligible = false,
-                    moistureWithinStandardRange = sample.moisture.isMeasured &&
-                        sample.moisture.moisturePercent?.let { it in 9.0..13.0 } == true,
+                moistureWithinStandardRange = sample.moisture.isMeasured &&
+                    sample.moisture.moisturePercent?.let { it in 9.0..13.0 } == true,
                 odorClean = sample.odor?.isOrganolepticallyClean == true,
                 evaluationNotes = notes
             )
@@ -393,8 +393,8 @@ object StandardGreenGradingEngine {
             notes.add("Odor inspection is PENDING_REVIEW.")
         } else if (!odorClean) {
             notes.add(
-            "ODOR_CONTAMINATION_DISQUALIFIED: Sample has unacceptable odor '${odor.label}'. " +
-                "Immediately disqualified from Specialty Grade."
+                "ODOR_CONTAMINATION_DISQUALIFIED: Sample has unacceptable odor '${odor.label}'. " +
+                    "Immediately disqualified from Specialty Grade."
             )
         }
 

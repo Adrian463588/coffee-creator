@@ -865,15 +865,15 @@ object GrinderIntelligenceCatalog {
             feedback.contains("bitter") || feedback.contains("astringent") || feedback.contains("harsh") || timeDelta > 45 -> {
                 DialInAdvice(
                     proposedAction = "Adjust grind 1-2 clicks / 0.2 rotations coarser",
-                scientificReason = "Drawdown duration or bitter/astringent extraction indicates over-extraction or bed clogging. " +
-                    "A coarser grind reduces surface area and speeds percolation."
+                    scientificReason = "Drawdown duration or bitter/astringent extraction indicates over-extraction or bed clogging. " +
+                        "A coarser grind reduces surface area and speeds percolation."
                 )
             }
             feedback.contains("sour") || feedback.contains("watery") || feedback.contains("weak") || timeDelta < -40 -> {
                 DialInAdvice(
                     proposedAction = "Adjust grind 1-2 clicks / 0.2 rotations finer",
-                scientificReason = "Fast drawdown or sour, hollow flavor indicates under-extraction. " +
-                    "A finer grind increases contact surface area and retards fluid flow."
+                    scientificReason = "Fast drawdown or sour, hollow flavor indicates under-extraction. " +
+                        "A finer grind increases contact surface area and retards fluid flow."
                 )
             }
             else -> {
