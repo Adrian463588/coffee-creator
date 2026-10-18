@@ -184,25 +184,6 @@ class GreenGradingEngineTest {
     }
 
     @Test
-    fun givenObservedBeanColor_whenExportingGreenQc_thenIncludesTheHumanObservation() {
-        val sample = GreenLotSample(
-            lotId = "lot_color_01",
-            lotName = "Color observation",
-            species = GreenCoffeeSpecies.COFFEA_ARABICA,
-            processMethod = GreenProcessingMethod.WASHED,
-            color = GreenBeanColor.GREEN
-        )
-        val evaluation = StandardGreenGradingEngine.evaluateWashedArabicaGrade(sample)
-        val audit = GreenQCAuditRecord(evaluationTimestampEpochMs = 1L)
-
-        val json = StandardGreenGradingEngine.generateGreenQcJson(sample, evaluation, audit)
-        val csv = StandardGreenGradingEngine.generateGreenQcCsv(sample, evaluation, audit)
-
-        assertTrue(json.contains("\"bean_color\": \"GREEN\""))
-        assertTrue(csv.contains("Bean Color,\"Green (Standard washed)\",N/A,OBSERVED"))
-    }
-
-    @Test
     fun givenUnsupportedNonzeroDefectTally_whenGrading_thenClassificationStaysPending() {
         val sample = GreenLotSample(
             lotId = "lot_unsupported_defect_basis",
@@ -231,71 +212,6 @@ class GreenGradingEngineTest {
             listOf("OUT_OF_SCOPE: unsupported defect evidence cannot be converted to this historical reference's equivalence rules."),
             result.evaluationNotes
         )
-    }
-
-    @Test
-    fun givenUnsupportedNonzeroDefectTally_whenCheckingBuyerContract_thenNeverAccepts() {
-        val sample = GreenLotSample(
-            lotId = "lot_contract_unsupported_defect_basis",
-            lotName = "",
-            species = GreenCoffeeSpecies.COFFEA_ARABICA,
-            processMethod = GreenProcessingMethod.WASHED,
-            sampleMassGrams = 350.0,
-            defectInspectionComplete = true,
-            defects = listOf(
-                DefectTallyRecord(
-                    defectType = GreenDefectType.FULL_BLACK,
-                    rawCount = 1,
-                    standardSupported = false
-                )
-            ),
-            moisture = MoistureAssessment(11.0),
-            waterActivity = WaterActivityAssessment(0.58),
-            bulkDensity = BulkDensityAssessment(700.0),
-            odor = GreenBeanOdor.CLEAN_FRESH_VEGETAL
-        )
-        val limits = BuyerAcceptanceLimits(
-            contractName = "Buyer contract",
-            sourceReference = "user-provided contract",
-            maxCategory1FullDefects = 5,
-            maxTotalEquivalentDefects = 10.0,
-            minMoisturePercent = 9.0,
-            maxMoisturePercent = 13.0,
-            maxWaterActivityAw = 0.65,
-            minScreen16PlusPercent = 80.0,
-            minBulkDensityGramsPerLiter = 650.0
-        )
-        val sieve = SieveAnalysisResult(350.0, emptyList(), 350.0, 0.0, true, 90.0)
-
-        val result = StandardGreenGradingEngine.evaluateBuyerContract(sample, limits, sieve)
-
-        assertFalse(result.isAccepted)
-        assertEquals(
-            listOf(
-                "Unsupported defect evidence is OUT_OF_SCOPE for this contract's equivalence rules",
-                "Category 1 defects (0.0) exceed contract limit (5)",
-                "Total defects (0.0) exceed contract limit (10.0)"
-            ),
-            result.failureReasons
-        )
-    }
-
-    @Test
-    fun givenFormulaPrefixedLotId_whenExportingCsv_thenCellIsMarkedAsText() {
-        val sample = GreenLotSample(
-            lotId = "=HYPERLINK(\"https://unsafe\")",
-            lotName = "",
-            species = GreenCoffeeSpecies.COFFEA_ARABICA,
-            processMethod = GreenProcessingMethod.WASHED
-        )
-        val evaluation = StandardGreenGradingEngine.evaluateWashedArabicaGrade(sample)
-        val csv = StandardGreenGradingEngine.generateGreenQcCsv(
-            sample,
-            evaluation,
-            GreenQCAuditRecord(evaluationTimestampEpochMs = 1L)
-        )
-
-        assertTrue(csv.contains("\"'=HYPERLINK(\"\"https://unsafe\"\")\""))
     }
 
     @Test
@@ -479,6 +395,56 @@ class GreenGradingEngineTest {
         assertFalse(dualPass.meetsCombinedConfiguredThresholds)
         assertFalse(dualPass.isSensorySpecialtyEligible)
     }
+}
+
+class GreenGradingContractTest {
+
+    @Test
+    fun givenUnsupportedNonzeroDefectTally_whenCheckingBuyerContract_thenNeverAccepts() {
+        val sample = GreenLotSample(
+            lotId = "lot_contract_unsupported_defect_basis",
+            lotName = "",
+            species = GreenCoffeeSpecies.COFFEA_ARABICA,
+            processMethod = GreenProcessingMethod.WASHED,
+            sampleMassGrams = 350.0,
+            defectInspectionComplete = true,
+            defects = listOf(
+                DefectTallyRecord(
+                    defectType = GreenDefectType.FULL_BLACK,
+                    rawCount = 1,
+                    standardSupported = false
+                )
+            ),
+            moisture = MoistureAssessment(11.0),
+            waterActivity = WaterActivityAssessment(0.58),
+            bulkDensity = BulkDensityAssessment(700.0),
+            odor = GreenBeanOdor.CLEAN_FRESH_VEGETAL
+        )
+        val limits = BuyerAcceptanceLimits(
+            contractName = "Buyer contract",
+            sourceReference = "user-provided contract",
+            maxCategory1FullDefects = 5,
+            maxTotalEquivalentDefects = 10.0,
+            minMoisturePercent = 9.0,
+            maxMoisturePercent = 13.0,
+            maxWaterActivityAw = 0.65,
+            minScreen16PlusPercent = 80.0,
+            minBulkDensityGramsPerLiter = 650.0
+        )
+        val sieve = SieveAnalysisResult(350.0, emptyList(), 350.0, 0.0, true, 90.0)
+
+        val result = StandardGreenGradingEngine.evaluateBuyerContract(sample, limits, sieve)
+
+        assertFalse(result.isAccepted)
+        assertEquals(
+            listOf(
+                "Unsupported defect evidence is OUT_OF_SCOPE for this contract's equivalence rules",
+                "Category 1 defects (0.0) exceed contract limit (5)",
+                "Total defects (0.0) exceed contract limit (10.0)"
+            ),
+            result.failureReasons
+        )
+    }
 
     @Test
     fun testBuyerSpecificationContractPassFail() {
@@ -627,6 +593,46 @@ class GreenGradingEngineTest {
             )
         }
     }
+}
+
+class GreenGradingExportTest {
+
+    @Test
+    fun givenFormulaPrefixedLotId_whenExportingCsv_thenCellIsMarkedAsText() {
+        val sample = GreenLotSample(
+            lotId = "=HYPERLINK(\"https://unsafe\")",
+            lotName = "",
+            species = GreenCoffeeSpecies.COFFEA_ARABICA,
+            processMethod = GreenProcessingMethod.WASHED
+        )
+        val evaluation = StandardGreenGradingEngine.evaluateWashedArabicaGrade(sample)
+        val csv = StandardGreenGradingEngine.generateGreenQcCsv(
+            sample,
+            evaluation,
+            GreenQCAuditRecord(evaluationTimestampEpochMs = 1L)
+        )
+
+        assertTrue(csv.contains("\"'=HYPERLINK(\"\"https://unsafe\"\")\""))
+    }
+
+    @Test
+    fun givenObservedBeanColor_whenExportingGreenQc_thenIncludesTheHumanObservation() {
+        val sample = GreenLotSample(
+            lotId = "lot_color_01",
+            lotName = "Color observation",
+            species = GreenCoffeeSpecies.COFFEA_ARABICA,
+            processMethod = GreenProcessingMethod.WASHED,
+            color = GreenBeanColor.GREEN
+        )
+        val evaluation = StandardGreenGradingEngine.evaluateWashedArabicaGrade(sample)
+        val audit = GreenQCAuditRecord(evaluationTimestampEpochMs = 1L)
+
+        val json = StandardGreenGradingEngine.generateGreenQcJson(sample, evaluation, audit)
+        val csv = StandardGreenGradingEngine.generateGreenQcCsv(sample, evaluation, audit)
+
+        assertTrue(json.contains("\"bean_color\": \"GREEN\""))
+        assertTrue(csv.contains("Bean Color,\"Green (Standard washed)\",N/A,OBSERVED"))
+    }
 
     @Test
     fun testGreenQcJsonCsvExportAndSha256AuditSeal() {
@@ -751,6 +757,9 @@ class GreenGradingEngineTest {
         assertTrue(csv.contains("Evidence Photo URI,\"content://provider/document/evidence-1\",content_uri,REFERENCE_ONLY"))
         assertTrue(csv.contains("Sieve Mass Balance,\"0.0\",g,VALID"))
     }
+}
+
+class GreenGradingReviewTest {
 
     @Test
     fun givenMissingRequiredObservation_whenGrading_thenNoDefinitiveClassificationIsReturned() {
