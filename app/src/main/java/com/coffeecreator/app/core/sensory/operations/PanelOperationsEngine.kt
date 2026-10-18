@@ -7,6 +7,11 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+private data class CategoricalAgreement(
+    val fleissKappa: Double?,
+    val label: String
+)
+
 /**
  * Pure Kotlin mathematical and workflow engine for coffee sensory panel operations (Epic E, S4-052 to S4-065).
  * Free from Android, Room, or UI dependencies.
@@ -22,6 +27,9 @@ object PanelOperationsEngine {
     private const val BLIND_SAMPLE_CODE_COUNT = 900
     private const val DETERMINISTIC_DISCREPANCY_TOLERANCE = 0.05
     private const val DECIMAL_ROUNDING_SCALE = 10_000.0
+    private const val MIN_PANEL_ITEMS = 1
+    private const val MIN_CATEGORIES = 2
+    private const val MIN_RATERS_PER_ITEM = 2
 
     // ========================================================================
     // 1. Panel Agreement & Calibration Statistics (S4-059)
@@ -146,18 +154,10 @@ object PanelOperationsEngine {
      */
     fun calculateFleissKappa(ratingMatrix: Array<IntArray>): Double? {
         val n = ratingMatrix.size // Number of items/samples
-        if (n < 1) return null
+        if (!hasValidRatingMatrix(ratingMatrix, n)) return null
 
         val c = ratingMatrix[0].size // Number of categories
-        if (c < 2) return null
-
         val m = ratingMatrix[0].sum() // Raters per item
-        if (m < 2) return null
-
-        // Check that all rows have identical rater count m
-        for (i in 0 until n) {
-            if (ratingMatrix[i].sum() != m) return null
-        }
 
         // 1. Compute Pi (observed agreement for item i)
         // Pi = (1 / (m * (m - 1))) * (sum_j n_ij^2 - m)
@@ -200,6 +200,16 @@ object PanelOperationsEngine {
 
         val kappa = (pBar - peBar) / (1.0 - peBar)
         return roundToFourDecimals(kappa.coerceIn(-1.0, 1.0))
+    }
+
+    private fun hasValidRatingMatrix(ratingMatrix: Array<IntArray>, itemCount: Int): Boolean {
+        if (itemCount < MIN_PANEL_ITEMS) return false
+
+        val categoryCount = ratingMatrix[0].size
+        val ratersPerItem = ratingMatrix[0].sum()
+        return categoryCount >= MIN_CATEGORIES &&
+            ratersPerItem >= MIN_RATERS_PER_ITEM &&
+            ratingMatrix.all { item -> item.sum() == ratersPerItem }
     }
 
     /**
@@ -250,23 +260,7 @@ object PanelOperationsEngine {
             caveats.add("Zero variance detected: All raters assigned identical scores.")
         }
 
-        // Fleiss Kappa if categorical data is supplied
-        var fleissKappa: Double? = null
-        var catLabel: String? = null
-        if (!categoriesByAssessor.isNullOrEmpty() && categoriesByAssessor.size >= 2) {
-            val distinctCategories = categoriesByAssessor.values.distinct().sorted()
-            if (distinctCategories.size >= 2) {
-                val matrix = Array(1) { IntArray(distinctCategories.size) }
-                for (cat in categoriesByAssessor.values) {
-                    val catIdx = distinctCategories.indexOf(cat)
-                    if (catIdx >= 0) {
-                        matrix[0][catIdx]++
-                    }
-                }
-                fleissKappa = calculateFleissKappa(matrix)
-                catLabel = getLandisKochLabel(fleissKappa)
-            }
-        }
+        val categoricalAgreement = calculateCategoricalAgreement(categoriesByAssessor)
 
         return PanelAgreementReport(
             sessionId = sessionId,
@@ -277,11 +271,28 @@ object PanelOperationsEngine {
             standardDeviation = roundToFourDecimals(stdDev),
             panelMeanConsensusDeviation = roundToFourDecimals(panelMcd),
             assessorMcds = assessorMcds,
-            fleissKappa = fleissKappa,
-            categoricalAgreementLabel = catLabel,
+            fleissKappa = categoricalAgreement?.fleissKappa,
+            categoricalAgreementLabel = categoricalAgreement?.label,
             caveats = caveats,
             isHighCalibration = panelMcd <= HIGH_CALIBRATION_MCD_MAX
         )
+    }
+
+    private fun calculateCategoricalAgreement(categoriesByAssessor: Map<String, String>?): CategoricalAgreement? {
+        if (categoriesByAssessor.isNullOrEmpty() || categoriesByAssessor.size < MIN_RATERS_PER_ITEM) return null
+
+        val distinctCategories = categoriesByAssessor.values.distinct().sorted()
+        if (distinctCategories.size < MIN_CATEGORIES) return null
+
+        val matrix = Array(1) { IntArray(distinctCategories.size) }
+        for (category in categoriesByAssessor.values) {
+            val categoryIndex = distinctCategories.indexOf(category)
+            if (categoryIndex >= 0) {
+                matrix[0][categoryIndex]++
+            }
+        }
+        val kappa = calculateFleissKappa(matrix)
+        return CategoricalAgreement(kappa, getLandisKochLabel(kappa))
     }
 
     // ========================================================================

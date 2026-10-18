@@ -2180,8 +2180,6 @@ private fun Library(state: CoffeeUiState, model: CoffeeViewModel) {
     var gearSubTab by rememberSaveable { mutableStateOf("44 Grinders Catalog") }
     var grinderTypeFilter by rememberSaveable { mutableStateOf("All") }
     var selectedZeroGrinderId by rememberSaveable { mutableStateOf<String?>(null) }
-    var calibrationOffsetInput by rememberSaveable { mutableStateOf("0.0") }
-    var calibrationNotesInput by rememberSaveable { mutableStateOf("") }
     var dripperValveStateToggle by rememberSaveable { mutableStateOf(ValveState.CLOSED) }
     var testFilterDripperId by rememberSaveable { mutableStateOf<String?>(null) }
     var testFilterId by rememberSaveable { mutableStateOf("filter-v60-02") }
@@ -4412,7 +4410,10 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             onClick = { activeTab = JournalTab.CHAMPION_RECIPES },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.weight(SECONDARY_ACTION_WEIGHT).heightIn(min = 44.dp).testTag("journal:nav_champion_recipes")
+                            modifier = Modifier
+                                .weight(SECONDARY_ACTION_WEIGHT)
+                                .heightIn(min = 44.dp)
+                                .testTag("journal:nav_champion_recipes")
                         ) {
                             Icon(Icons.Default.Star, null, Modifier.size(16.dp).padding(end = 4.dp))
                             Text("World (80)", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)

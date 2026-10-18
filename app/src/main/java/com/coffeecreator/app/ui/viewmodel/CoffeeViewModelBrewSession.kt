@@ -21,6 +21,7 @@ import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.reliability.LogLevel
 import com.coffeecreator.app.core.reliability.ModuleStatus
 import java.util.UUID
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -206,10 +207,11 @@ fun CoffeeViewModel.startBrewSession() {
                 updateSessionTick(elapsed)
             }
         }
-    } catch (e: Exception) {
-        if (e is kotlinx.coroutines.CancellationException) throw e
-        diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Failed to start brew session: ${e.message}")
-        mutableState.update { it.copy(notice = "Error starting session: ${e.message}") }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (runtimeFailure: Exception) {
+        diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Failed to start brew session: ${runtimeFailure.message}")
+        mutableState.update { it.copy(notice = "Error starting session: ${runtimeFailure.message}") }
     }
 }
 
@@ -408,15 +410,16 @@ fun CoffeeViewModel.connectMockScale() {
             }
             updateDegradationState(ble = ModuleStatus.AVAILABLE)
             diagnosticBuffer.log(LogLevel.INFO, "BLE", "Connected to ${simDriver.device.name}")
-        } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (providerFailure: Exception) {
             mutableState.update {
                 it.copy(
                     isScaleScanning = false,
-                    notice = "Scale connection failed: ${e.message}"
+                    notice = "Scale connection failed: ${providerFailure.message}"
                 )
             }
-            diagnosticBuffer.log(LogLevel.ERROR, "BLE", "Scale connection error: ${e.message}")
+            diagnosticBuffer.log(LogLevel.ERROR, "BLE", "Scale connection error: ${providerFailure.message}")
         }
     }
 }
@@ -451,9 +454,10 @@ fun CoffeeViewModel.tareScale() {
                     )
                 )
             }
-        } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
-            diagnosticBuffer.log(LogLevel.ERROR, "SCALE", "Tare error: ${e.message}")
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (providerFailure: Exception) {
+            diagnosticBuffer.log(LogLevel.ERROR, "SCALE", "Tare error: ${providerFailure.message}")
         }
     }
 }
@@ -573,18 +577,20 @@ fun CoffeeViewModel.toggleTimer() {
         } else {
             startBrewSession()
         }
-    } catch (e: Exception) {
-        if (e is kotlinx.coroutines.CancellationException) throw e
-        diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Failed to toggle timer: ${e.message}")
-        mutableState.update { it.copy(notice = "Error toggling timer: ${e.message}") }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (runtimeFailure: Exception) {
+        diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Failed to toggle timer: ${runtimeFailure.message}")
+        mutableState.update { it.copy(notice = "Error toggling timer: ${runtimeFailure.message}") }
     }
 }
 
 fun CoffeeViewModel.resetTimer() {
     try {
         resetBrewSession()
-    } catch (e: Exception) {
-        if (e is kotlinx.coroutines.CancellationException) throw e
-        diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Failed to reset timer: ${e.message}")
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (runtimeFailure: Exception) {
+        diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Failed to reset timer: ${runtimeFailure.message}")
     }
 }
