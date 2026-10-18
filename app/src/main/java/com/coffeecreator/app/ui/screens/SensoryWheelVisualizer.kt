@@ -65,7 +65,10 @@ import androidx.compose.ui.unit.sp
 import com.coffeecreator.app.core.sensory.FlavorCategory
 import com.coffeecreator.app.core.sensory.FlavorDescriptor
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
-import com.coffeecreator.app.ui.components.*
+import com.coffeecreator.app.ui.components.TactileButton
+import com.coffeecreator.app.ui.components.TactileCard
+import com.coffeecreator.app.ui.components.TactileFilterChip
+import com.coffeecreator.app.ui.components.TactileTextButton
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin

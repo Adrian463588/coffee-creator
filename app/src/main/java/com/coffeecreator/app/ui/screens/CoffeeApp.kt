@@ -200,7 +200,15 @@ import com.coffeecreator.app.core.sensory.MaskingMode
 import com.coffeecreator.app.core.sensory.RoastRestObservation
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
 import com.coffeecreator.app.core.sensory.SessionStatus
-import com.coffeecreator.app.ui.components.*
+import com.coffeecreator.app.ui.components.MicroBadgePill
+import com.coffeecreator.app.ui.components.TactileButton
+import com.coffeecreator.app.ui.components.TactileCard
+import com.coffeecreator.app.ui.components.TactileFilledTonalButton
+import com.coffeecreator.app.ui.components.TactileFilterChip
+import com.coffeecreator.app.ui.components.TactileOutlinedButton
+import com.coffeecreator.app.ui.components.TactileTextButton
+import com.coffeecreator.app.ui.components.TelemetryStatusPill
+import com.coffeecreator.app.ui.components.tactilePress
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
