@@ -60,6 +60,69 @@ class GreenGradingEngineTest {
     }
 
     @Test
+    fun givenCompleteWashedArabicaAtHistoricalDefectBandEdges_whenGraded_thenRetainsGradeAndNote() {
+        val completeSample = GreenLotSample(
+            lotId = "lot_grade_boundaries",
+            lotName = "Historical grading boundary",
+            species = GreenCoffeeSpecies.COFFEA_ARABICA,
+            processMethod = GreenProcessingMethod.WASHED,
+            sampleMassGrams = 350.0,
+            defectInspectionComplete = true,
+            moisture = MoistureAssessment(11.0),
+            odor = GreenBeanOdor.CLEAN_FRESH_VEGETAL
+        )
+        val cases = listOf(
+            Triple(
+                15,
+                PhysicalGradeClassification.SPECIALTY_GRADE_1,
+                "Meets the historical reference's Grade 1 thresholds; this is not an official grade or certification."
+            ),
+            Triple(
+                24,
+                PhysicalGradeClassification.PREMIUM_GRADE_2,
+                "Historical reference band: Grade 2 (<= 8 full defect equivalents); not an official grade."
+            ),
+            Triple(
+                27,
+                PhysicalGradeClassification.EXCHANGE_GRADE_3,
+                "Historical reference band: Grade 3 (9-23 full defect equivalents); not an official grade."
+            ),
+            Triple(
+                69,
+                PhysicalGradeClassification.EXCHANGE_GRADE_3,
+                "Historical reference band: Grade 3 (9-23 full defect equivalents); not an official grade."
+            ),
+            Triple(
+                72,
+                PhysicalGradeClassification.BELOW_STANDARD_GRADE_4,
+                "Historical reference band: Grade 4 (24-86 full defect equivalents); not an official grade."
+            ),
+            Triple(
+                258,
+                PhysicalGradeClassification.BELOW_STANDARD_GRADE_4,
+                "Historical reference band: Grade 4 (24-86 full defect equivalents); not an official grade."
+            ),
+            Triple(
+                261,
+                PhysicalGradeClassification.OFF_GRADE_5,
+                "Historical reference band: Grade 5 (> 86 full defect equivalents or severe contamination); not an official grade."
+            )
+        )
+
+        cases.forEach { (partialBlackCount, expectedGrade, expectedNote) ->
+            val sample = completeSample.copy(
+                defects = listOf(DefectTallyRecord(GreenDefectType.PARTIAL_BLACK, partialBlackCount))
+            )
+
+            val result = StandardGreenGradingEngine.evaluateWashedArabicaGrade(sample)
+
+            assertEquals(expectedGrade, result.grade)
+            assertEquals(expectedGrade == PhysicalGradeClassification.SPECIALTY_GRADE_1, result.isSpecialtyPhysicalEligible)
+            assertEquals(listOf(expectedNote), result.evaluationNotes)
+        }
+    }
+
+    @Test
     fun testOutOfScopeGuardForCanephoraOrNatural() {
         // S4-047: Robusta sample
         val robustaSample = GreenLotSample(
@@ -164,6 +227,10 @@ class GreenGradingEngineTest {
         assertEquals(PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE, result.grade)
         assertFalse(result.isSpecialtyPhysicalEligible)
         assertTrue(result.evaluationNotes.any { it.contains("unsupported defect", ignoreCase = true) })
+        assertEquals(
+            listOf("OUT_OF_SCOPE: unsupported defect evidence cannot be converted to this historical reference's equivalence rules."),
+            result.evaluationNotes
+        )
     }
 
     @Test
@@ -203,7 +270,14 @@ class GreenGradingEngineTest {
         val result = StandardGreenGradingEngine.evaluateBuyerContract(sample, limits, sieve)
 
         assertFalse(result.isAccepted)
-        assertTrue(result.failureReasons.any { it.contains("unsupported defect", ignoreCase = true) })
+        assertEquals(
+            listOf(
+                "Unsupported defect evidence is OUT_OF_SCOPE for this contract's equivalence rules",
+                "Category 1 defects (0.0) exceed contract limit (5)",
+                "Total defects (0.0) exceed contract limit (10.0)"
+            ),
+            result.failureReasons
+        )
     }
 
     @Test
@@ -297,6 +371,37 @@ class GreenGradingEngineTest {
     }
 
     @Test
+    fun givenAllRequiredPhysicalObservationsUnknown_whenGrading_thenPreservesPendingNoteOrder() {
+        val sample = GreenLotSample(
+            lotId = "lot_all_observations_pending",
+            lotName = "",
+            species = GreenCoffeeSpecies.COFFEA_ARABICA,
+            processMethod = GreenProcessingMethod.WASHED,
+            sampleMassGrams = 0.0,
+            defectInspectionComplete = false,
+            defects = emptyList(),
+            moisture = MoistureAssessment(moisturePercent = null),
+            odor = null
+        )
+
+        val result = StandardGreenGradingEngine.evaluateWashedArabicaGrade(sample)
+
+        assertEquals(PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE, result.grade)
+        assertFalse(result.isSpecialtyPhysicalEligible)
+        assertFalse(result.moistureWithinStandardRange)
+        assertFalse(result.odorClean)
+        assertEquals(
+            listOf(
+                "Odor inspection is PENDING_REVIEW.",
+                "Moisture was NOT_MEASURED. Moisture verification is required for definitive grade classification.",
+                "Definitive classification withheld; pending: 350 g reference sample mass, defect inspection, " +
+                    "moisture measurement, odor inspection."
+            ),
+            result.evaluationNotes
+        )
+    }
+
+    @Test
     fun testFoulOdorImmediateDisqualification() {
         // S4-046: Musty / moldy odor immediately disqualifies sample from specialty
         val sample = GreenLotSample(
@@ -312,9 +417,17 @@ class GreenGradingEngineTest {
             odor = GreenBeanOdor.MUSTY
         )
         val result = StandardGreenGradingEngine.evaluateWashedArabicaGrade(sample)
+        assertEquals(PhysicalGradeClassification.OFF_GRADE_5, result.grade)
         assertFalse(result.isSpecialtyPhysicalEligible)
         assertFalse(result.odorClean)
-        assertTrue(result.evaluationNotes.any { it.contains("ODOR_CONTAMINATION_DISQUALIFIED") })
+        assertEquals(
+            listOf(
+                "ODOR_CONTAMINATION_DISQUALIFIED: Sample has unacceptable odor 'Musty / Moldy (Contaminated)'. " +
+                    "Immediately disqualified from Specialty Grade.",
+                "Historical reference band: Grade 5 (> 86 full defect equivalents or severe contamination); not an official grade."
+            ),
+            result.evaluationNotes
+        )
     }
 
     @Test
@@ -445,6 +558,57 @@ class GreenGradingEngineTest {
 
         assertFalse(result.isAccepted)
         assertTrue(result.failureReasons.any { it.contains("NOT_MEASURED") })
+    }
+
+    @Test
+    fun givenUnknownBuyerContractMeasurements_whenEvaluated_thenReportsFailuresInStableOrder() {
+        val limits = BuyerAcceptanceLimits(
+            contractName = "Unknown measurement characterization",
+            sourceReference = "test fixture",
+            maxCategory1FullDefects = 0,
+            maxTotalEquivalentDefects = 5.0,
+            minMoisturePercent = 10.0,
+            maxMoisturePercent = 12.0,
+            maxWaterActivityAw = 0.62,
+            minScreen16PlusPercent = 85.0,
+            minBulkDensityGramsPerLiter = 680.0
+        )
+        val sample = GreenLotSample(
+            lotId = "lot_unknown_buyer_measurements",
+            lotName = "",
+            species = GreenCoffeeSpecies.COFFEA_ARABICA,
+            processMethod = GreenProcessingMethod.WASHED,
+            sampleMassGrams = 0.0,
+            defectInspectionComplete = false,
+            defects = emptyList(),
+            moisture = MoistureAssessment(moisturePercent = null),
+            waterActivity = WaterActivityAssessment(waterActivityAw = null),
+            bulkDensity = BulkDensityAssessment(bulkDensityGramsPerLiter = null)
+        )
+
+        val result = StandardGreenGradingEngine.evaluateBuyerContract(sample, limits)
+
+        assertFalse(result.isAccepted)
+        assertEquals(
+            listOf(
+                "Defect inspection is NOT_MEASURED",
+                "Sample mass is NOT_MEASURED",
+                "Moisture is NOT_MEASURED; required by contract",
+                "Water activity is NOT_MEASURED; required by contract",
+                "Sieve analysis is NOT_MEASURED; required by contract",
+                "Bulk density is NOT_MEASURED; required by contract"
+            ),
+            result.failureReasons
+        )
+        assertEquals(
+            mapOf(
+                "Category 1 Defects" to true,
+                "Total Full Defect Equivalents" to true,
+                "Moisture Content" to false
+            ),
+            result.parameterEvaluations
+        )
+        assertEquals(listOf("Contract rejected: 6 parameters out of specification."), result.notes)
     }
 
     @Test
@@ -632,6 +796,15 @@ class GreenGradingEngineTest {
 
         assertEquals(PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE, result.grade)
         assertTrue(result.evaluationNotes.any { it.contains("UNKNOWN") })
+        assertEquals(
+            listOf(
+                "This reference applies only to explicitly selected Coffea Arabica and washed process. " +
+                    "Current selection is UNKNOWN / UNKNOWN."
+            ),
+            result.evaluationNotes
+        )
+        assertFalse(result.isSpecialtyPhysicalEligible)
+        assertFalse(result.moistureWithinStandardRange)
     }
 
     @Test

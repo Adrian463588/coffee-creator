@@ -339,31 +339,128 @@ data class GreenQCAuditRecord(
 object StandardGreenGradingEngine {
 
     fun evaluateWashedArabicaGrade(sample: GreenLotSample): PhysicalGradingEvaluation {
-        val notes = mutableListOf<String>()
-
         // Invariant guard: species and method validation
-        if (sample.species != GreenCoffeeSpecies.COFFEA_ARABICA || sample.processMethod != GreenProcessingMethod.WASHED) {
-            return PhysicalGradingEvaluation(
-                standardApplied = sample.standardRef.name,
-                sampleMassGrams = sample.sampleMassGrams,
-                totalCategory1Equivalents = 0.0,
-                totalCategory2Equivalents = 0.0,
-                totalFullDefectsEquivalents = 0.0,
+        if (!isWashedArabicaInScope(sample)) return outOfScopeEvaluation(sample)
+
+        val (cat1Sum, cat2Sum) = sumSupportedDefectEquivalents(sample)
+        val totalDefects = cat1Sum + cat2Sum
+        if (hasUnsupportedDefectEvidence(sample)) {
+            return unsupportedDefectEvaluation(sample, cat1Sum, cat2Sum, totalDefects)
+        }
+
+        val notes = mutableListOf<String>()
+        // Odor check: organoleptically clean is mandatory for specialty
+        val odor = sample.odor
+        val odorClean = appendOdorAssessmentNote(odor, notes)
+
+        // Moisture check: Standard Arabica Washed is 9.0% to 13.0% (ideally 10-12%)
+        val moisture = sample.moisture.moisturePercent
+        val moistureValid = appendMoistureAssessmentNote(sample.moisture, notes)
+        val missingRequirements = missingPhysicalRequirements(sample, moisture, odor)
+        if (missingRequirements.isNotEmpty()) {
+            notes.add("Definitive classification withheld; pending: ${missingRequirements.joinToString()}.")
+            return physicalEvaluation(
+                sample = sample,
+                cat1Sum = cat1Sum,
+                cat2Sum = cat2Sum,
+                totalDefects = totalDefects,
                 grade = PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE,
-                isSpecialtyPhysicalEligible = false,
-                moistureWithinStandardRange = false,
-                odorClean = sample.odor?.isOrganolepticallyClean == true,
-                evaluationNotes = listOf(
-                    "This reference applies only to explicitly selected Coffea Arabica and " +
-                        "washed process. Current selection is ${sample.species?.label ?: "UNKNOWN"} / " +
-                        "${sample.processMethod?.label ?: "UNKNOWN"}."
-                )
+                specialtyEligible = false,
+                moistureWithinRange = moisture != null && moisture in 9.0..13.0,
+                odorClean = odorClean,
+                notes = notes
             )
         }
 
+        // Classification per 350g washed Arabica:
+        // Historical reference bands only; rights and current applicability are not verified.
+        val (grade, isSpecialtyEligible) = classifyHistoricalGrade(
+            cat1Sum = cat1Sum,
+            cat2Sum = cat2Sum,
+            totalDefects = totalDefects,
+            moistureValid = moistureValid,
+            odorClean = odorClean,
+            notes = notes
+        )
+
+        return physicalEvaluation(
+            sample = sample,
+            cat1Sum = cat1Sum,
+            cat2Sum = cat2Sum,
+            totalDefects = totalDefects,
+            grade = grade,
+            specialtyEligible = isSpecialtyEligible,
+            moistureWithinRange = moistureValid,
+            odorClean = odorClean,
+            notes = notes
+        )
+    }
+
+    private fun isWashedArabicaInScope(sample: GreenLotSample): Boolean =
+        sample.species == GreenCoffeeSpecies.COFFEA_ARABICA && sample.processMethod == GreenProcessingMethod.WASHED
+
+    private fun outOfScopeEvaluation(sample: GreenLotSample): PhysicalGradingEvaluation = physicalEvaluation(
+        sample = sample,
+        cat1Sum = 0.0,
+        cat2Sum = 0.0,
+        totalDefects = 0.0,
+        grade = PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE,
+        specialtyEligible = false,
+        moistureWithinRange = false,
+        odorClean = sample.odor?.isOrganolepticallyClean == true,
+        notes = listOf(
+            "This reference applies only to explicitly selected Coffea Arabica and " +
+                "washed process. Current selection is ${sample.species?.label ?: "UNKNOWN"} / " +
+                "${sample.processMethod?.label ?: "UNKNOWN"}."
+        )
+    )
+
+    private fun unsupportedDefectEvaluation(
+        sample: GreenLotSample,
+        cat1Sum: Double,
+        cat2Sum: Double,
+        totalDefects: Double
+    ): PhysicalGradingEvaluation = physicalEvaluation(
+        sample = sample,
+        cat1Sum = cat1Sum,
+        cat2Sum = cat2Sum,
+        totalDefects = totalDefects,
+        grade = PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE,
+        specialtyEligible = false,
+        moistureWithinRange = sample.moisture.isMeasured &&
+            sample.moisture.moisturePercent?.let { it in 9.0..13.0 } == true,
+        odorClean = sample.odor?.isOrganolepticallyClean == true,
+        notes = mutableListOf(
+            "OUT_OF_SCOPE: unsupported defect evidence cannot be converted to this historical reference's equivalence rules."
+        )
+    )
+
+    private fun physicalEvaluation(
+        sample: GreenLotSample,
+        cat1Sum: Double = 0.0,
+        cat2Sum: Double = 0.0,
+        totalDefects: Double = 0.0,
+        grade: PhysicalGradeClassification,
+        specialtyEligible: Boolean,
+        moistureWithinRange: Boolean,
+        odorClean: Boolean,
+        notes: List<String>
+    ): PhysicalGradingEvaluation = PhysicalGradingEvaluation(
+        standardApplied = sample.standardRef.name,
+        sampleMassGrams = sample.sampleMassGrams,
+        totalCategory1Equivalents = cat1Sum,
+        totalCategory2Equivalents = cat2Sum,
+        totalFullDefectsEquivalents = totalDefects,
+        grade = grade,
+        isSpecialtyPhysicalEligible = specialtyEligible,
+        moistureWithinStandardRange = moistureWithinRange,
+        odorClean = odorClean,
+        evaluationNotes = notes
+    )
+
+    private fun sumSupportedDefectEquivalents(sample: GreenLotSample): Pair<Double, Double> {
         var cat1Sum = 0.0
         var cat2Sum = 0.0
-
         sample.defects.filter(DefectTallyRecord::standardSupported).forEach { record ->
             if (record.defectType.tier == DefectTier.CATEGORY_1_PRIMARY) {
                 cat1Sum += record.equivalentFullDefects
@@ -371,27 +468,13 @@ object StandardGreenGradingEngine {
                 cat2Sum += record.equivalentFullDefects
             }
         }
-        val totalDefects = cat1Sum + cat2Sum
-        val unsupportedDefectTally = sample.defects.any { !it.standardSupported && it.rawCount > 0 }
-        if (unsupportedDefectTally) {
-            notes.add("OUT_OF_SCOPE: unsupported defect evidence cannot be converted to this historical reference's equivalence rules.")
-            return PhysicalGradingEvaluation(
-                standardApplied = sample.standardRef.name,
-                sampleMassGrams = sample.sampleMassGrams,
-                totalCategory1Equivalents = cat1Sum,
-                totalCategory2Equivalents = cat2Sum,
-                totalFullDefectsEquivalents = totalDefects,
-                grade = PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE,
-                isSpecialtyPhysicalEligible = false,
-                moistureWithinStandardRange = sample.moisture.isMeasured &&
-                    sample.moisture.moisturePercent?.let { it in 9.0..13.0 } == true,
-                odorClean = sample.odor?.isOrganolepticallyClean == true,
-                evaluationNotes = notes
-            )
-        }
+        return cat1Sum to cat2Sum
+    }
 
-        // Odor check: organoleptically clean is mandatory for specialty
-        val odor = sample.odor
+    private fun hasUnsupportedDefectEvidence(sample: GreenLotSample): Boolean =
+        sample.defects.any { !it.standardSupported && it.rawCount > 0 }
+
+    private fun appendOdorAssessmentNote(odor: GreenBeanOdor?, notes: MutableList<String>): Boolean {
         val odorClean = odor?.isOrganolepticallyClean == true
         if (odor == null) {
             notes.add("Odor inspection is PENDING_REVIEW.")
@@ -401,81 +484,61 @@ object StandardGreenGradingEngine {
                     "Immediately disqualified from Specialty Grade."
             )
         }
+        return odorClean
+    }
 
-        // Moisture check: Standard Arabica Washed is 9.0% to 13.0% (ideally 10-12%)
-        val moisture = sample.moisture.moisturePercent
-        val moistureValid = sample.moisture.isMeasured && moisture != null && moisture in 9.0..13.0
+    private fun appendMoistureAssessmentNote(assessment: MoistureAssessment, notes: MutableList<String>): Boolean {
+        val moisture = assessment.moisturePercent
+        val moistureValid = assessment.isMeasured && moisture != null && moisture in 9.0..13.0
         if (moisture == null) {
             notes.add("Moisture was NOT_MEASURED. Moisture verification is required for definitive grade classification.")
         } else if (!moistureValid) {
             notes.add("Moisture level ($moisture%) out of standard range (9.0% - 13.0%).")
         }
+        return moistureValid
+    }
 
-        val missingRequirements = buildList {
-            if (!sample.sampleMassGrams.isFinite() || sample.sampleMassGrams != 350.0) add("350 g reference sample mass")
-            if (!sample.defectInspectionComplete) add("defect inspection")
-            if (!sample.moisture.isMeasured || moisture == null) add("moisture measurement")
-            if (odor == null) add("odor inspection")
-        }
-        if (missingRequirements.isNotEmpty()) {
-            notes.add("Definitive classification withheld; pending: ${missingRequirements.joinToString()}.")
-            return PhysicalGradingEvaluation(
-                standardApplied = sample.standardRef.name,
-                sampleMassGrams = sample.sampleMassGrams,
-                totalCategory1Equivalents = cat1Sum,
-                totalCategory2Equivalents = cat2Sum,
-                totalFullDefectsEquivalents = totalDefects,
-                grade = PhysicalGradeClassification.UNDETERMINED_OUT_OF_SCOPE,
-                isSpecialtyPhysicalEligible = false,
-                moistureWithinStandardRange = moisture != null && moisture in 9.0..13.0,
-                odorClean = odorClean,
-                evaluationNotes = notes
-            )
-        }
+    private fun missingPhysicalRequirements(
+        sample: GreenLotSample,
+        moisture: Double?,
+        odor: GreenBeanOdor?
+    ): List<String> = buildList {
+        if (!sample.sampleMassGrams.isFinite() || sample.sampleMassGrams != 350.0) add("350 g reference sample mass")
+        if (!sample.defectInspectionComplete) add("defect inspection")
+        if (!sample.moisture.isMeasured || moisture == null) add("moisture measurement")
+        if (odor == null) add("odor inspection")
+    }
 
-        // Classification per 350g washed Arabica:
-        // Historical reference bands only; rights and current applicability are not verified.
-        val grade: PhysicalGradeClassification
-        val isSpecialtyEligible: Boolean
-
+    private fun classifyHistoricalGrade(
+        cat1Sum: Double,
+        cat2Sum: Double,
+        totalDefects: Double,
+        moistureValid: Boolean,
+        odorClean: Boolean,
+        notes: MutableList<String>
+    ): Pair<PhysicalGradeClassification, Boolean> {
         if (cat1Sum == 0.0 && cat2Sum <= 5.0 && moistureValid && odorClean) {
-            grade = PhysicalGradeClassification.SPECIALTY_GRADE_1
-            isSpecialtyEligible = true
             notes.add("Meets the historical reference's Grade 1 thresholds; this is not an official grade or certification.")
-        } else if (totalDefects <= 8.0 && odorClean) {
-            grade = PhysicalGradeClassification.PREMIUM_GRADE_2
-            isSpecialtyEligible = false
+            return PhysicalGradeClassification.SPECIALTY_GRADE_1 to true
+        }
+        if (totalDefects <= 8.0 && odorClean) {
             if (cat1Sum > 0.0) {
                 notes.add("Category 1 defects present ($cat1Sum); the historical Grade 1 threshold is not met.")
             } else {
                 notes.add("Historical reference band: Grade 2 (<= 8 full defect equivalents); not an official grade.")
             }
-        } else if (totalDefects <= HISTORICAL_GRADE_3_MAX_DEFECT_EQUIVALENTS && odorClean) {
-            grade = PhysicalGradeClassification.EXCHANGE_GRADE_3
-            isSpecialtyEligible = false
-            notes.add("Historical reference band: Grade 3 (9-23 full defect equivalents); not an official grade.")
-        } else if (totalDefects <= HISTORICAL_GRADE_4_MAX_DEFECT_EQUIVALENTS && odorClean) {
-            grade = PhysicalGradeClassification.BELOW_STANDARD_GRADE_4
-            isSpecialtyEligible = false
-            notes.add("Historical reference band: Grade 4 (24-86 full defect equivalents); not an official grade.")
-        } else {
-            grade = PhysicalGradeClassification.OFF_GRADE_5
-            isSpecialtyEligible = false
-            notes.add("Historical reference band: Grade 5 (> 86 full defect equivalents or severe contamination); not an official grade.")
+            return PhysicalGradeClassification.PREMIUM_GRADE_2 to false
         }
-
-        return PhysicalGradingEvaluation(
-            standardApplied = sample.standardRef.name,
-            sampleMassGrams = sample.sampleMassGrams,
-            totalCategory1Equivalents = cat1Sum,
-            totalCategory2Equivalents = cat2Sum,
-            totalFullDefectsEquivalents = totalDefects,
-            grade = grade,
-            isSpecialtyPhysicalEligible = isSpecialtyEligible,
-            moistureWithinStandardRange = moistureValid,
-            odorClean = odorClean,
-            evaluationNotes = notes
-        )
+        if (totalDefects <= HISTORICAL_GRADE_3_MAX_DEFECT_EQUIVALENTS && odorClean) {
+            notes.add("Historical reference band: Grade 3 (9-23 full defect equivalents); not an official grade.")
+            return PhysicalGradeClassification.EXCHANGE_GRADE_3 to false
+        }
+        if (totalDefects <= HISTORICAL_GRADE_4_MAX_DEFECT_EQUIVALENTS && odorClean) {
+            notes.add("Historical reference band: Grade 4 (24-86 full defect equivalents); not an official grade.")
+            return PhysicalGradeClassification.BELOW_STANDARD_GRADE_4 to false
+        }
+        notes.add("Historical reference band: Grade 5 (> 86 full defect equivalents or severe contamination); not an official grade.")
+        return PhysicalGradeClassification.OFF_GRADE_5 to false
     }
 
     fun calculateSieveAnalysis(
@@ -549,36 +612,77 @@ object StandardGreenGradingEngine {
     ): BuyerContractEvaluationResult {
         val evaluations = mutableMapOf<String, Boolean>()
         val failures = mutableListOf<String>()
-        val notes = mutableListOf<String>()
-
-        var cat1Count = 0.0
-        var cat2Equiv = 0.0
-        val unsupportedDefectTally = sample.defects.any { !it.standardSupported && it.rawCount > 0 }
-        sample.defects.filter(DefectTallyRecord::standardSupported).forEach { record ->
-            if (record.defectType.tier == DefectTier.CATEGORY_1_PRIMARY) {
-                cat1Count += record.equivalentFullDefects
-            } else {
-                cat2Equiv += record.equivalentFullDefects
-            }
-        }
+        val unsupportedDefectTally = hasUnsupportedDefectEvidence(sample)
+        val (cat1Count, cat2Equiv) = sumSupportedDefectEquivalents(sample)
         val totalDefects = cat1Count + cat2Equiv
+
+        appendContractInspectionFailures(sample, unsupportedDefectTally, failures)
+        evaluateCategory1DefectLimit(cat1Count, unsupportedDefectTally, limits, evaluations, failures)
+        evaluateTotalDefectLimit(totalDefects, unsupportedDefectTally, limits, evaluations, failures)
+        evaluateMoistureLimit(sample, limits, evaluations, failures)
+        evaluateWaterActivityLimit(sample, limits, evaluations, failures)
+        evaluateSieveLimit(sieveAnalysis, limits, evaluations, failures)
+        evaluateBulkDensityLimit(sample, limits, evaluations, failures)
+
+        val isAccepted = failures.isEmpty()
+        val notes = mutableListOf(
+            if (isAccepted) {
+                "All evaluated parameters conform to contract '${limits.contractName}'."
+            } else {
+                "Contract rejected: ${failures.size} parameters out of specification."
+            }
+        )
+
+        return BuyerContractEvaluationResult(
+            isAccepted = isAccepted,
+            parameterEvaluations = evaluations,
+            failureReasons = failures,
+            notes = notes
+        )
+    }
+
+    private fun appendContractInspectionFailures(
+        sample: GreenLotSample,
+        unsupportedDefectTally: Boolean,
+        failures: MutableList<String>
+    ) {
         if (unsupportedDefectTally) {
             failures.add("Unsupported defect evidence is OUT_OF_SCOPE for this contract's equivalence rules")
         }
         if (!sample.defectInspectionComplete) failures.add("Defect inspection is NOT_MEASURED")
         if (!sample.sampleMassGrams.isFinite() || sample.sampleMassGrams <= 0.0) failures.add("Sample mass is NOT_MEASURED")
+    }
 
-        // Cat 1 Defect check
+    private fun evaluateCategory1DefectLimit(
+        cat1Count: Double,
+        unsupportedDefectTally: Boolean,
+        limits: BuyerAcceptanceLimits,
+        evaluations: MutableMap<String, Boolean>,
+        failures: MutableList<String>
+    ) {
         val cat1Pass = !unsupportedDefectTally && cat1Count <= limits.maxCategory1FullDefects
         evaluations["Category 1 Defects"] = cat1Pass
         if (!cat1Pass) failures.add("Category 1 defects ($cat1Count) exceed contract limit (${limits.maxCategory1FullDefects})")
+    }
 
-        // Total Defect check
+    private fun evaluateTotalDefectLimit(
+        totalDefects: Double,
+        unsupportedDefectTally: Boolean,
+        limits: BuyerAcceptanceLimits,
+        evaluations: MutableMap<String, Boolean>,
+        failures: MutableList<String>
+    ) {
         val totalPass = !unsupportedDefectTally && totalDefects <= limits.maxTotalEquivalentDefects
         evaluations["Total Full Defect Equivalents"] = totalPass
         if (!totalPass) failures.add("Total defects ($totalDefects) exceed contract limit (${limits.maxTotalEquivalentDefects})")
+    }
 
-        // Moisture check
+    private fun evaluateMoistureLimit(
+        sample: GreenLotSample,
+        limits: BuyerAcceptanceLimits,
+        evaluations: MutableMap<String, Boolean>,
+        failures: MutableList<String>
+    ) {
         val moisture = sample.moisture.moisturePercent
         val moisturePass = sample.moisture.isMeasured &&
             moisture != null &&
@@ -590,8 +694,14 @@ object StandardGreenGradingEngine {
         } else if (!moisturePass) {
             failures.add("Moisture ($moisture%) outside contract tolerance [${limits.minMoisturePercent}% - ${limits.maxMoisturePercent}%]")
         }
+    }
 
-        // Water activity check
+    private fun evaluateWaterActivityLimit(
+        sample: GreenLotSample,
+        limits: BuyerAcceptanceLimits,
+        evaluations: MutableMap<String, Boolean>,
+        failures: MutableList<String>
+    ) {
         val aw = sample.waterActivity.waterActivityAw
         if (sample.waterActivity.isMeasured && aw != null) {
             val awPass = aw <= limits.maxWaterActivityAw
@@ -600,8 +710,14 @@ object StandardGreenGradingEngine {
         } else {
             failures.add("Water activity is NOT_MEASURED; required by contract")
         }
+    }
 
-        // Sieve check if available
+    private fun evaluateSieveLimit(
+        sieveAnalysis: SieveAnalysisResult?,
+        limits: BuyerAcceptanceLimits,
+        evaluations: MutableMap<String, Boolean>,
+        failures: MutableList<String>
+    ) {
         if (sieveAnalysis != null) {
             if (!sieveAnalysis.isMassBalanceValid) failures.add("Sieve mass balance is invalid")
             val screenPass = sieveAnalysis.cumulativeRetentionScreen16Plus >= limits.minScreen16PlusPercent
@@ -615,8 +731,14 @@ object StandardGreenGradingEngine {
         } else {
             failures.add("Sieve analysis is NOT_MEASURED; required by contract")
         }
+    }
 
-        // Density check if available
+    private fun evaluateBulkDensityLimit(
+        sample: GreenLotSample,
+        limits: BuyerAcceptanceLimits,
+        evaluations: MutableMap<String, Boolean>,
+        failures: MutableList<String>
+    ) {
         val density = sample.bulkDensity.bulkDensityGramsPerLiter
         if (sample.bulkDensity.isMeasured && density != null) {
             val densityPass = density >= limits.minBulkDensityGramsPerLiter
@@ -625,20 +747,6 @@ object StandardGreenGradingEngine {
         } else {
             failures.add("Bulk density is NOT_MEASURED; required by contract")
         }
-
-        val isAccepted = failures.isEmpty()
-        if (isAccepted) {
-            notes.add("All evaluated parameters conform to contract '${limits.contractName}'.")
-        } else {
-            notes.add("Contract rejected: ${failures.size} parameters out of specification.")
-        }
-
-        return BuyerContractEvaluationResult(
-            isAccepted = isAccepted,
-            parameterEvaluations = evaluations,
-            failureReasons = failures,
-            notes = notes
-        )
     }
 
     fun computeSha256(input: String): String {
