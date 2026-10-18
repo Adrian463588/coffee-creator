@@ -44,3 +44,7 @@ Only ADB device/package metadata were read before the test run. The Samsung devi
 ## Final execution result
 
 The app compiles, the debug artifact assembles, and all 322 fresh JVM tests pass. Android Lint completes with warnings; Detekt and KtLint fail. Device/UI/SAF/AI/BLE and full requirement-level BDD acceptance are not proven. Release disposition is **NOT_READY**; see [RELEASE_READINESS_SPRINT_04.md](RELEASE_READINESS_SPRINT_04.md).
+
+## Remediation follow-up — 2026-10-18
+
+The audit baseline above is preserved as originally recorded. On remediation source baseline `4d850496effe61669adbc32c71c2b19039fb07bd`, the fresh JVM suite passed **366/366** tests (41 suites). Android Lint completed with **120 findings** (94 warnings, 26 informational); Detekt still fails with **534 weighted issues**; `ktlintTestSourceSetCheck` passes after an import-order correction, while `ktlintMainSourceSetCheck` still fails. Debug assembly passed: 106,630,827-byte local APK, SHA-256 `2A6D1D713F72A00A8A61DE89FA8A239EE3F483F436086721F21590923E1866D0`. ADB/instrumentation were not run per the user's instruction. Requirement-level execution remains **0/221** and master BDD/E2E execution remains **0/297**. This does not supersede the **NOT_READY** disposition. Full details: [REMEDIATION_2026-10-18.md](REMEDIATION_2026-10-18.md).

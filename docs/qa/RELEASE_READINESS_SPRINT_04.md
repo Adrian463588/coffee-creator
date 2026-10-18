@@ -1,5 +1,7 @@
 # Sprint 04 release readiness and cross-sprint scorecard
 
+> **Remediation follow-up (2026-10-18):** The original audit below is preserved as the baseline. A narrow QA/UI remediation passed 366/366 JVM tests and built a local debug APK, but Detekt (534 weighted issues), main-source KtLint, durable S4 persistence, device acceptance, and other P0/P1 gates remain unresolved. Requirement acceptance remains 0/221 and master test execution 0/297. Verdict remains **NOT_READY**. See [REMEDIATION_2026-10-18.md](REMEDIATION_2026-10-18.md) and [TEST_EXECUTION_REPORT.md](TEST_EXECUTION_REPORT.md#remediation-follow-up--2026-10-18).
+
 **Audit baseline:** branch `main`, HEAD `6d429df9299d438daefbdac769b5300988d83f9c`, tree `b714b993b253b7d1cad388f906403a4085b50539`; current app `1.14.5` / versionCode 30; latest tag `v1.14.5` (`c483c91`). Audit docs are the only intended working-tree changes. No app source or user data was changed.
 
 ## Required summary table

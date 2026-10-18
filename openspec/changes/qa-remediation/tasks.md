@@ -12,6 +12,9 @@
 - [ ] R10. Test reduced motion, semantics, 48dp targets, large font and compact/expanded layouts with available automation; mark device-only cases blocked when no disposable profile exists.
 - [ ] R11. Run focused tests, `:app:lintDebug`, detekt, ktlint, JVM suite and assemble; fix introduced issues and existing linter failures in separately reviewable commits without blanket suppressions.
 - [ ] R12. Independent subagent review, diff/feature-preservation review, regenerate QA counts/evidence, verify remote commit and release asset metadata. Publish a new release only if acceptance gates actually pass; otherwise push branch and report NOT_READY.
+- [x] R13. Add BDD regressions for CVA checksum coverage, lock/reveal/amendment audit, full identifiers, safe export encoding, and measured-only journal mapping.
+- [x] R14. Implement the smallest additive domain fixes; preserve legacy records and keep unsaved CVA UI actions unavailable until Room/backup persistence is implemented and migration-tested.
+- [x] R15. Re-run focused and full JVM suites, lint/build gates, independent review, and update a dated QA addendum with exact evidence and remaining blockers.
 
 ## Rollback
 
