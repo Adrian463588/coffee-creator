@@ -46,6 +46,7 @@ These unit tests are not requirement acceptance. The audit's explicit denominato
 - **P0, D-008:** `SCA_CVA_CURRENT` mapping and licensed-source validation remain unverified; official scoring must remain unavailable until verified.
 - **P0, D-013:** historical champion-recipe content and stable-ID/provenance reconciliation remain incomplete.
 - **P0, D-015:** historical public-release claims still need tag-by-tag factual reconciliation.
+- **D-014, local metadata correction:** README and v1.14.5 notes now use the canonical `Adrian463588/coffee-creator` APK URL and GitHub API asset size (123,036,057 bytes; 123.0 MB / 117.3 MiB). The existing release SHA-256 remains as recorded in the baseline audit.
 - **P1:** historical nested-backup compatibility, full offline/device journeys, BLE/timer recovery, and content provenance remain unverified as listed in the baseline release-readiness report.
 - **P2:** amendment `actorId` is supplied by the caller and is not authenticated or role-backed.
 - Android lint has unresolved findings; Detekt and main-source KtLint are not clean. Device, accessibility, SAF, migration, and full acceptance suites were not run.
