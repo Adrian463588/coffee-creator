@@ -15,9 +15,12 @@ data class TriangleTrial(
     val referenceSampleName: String,
     val contrastSampleName: String,
     val assignedOrder: TriangleSampleOrder,
-    val blindSampleCodes: List<String>, // Exactly 3 opaque codes e.g. ["219", "843", "501"]
-    val submittedChoiceIndex: Int? = null, // 0, 1, or 2
-    val confidenceRating: Int? = null, // 1 to 5
+    // Exactly 3 opaque codes e.g. ["219", "843", "501"]
+    val blindSampleCodes: List<String>,
+    // 0, 1, or 2
+    val submittedChoiceIndex: Int? = null,
+    // 1 to 5
+    val confidenceRating: Int? = null,
     val timestampEpochMs: Long? = null,
     val isEvaluated: Boolean = false,
     val isCorrect: Boolean = false
@@ -124,8 +127,10 @@ object StandardRoastDefects {
             visualAttributesId = "Inti tengah berwarna cokelat muda pucat, lipatan biji berkerut, patahan keras.",
             sensoryAttributesEn = "Raw cereal, green hay, astringent peanut skin, sharp grassy sourness.",
             sensoryAttributesId = "Sereal mentah, jerami hijau, sepat kulit kacang tanah, asam rumput menusuk.",
-            roastingRootCauseEn = "Insufficient heat penetration into the bean core before drop; development time ratio (DTR) too low (<12%).",
-            roastingRootCauseId = "Penetrasi panas ke inti biji tidak cukup sebelum diturunkan; rasio waktu pengembangan (DTR) terlalu singkat (<12%)."
+            roastingRootCauseEn = "Insufficient heat penetration into the bean core before drop; " +
+                "development time ratio (DTR) too low (<12%).",
+            roastingRootCauseId = "Penetrasi panas ke inti biji tidak cukup sebelum diturunkan; " +
+                "rasio waktu pengembangan (DTR) terlalu singkat (<12%)."
         ),
         RoastDefectReference(
             category = RoastDefectCategory.BAKED,
@@ -134,7 +139,8 @@ object StandardRoastDefects {
             sensoryAttributesEn = "Flat, cardboard, dry toast, total loss of sweet aromatics and lively acidity.",
             sensoryAttributesId = "Hambar datar, kardus, roti tawar kering, hilangnya keasaman buah dan aroma manis.",
             roastingRootCauseEn = "Stalled rate of rise (RoR flat or declining to 0) during Maillard or post-first crack phase.",
-            roastingRootCauseId = "Laju kenaikan suhu (RoR) mendatar atau jatuh ke 0 selama fase Maillard atau setelah first crack."
+            roastingRootCauseId = "Laju kenaikan suhu (RoR) mendatar atau jatuh ke 0 selama fase Maillard " +
+                "atau setelah first crack."
         ),
         RoastDefectReference(
             category = RoastDefectCategory.SCORCHED,
@@ -142,8 +148,10 @@ object StandardRoastDefects {
             visualAttributesId = "Bercak hitam gosong pada permukaan pipih atau tepi luar biji.",
             sensoryAttributesEn = "Acrid wood smoke, ash, harsh charcoal bitterness with a drying harsh finish.",
             sensoryAttributesId = "Asap kayu menusuk, abu, pahit arang tajam dengan rasa kesat mengeringkan.",
-            roastingRootCauseEn = "Charge temperature too high or drum rotation speed too slow, allowing beans to contact overheated metal.",
-            roastingRootCauseId = "Suhu awal (charge temp) terlalu tinggi atau drum berputar terlalu lambat sehingga biji menempel pada logam panas."
+            roastingRootCauseEn = "Charge temperature too high or drum rotation speed too slow, " +
+                "allowing beans to contact overheated metal.",
+            roastingRootCauseId = "Suhu awal (charge temp) terlalu tinggi atau drum berputar terlalu lambat " +
+                "sehingga biji menempel pada logam panas."
         ),
         RoastDefectReference(
             category = RoastDefectCategory.QUAKER,
@@ -151,7 +159,8 @@ object StandardRoastDefects {
             visualAttributesId = "Biji berwarna kuning pucat atau jerami setelah disangrai; gagal menjadi cokelat.",
             sensoryAttributesEn = "Peanut shells, dry straw, popcorn husk, oily cereal paper.",
             sensoryAttributesId = "Kulit kacang tanah, jerami kering, kulit popcorn, kertas minyak.",
-            roastingRootCauseEn = "Agronomic fault: immature fruit harvested with deficient reducing sugars, preventing the Maillard reaction.",
+            roastingRootCauseEn = "Agronomic fault: immature fruit harvested with deficient reducing sugars, " +
+                "preventing the Maillard reaction.",
             roastingRootCauseId = "Cacat agronomi: buah mentah dipetik saat kadar gula pereduksi belum cukup, menggagalkan reaksi Maillard."
         )
     )
@@ -335,7 +344,8 @@ data class RoastDefectTrial(
     val defectiveCoffeeName: String,
     val blindCupCodes: List<String>,
     val submittedDefect: RoastDefectCategory? = null,
-    val causalInferenceCaveat: String = "Sensory profile reflects multi-variable roast dynamics; does not prove single roast flaw without roaster curves."
+    val causalInferenceCaveat: String = "Sensory profile reflects multi-variable roast dynamics; " +
+        "does not prove single roast flaw without roaster curves."
 )
 
 enum class MouthfeelAttribute(val labelEn: String, val labelId: String) {
@@ -359,7 +369,8 @@ enum class ComparativeDrillKind { PAIRED_COMPARISON_2AFC, RANKING_SERIES }
 data class ComparativeTrial(
     val trialId: String,
     val drillKind: ComparativeDrillKind,
-    val attributeUnderTest: String, // e.g. "Acidity Intensity" or "Sweetness"
+    // e.g. "Acidity Intensity" or "Sweetness"
+    val attributeUnderTest: String,
     val blindSampleCodes: List<String>,
     val submittedOrder: List<String>? = null,
     val correctOrder: List<String>,
@@ -380,7 +391,8 @@ data class SkillReadinessMetric(
     val pillar: SensorySkillPillar,
     val completedPracticalTrials: Int,
     val accuracyPercentage: Double,
-    val calibrationScore: Double, // 0.0 to 100.0
+    // 0.0 to 100.0
+    val calibrationScore: Double,
     val lastPracticedEpochMs: Long?
 )
 
@@ -388,7 +400,8 @@ data class SensoryReadinessDashboard(
     val assessorPseudonym: String,
     val metrics: Map<SensorySkillPillar, SkillReadinessMetric>,
     val overallReadinessScore: Double,
-    val legalDisclaimer: String = "Coffee Creator Sensory Lab provides self-directed practice only. Does NOT confer official SCA or CQI Q-Grader certification."
+    val legalDisclaimer: String = "Coffee Creator Sensory Lab provides self-directed practice only. " +
+        "Does NOT confer official SCA or CQI Q-Grader certification."
 )
 
 enum class PracticalVerificationType {
@@ -403,5 +416,6 @@ data class PracticalExerciseVerification(
     val physicalSamplePrepared: Boolean,
     val verifierPseudonym: String,
     val timestampEpochMs: Long,
-    val isAutoPassed: Boolean = false // Invariant: Must ALWAYS be false
+    // Invariant: Must ALWAYS be false
+    val isAutoPassed: Boolean = false
 )
