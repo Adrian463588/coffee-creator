@@ -62,12 +62,19 @@ data class BrewSessionState(
     val liveSamples: List<ScaleWeightSample> = emptyList(),
     val scaleDevice: BleScaleDevice? = null,
     val scaleConnectionState: ScaleConnectionState = ScaleConnectionState.DISCONNECTED,
-    val autoStartArmed: Boolean = true,
+    val autoStartArmed: Boolean = false,
     val autoStopDetected: Boolean = false,
-    val keepScreenOn: Boolean = true,
+    val keepScreenOn: Boolean = false,
     val audioEnabled: Boolean = true,
-    val hapticsEnabled: Boolean = true
+    val hapticsEnabled: Boolean = true,
+    val notificationEnabled: Boolean = true,
+    val recoveryNotice: String? = null,
+    val manualWeightRecorded: Boolean = false,
+    val manualWeighIns: List<ManualBrewWeighIn> = emptyList()
 )
+
+/** Human-entered scale readings; these are not inferred beverage mass or a live flow measurement. */
+data class ManualBrewWeighIn(val elapsedSeconds: Int, val weightGrams: Double)
 
 data class BrewSessionSnapshot(
     val sessionId: String,

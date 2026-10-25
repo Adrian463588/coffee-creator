@@ -7,4 +7,6 @@ message AppPreferences {
   uint32 max_tokens = 2;
   float temperature = 3;
   bool onboarded = 4;
+  // Versioned local timer checkpoint and cue preferences. Existing field numbers remain unchanged.
+  string brew_timer_state = 5;
 }
