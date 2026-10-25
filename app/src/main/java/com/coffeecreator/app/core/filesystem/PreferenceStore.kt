@@ -35,4 +35,7 @@ class PreferenceStore(private val context: Context) {
     suspend fun finishOnboarding() {
         context.appPreferences.updateData { it.toBuilder().setOnboarded(true).build() }
     }
+    suspend fun setBrewTimerState(json: String) {
+        context.appPreferences.updateData { it.toBuilder().setBrewTimerState(json).build() }
+    }
 }

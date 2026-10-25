@@ -199,8 +199,6 @@ private data class RecommendationInputs(
 )
 
 private const val DRAFT_DEBOUNCE_MS = 400L
-internal const val MILLIS_PER_SECOND = 1000L
-internal const val TIMER_REFRESH_MS = 250L
 
 internal fun ModelAsset.isSupportedByNativeRuntime(): Boolean =
     format.startsWith("GGUF", ignoreCase = true) && runtime == "llama.cpp" && tokenizerSupport.isNotBlank()
@@ -214,14 +212,11 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
     internal val draftWrites = MutableStateFlow<RecipeDraft?>(null)
     internal var generation: Job? = null
     internal var photoOcrJob: Job? = null
-    internal var timer: Job? = null
-    internal var timerOrigin = 0L
     internal var undoDraft: RecipeDraft? = null
     private var draftAutosave: Job? = null
     internal var scaleDriver: BleScaleDriver? = null
     internal var scaleJob: Job? = null
-    internal var lowFlowStartMonoMs = 0L
-    internal var prevStepIndex = 0
+    internal val pendingTimerJournalWrites = mutableSetOf<String>()
     private var persistedCoffeeSnapshot: CoffeeDurableSnapshot? = null
 
     @Volatile internal var replacingDraft = false
@@ -231,6 +226,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
         observeRecommendationInputs()
         task("Opening local records") {
             graph.repository.initialize()
+            graph.brewTimer.awaitReady()
             val storedRecords = CoffeeDurableSnapshotCodec.read(graph.repository.settings.value) { key, failure ->
                 diagnosticBuffer.log(
                     LogLevel.WARN,
@@ -290,6 +286,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
             }
             mutableState.update { it.copy(ready = true, canUndoDraft = undoDraft != null) }
             observeDurableRecords()
+            observeBrewTimer()
             calculate()
         }
         viewModelScope.launch {
@@ -427,6 +424,7 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
                 try {
                     graph.repository.saveSettings(changes)
                     persistedCoffeeSnapshot = current
+                    graph.brewTimer.acknowledgeCompletions(current.journalEntries.map { it.id }.toSet())
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (boundaryFailure: Exception) {
@@ -689,7 +687,6 @@ class CoffeeViewModel @Inject constructor(val graph: AppGraph, internal val save
 
     override fun onCleared() {
         graph.native.cancel()
-        timer?.cancel()
         scaleJob?.cancel()
         photoOcrJob?.cancel()
         super.onCleared()

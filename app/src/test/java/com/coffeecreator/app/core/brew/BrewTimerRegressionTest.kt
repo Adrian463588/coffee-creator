@@ -12,6 +12,7 @@ import com.coffeecreator.app.ui.viewmodel.skipBrewStep
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -33,11 +34,13 @@ class BrewTimerRegressionTest {
     fun setUp() {
         Dispatchers.setMain(StandardTestDispatcher())
         model = CoffeeViewModel(AppGraph(ApplicationProvider.getApplicationContext()), SavedStateHandle())
+        runBlocking { model.graph.brewTimer.awaitReady() }
     }
 
     @After
     fun tearDown() {
         model.viewModelScope.cancel()
+        model.graph.brewTimer.close()
         Dispatchers.resetMain()
     }
 
