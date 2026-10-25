@@ -54,8 +54,8 @@ private const val DETAIL_FADE_OUT_MS = 120
 
 internal enum class BrewSection(val label: String, val detail: String) {
     Recipe("Recipe", "Plan dose, water, ratio & scaling"),
-    Steps("Steps", "Ordered pours, times, temps and valves"),
-    Timer("Timer", "Active timer, live flow and BLE scale"),
+    Steps("Steps", "Review targets or edit one pour at a time"),
+    Timer("Timer", "Manual timing and pour reminders"),
     Measurements("Measurements", "Add values you have measured & Brix lab"),
     Ingredients("Ingredients", "Check additions and supplier limits"),
     Tools("Tools", "Calculate with explicit quantities"),

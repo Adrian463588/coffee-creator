@@ -111,6 +111,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -120,6 +121,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -130,6 +132,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -221,6 +224,9 @@ import com.coffeecreator.app.ui.viewmodel.addUserGrinderProfile
 import com.coffeecreator.app.ui.viewmodel.applyOvatAdjustmentToDraft
 import com.coffeecreator.app.ui.viewmodel.auditIngredientSafety
 import com.coffeecreator.app.ui.viewmodel.brewChampionRecipe
+import com.coffeecreator.app.ui.viewmodel.prepareRecipeForBrew
+import com.coffeecreator.app.ui.viewmodel.prepareDraftForBrew
+import com.coffeecreator.app.ui.viewmodel.repeatJournalBrew
 import com.coffeecreator.app.ui.viewmodel.cancelCatalogPhotoOcr
 import com.coffeecreator.app.ui.viewmodel.cancelDeletion
 import com.coffeecreator.app.ui.viewmodel.cancelGeneration
@@ -338,8 +344,6 @@ import kotlinx.coroutines.withContext
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
 private const val DECIMAL_GIGABYTE_BYTES = 1_000_000_000.0
 private const val LICENSE_SUMMARY_CHARS = 120
-private const val PULSE_ANIMATION_DURATION_MILLIS = 1200
-private const val PULSE_INNER_RADIUS_DIVISOR = 3.2f
 private const val LABEL_INPUT_HEIGHT_DP = 120
 private const val HALF_RECIPE_SCALE = 0.5
 private const val ONE_AND_HALF_RECIPE_SCALE = 1.5
@@ -349,14 +353,8 @@ private const val MAX_CUSTOM_PERSONA_CHARS = 300
 private const val TRANSITION_FADE_IN_MILLIS = 150
 private const val TRANSITION_FADE_OUT_MILLIS = 100
 private const val WIDE_INPUT_WEIGHT = 1.5f
-private const val TIMER_RESTART_ACTION_WEIGHT = 1.1f
-private const val TIMER_FINISH_ACTION_WEIGHT = 1.4f
 private const val PRIMARY_ACTION_WEIGHT = 1.2f
 private const val SECONDARY_ACTION_WEIGHT = 1.1f
-private const val POUR_INCREMENT_SMALL_GRAMS = 10.0
-private const val POUR_INCREMENT_MEDIUM_GRAMS = 25.0
-private const val POUR_INCREMENT_LARGE_GRAMS = 50.0
-private const val POUR_INCREMENT_FULL_GRAMS = 100.0
 private val handGrinderBadgeContainerColor = Color(0xFF8D6E63)
 private val electricGrinderBadgeContainerColor = Color(0xFF3F51B5)
 private val handGrinderBadgeContentColor = Color(0xFFD7CCC8)
@@ -369,12 +367,6 @@ private val filterOnlyBadgeContainerColor = Color(0xFFC62828)
 private val filterOnlyBadgeContentColor = Color(0xFFEF9A9A)
 private val valveBadgeContainerColor = Color(0xFF7B1FA2)
 private val valveBadgeContentColor = Color(0xFFCE93D8)
-private val SIMULATED_POUR_INCREMENT_GRAMS = listOf(
-    POUR_INCREMENT_SMALL_GRAMS,
-    POUR_INCREMENT_MEDIUM_GRAMS,
-    POUR_INCREMENT_LARGE_GRAMS,
-    POUR_INCREMENT_FULL_GRAMS
-)
 private val destinations = listOf(
     Destination("Home", "Home", Icons.Default.Home),
     Destination("Formulate", "Brew", Icons.Default.Coffee),
@@ -384,16 +376,24 @@ private val destinations = listOf(
 )
 
 @Composable
-fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
+fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState, openTimerRequest: Int = 0) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val route = backStackEntry?.destination?.route ?: "Home"
     var brewResetKey by rememberSaveable { mutableStateOf(0) }
+    var brewInitialSection by rememberSaveable { mutableStateOf(BrewSection.Recipe.name) }
     val navigate: (String) -> Unit = { target ->
         navController.navigate(target) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
             restoreState = true
+        }
+    }
+    LaunchedEffect(openTimerRequest) {
+        if (openTimerRequest > 0) {
+            brewInitialSection = BrewSection.Timer.name
+            brewResetKey++
+            navigate("Formulate")
         }
     }
     var menu by rememberSaveable { mutableStateOf(false) }
@@ -551,18 +551,31 @@ fun CoffeeApp(model: CoffeeViewModel, state: CoffeeUiState) {
                     NavHost(navController, startDestination = "Home", modifier = Modifier.weight(1f)) {
                         composable("Home") {
                             Home(state, model) { target ->
-                                if (target == "Formulate") brewResetKey++
+                                if (target == "Formulate") {
+                                    brewInitialSection = BrewSection.Recipe.name
+                                    brewResetKey++
+                                }
                                 navigate(target)
                             }
                         }
-                        composable("Formulate") { Formulate(state, model, brewResetKey) }
+                        composable("Formulate") { Formulate(state, model, brewResetKey, brewInitialSection) }
                         composable("Library") { Library(state, model) }
                         composable("Journal") {
-                            Journal(state, model) { recipe ->
-                                model.editRecipe(recipe)
-                                brewResetKey++
-                                navigate("Formulate")
-                            }
+                            Journal(
+                                state,
+                                model,
+                                openTimer = {
+                                    brewInitialSection = BrewSection.Timer.name
+                                    brewResetKey++
+                                    navigate("Formulate")
+                                },
+                                edit = { recipe ->
+                                    model.editRecipe(recipe)
+                                    brewInitialSection = BrewSection.Recipe.name
+                                    brewResetKey++
+                                    navigate("Formulate")
+                                }
+                            )
                         }
                         composable("Sensory") { Sensory(state, model) }
                         composable("Knowledge") { Knowledge(state, model) }
@@ -645,9 +658,9 @@ private fun Heading(title: String, detail: String) {
 }
 
 @Composable
-private fun InfoCard(title: String, detail: String, content: @Composable () -> Unit = {}) {
+private fun InfoCard(title: String, detail: String, modifier: Modifier = Modifier, content: @Composable () -> Unit = {}) {
     TactileCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -656,58 +669,6 @@ private fun InfoCard(title: String, detail: String, content: @Composable () -> U
                 Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             content()
-        }
-    }
-}
-
-@Composable
-private fun LivePulseIndicator(isActive: Boolean, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.primary) {
-    if (isActive) {
-        val infiniteTransition = rememberInfiniteTransition(label = "pulseTransition")
-        val pulseScale by infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1.6f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(PULSE_ANIMATION_DURATION_MILLIS, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "pulseScale"
-        )
-        val pulseAlpha by infiniteTransition.animateFloat(
-            initialValue = 0.8f,
-            targetValue = 0.0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(PULSE_ANIMATION_DURATION_MILLIS, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "pulseAlpha"
-        )
-        Box(
-            modifier = modifier.size(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(
-                    color = color.copy(alpha = pulseAlpha),
-                    radius = (size.minDimension / 2f) * pulseScale
-                )
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension / PULSE_INNER_RADIUS_DIVISOR
-                )
-            }
-        }
-    } else {
-        Box(
-            modifier = modifier.size(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(
-                    color = color.copy(alpha = 0.35f),
-                    radius = size.minDimension / PULSE_INNER_RADIUS_DIVISOR
-                )
-            }
         }
     }
 }
@@ -859,7 +820,7 @@ private fun Field(label: String, value: String, onChange: (String) -> Unit, tag:
 }
 
 @Composable
-private fun Select(label: String, selected: String, choices: List<Pair<String, String>>, onSelect: (String) -> Unit, tag: String) {
+internal fun Select(label: String, selected: String, choices: List<Pair<String, String>>, onSelect: (String) -> Unit, tag: String) {
     val haptic = LocalHapticFeedback.current
     var open by rememberSaveable { mutableStateOf(false) }
     val arrowRotation by animateFloatAsState(
@@ -1063,13 +1024,30 @@ private fun Home(state: CoffeeUiState, model: CoffeeViewModel, navigate: (String
 }
 
 @Composable
-private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: Int) {
+private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: Int, initialSection: String) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val fields = state.draft.fields
-    var selectedSection by rememberSaveable(resetKey) { mutableStateOf(BrewSection.Recipe.name) }
+    val draftMethod = if (fields["method"] == "Custom") fields["customMethod"].orEmpty() else fields["method"].orEmpty()
+    var selectedSection by rememberSaveable(resetKey) { mutableStateOf(initialSection) }
+    var expandedStepNumber by rememberSaveable(resetKey) { mutableStateOf<Int?>(null) }
+    var stepEditorGeneration by rememberSaveable(resetKey) { mutableStateOf(0) }
+    var invalidStepNumbers by rememberSaveable(resetKey) { mutableStateOf(emptySet<Int>()) }
     val section = BrewSection.valueOf(selectedSection)
+    val selectSection: (BrewSection) -> Unit = { next ->
+        when {
+            next != BrewSection.Timer -> selectedSection = next.name
+            state.brewSession?.status in setOf(BrewExecutionStatus.RUNNING, BrewExecutionStatus.PAUSED) -> {
+                selectedSection = next.name
+            }
+            invalidStepNumbers.isNotEmpty() -> {
+                selectedSection = BrewSection.Steps.name
+                expandedStepNumber = invalidStepNumbers.first()
+            }
+            model.prepareDraftForBrew() -> selectedSection = next.name
+        }
+    }
     var ingredientId by rememberSaveable { mutableStateOf("") }
     var quantity by rememberSaveable { mutableStateOf("") }
     var unit by rememberSaveable { mutableStateOf("g") }
@@ -1082,13 +1060,13 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
         val scrollSections = maxHeight < compactHeight || LocalDensity.current.fontScale >= largeFontScale
         Column(Modifier.fillMaxSize()) {
             if (!scrollSections) {
-                BrewSectionTabs(section, Modifier.padding(horizontal = 16.dp)) { selectedSection = it.name }
+                BrewSectionTabs(section, Modifier.padding(horizontal = 16.dp), selectSection)
             }
             Box(Modifier.weight(1f).testTag("brew:content:${section.name}")) {
                 androidx.compose.runtime.key(section) {
                     Page("Formulate") {
                         if (scrollSections) {
-                            item(key = "brew:sections") { BrewSectionTabs(section) { selectedSection = it.name } }
+                            item(key = "brew:sections") { BrewSectionTabs(section, onSelect = selectSection) }
                         }
                         when (section) {
                             BrewSection.Recipe -> {
@@ -1190,32 +1168,11 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                     }
                                 }
                                 item {
-                                    BrewCard("Brew timer", "%02d:%02d".format(state.timerSeconds / 60, state.timerSeconds % 60)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            TactileButton(
-                                                onClick = model::toggleTimer,
-                                                modifier = Modifier.heightIn(min = 48.dp).testTag("recipe:toggle_timer")
-                                            ) {
-                                                Text(
-                                                    text = if (state.timerRunning) "Pause timer" else "Start timer",
-                                                    maxLines = 1,
-                                                    softWrap = false
-                                                )
-                                            }
-                                            TactileOutlinedButton(
-                                                onClick = model::resetTimer,
-                                                modifier = Modifier.heightIn(min = 48.dp).testTag("recipe:reset_timer")
-                                            ) {
-                                                Text(
-                                                    text = "Reset timer",
-                                                    maxLines = 1,
-                                                    softWrap = false
-                                                )
-                                            }
-                                        }
+                                    BrewCard("Ready to brew?", "Review the pour plan, then start the manual timer.") {
+                                        TactileButton(
+                                            onClick = { selectSection(BrewSection.Timer) },
+                                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("recipe:open_timer")
+                                        ) { Text("Open brew timer") }
                                     }
                                 }
                                 item {
@@ -1309,6 +1266,25 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                                         Field("Equipment", fields.getValue("equipment"), {
                                             model.updateField("equipment", it)
                                         }, "form:equipment")
+                                        if (draftMethod.contains("Espresso", ignoreCase = true)) {
+                                            Text("Manual espresso machine", style = MaterialTheme.typography.titleSmall)
+                                            Text(
+                                                "Name your setup. Start and stop the machine yourself; the app only times the shot.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            FlowRow(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                listOf("Xiaomi semi-automatic", "Nuova Simonelli Appia", "Ferratti Ferro").forEach { name ->
+                                                    TactileOutlinedButton(
+                                                        onClick = { model.updateField("equipment", name) },
+                                                        modifier = Modifier.heightIn(min = 48.dp)
+                                                    ) { Text(name) }
+                                                }
+                                            }
+                                        }
                                         Field("Grind description", fields.getValue("grind"), {
                                             model.updateField("grind", it)
                                         }, "form:grind")
@@ -1521,516 +1497,65 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                             }
                             BrewSection.Steps -> {
                                 item {
-                                    BrewCard("Ordered pour steps", "Action, timing, pour water, temperature and valve state.") {
-                                        TactileButton(
-                                            onClick = model::addDraftStep,
-                                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("steps:add")
-                                        ) {
-                                            Text("+ Add pour step", maxLines = 1, softWrap = false)
-                                        }
+                                    Heading("Pour plan", "Check the targets, then open the timer. Tap a step to edit it.")
+                                    TactileButton(
+                                        onClick = { selectSection(BrewSection.Timer) },
+                                        enabled = invalidStepNumbers.isEmpty(),
+                                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("steps:timer")
+                                    ) { Text("Continue to timer") }
+                                    TactileTextButton(
+                                        onClick = {
+                                            expandedStepNumber = state.draft.steps.size + 1
+                                            model.addDraftStep()
+                                        },
+                                        modifier = Modifier.heightIn(min = 48.dp).testTag("steps:add")
+                                    ) { Text("Add pour step") }
+                                    if (invalidStepNumbers.isNotEmpty()) {
+                                        Text(
+                                            "Correct the highlighted step inputs before continuing.",
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
                                     }
                                 }
                                 if (state.draft.steps.isEmpty()) {
                                     item {
                                         InfoCard(
-                                            "No custom steps defined",
-                                            "Tap '+ Add pour step' to build a structured multi-pour routine or open a saved recipe."
+                                            "No custom pours yet",
+                                            "Add a pour step or use the recipe's single-stage timer."
                                         )
                                     }
                                 }
                                 items(state.draft.steps.withIndex().toList(), key = { it.value.stepNumber }) { (index, step) ->
-                                    InfoCard(
-                                        "Step ${step.stepNumber}: ${step.action} (+${step.targetWaterGrams} g)",
-                                        "Cumulative: ${step.cumulativeMassGrams} g · ${step.durationSeconds} s" +
-                                            (if (step.temperatureCelsius != null) " · ${step.temperatureCelsius} °C" else "") +
-                                            (if (!step.valveStatus.isNullOrBlank()) " · Valve: ${step.valveStatus}" else "")
-                                    ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            Select(
-                                                "Action",
-                                                step.action,
-                                                listOf("Bloom", "Pour", "Wait", "Stir", "Press", "Drawdown", "Valve").map { it to it },
-                                                { model.updateDraftStep(index, step.copy(action = it)) },
-                                                "step:action:$index"
-                                            )
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                OutlinedTextField(
-                                                    value = step.targetWaterGrams.toString(),
-                                                    onValueChange = {
-                                                        val w = it.toDoubleOrNull()
-                                                        if (w != null && w >= 0) {
-                                                            model.updateDraftStep(
-                                                                index,
-                                                                step.copy(targetWaterGrams = w)
-                                                            )
-                                                        }
-                                                    },
-                                                    label = { Text("Water (g)") },
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                                    modifier = Modifier.weight(1f).testTag("step:water:$index")
-                                                )
-                                                OutlinedTextField(
-                                                    value = step.durationSeconds.toString(),
-                                                    onValueChange = {
-                                                        val s = it.toIntOrNull()
-                                                        if (s != null && s > 0) model.updateDraftStep(index, step.copy(durationSeconds = s))
-                                                    },
-                                                    label = { Text("Sec") },
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                    modifier = Modifier.weight(1f).testTag("step:duration:$index")
-                                                )
+                                    androidx.compose.runtime.key(stepEditorGeneration) {
+                                        PourStepCard(
+                                            step = step,
+                                            index = index,
+                                            expanded = expandedStepNumber == step.stepNumber,
+                                            onToggle = {
+                                                expandedStepNumber = if (expandedStepNumber == step.stepNumber) null else step.stepNumber
+                                            },
+                                            onUpdate = { model.updateDraftStep(index, it) },
+                                            onRemove = {
+                                                model.removeDraftStep(index)
+                                                expandedStepNumber = null
+                                                invalidStepNumbers = emptySet()
+                                                stepEditorGeneration++
+                                            },
+                                            onValidityChanged = { valid ->
+                                                invalidStepNumbers = if (valid) {
+                                                    invalidStepNumbers - step.stepNumber
+                                                } else {
+                                                    invalidStepNumbers + step.stepNumber
+                                                }
                                             }
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                Select(
-                                                    "Valve",
-                                                    step.valveStatus.orEmpty(),
-                                                    listOf("" to "N/A", "Open" to "Open", "Closed" to "Closed", "Half" to "Half"),
-                                                    { model.updateDraftStep(index, step.copy(valveStatus = it.ifBlank { null })) },
-                                                    "step:valve:$index"
-                                                )
-                                            }
-                                            OutlinedTextField(
-                                                value = step.description,
-                                                onValueChange = { model.updateDraftStep(index, step.copy(description = it)) },
-                                                label = { Text("Description") },
-                                                modifier = Modifier.fillMaxWidth().testTag("step:desc:$index")
-                                            )
-                                            TactileTextButton(
-                                                onClick = { model.removeDraftStep(index) },
-                                                modifier = Modifier.heightIn(min = 48.dp).testTag("step:remove:$index")
-                                            ) {
-                                                Text("Remove step", maxLines = 1, softWrap = false)
-                                            }
-                                        }
+                                        )
                                     }
                                 }
                             }
                             BrewSection.Timer -> {
                                 item {
-                                    val session = state.brewSession
-                                    val elapsedSec = state.timerSeconds
-                                    val elapsedFormatted = "%02d:%02d".format(elapsedSec / 60, elapsedSec % 60)
-                                    val currentProgress = session?.stepProgress
-
-                                    BrewCard(
-                                        "Active brew chronometer & scale",
-                                        "Real-time countdown, step-by-step guidance, BLE scale streaming, and live flow rate."
-                                    ) {
-                                        // Unified Precision Laboratory Console
-                                        Surface(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .testTag("timer:display"),
-                                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                            shape = RoundedCornerShape(16.dp),
-                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
-                                        ) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(16.dp),
-                                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                                            ) {
-                                                // Header Bar: Live Pulse + State + Scale Connection Status
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                    ) {
-                                                        LivePulseIndicator(isActive = state.timerRunning)
-                                                        Text(
-                                                            text = if (state.timerRunning) {
-                                                                "ACTIVE BREWING"
-                                                            } else if (session?.status == BrewExecutionStatus.PAUSED) {
-                                                                "PAUSED"
-                                                            } else if (session?.status == BrewExecutionStatus.COMPLETED) {
-                                                                "COMPLETED"
-                                                            } else {
-                                                                "READY / ARMED"
-                                                            },
-                                                            style = MaterialTheme.typography.labelMedium,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = if (state.timerRunning) {
-                                                                MaterialTheme.colorScheme.primary
-                                                            } else {
-                                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                                            }
-                                                        )
-                                                    }
-                                                    Surface(
-                                                        shape = RoundedCornerShape(6.dp),
-                                                        color = if (session?.scaleConnectionState == ScaleConnectionState.READY) {
-                                                            MaterialTheme.colorScheme.primaryContainer
-                                                        } else {
-                                                            MaterialTheme.colorScheme.surfaceContainerHighest
-                                                        }
-                                                    ) {
-                                                        Text(
-                                                            text = session?.scaleDevice?.name
-                                                                ?: session?.scaleConnectionState?.name
-                                                                ?: "DISCONNECTED",
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            fontWeight = FontWeight.Medium,
-                                                            color = if (session?.scaleConnectionState == ScaleConnectionState.READY) {
-                                                                MaterialTheme.colorScheme.onPrimaryContainer
-                                                            } else {
-                                                                MaterialTheme.colorScheme.outline
-                                                            },
-                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                                        )
-                                                    }
-                                                }
-
-                                                // Primary Telemetry Cluster: Elapsed Time & Live Mass/Flow
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(
-                                                        text = elapsedFormatted,
-                                                        style = MaterialTheme.typography.displayMedium.copy(
-                                                            fontFamily = FontFamily.Monospace,
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontFeatureSettings = "tnum"
-                                                        ),
-                                                        maxLines = 1,
-                                                        softWrap = false,
-                                                        color = MaterialTheme.colorScheme.onSurface,
-                                                        modifier = Modifier.semantics {
-                                                            liveRegion = LiveRegionMode.Polite
-                                                        }
-                                                    )
-                                                    Column(horizontalAlignment = Alignment.End) {
-                                                        Text(
-                                                            "CURRENT MASS",
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = MaterialTheme.colorScheme.outline
-                                                        )
-                                                        Text(
-                                                            text = "${"%.1f".format(
-                                                                java.util.Locale.US,
-                                                                session?.currentWeightGrams ?: 0.0
-                                                            )} g",
-                                                            style = MaterialTheme.typography.headlineMedium.copy(
-                                                                fontFamily = FontFamily.Monospace,
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontFeatureSettings = "tnum"
-                                                            ),
-                                                            maxLines = 1,
-                                                            softWrap = false
-                                                        )
-                                                        Text(
-                                                            text = "${"%.2f".format(
-                                                                java.util.Locale.US,
-                                                                session?.currentFlowRateGps ?: 0.0
-                                                            )} g/s",
-                                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                                fontFamily = FontFamily.Monospace,
-                                                                fontWeight = FontWeight.SemiBold,
-                                                                fontFeatureSettings = "tnum"
-                                                            ),
-                                                            maxLines = 1,
-                                                            softWrap = false,
-                                                            color = MaterialTheme.colorScheme.secondary
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // Step Progression Card
-                                        if (currentProgress != null) {
-                                            Surface(
-                                                modifier = Modifier.fillMaxWidth().testTag("timer:step_card"),
-                                                color = MaterialTheme.colorScheme.surface,
-                                                shape = RoundedCornerShape(10.dp),
-                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
-                                            ) {
-                                                Column(
-                                                    modifier = Modifier.padding(12.dp),
-                                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween
-                                                    ) {
-                                                        Text(
-                                                            text = "Step ${currentProgress.stepIndex + 1} of " +
-                                                                "${currentProgress.totalSteps}: ${currentProgress.currentStep.action}",
-                                                            style = MaterialTheme.typography.titleMedium,
-                                                            fontWeight = FontWeight.SemiBold
-                                                        )
-                                                        Text(
-                                                            text = "${currentProgress.stepRemainingSeconds}s remaining",
-                                                            style = MaterialTheme.typography.titleMedium,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.primary
-                                                        )
-                                                    }
-                                                    if (currentProgress.currentStep.description.isNotBlank()) {
-                                                        Text(
-                                                            text = currentProgress.currentStep.description,
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
-                                                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween
-                                                    ) {
-                                                        Text("Step Target: +${currentProgress.stepTargetWaterGrams}g")
-                                                        Text("Cumulative: ${currentProgress.cumulativeTargetWaterGrams}g")
-                                                    }
-                                                    if (currentProgress.nextStep != null) {
-                                                        Text(
-                                                            text = "Next: ${currentProgress.nextStep.action} " +
-                                                                "(+${currentProgress.nextStep.targetWaterGrams}g in " +
-                                                                "${currentProgress.nextStep.durationSeconds}s)",
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.outline
-                                                        )
-                                                    }
-                                                }
-                                            }
-
-                                            val prox = currentProgress.proximityState
-                                            val remainingGrams = "%.1f".format(
-                                                java.util.Locale.US,
-                                                currentProgress.remainingToCumulativeTargetGrams
-                                            )
-                                            val targetGrams = "%.1f".format(
-                                                java.util.Locale.US,
-                                                currentProgress.cumulativeTargetWaterGrams
-                                            )
-                                            val overshootGrams = "%.1f".format(
-                                                java.util.Locale.US,
-                                                (session?.currentWeightGrams ?: 0.0) -
-                                                    currentProgress.cumulativeTargetWaterGrams
-                                            )
-                                            val (proxText, proxColor) = when (prox) {
-                                                ProximityState.NORMAL ->
-                                                    "Pouring: ${remainingGrams}g remaining" to
-                                                        MaterialTheme.colorScheme.onSurface
-                                                ProximityState.APPROACHING_10G ->
-                                                    "Within 10g (${remainingGrams}g left)" to
-                                                        MaterialTheme.colorScheme.tertiary
-                                                ProximityState.IMMINENT_2G -> "Within 2g! Prepare cutoff" to MaterialTheme.colorScheme.error
-                                                ProximityState.TARGET_MATCHED ->
-                                                    "Target Matched (${targetGrams}g)" to
-                                                        MaterialTheme.colorScheme.primary
-                                                ProximityState.OVERSHOOT ->
-                                                    "Target Overshoot (+${overshootGrams}g)" to
-                                                        MaterialTheme.colorScheme.error
-                                            }
-                                            Surface(
-                                                modifier = Modifier.fillMaxWidth().testTag("timer:proximity_badge"),
-                                                color = proxColor.copy(alpha = 0.12f),
-                                                shape = RoundedCornerShape(6.dp),
-                                                border = BorderStroke(1.dp, proxColor)
-                                            ) {
-                                                Text(
-                                                    text = proxText,
-                                                    modifier = Modifier.padding(8.dp),
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = proxColor
-                                                )
-                                            }
-                                        }
-
-                                        // BLE Scale Card
-                                        Surface(
-                                            modifier = Modifier.fillMaxWidth().testTag("timer:scale_card"),
-                                            color = MaterialTheme.colorScheme.surface,
-                                            shape = RoundedCornerShape(10.dp),
-                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                        ) {
-                                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                ) {
-                                                    if (session?.scaleDevice == null) {
-                                                        TactileFilledTonalButton(
-                                                            onClick = model::connectMockScale,
-                                                            modifier = Modifier.weight(
-                                                                1f
-                                                            ).heightIn(min = 48.dp).testTag("timer:connect_scale")
-                                                        ) {
-                                                            Text("Connect Scale", maxLines = 1, softWrap = false)
-                                                        }
-                                                    } else {
-                                                        TactileOutlinedButton(
-                                                            onClick = model::disconnectScale,
-                                                            modifier = Modifier.weight(
-                                                                1f
-                                                            ).heightIn(min = 48.dp).testTag("timer:disconnect_scale")
-                                                        ) {
-                                                            Text("Disconnect", maxLines = 1, softWrap = false)
-                                                        }
-                                                    }
-                                                    TactileButton(
-                                                        onClick = model::tareScale,
-                                                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:tare_scale")
-                                                    ) {
-                                                        Text("Tare (0.0g)", maxLines = 1, softWrap = false)
-                                                    }
-                                                }
-
-                                                if (session?.scaleDevice != null) {
-                                                    Text("Simulate Pouring Water:", style = MaterialTheme.typography.labelSmall)
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                    ) {
-                                                        SIMULATED_POUR_INCREMENT_GRAMS.forEach { delta ->
-                                                            TactileOutlinedButton(
-                                                                onClick = {
-                                                                    model.feedSimulatedWeight(
-                                                                        (session.currentWeightGrams + delta)
-                                                                    )
-                                                                },
-                                                                modifier = Modifier.weight(
-                                                                    1f
-                                                                ).heightIn(min = 48.dp).testTag("timer:sim_pour_${delta.toInt()}")
-                                                            ) {
-                                                                Text("+${delta.toInt()}g", maxLines = 1, softWrap = false)
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // Ergonomic Primary CTA (Start / Pause / Resume)
-                                        TactileButton(
-                                            onClick = {
-                                                if (state.timerRunning) model.pauseBrewSession() else model.startBrewSession()
-                                            },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(54.dp)
-                                                .testTag("timer:toggle"),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (state.timerRunning) {
-                                                    MaterialTheme.colorScheme.tertiary
-                                                } else {
-                                                    MaterialTheme.colorScheme.primary
-                                                }
-                                            ),
-                                            shape = RoundedCornerShape(14.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = if (state.timerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                                contentDescription = null,
-                                                modifier = Modifier.padding(end = 8.dp)
-                                            )
-                                            Text(
-                                                text = if (state.timerRunning) {
-                                                    "Pause Session"
-                                                } else if (session?.status == BrewExecutionStatus.PAUSED) {
-                                                    "Resume Session"
-                                                } else {
-                                                    "Start Session"
-                                                },
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                maxLines = 1,
-                                                softWrap = false
-                                            )
-                                        }
-
-                                        // Secondary Segmented Control Row
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            TactileOutlinedButton(
-                                                onClick = model::skipBrewStep,
-                                                enabled = session != null && session.status != BrewExecutionStatus.COMPLETED,
-                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:skip_step")
-                                            ) {
-                                                Text("Skip", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false)
-                                            }
-                                            TactileOutlinedButton(
-                                                onClick = model::restartBrewStep,
-                                                enabled = session != null,
-                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier
-                                                    .weight(TIMER_RESTART_ACTION_WEIGHT)
-                                                    .heightIn(min = 48.dp)
-                                                    .testTag("timer:restart_step")
-                                            ) {
-                                                Text("Restart", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false)
-                                            }
-                                            TactileOutlinedButton(
-                                                onClick = model::resetBrewSession,
-                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("timer:reset")
-                                            ) {
-                                                Text("Reset", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false)
-                                            }
-                                            TactileFilledTonalButton(
-                                                onClick = model::finishBrewSession,
-                                                enabled = session != null && (state.timerSeconds > 0 || session.currentWeightGrams > 0.0),
-                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                                                modifier = Modifier
-                                                    .weight(TIMER_FINISH_ACTION_WEIGHT)
-                                                    .heightIn(min = 48.dp)
-                                                    .testTag("timer:finish_and_log")
-                                            ) {
-                                                Text(
-                                                    "Finish & Log",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    maxLines = 1,
-                                                    softWrap = false
-                                                )
-                                            }
-                                        }
-
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            TactileFilterChip(
-                                                selected = session?.keepScreenOn ?: true,
-                                                onClick = model::toggleKeepScreenOn,
-                                                label = { Text("Screen Awake", maxLines = 1, softWrap = false) },
-                                                modifier = Modifier.testTag("timer:toggle_awake")
-                                            )
-                                            TactileFilterChip(
-                                                selected = session?.audioEnabled ?: true,
-                                                onClick = model::toggleSound,
-                                                label = { Text("Audio", maxLines = 1, softWrap = false) },
-                                                modifier = Modifier.testTag("timer:toggle_sound")
-                                            )
-                                            TactileFilterChip(
-                                                selected = session?.hapticsEnabled ?: true,
-                                                onClick = model::toggleHaptics,
-                                                label = { Text("Haptics", maxLines = 1, softWrap = false) },
-                                                modifier = Modifier.testTag("timer:toggle_haptics")
-                                            )
-                                        }
-
-                                        if (state.brewCurveRmse != null) {
-                                            Text(
-                                                text = "Extraction Curve RMSE: ${"%.2f".format(
-                                                    java.util.Locale.US,
-                                                    state.brewCurveRmse
-                                                )}g deviation from planned profile",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.outline
-                                            )
-                                        }
-                                    }
+                                    BrewTimerPanel(state, model) { selectedSection = BrewSection.Recipe.name }
                                 }
                             }
                             BrewSection.Expert -> {
@@ -2077,15 +1602,17 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                     }
                 }
             }
+            if (section != BrewSection.Timer) {
             Surface(
                 tonalElevation = 4.dp,
                 shadowElevation = 3.dp,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
             ) {
-                Row(
+                FlowRow(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    maxItemsInEachRow = if (LocalDensity.current.fontScale >= largeFontScale) 1 else 2
                 ) {
                     val calculationSummary = state.calculation.lineSequence().firstOrNull().orEmpty()
                     val ratioLabel = if (calculationSummary.startsWith("Calculated ratio ")) {
@@ -2107,9 +1634,6 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                         ) { targetText ->
                             Text(
                                 targetText,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -2132,14 +1656,12 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                             label = "saveLabelAnimation"
                         ) { isNew ->
                             Text(
-                                if (isNew) "Save recipe" else "Save new revision",
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis
+                                if (isNew) "Save recipe" else "Save new revision"
                             )
                         }
                     }
                 }
+            }
             }
         }
     }
@@ -3896,330 +3418,7 @@ private enum class JournalTab {
 }
 
 @Composable
-private fun ChampionRecipeCard(
-    recipe: ChampionRecipe,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
-    onLogToJournal: () -> Unit,
-    onBrewOnTimer: () -> Unit,
-    onSaveTemplate: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val (catLabel, catBg, catFg) = when (recipe.category) {
-                        RecipeCategory.COMPETITION -> Triple(
-                            "🏆 Competition",
-                            MaterialTheme.colorScheme.primaryContainer,
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        RecipeCategory.SIGNATURE -> Triple(
-                            "✍️ Signature",
-                            MaterialTheme.colorScheme.secondaryContainer,
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        RecipeCategory.STANDARD -> Triple(
-                            "☕ Traditional",
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Surface(shape = RoundedCornerShape(6.dp), color = catBg) {
-                        Text(
-                            text = catLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = catFg,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-
-                    val (verLabel, verBg, verFg) = when (recipe.verificationStatus) {
-                        RecipeVerificationStatus.OFFICIAL -> Triple(
-                            "OFFICIAL",
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            MaterialTheme.colorScheme.primary
-                        )
-                        RecipeVerificationStatus.DOCUMENTED_RECREATION -> Triple(
-                            "RECREATION",
-                            MaterialTheme.colorScheme.tertiaryContainer,
-                            MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                        RecipeVerificationStatus.SECONDARY_ADAPTATION -> Triple(
-                            "ADAPTED",
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        RecipeVerificationStatus.NEEDS_VERIFICATION -> Triple(
-                            "STANDARD",
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            MaterialTheme.colorScheme.outline
-                        )
-                    }
-                    Surface(shape = RoundedCornerShape(6.dp), color = verBg) {
-                        Text(
-                            text = verLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = verFg,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-
-                recipe.podium?.let { podium ->
-                    Text(
-                        text = "${podium.competitionName} '${podium.year.toString().takeLast(2)} · #${podium.rank}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = recipe.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "By ${recipe.baristaOrCreator} · ${recipe.equipment} · ${recipe.method}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
-                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("DOSE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text(
-                            "${recipe.doseGrams}g",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("WATER", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text(
-                            "${recipe.waterGrams}g",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("RATIO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text(
-                            recipe.ratio,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("TEMP", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text(
-                            "${recipe.waterTemperatureCelsius.toInt()}°C",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("TIME", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        val m = recipe.totalTimeSeconds / 60
-                        val s = recipe.totalTimeSeconds % 60
-                        Text(
-                            if (m > 0) "${m}m ${s}s" else "${s}s",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-
-            Text(
-                text = "Grind: ${recipe.grindSize} · ${recipe.notes}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            if (recipe.tags.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    recipe.tags.forEach { tag ->
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                        ) {
-                            Text(
-                                text = "#$tag",
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (recipe.steps.isNotEmpty()) {
-                val rotationAngle by animateFloatAsState(
-                    targetValue = if (isExpanded) 180f else 0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    label = "chevron_rotation"
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onToggleExpand
-                        )
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Pour Routine (${recipe.steps.size} steps)",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = if (isExpanded) "Collapse steps" else "Expand steps",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.rotate(rotationAngle)
-                    )
-                }
-
-                AnimatedVisibility(
-                    visible = isExpanded,
-                    enter = expandVertically(spring(dampingRatio = Spring.DampingRatioLowBouncy)) + fadeIn(),
-                    exit = shrinkVertically(spring(dampingRatio = Spring.DampingRatioLowBouncy)) + fadeOut()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                RoundedCornerShape(6.dp)
-                            )
-                            .padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        recipe.steps.forEach { step ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
-                                ) {
-                                    val m = step.startOffsetSeconds / 60
-                                    val s = step.startOffsetSeconds % 60
-                                    val timeStr = "%02d:%02d".format(java.util.Locale.US, m, s)
-                                    Text(
-                                        text = timeStr,
-                                        style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "${step.action} (${step.waterGrams}g -> ${step.cumulativeWaterGrams}g accum)",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    if (step.description.isNotBlank()) {
-                                        Text(
-                                            text = step.description,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TactileButton(
-                    onClick = onLogToJournal,
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.weight(PRIMARY_ACTION_WEIGHT).height(36.dp).testTag("champion:log:${recipe.id}")
-                ) {
-                    Icon(Icons.Default.Book, null, Modifier.size(16.dp).padding(end = 4.dp))
-                    Text("Log Brew", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
-                }
-
-                TactileFilledTonalButton(
-                    onClick = onBrewOnTimer,
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    modifier = Modifier.weight(SECONDARY_ACTION_WEIGHT).height(36.dp).testTag("champion:brew:${recipe.id}")
-                ) {
-                    Icon(Icons.Default.PlayArrow, null, Modifier.size(16.dp).padding(end = 4.dp))
-                    Text("Brew Timer", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
-                }
-
-                TactileOutlinedButton(
-                    onClick = onSaveTemplate,
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                    modifier = Modifier.height(36.dp).testTag("champion:save:${recipe.id}")
-                ) {
-                    Icon(Icons.Default.Star, null, Modifier.size(16.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe) -> Unit) {
+private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, openTimer: () -> Unit, edit: (Recipe) -> Unit) {
     val context = LocalContext.current
     var activeTab by rememberSaveable { mutableStateOf(JournalTab.BREWS) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -4393,38 +3592,38 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                 }
 
                 item {
-                    Row(
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         TactileButton(
-                            onClick = { model.repeatLastBrew() },
+                            onClick = { if (model.repeatLastBrew()) openTimer() },
+                            enabled = state.journalEntries.isNotEmpty(),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.weight(PRIMARY_ACTION_WEIGHT).heightIn(min = 44.dp).testTag("journal:repeat_last_brew")
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("journal:repeat_last_brew")
                         ) {
-                            Text("⚡ Repeat Last", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
+                            Text("Brew again", style = MaterialTheme.typography.labelLarge)
                         }
                         TactileFilledTonalButton(
                             onClick = { activeTab = JournalTab.CHAMPION_RECIPES },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                             modifier = Modifier
-                                .weight(SECONDARY_ACTION_WEIGHT)
-                                .heightIn(min = 44.dp)
+                                .heightIn(min = 48.dp)
                                 .testTag("journal:nav_champion_recipes")
                         ) {
                             Icon(Icons.Default.Star, null, Modifier.size(16.dp).padding(end = 4.dp))
-                            Text("World (80)", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
+                            Text("World recipes", style = MaterialTheme.typography.labelLarge)
                         }
                         TactileOutlinedButton(
                             onClick = { model.exportJournalCsv(context) },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.heightIn(min = 44.dp).testTag("journal:export_csv_quick")
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("journal:export_csv_quick")
                         ) {
-                            Text("Export CSV", maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
+                            Text("Export CSV", style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -4477,16 +3676,26 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             "Rating: ⭐ ${entry.rating ?: "—"}/10 · Tags: ${entry.tags.joinToString(", ")}",
                             if (entry.tasteNotes.isNotEmpty()) "Notes: ${entry.tasteNotes.joinToString(", ")}" else "",
                             if (entry.generalNotes.isNotBlank()) "\"${entry.generalNotes}\"" else ""
-                        ).filter { it.isNotBlank() }.joinToString("\n")
+                        ).filter { it.isNotBlank() }.joinToString("\n"),
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.medium)
+                            .clickable(onClickLabel = "Brew again", role = Role.Button) {
+                                if (model.repeatJournalBrew(entry)) openTimer()
+                            }
+                            .testTag("journal:brew:${entry.id}")
                     ) {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TactileButton(
+                                onClick = { if (model.repeatJournalBrew(entry)) openTimer() },
+                                modifier = Modifier.heightIn(min = 48.dp).testTag("journal:repeat:${entry.id}")
+                            ) { Text("Brew again") }
                             val recipe = state.recipes.find { it.id == entry.recipeId }
                             if (recipe != null) {
                                 TactileTextButton(
                                     onClick = { edit(recipe) },
-                                    modifier = Modifier.heightIn(min = 44.dp).testTag("journal:edit:${recipe.id}")
+                                    modifier = Modifier.heightIn(min = 48.dp).testTag("journal:edit:${recipe.id}")
                                 ) {
-                                    Text("Repeat / edit", maxLines = 1, softWrap = false)
+                                    Text("Edit recipe")
                                 }
                             }
                             TactileTextButton(onClick = {
@@ -4540,14 +3749,24 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                                 "TDS: ${recipe.measuredTdsPercent?.let { "$it%" } ?: "not measured"} · " +
                                     "Beverage: ${recipe.beverageMassGrams?.let { "${it}g" } ?: "not measured"}",
                                 "Method: ${recipe.brewMethod} · Time: ${recipe.brewTimeSeconds}s"
-                            ).joinToString("\n")
+                            ).joinToString("\n"),
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.medium)
+                                .clickable(onClickLabel = "Brew ${recipe.name}", role = Role.Button) {
+                                    if (model.prepareRecipeForBrew(recipe)) openTimer()
+                                }
+                                .testTag("journal:recipe:${recipe.id}")
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TactileButton(
+                                    onClick = { if (model.prepareRecipeForBrew(recipe)) openTimer() },
+                                    modifier = Modifier.heightIn(min = 48.dp).testTag("journal:recipe_brew:${recipe.id}")
+                                ) { Text("Brew again") }
+                                TactileTextButton(
                                     onClick = { edit(recipe) },
-                                    modifier = Modifier.heightIn(min = 44.dp).testTag("journal:edit:${recipe.id}")
+                                    modifier = Modifier.heightIn(min = 48.dp).testTag("journal:edit:${recipe.id}")
                                 ) {
-                                    Text("Edit / Revision", maxLines = 1, softWrap = false)
+                                    Text("Edit / Revision")
                                 }
                                 if (state.recipes.count { it.revisionGroupId == recipe.revisionGroupId } > 1) {
                                     TactileOutlinedButton(
@@ -4749,8 +3968,7 @@ private fun Journal(state: CoffeeUiState, model: CoffeeViewModel, edit: (Recipe)
                             model.logChampionRecipeToJournal(recipe)
                         },
                         onBrewOnTimer = {
-                            model.brewChampionRecipe(recipe)
-                            edit(recipe.toRecipe())
+                            if (model.brewChampionRecipe(recipe)) openTimer()
                         },
                         onSaveTemplate = {
                             model.saveChampionRecipeAsTemplate(recipe)
