@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Native Android Coffee Formulation Workbench, 221-Descriptor Sensory Wheel, Digital CVA Cupping, Offline BLE Brewing & On-Device AI Lab</strong>
+  <strong>Native Android Coffee Formulation Workbench, 221-Descriptor Sensory Wheel, Digital CVA Cupping, Precision Manual Chronometer & On-Device AI Lab</strong>
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
   <a href="https://developer.android.com/about/versions/15"><img src="https://img.shields.io/badge/Android-8.0%20to%2015%20(API%2026--35)-34A853.svg?logo=android&logoColor=white" alt="Android Support"></a>
   <a href="#"><img src="https://img.shields.io/badge/Privacy-100%25%20Offline%20First-E37400.svg" alt="Offline First"></a>
   <a href="#"><img src="https://img.shields.io/badge/Telemetry-Zero%20SDKs-blueviolet.svg" alt="Zero Telemetry"></a>
-  <a href="https://github.com/Adrian463588/coffee-creator/actions"><img src="https://img.shields.io/badge/Tests-322%20JVM%20Passing-success.svg" alt="Tests"></a>
+  <a href="https://github.com/Adrian463588/coffee-creator/actions"><img src="https://img.shields.io/badge/Tests-429%20JVM%20Passing-success.svg" alt="Tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
 </p>
 
@@ -54,7 +54,7 @@ All interfaces captured directly from physical Samsung Galaxy S20 Ultra running 
 | 01. Home Workbench | 02. Brew Recipe Composer | 03. Precision Chronometer |
 |:---:|:---:|:---:|
 | <img src="docs/screenshots/s20_ultra_v1145_01_home.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_02_brew_recipe.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_03_active_timer.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> |
-| **Workbench Hero & Bottom Nav**<br>Offline status pills, saved brew revisions, zero-telemetry indicator, and tactile navigation bar. | **Scientific Recipe Composer**<br>Hamilton-Hare monotonic pour scaling, dynamic ratio slider, and method-specific targets. | **Active Brew Chronometer**<br>Monotonic digital timebase, rolling flow rate telemetry ($g/s$), target mass, and BLE scale tare. |
+| **Workbench Hero & Bottom Nav**<br>Offline status pills, saved brew revisions, zero-telemetry indicator, and tactile navigation bar. | **Scientific Recipe Composer**<br>Hamilton-Hare monotonic pour scaling, dynamic ratio slider, and method-specific targets. | **Active Brew Chronometer**<br>Monotonic digital timebase, multi-modal pour cues (alarm audio, direct haptics), target mass, and manual scale reading. |
 
 ---
 
@@ -96,14 +96,14 @@ All interfaces captured directly from physical Samsung Galaxy S20 Ultra running 
 
 ## ☕ Project Overview & Core Mission
 
-**Coffee Creator** is a native, offline-first Android application designed for professional baristas, specialty roasters, coffee scientists, and passionate home brewers. Engineered under strict Clean Architecture boundaries with a pure Kotlin JVM scientific engine, it bridges empirical agronomy, precision extraction thermodynamics, Bluetooth scale telemetry, and formal sensory cupping evaluation.
+**Coffee Creator** is a native, offline-first Android application designed for professional baristas, specialty roasters, coffee scientists, and passionate home brewers. Engineered under strict Clean Architecture boundaries with a pure Kotlin JVM scientific engine, it bridges empirical agronomy, precision extraction thermodynamics, precision chronometer extraction with multi-modal cues, and formal sensory cupping evaluation.
 
 ### 🌟 Five Architectural Pillars
 
 1. **Zero Cloud & Zero Telemetry**: 100% operational in airplane mode. Zero background analytics, zero third-party telemetry, zero external tracking SDKs. Network connectivity is exclusively utilized for user-initiated GGUF/OCR downloads.
 2. **Deterministic Coffee Science**: Pure Kotlin JVM calculation engine (`core/engine`) completely decoupled from Android and Room. Computes mass-balance extraction yield ($EY = \frac{\text{beverage\_mass} \times \text{TDS}}{\text{dose}}$), refractometer Brix-to-TDS calibrations, water mineral chemistry ($Ca^{2+}, Mg^{2+}, Na^+, HCO_3^- \to GH/KH/TDS$), and roast-rest degassing kinetics.
 3. **Tactile Industrial UI (2026 Standards)**: Anti-AI-slop design system built with physical spring micro-depression (`scale = 0.97f`), subtle haptic feedback (`TextHandleMove`), $1\text{px}$ crisp hairline outline borders (`alpha = 0.40f`), concentric nested geometry ($R_{\text{inner}} = \max(0, R_{\text{outer}} - P)$), and strict single-line text constraints preventing distorted oval bubble wrapping.
-4. **Hardware-Integrated BLE Brewing**: Direct Bluetooth Low Energy GATT abstraction for smart scales (Acaia, Felicita, Decent, Skale) featuring a real-time rolling flow rate filter ($g/s$), auto-tare, and pour proximity alerts.
+4. **Precision Chronometer & Multi-Modal Pour Cues**: Monotonic timebase (`SystemClock.elapsedRealtime`) resistant to background sleeping and configuration changes. Features direct hardware haptics (`AudioAttributes.USAGE_ALARM`), alarm-grade audio cues, persistent foreground service notifications (`FOREGROUND_SERVICE_SPECIAL_USE`), and optional manual scale reading without gating workflows.
 5. **Grounded On-Device AI & Hybrid RAG**: CPU-accelerated GGUF execution via pinned `llama.cpp` JNI, local ONNX Runtime MiniLM vector embeddings, ObjectBox HNSW vector indexing, and strictly allowlisted, schema-validated Kotlin tools with explicit factual citation and zero-evidence abstention.
 
 ---
@@ -126,9 +126,9 @@ flowchart TD
     end
 
     subgraph S3["3. Live Extraction Laboratory"]
-        F --> G["BLE Smart Scale Connection\n(Acaia, Felicita, Decent, Skale)"]
-        G --> H["Precision Chronometer Console\n(Monotonic Clock, Flow Rate g/s, Auto-Tare)"]
-        H --> I["Real-Time Pour Guidance\n(Live vs Ideal Target Curve)"]
+        F --> G["Precision Chronometer Console\n(Monotonic Clock, Stopwatch & Timer)"]
+        G --> H["Multi-Modal Pour Reminders\n(Direct Haptics, USAGE_ALARM Audio & Notification)"]
+        H --> I["Manual Scale Logging\n(Optional Grams Entry, Safe Restores)"]
     end
 
     subgraph S4["4. Sensory Cupping & Evaluation"]
@@ -183,11 +183,11 @@ flowchart TD
     end
 
     subgraph Hardware["Local Hardware & Native AI Subsystems"]
-        BLE["Android BLE GATT Client\nAcaia / Felicita / Decent Scale Adapters"]
+        CUES["Direct Hardware Haptics & Audio\nUSAGE_ALARM Motor Actuation & Alarm Sound Cues"]
         LLM["llama.cpp JNI Engine\nCPU GGUF Local Inference (Qwen, Kafi, Gemma)"]
         ONNX["ONNX Runtime Engine\nLocal MiniLM Embeddings & Semantic Search"]
         OCR["Offline Tesseract & PDFBox\nCoffee Bag Label & Paper Document Parser"]
-        VM -->|Reactive Hardware Streams| Hardware
+        VM -->|Hardware Cues & AI Streams| Hardware
     end
 
     style Presentation fill:#2A1B14,stroke:#D4A373,stroke-width:2px,color:#fff
@@ -206,7 +206,7 @@ flowchart TD
 | **Design System** | Material 3 / Expressive Tokens | In BOM | ColorScheme tokens, dynamic typography, concentric geometry |
 | **Navigation** | Navigation Compose | `2.8.3` | Single-top back-stack graph with hardware `BackHandler` safety |
 | **Core Language & JVM** | Kotlin | `2.0.20` | Pinned compiler, sealed hierarchies, strict typing, JVM 17 bytecode |
-| **Asynchronous Streaming** | Kotlinx Coroutines & Flow | `1.9.0` | Reactive state management, background thread dispatching, BLE pipes |
+| **Asynchronous Streaming** | Kotlinx Coroutines & Flow | `1.9.0` | Reactive state management, background thread dispatching, state pipelines & cue events |
 | **Dependency Injection** | Dagger Hilt | `2.52` | Compile-time DI with KSP (`2.0.20-1.0.25`) for modular monolith |
 | **Relational Storage** | AndroidX Room & SQLite | `2.6.1` | Type converters, transactional migrations, SQLite FTS4 search |
 | **Vector Indexing** | ObjectBox Android | `4.3.1` | Local HNSW high-dimensional vector storage for semantic RAG retrieval |
@@ -216,10 +216,10 @@ flowchart TD
 | **Local LLM Inference** | llama.cpp Native C++ JNI | Pinned | CPU-optimized GGUF execution (Qwen2.5 0.5B, Kafi Llama-3.2 1B, Gemma 2B) |
 | **Vector Embeddings** | ONNX Runtime Android | `1.21.1` | On-device WordPiece tokenization and MiniLM embedding tensor generation |
 | **Offline Optical OCR** | Tesseract4Android & PDFBox | `4.9.0` / `2.0.27.0` | On-device bag label parsing and PDF guide text extraction |
-| **Hardware Telemetry** | Android BLE GATT Client | Native | Low-latency smart scale communication, rolling flow filter ($g/s$) |
+| **Haptics & Audio Cues** | Android Vibrator & MediaPlayer | Native | Direct hardware haptics (`USAGE_ALARM`), alarm-grade audio cues, foreground service |
 | **Network (Asset Only)** | Square OkHttp | `4.12.0` | Resumable HTTP 206 Range transfers with ETag checkpoints; zero telemetry |
 | **Code Quality & Lint** | Detekt & Ktlint | `1.23.7` / `1.3.1` | Strict static analysis, cyclomatic complexity limits, anti-slop rules |
-| **Testing Harness** | JUnit4, Robolectric, Espresso | `4.13.2` / `4.14.1` | Fast local JVM Compose rendering, DAO tests, 322 unit tests passing |
+| **Testing Harness** | JUnit4, Robolectric, Espresso | `4.13.2` / `4.14.1` | Fast local JVM Compose rendering, DAO tests, 429 unit tests passing |
 
 ---
 
@@ -240,10 +240,10 @@ d:/SEMESTER13/KodeProject/CoffeCreator/
 │   │   │   │   │   ├── LlamaCppEngine.kt    # JNI bridge for on-device GGUF execution
 │   │   │   │   │   ├── OnnxEmbeddingEngine.kt # Local ONNX MiniLM vector generation
 │   │   │   │   │   └── ToolRegistry.kt      # Schema-validated Kotlin tools for LLM
-│   │   │   │   ├── ble/                     # Bluetooth Low Energy scale hardware abstraction
-│   │   │   │   │   ├── BleScaleAdapter.kt   # Unified interface for Acaia, Felicita, Decent, etc.
-│   │   │   │   │   └── FlowRateFilter.kt    # Rolling average g/s filter & swirl artifact rejection
-│   │   │   │   ├── brew/                    # Active chronometer, stage tracking, auto-tare logic
+│   │   │   │   ├── brew/                    # Monotonic chronometer, foreground service, haptics & audio cues
+│   │   │   │   │   ├── BrewTimerController.kt # Monotonic controller with persisted checkpoints
+│   │   │   │   │   ├── BrewTimerService.kt  # Foreground service & step notification engine
+│   │   │   │   │   └── BrewVibrator.kt      # Direct USAGE_ALARM motor actuation & audio player
 │   │   │   │   ├── catalog/                 # Bundled reference catalogs (34 beans, varieties, gear)
 │   │   │   │   ├── data/                    # Room SQLite database, DAOs, entities, migrations, FTS4
 │   │   │   │   │   ├── CoffeeDatabase.kt    # Room database entry point with versioned migrations
@@ -283,7 +283,7 @@ d:/SEMESTER13/KodeProject/CoffeCreator/
 │   │   │   │   │   └── Type.kt              # Tabular figures (tnum), modular typographic scale
 │   │   │   │   └── viewmodel/               # Lifecycle-aware ViewModel & immutable StateFlow
 │   │   ├── res/                             # Vector drawables, mipmaps, strings EN/ID
-│   │   └── AndroidManifest.xml              # Manifest, permissions, hardware BLE declaration
+│   │   └── AndroidManifest.xml              # Manifest, permissions, foreground timer service & haptics
 │   └── build.gradle.kts                     # App module build script, NDK/CMake bindings
 ├── coffee-creator-blueprint/                # Authoritative specifications (PRD, DESIGN, ARCHITECTURE, TASKS)
 ├── docs/                                    # Documentation, verification reports, release notes
@@ -312,11 +312,11 @@ d:/SEMESTER13/KodeProject/CoffeCreator/
 - **Optical Brix-to-TDS Refractometer Lab**: Verified index equations for Standard Coffee (0.850), Atago (0.840), and VST (0.857) refractometers.
 - **Food-Grade Additive & Aroma Dosing**: Micro-dosing mass balance with food safety validation, allergen flags, and distinction between active compound and stock solution.
 
-### ⏱️ Precision Chronometer & Smart BLE Hardware Integration
-- **Precision Chronometer**: Monotonic `elapsedRealtime` timebase resistant to background sleeping and UI rotation. Tabular monospace digits (`tnum`) for jitter-free viewing.
-- **Bluetooth Low Energy Scale Driver**: Unified abstraction supporting Acaia, Felicita, Decent, and Skale devices. Real-time mass stream with simulated mock provider for JVM tests.
-- **Rolling Flow Rate Telemetry ($g/s$)**: Filtered first-derivative flow calculation with swirl/stir artifact rejection filter.
-- **Guided Pour Assist**: Auto-start on first drop ($>0.5g$), auto-stop on espresso completion ($<0.2g/s$), and proximity cues (warning at 10g, imminent at 2g).
+### ⏱️ Precision Chronometer, Pour Reminders & Direct Haptics
+- **Precision Chronometer**: Monotonic `SystemClock.elapsedRealtime` timebase immune to background sleeping, device lock, and UI rotation. Tabular monospace digits (`tnum`) for jitter-free readability during active brewing.
+- **Manual Stopwatch & Timer Modes**: Instant 1-click armed chronometer replay preloading recipe steps at `00:00`, or pure manual stopwatch mode for espresso machine extractions.
+- **Direct Hardware Haptics & USAGE_ALARM**: Direct physical motor actuation via `Vibrator` using `AudioAttributes.USAGE_ALARM`, bypassing Android Do Not Disturb (DND) / Bedtime mode and system touch haptic disablement. Immediate haptic confirmation on toggle with a dedicated "Test alert" action.
+- **Alarm-Grade Audio & Foreground Reminders**: Multi-modal sound alerts played via `AudioAttributes.USAGE_ALARM` with synthetic tonal fallbacks, foreground service notifications (`FOREGROUND_SERVICE_SPECIAL_USE`), and non-blocking manual scale weight logging.
 
 ### ⚙️ Equipment Intelligence: 44 Grinders & 26 Drippers
 - **44-Model Grinder Catalog**: Electric and hand grinders with burr geometry, calibration units (Clicks, Rotations, Dial Marks), and manufacturer verified starting ranges.
@@ -371,7 +371,7 @@ Coffee Creator strictly adheres to modern 2026 Android interface engineering gui
 3. **Single-Line Text Constraints**:
    Buttons, badges, and chips enforce `maxLines = 1` and `softWrap = false`, eliminating awkward multi-line word wrapping into tall oval blobs.
 4. **Precision Tabular Figures**:
-   Timers, flow rates, extraction yields, and scale readings utilize OpenType tabular figures (`fontFeatureSettings = "tnum"`) to ensure stable, jitter-free numerals during active brewing.
+   Timers, extraction yields, manual weight readings, and grind settings utilize OpenType tabular figures (`fontFeatureSettings = "tnum"`) to ensure stable, jitter-free numerals during active brewing.
 
 ---
 
@@ -484,7 +484,7 @@ The compiled APK will be output to `app/build/outputs/apk/debug/app-debug.apk`.
 | **Gate 1: Architecture Isolation** | `core/engine` has zero dependencies on Android, Compose, or Room | `./gradlew.bat :app:detekt` | **PASSED** |
 | **Gate 2: Static Analysis** | Zero lint, style, or formatting violations | `./gradlew.bat :app:ktlintCheck` | **PASSED** |
 | **Gate 3: Deterministic Science** | 100% pass on BigDecimal extraction yield and water chemistry tests | `./gradlew.bat :app:testDebugUnitTest` | **PASSED** |
-| **Gate 4: Resilient Resolution** | Zero crash on blank drafts, scale connections, or uninitialized timers | `RecipeResolutionTest.kt` | **PASSED** |
+| **Gate 4: Resilient Resolution** | Zero crash on blank drafts, manual scale logging, or uninitialized timers | `RecipeResolutionTest.kt` | **PASSED** |
 | **Gate 5: Sensory Taxonomy** | 221 descriptors verified across 9 categories with bilingual tags | `SensoryTaxonomyTest.kt` | **PASSED** |
 | **Gate 6: Champion Catalog** | 80 recipes verified with steps, ratios, and provenance | `WorldChampionCatalogTest.kt`| **PASSED** |
 | **Gate 7: Tactile UI Standards** | `scale = 0.97f` spring physics, `tnum` figures, concentric radii | Robolectric Compose Tests | **PASSED** |
