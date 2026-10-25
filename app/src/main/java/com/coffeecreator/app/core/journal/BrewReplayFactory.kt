@@ -16,11 +16,7 @@ object BrewReplayFactory {
         acknowledgedAllergens = recipe.acknowledgedAllergens.toList()
     ).also { DomainValidation.validateRecipe(it, ingredients) }
 
-    fun fromJournal(
-        entry: BrewJournalEntry,
-        linkedRecipe: Recipe? = null,
-        ingredients: List<Ingredient> = emptyList()
-    ): Recipe {
+    fun fromJournal(entry: BrewJournalEntry, linkedRecipe: Recipe? = null, ingredients: List<Ingredient> = emptyList()): Recipe {
         val snapshot = entry.recipeSnapshot
         require(snapshot == null || entry.recipeId == null || snapshot.id == entry.recipeId) {
             "Journal recipe snapshot does not match its source identifier."

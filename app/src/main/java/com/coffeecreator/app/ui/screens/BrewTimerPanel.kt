@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -41,16 +41,16 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.coffeecreator.app.core.brew.BrewExecutionStatus
 import com.coffeecreator.app.ui.components.TactileButton
-import com.coffeecreator.app.ui.components.TactileFilterChip
 import com.coffeecreator.app.ui.components.TactileFilledTonalButton
+import com.coffeecreator.app.ui.components.TactileFilterChip
 import com.coffeecreator.app.ui.viewmodel.CoffeeUiState
 import com.coffeecreator.app.ui.viewmodel.CoffeeViewModel
 import com.coffeecreator.app.ui.viewmodel.finishBrewSession
@@ -149,11 +149,13 @@ internal fun BrewTimerPanel(state: CoffeeUiState, model: CoffeeViewModel, editRe
                 Text("Elapsed", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     formatBrewTime(state.timerSeconds),
-                    style = (if (LocalDensity.current.fontScale >= LARGE_TIMER_FONT_SCALE) {
-                        MaterialTheme.typography.headlineLarge
-                    } else {
-                        MaterialTheme.typography.displayMedium
-                    }).copy(fontFeatureSettings = "tnum"),
+                    style = (
+                        if (LocalDensity.current.fontScale >= LARGE_TIMER_FONT_SCALE) {
+                            MaterialTheme.typography.headlineLarge
+                        } else {
+                            MaterialTheme.typography.displayMedium
+                        }
+                        ).copy(fontFeatureSettings = "tnum"),
                     modifier = Modifier.testTag("timer:elapsed")
                 )
                 if (isEspresso) {
@@ -184,36 +186,36 @@ internal fun BrewTimerPanel(state: CoffeeUiState, model: CoffeeViewModel, editRe
             verticalArrangement = Arrangement.spacedBy(8.dp),
             maxItemsInEachRow = if (LocalDensity.current.fontScale >= LARGE_TIMER_FONT_SCALE) 1 else 2
         ) {
-        TactileButton(
-            onClick = {
-                if (state.timerRunning) {
-                    model.pauseBrewSession()
-                } else if (!permissionGranted && !permissionRequested && session?.notificationEnabled != false) {
-                    permissionRequested = true
-                    startAfterPermission = true
-                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    model.startBrewSession()
-                }
-            },
-            enabled = !completed,
-            modifier = Modifier.weight(1f).heightIn(min = 56.dp).testTag("timer:toggle"),
-            colors = ButtonDefaults.buttonColors()
-        ) {
-            Text(
-                when {
-                    state.timerRunning -> "Pause Session"
-                    session?.status == BrewExecutionStatus.PAUSED -> "Resume Session"
-                    else -> "Start Session"
+            TactileButton(
+                onClick = {
+                    if (state.timerRunning) {
+                        model.pauseBrewSession()
+                    } else if (!permissionGranted && !permissionRequested && session?.notificationEnabled != false) {
+                        permissionRequested = true
+                        startAfterPermission = true
+                        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        model.startBrewSession()
+                    }
                 },
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-        TactileFilledTonalButton(
-            onClick = model::finishBrewSession,
-            enabled = session != null && !completed && state.timerSeconds > 0,
-            modifier = Modifier.weight(1f).heightIn(min = 56.dp).testTag("timer:finish_and_log")
-        ) { Text("Finish & Log") }
+                enabled = !completed,
+                modifier = Modifier.weight(1f).heightIn(min = 56.dp).testTag("timer:toggle"),
+                colors = ButtonDefaults.buttonColors()
+            ) {
+                Text(
+                    when {
+                        state.timerRunning -> "Pause Session"
+                        session?.status == BrewExecutionStatus.PAUSED -> "Resume Session"
+                        else -> "Start Session"
+                    },
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            TactileFilledTonalButton(
+                onClick = model::finishBrewSession,
+                enabled = session != null && !completed && state.timerSeconds > 0,
+                modifier = Modifier.weight(1f).heightIn(min = 56.dp).testTag("timer:finish_and_log")
+            ) { Text("Finish & Log") }
         }
         if (!isEspresso && progress != null) {
             Column(

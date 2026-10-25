@@ -12,13 +12,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -27,11 +22,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -77,8 +70,6 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OfflineBolt
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
@@ -87,7 +78,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -120,8 +110,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -137,7 +127,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -159,9 +148,7 @@ import com.coffeecreator.app.core.ai.personalization.PalateQuizAnswers
 import com.coffeecreator.app.core.ai.personalization.RoastPreference
 import com.coffeecreator.app.core.ai.personalization.SensoryFeedbackDiagnosis
 import com.coffeecreator.app.core.ai.personalization.SweetnessPriority
-import com.coffeecreator.app.core.ble.ScaleConnectionState
 import com.coffeecreator.app.core.brew.BrewExecutionStatus
-import com.coffeecreator.app.core.brew.ProximityState
 import com.coffeecreator.app.core.catalog.BagInventoryItem
 import com.coffeecreator.app.core.catalog.BagStatus
 import com.coffeecreator.app.core.catalog.CatalogPhotoTarget
@@ -183,9 +170,7 @@ import com.coffeecreator.app.core.journal.CafeCupEntry
 import com.coffeecreator.app.core.model.CoffeeBean
 import com.coffeecreator.app.core.model.ModelStatus
 import com.coffeecreator.app.core.model.Recipe
-import com.coffeecreator.app.core.recipes.champion.ChampionRecipe
 import com.coffeecreator.app.core.recipes.champion.RecipeCategory
-import com.coffeecreator.app.core.recipes.champion.RecipeVerificationStatus
 import com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalog
 import com.coffeecreator.app.core.reliability.AppLanguage
 import com.coffeecreator.app.core.reliability.LogLevel
@@ -224,9 +209,6 @@ import com.coffeecreator.app.ui.viewmodel.addUserGrinderProfile
 import com.coffeecreator.app.ui.viewmodel.applyOvatAdjustmentToDraft
 import com.coffeecreator.app.ui.viewmodel.auditIngredientSafety
 import com.coffeecreator.app.ui.viewmodel.brewChampionRecipe
-import com.coffeecreator.app.ui.viewmodel.prepareRecipeForBrew
-import com.coffeecreator.app.ui.viewmodel.prepareDraftForBrew
-import com.coffeecreator.app.ui.viewmodel.repeatJournalBrew
 import com.coffeecreator.app.ui.viewmodel.cancelCatalogPhotoOcr
 import com.coffeecreator.app.ui.viewmodel.cancelDeletion
 import com.coffeecreator.app.ui.viewmodel.cancelGeneration
@@ -241,7 +223,6 @@ import com.coffeecreator.app.ui.viewmodel.confirmDeletion
 import com.coffeecreator.app.ui.viewmodel.confirmEquipmentOcrDraft
 import com.coffeecreator.app.ui.viewmodel.confirmOcrDraft
 import com.coffeecreator.app.ui.viewmodel.confirmToolInputs
-import com.coffeecreator.app.ui.viewmodel.connectMockScale
 import com.coffeecreator.app.ui.viewmodel.convertDraftBrix
 import com.coffeecreator.app.ui.viewmodel.createCuppingSession
 import com.coffeecreator.app.ui.viewmodel.deductDoseFromBag
@@ -251,7 +232,6 @@ import com.coffeecreator.app.ui.viewmodel.deleteEquipmentItem
 import com.coffeecreator.app.ui.viewmodel.deleteGrinder
 import com.coffeecreator.app.ui.viewmodel.deleteJournalEntry
 import com.coffeecreator.app.ui.viewmodel.deleteUserGrinderProfile
-import com.coffeecreator.app.ui.viewmodel.disconnectScale
 import com.coffeecreator.app.ui.viewmodel.dismissAiRecipe
 import com.coffeecreator.app.ui.viewmodel.dismissEquipmentOcrDraft
 import com.coffeecreator.app.ui.viewmodel.dismissOcrDraft
@@ -266,8 +246,6 @@ import com.coffeecreator.app.ui.viewmodel.exportCatalogJson
 import com.coffeecreator.app.ui.viewmodel.exportDiagnosticLogs
 import com.coffeecreator.app.ui.viewmodel.exportJournalCsv
 import com.coffeecreator.app.ui.viewmodel.exportSessionQcReport
-import com.coffeecreator.app.ui.viewmodel.feedSimulatedWeight
-import com.coffeecreator.app.ui.viewmodel.finishBrewSession
 import com.coffeecreator.app.ui.viewmodel.generateInventoryRecommendations
 import com.coffeecreator.app.ui.viewmodel.importBeanconquerorJson
 import com.coffeecreator.app.ui.viewmodel.isSupportedByNativeRuntime
@@ -276,7 +254,8 @@ import com.coffeecreator.app.ui.viewmodel.logCuppingSampleToJournal
 import com.coffeecreator.app.ui.viewmodel.newRecipe
 import com.coffeecreator.app.ui.viewmodel.parseBagOcr
 import com.coffeecreator.app.ui.viewmodel.parseEquipmentOcr
-import com.coffeecreator.app.ui.viewmodel.pauseBrewSession
+import com.coffeecreator.app.ui.viewmodel.prepareDraftForBrew
+import com.coffeecreator.app.ui.viewmodel.prepareRecipeForBrew
 import com.coffeecreator.app.ui.viewmodel.previewBackup
 import com.coffeecreator.app.ui.viewmodel.previewCatalogImport
 import com.coffeecreator.app.ui.viewmodel.proposeSingleVariableAdjustment
@@ -286,12 +265,10 @@ import com.coffeecreator.app.ui.viewmodel.refreshStreakAndStats
 import com.coffeecreator.app.ui.viewmodel.removeDraftStep
 import com.coffeecreator.app.ui.viewmodel.removeLine
 import com.coffeecreator.app.ui.viewmodel.reopenCuppingSession
+import com.coffeecreator.app.ui.viewmodel.repeatJournalBrew
 import com.coffeecreator.app.ui.viewmodel.repeatLastBrew
 import com.coffeecreator.app.ui.viewmodel.reportCatalogPhotoError
 import com.coffeecreator.app.ui.viewmodel.requestDeletion
-import com.coffeecreator.app.ui.viewmodel.resetBrewSession
-import com.coffeecreator.app.ui.viewmodel.resetTimer
-import com.coffeecreator.app.ui.viewmodel.restartBrewStep
 import com.coffeecreator.app.ui.viewmodel.revealCuppingSample
 import com.coffeecreator.app.ui.viewmodel.runManualCalculation
 import com.coffeecreator.app.ui.viewmodel.saveBean
@@ -313,19 +290,12 @@ import com.coffeecreator.app.ui.viewmodel.setLanguage
 import com.coffeecreator.app.ui.viewmodel.setUnitPreferences
 import com.coffeecreator.app.ui.viewmodel.setValveState
 import com.coffeecreator.app.ui.viewmodel.shareRecipe
-import com.coffeecreator.app.ui.viewmodel.skipBrewStep
-import com.coffeecreator.app.ui.viewmodel.startBrewSession
 import com.coffeecreator.app.ui.viewmodel.submitCuppingSheet
 import com.coffeecreator.app.ui.viewmodel.submitPalateQuiz
-import com.coffeecreator.app.ui.viewmodel.tareScale
 import com.coffeecreator.app.ui.viewmodel.toggleBeanFavorite
 import com.coffeecreator.app.ui.viewmodel.toggleEquipmentFavorite
 import com.coffeecreator.app.ui.viewmodel.toggleFreezeBag
 import com.coffeecreator.app.ui.viewmodel.toggleGrinderFavorite
-import com.coffeecreator.app.ui.viewmodel.toggleHaptics
-import com.coffeecreator.app.ui.viewmodel.toggleKeepScreenOn
-import com.coffeecreator.app.ui.viewmodel.toggleSound
-import com.coffeecreator.app.ui.viewmodel.toggleTimer
 import com.coffeecreator.app.ui.viewmodel.undoDraftChange
 import com.coffeecreator.app.ui.viewmodel.updateCustomPersonaPrompt
 import com.coffeecreator.app.ui.viewmodel.updateDraftStep
@@ -353,8 +323,6 @@ private const val MAX_CUSTOM_PERSONA_CHARS = 300
 private const val TRANSITION_FADE_IN_MILLIS = 150
 private const val TRANSITION_FADE_OUT_MILLIS = 100
 private const val WIDE_INPUT_WEIGHT = 1.5f
-private const val PRIMARY_ACTION_WEIGHT = 1.2f
-private const val SECONDARY_ACTION_WEIGHT = 1.1f
 private val handGrinderBadgeContainerColor = Color(0xFF8D6E63)
 private val electricGrinderBadgeContainerColor = Color(0xFF3F51B5)
 private val handGrinderBadgeContentColor = Color(0xFFD7CCC8)
@@ -1603,65 +1571,65 @@ private fun Formulate(state: CoffeeUiState, model: CoffeeViewModel, resetKey: In
                 }
             }
             if (section != BrewSection.Timer) {
-            Surface(
-                tonalElevation = 4.dp,
-                shadowElevation = 3.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-            ) {
-                FlowRow(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    maxItemsInEachRow = if (LocalDensity.current.fontScale >= largeFontScale) 1 else 2
+                Surface(
+                    tonalElevation = 4.dp,
+                    shadowElevation = 3.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                 ) {
-                    val calculationSummary = state.calculation.lineSequence().firstOrNull().orEmpty()
-                    val ratioLabel = if (calculationSummary.startsWith("Calculated ratio ")) {
-                        "Ratio ${calculationSummary.removePrefix("Calculated ratio ")}"
-                    } else {
-                        "Review calculation"
-                    }
-                    TactileTextButton(
-                        onClick = { selectedSection = BrewSection.Measurements.name },
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:ratio")
+                    FlowRow(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        maxItemsInEachRow = if (LocalDensity.current.fontScale >= largeFontScale) 1 else 2
                     ) {
-                        AnimatedContent(
-                            targetState = ratioLabel,
-                            transitionSpec = {
-                                fadeIn(animationSpec = tween(TRANSITION_FADE_IN_MILLIS)) togetherWith
-                                    fadeOut(animationSpec = tween(TRANSITION_FADE_OUT_MILLIS))
-                            },
-                            label = "ratioAnimation"
-                        ) { targetText ->
-                            Text(
-                                targetText,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        val calculationSummary = state.calculation.lineSequence().firstOrNull().orEmpty()
+                        val ratioLabel = if (calculationSummary.startsWith("Calculated ratio ")) {
+                            "Ratio ${calculationSummary.removePrefix("Calculated ratio ")}"
+                        } else {
+                            "Review calculation"
                         }
-                    }
-                    TactileButton(
-                        onClick = {
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
-                            model.saveRecipe()
-                        },
-                        enabled = state.ready && !state.busy,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:save")
-                    ) {
-                        AnimatedContent(
-                            targetState = (state.draft.id == null),
-                            transitionSpec = {
-                                fadeIn(animationSpec = tween(TRANSITION_FADE_IN_MILLIS)) togetherWith
-                                    fadeOut(animationSpec = tween(TRANSITION_FADE_OUT_MILLIS))
+                        TactileTextButton(
+                            onClick = { selectedSection = BrewSection.Measurements.name },
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:ratio")
+                        ) {
+                            AnimatedContent(
+                                targetState = ratioLabel,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(TRANSITION_FADE_IN_MILLIS)) togetherWith
+                                        fadeOut(animationSpec = tween(TRANSITION_FADE_OUT_MILLIS))
+                                },
+                                label = "ratioAnimation"
+                            ) { targetText ->
+                                Text(
+                                    targetText,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                        TactileButton(
+                            onClick = {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                                model.saveRecipe()
                             },
-                            label = "saveLabelAnimation"
-                        ) { isNew ->
-                            Text(
-                                if (isNew) "Save recipe" else "Save new revision"
-                            )
+                            enabled = state.ready && !state.busy,
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("form:save")
+                        ) {
+                            AnimatedContent(
+                                targetState = (state.draft.id == null),
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(TRANSITION_FADE_IN_MILLIS)) togetherWith
+                                        fadeOut(animationSpec = tween(TRANSITION_FADE_OUT_MILLIS))
+                                },
+                                label = "saveLabelAnimation"
+                            ) { isNew ->
+                                Text(
+                                    if (isNew) "Save recipe" else "Save new revision"
+                                )
+                            }
                         }
                     }
                 }
-            }
             }
         }
     }

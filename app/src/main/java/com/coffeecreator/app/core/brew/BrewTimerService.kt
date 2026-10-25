@@ -250,7 +250,7 @@ class BrewTimerService : Service() {
         ).apply {
             description = "Pour-step and target-time cues. Android notification and Do Not Disturb settings apply."
             enableVibration(haptics)
-            if (haptics) vibrationPattern = longArrayOf(0L, 150L, 100L, 150L)
+            if (haptics) vibrationPattern = longArrayOf(0L, CUE_VIBRATION_PULSE_MS, CUE_VIBRATION_GAP_MS, CUE_VIBRATION_PULSE_MS)
             setSound(
                 if (audio) RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION) else null,
                 AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
@@ -260,6 +260,8 @@ class BrewTimerService : Service() {
     }
 
     companion object {
+        private const val CUE_VIBRATION_PULSE_MS = 150L
+        private const val CUE_VIBRATION_GAP_MS = 100L
         const val EXTRA_OPEN_BREW_TIMER = "com.coffeecreator.app.OPEN_BREW_TIMER"
         private const val ACTION_PAUSE = "com.coffeecreator.app.brew.PAUSE"
         private const val ACTION_RESUME = "com.coffeecreator.app.brew.RESUME"

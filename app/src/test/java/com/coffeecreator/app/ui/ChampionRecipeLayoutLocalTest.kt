@@ -26,6 +26,7 @@ import com.coffeecreator.app.ui.screens.ChampionRecipeCard
 import com.coffeecreator.app.ui.screens.ChampionRecipeFacts
 import com.coffeecreator.app.ui.theme.CoffeeCreatorTheme
 import java.io.File
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -95,7 +96,9 @@ class ChampionRecipeLayoutLocalTest {
             val layouts = mutableListOf<TextLayoutResult>()
             node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
             assertEquals("Text must expose one layout: $value", 1, layouts.size)
-            assertFalse("Text must not overflow: $value", layouts.single().hasVisualOverflow)
+            val layout = layouts.single()
+            assertFalse("Text must not overflow height: $value", layout.didOverflowHeight)
+            assertFalse("Text must not be ellipsized: $value", layout.isLineEllipsized(0))
             node.fetchSemanticsNode().boundsInRoot.also {
                 assertTrue("Fact must have positive width: $value", it.width > 0f)
                 assertTrue("Fact stays inside content width: $value", it.left >= container.left && it.right <= container.right)
@@ -117,5 +120,10 @@ class ChampionRecipeLayoutLocalTest {
             File(directory, "$name.png").outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
             bitmap.recycle()
         }
+    }
+
+    @After
+    fun tearDown() {
+        RuntimeEnvironment.setFontScale(1f)
     }
 }

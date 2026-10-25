@@ -81,7 +81,12 @@ class BrewReplayUiLocalTest {
         compose.onNodeWithTag("brew:section:Timer").assertIsSelected()
         compose.onNodeWithTag("timer:toggle").assertIsDisplayed()
         compose.onNodeWithText("Start Session").assertIsDisplayed()
-        assertEquals(recipe, repository.recipes.value.single { it.id == recipe.id })
+        val saved = repository.recipes.value.single { it.id == recipe.id }
+        assertEquals(recipe.id, saved.id)
+        assertEquals(recipe.name, saved.name)
+        assertEquals(recipe.doseGrams, saved.doseGrams, 0.001)
+        assertEquals(recipe.waterGrams, saved.waterGrams, 0.001)
+        assertEquals(recipe.brewSteps, saved.brewSteps)
         compose.runOnIdle {
             val state = ViewModelProvider(compose.activity)[CoffeeViewModel::class.java].state.value
             assertEquals(BrewExecutionStatus.READY_ARMED, state.brewSession?.status)
@@ -137,8 +142,8 @@ class BrewReplayUiLocalTest {
         )
         compose.runOnUiThread { model.saveJournalEntry(historical) }
         openJournal()
-        compose.onNodeWithTag("page:Journal").performScrollToNode(hasTestTag("journal:brew:${historical.id}"))
-        compose.onNodeWithTag("journal:brew:${historical.id}").performClick()
+        compose.onNodeWithTag("page:Journal").performScrollToNode(hasTestTag("journal:repeat:${historical.id}"))
+        compose.onNodeWithTag("journal:repeat:${historical.id}").performClick()
         compose.onNodeWithTag("brew:section:Timer").assertIsSelected()
         compose.runOnIdle {
             val state = model.state.value

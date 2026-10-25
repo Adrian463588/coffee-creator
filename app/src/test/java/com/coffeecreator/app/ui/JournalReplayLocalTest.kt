@@ -2,8 +2,8 @@ package com.coffeecreator.app.ui
 
 import android.os.Looper
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -32,31 +32,31 @@ import org.robolectric.annotation.Config
 class JournalReplayLocalTest {
     @Test
     fun givenCompletedRecipeWithMeasurements_whenRepeatingLastBrew_thenNewSessionDoesNotReuseMeasuredResults() = withModel { model ->
-            val recipe = Recipe(
-                id = "measured-v60",
-                name = "V60 with previous measurements",
-                beverageMassGrams = 270.0,
-                measuredTdsPercent = 1.3,
-                firstDropSeconds = 8
-            )
-            val entry = BrewJournalEntry(
-                id = "previous-brew",
-                recipeId = recipe.id,
-                brewMethod = recipe.brewMethod,
-                doseGrams = recipe.doseGrams,
-                waterGrams = recipe.waterGrams,
-                brewDurationSeconds = 180
-            )
-            model.mutableState.update { it.copy(recipes = listOf(recipe), journalEntries = listOf(entry)) }
+        val recipe = Recipe(
+            id = "measured-v60",
+            name = "V60 with previous measurements",
+            beverageMassGrams = 270.0,
+            measuredTdsPercent = 1.3,
+            firstDropSeconds = 8
+        )
+        val entry = BrewJournalEntry(
+            id = "previous-brew",
+            recipeId = recipe.id,
+            brewMethod = recipe.brewMethod,
+            doseGrams = recipe.doseGrams,
+            waterGrams = recipe.waterGrams,
+            brewDurationSeconds = 180
+        )
+        model.mutableState.update { it.copy(recipes = listOf(recipe), journalEntries = listOf(entry)) }
 
-            model.repeatLastBrew()
+        model.repeatLastBrew()
 
-            val repeated = requireNotNull(model.state.value.brewSession).recipe
-            assertEquals(recipe.doseGrams, repeated.doseGrams, 0.0)
-            assertNull(repeated.measuredTdsPercent)
-            assertNull(repeated.beverageMassGrams)
-            assertNull(repeated.firstDropSeconds)
-            assertEquals(listOf(entry), model.state.value.journalEntries)
+        val repeated = requireNotNull(model.state.value.brewSession).recipe
+        assertEquals(recipe.doseGrams, repeated.doseGrams, 0.0)
+        assertNull(repeated.measuredTdsPercent)
+        assertNull(repeated.beverageMassGrams)
+        assertNull(repeated.firstDropSeconds)
+        assertEquals(listOf(entry), model.state.value.journalEntries)
     }
 
     @Test
@@ -106,11 +106,16 @@ class JournalReplayLocalTest {
     private fun withModel(check: (CoffeeViewModel) -> Unit) {
         val app = ApplicationProvider.getApplicationContext<CoffeeApplication>()
         val store = ViewModelStore()
-        val owner = object : ViewModelStoreOwner { override val viewModelStore = store }
-        val model = ViewModelProvider(owner, object : ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-                modelClass.cast(CoffeeViewModel(app.graph, SavedStateHandle()))!!
-        })[CoffeeViewModel::class.java]
+        val owner = object : ViewModelStoreOwner {
+            override val viewModelStore = store
+        }
+        val model = ViewModelProvider(
+            owner,
+            object : ViewModelProvider.Factory {
+                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
+                    modelClass.cast(CoffeeViewModel(app.graph, SavedStateHandle()))!!
+            }
+        )[CoffeeViewModel::class.java]
         try {
             val deadline = System.currentTimeMillis() + 20_000L
             while (!model.state.value.ready && System.currentTimeMillis() < deadline) {

@@ -3,9 +3,9 @@ package com.coffeecreator.app.ui.viewmodel
 import android.content.Context
 import com.coffeecreator.app.core.ai.personalization.PalateBayesianEngine
 import com.coffeecreator.app.core.ai.personalization.PersonalSensoryEvidence
+import com.coffeecreator.app.core.brew.BrewExecutionStatus
 import com.coffeecreator.app.core.data.BackupCodec
 import com.coffeecreator.app.core.data.RecipeExportFormatter
-import com.coffeecreator.app.core.brew.BrewExecutionStatus
 import com.coffeecreator.app.core.journal.BrewAnalyticsEngine
 import com.coffeecreator.app.core.journal.BrewFilterCriteria
 import com.coffeecreator.app.core.journal.BrewJournalEntry
@@ -154,12 +154,20 @@ fun CoffeeViewModel.repeatJournalBrew(entry: BrewJournalEntry): Boolean {
         val prepared = prepareRecipeForBrew(journalReplayPlan(entry))
         if (prepared && entry.recipeSnapshot == null) {
             mutableState.update {
-                it.copy(notice = "Brew ready. This legacy entry has no saved pour snapshot; review the linked or reconstructed plan before Start.")
+                it.copy(
+                    notice = "Brew ready. This legacy entry has no saved pour snapshot; " +
+                        "review the linked or reconstructed plan before Start."
+                )
             }
         }
         prepared
     } catch (invalidPlan: IllegalArgumentException) {
-        mutableState.update { it.copy(notice = "Cannot repeat this entry: ${invalidPlan.message}. Open a recipe to correct the plan.") }
+        mutableState.update {
+            it.copy(
+                notice = "Cannot repeat this entry: ${invalidPlan.message}. " +
+                    "Open a recipe to correct the plan."
+            )
+        }
         false
     }
 }
@@ -281,8 +289,7 @@ fun CoffeeViewModel.logChampionRecipeToJournal(recipe: ChampionRecipe, customNot
     mutableState.update { it.copy(notice = "Logged '${recipe.name}' to Journal.") }
 }
 
-fun CoffeeViewModel.brewChampionRecipe(recipe: ChampionRecipe): Boolean =
-    prepareRecipeForBrew(recipe.toRecipe(customId = recipe.id))
+fun CoffeeViewModel.brewChampionRecipe(recipe: ChampionRecipe): Boolean = prepareRecipeForBrew(recipe.toRecipe(customId = recipe.id))
 
 fun CoffeeViewModel.saveChampionRecipeAsTemplate(recipe: ChampionRecipe) = task("Saving champion recipe template") {
     val r = recipe.toRecipe()

@@ -74,7 +74,8 @@ class PourStepEditorLocalTest {
             assertFalse(valid)
             assertEquals(60.0, saved.value.targetWaterGrams, 0.0)
         }
-        compose.onNodeWithTag("step:water:0").performTextReplacement("60,5").assertTextContains("60,5")
+        compose.onNodeWithTag("step:water:0").performTextReplacement("60,5")
+        compose.onNodeWithTag("step:water:0").assertTextContains("60,5")
         compose.runOnIdle {
             assertTrue(valid)
             assertEquals(60.5, saved.value.targetWaterGrams, 0.0)

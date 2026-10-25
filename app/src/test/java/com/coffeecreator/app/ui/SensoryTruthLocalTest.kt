@@ -38,7 +38,7 @@ class SensoryTruthLocalTest {
         compose.onNodeWithTag("sensory:green_unsaved_draft_notice").assertIsDisplayed()
         compose.onNodeWithTag("sensory:green_metric_cat1").assertTextEquals("—")
         compose.onNodeWithTag("sensory:green_metric_cat2").assertTextEquals("—")
-        compose.onNodeWithText("Moisture & Physics").performScrollTo().performClick()
+        compose.onNodeWithTag("sensory:tab_green_2").performScrollTo().performClick()
 
         compose.onNodeWithText("Moisture Status: NOT_MEASURED").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("sensory:green_moisture_input").assertDoesNotExist()
@@ -65,7 +65,7 @@ class SensoryTruthLocalTest {
     @Test
     fun givenPreEpochCalibrationDate_whenEntered_thenDraftRemainsRecoverableAndExportStaysBlocked() {
         openSensoryTab("sensory:tab_green_qc")
-        compose.onNodeWithText("Moisture & Physics").performScrollTo().performClick()
+        compose.onNodeWithTag("sensory:tab_green_2").performScrollTo().performClick()
         compose.onNodeWithTag("sensory:green_measure_moisture").performScrollTo().performClick()
         compose.onNodeWithTag("sensory:green_calibration_date_input")
             .performScrollTo()
@@ -81,8 +81,9 @@ class SensoryTruthLocalTest {
     @Test
     fun givenGreenQcColorObservation_whenSelected_thenChipExposesSelectedState() {
         openSensoryTab("sensory:tab_green_qc")
-        compose.onNodeWithText("Moisture & Physics").performScrollTo().performClick()
-        compose.onNodeWithTag("sensory:green_color_GREEN").performScrollTo().performClick()
+        compose.onNodeWithTag("sensory:tab_green_2").performScrollTo().performClick()
+        compose.onNodeWithTag("sensory:green_measure_moisture").performScrollTo()
+        compose.onNodeWithTag("sensory:green_color_GREEN").performClick()
 
         compose.onNodeWithTag("sensory:green_color_GREEN").assertIsSelected()
     }
