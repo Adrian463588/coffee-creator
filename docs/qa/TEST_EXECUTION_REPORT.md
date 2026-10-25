@@ -44,3 +44,34 @@ Only ADB device/package metadata were read before the test run. The Samsung devi
 ## Final execution result
 
 The app compiles, the debug artifact assembles, and all 322 fresh JVM tests pass. Android Lint completes with warnings; Detekt and KtLint fail. Device/UI/SAF/AI/BLE and full requirement-level BDD acceptance are not proven. Release disposition is **NOT_READY**; see [RELEASE_READINESS_SPRINT_04.md](RELEASE_READINESS_SPRINT_04.md).
+
+## Remediation follow-up — 2026-10-18
+
+The audit baseline above is preserved as originally recorded. On remediation source baseline `4d850496effe61669adbc32c71c2b19039fb07bd`, the fresh JVM suite passed **366/366** tests (41 suites). Android Lint completed with **120 findings** (94 warnings, 26 informational); Detekt still fails with **534 weighted issues**; `ktlintTestSourceSetCheck` passes after an import-order correction, while `ktlintMainSourceSetCheck` still fails. Debug assembly passed: 106,630,827-byte local APK, SHA-256 `2A6D1D713F72A00A8A61DE89FA8A239EE3F483F436086721F21590923E1866D0`. ADB/instrumentation were not run per the user's instruction. Requirement-level execution remains **0/221** and master BDD/E2E execution remains **0/297**. This does not supersede the **NOT_READY** disposition. Full details: [REMEDIATION_2026-10-18.md](REMEDIATION_2026-10-18.md).
+
+## Final local quality verification — 2026-10-18
+
+**Source commit:** 5628669 (style(quality): satisfy Kotlin formatting checks), branch codex/s4-cva-persistence. The final run followed the Green QC evaluator extraction and KtLint formatting of the Academy lesson registry and Green QC model. Full console evidence is in [quality-gates-final-2026-10-18.log](evidence/quality-gates-final-2026-10-18.log); JUnit XML is under app/build/test-results/testDebugUnitTest/.
+
+| Gate | Command | Result |
+|---|---|---|
+| JVM tests | .\gradlew.bat :app:testDebugUnitTest | **PASS** — 47 suites, 389 tests, 0 failures, 0 errors, 0 skipped. |
+| KtLint production | .\gradlew.bat :app:ktlintMainSourceSetCheck | **PASS**. |
+| KtLint tests | .\gradlew.bat :app:ktlintTestSourceSetCheck | **PASS**. |
+| Detekt | .\gradlew.bat :app:detekt | **PASS** — zero weighted findings. |
+| Android Lint | .\gradlew.bat :app:lintDebug | Gradle task **PASS WITH FINDINGS** — 120 total: 94 warnings and 26 informational findings. |
+| Debug APK | .\gradlew.bat :app:assembleDebug | **PASS** — 106,532,403 bytes; SHA-256 7b4112d65f22fde4e0c2d12f1151c2b19883ca64ecac826bed080976c11ca90e. Local debug artifact only: app/build/outputs/apk/debug/app-debug.apk; not installed or published. |
+| Whitespace/diff | git diff --check | **PASS** before the quality run. |
+| ADB / Android instrumentation | No device command issued | **NOT_RUN by user instruction**. |
+
+The executed Gradle command was :app:testDebugUnitTest :app:ktlintMainSourceSetCheck :app:ktlintTestSourceSetCheck :app:lintDebug :app:detekt :app:assembleDebug --continue --no-parallel --max-workers=1 --console=plain, invoked through RTK PowerShell. It ended BUILD SUCCESSFUL in 4m 48s. The first format check exposed KtLint issues in moved Academy multiline-string delimiters and Green QC helper layout; formatting was limited to those two files, then the full command passed.
+
+These are code-quality and host-JVM results, not end-to-end feature acceptance. Requirement acceptance remains **0/221**, master BDD/E2E execution remains **0/297**, ADB/instrumentation remains **NOT_RUN**, and unresolved P0/P1 defects keep release readiness **NOT_READY**. Android Lint still has findings. No app data, SAF grants, or connected device were accessed in this run.
+
+Read-only GitHub verification confirmed the repository description/topics are present and the latest public release is still [v1.14.5](https://github.com/Adrian463588/coffee-creator/releases/tag/v1.14.5), with [coffee-creator-v1.14.5.apk](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/coffee-creator-v1.14.5.apk) (123,036,057 bytes). No release was created because the readiness gates remain open.
+
+## Scoped CVA storage follow-up — 2026-10-18
+
+Implementation commit under test: `25e45e4a96b3bad6f5ccb54de2261670f9e67cd9`.
+
+Branch `codex/s4-cva-persistence` (base `e861739573fb98bc4f01b658e9830dc5a44a9c01`) adds Room-backed typed CVA sessions, additive backup v4 compatibility, assessment/preparation bounds, strict amendment history, and current-revision JSON/CSV export validation. Full JVM tests: **42 suites / 383 tests / 0 failures / 0 errors / 0 skipped**. `lintDebug`: task passes with 120 findings (94 warnings, 26 informational). Detekt: **FAIL**, 534 weighted findings. Test-source KtLint: **PASS**. Main-source KtLint: **FAIL**, 2,115-line repository report; the modified validation and export guard lines no longer appear in the report. `assembleDebug`: **PASS**, local APK 106,778,097 bytes, SHA-256 `14a32a0f8244aafe96d0f986efb46b6217fea19c0085c7ce86a3f4b3b6bc6203`. ADB and instrumentation remain NOT_RUN per user instruction. The UI session workflow is not wired; requirement-level acceptance remains **0/221**, master BDD/E2E **0/297**, and release verdict **NOT_READY**. D-016 through D-020 are fixed on this branch. Full commands and evidence: [CVA_DURABLE_STORAGE_SLICE_2026-10-18.md](CVA_DURABLE_STORAGE_SLICE_2026-10-18.md).

@@ -1,18 +1,13 @@
 package com.coffeecreator.app.ui.viewmodel
 
-import android.os.SystemClock
 import androidx.lifecycle.viewModelScope
 import com.coffeecreator.app.core.ble.ScaleConnectionState
-import com.coffeecreator.app.core.ble.ScaleWeightSample
-import com.coffeecreator.app.core.ble.SimulatedBleScaleDriver
-import com.coffeecreator.app.core.brew.AudioCueType
 import com.coffeecreator.app.core.brew.BrewExecutionStatus
-import com.coffeecreator.app.core.brew.BrewFilterEngine
 import com.coffeecreator.app.core.brew.BrewSessionSnapshot
 import com.coffeecreator.app.core.brew.BrewSessionState
-import com.coffeecreator.app.core.brew.BrewStepProgress
-import com.coffeecreator.app.core.brew.HapticCueType
-import com.coffeecreator.app.core.brew.ProximityState
+import com.coffeecreator.app.core.brew.BrewTimerEngine
+import com.coffeecreator.app.core.brew.BrewTimerPreferences
+import com.coffeecreator.app.core.brew.BrewTimerRuntimeState
 import com.coffeecreator.app.core.engine.DomainValidation
 import com.coffeecreator.app.core.journal.BrewCompletionRecordFactory
 import com.coffeecreator.app.core.model.BrewStep
@@ -21,15 +16,9 @@ import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.reliability.LogLevel
 import com.coffeecreator.app.core.reliability.ModuleStatus
 import java.util.UUID
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-private const val AUTO_START_WEIGHT_THRESHOLD_GRAMS = 0.5
-private const val ESPRESSO_AUTO_STOP_MINIMUM_YIELD_GRAMS = 5.0
-private const val ESPRESSO_AUTO_STOP_FLOW_RATE_GRAMS_PER_SECOND = 0.20
-private const val ESPRESSO_AUTO_STOP_SUSTAINED_DURATION_MS = 1_500L
 
 fun defaultFallbackRecipe(): Recipe = Recipe(
     id = "default-fallback-v60",
@@ -49,7 +38,6 @@ fun defaultFallbackRecipe(): Recipe = Recipe(
             targetWaterGrams = 50.0,
             durationSeconds = 45,
             action = "Pour",
-            startOffsetSeconds = 0,
             cumulativeMassGrams = 50.0
         ),
         BrewStep(
@@ -73,13 +61,9 @@ fun resolveActiveRecipe(
     ingredients: List<Ingredient> = emptyList()
 ): Recipe {
     if (targetRecipe != null) {
-        val validated = runCatching {
-            DomainValidation.validateRecipe(targetRecipe, ingredients)
-            targetRecipe
-        }.getOrNull()
-        if (validated != null) return validated
+        DomainValidation.validateRecipe(targetRecipe, ingredients)
+        return targetRecipe
     }
-
     if (draft != null) {
         val safeDraftRecipe = runCatching {
             val mergedFields = RecipeDraft.defaultFields() + draft.fields
@@ -89,335 +73,155 @@ fun resolveActiveRecipe(
             } else {
                 mergedFields["method"]?.takeIf(String::isNotBlank) ?: "Pour Over (V60)"
             }
-            val synthesizedName = if (rawName.isBlank()) "Draft $effectiveMethod" else rawName
-            val safeDraft = draft.copy(fields = mergedFields + ("name" to synthesizedName))
+            val safeDraft = draft.copy(
+                fields = mergedFields + ("name" to if (rawName.isBlank()) "Draft $effectiveMethod" else rawName)
+            )
             safeDraft.build(ingredients)
         }.getOrNull()
         if (safeDraftRecipe != null) return safeDraftRecipe
     }
-
     val savedRecipe = savedRecipes.firstOrNull()?.let { recipe ->
         runCatching {
             DomainValidation.validateRecipe(recipe, ingredients)
             recipe
         }.getOrNull()
     }
-    if (savedRecipe != null) return savedRecipe
-
-    return defaultFallbackRecipe()
+    return savedRecipe ?: defaultFallbackRecipe()
 }
 
-internal fun CoffeeViewModel.resolveActiveRecipe(targetRecipe: Recipe? = null): Recipe {
-    return resolveActiveRecipe(
-        targetRecipe = targetRecipe,
-        draft = mutableState.value.draft,
-        savedRecipes = mutableState.value.recipes,
-        ingredients = mutableState.value.ingredients
-    )
-}
+internal fun CoffeeViewModel.resolveActiveRecipe(targetRecipe: Recipe? = null): Recipe = resolveActiveRecipe(
+    targetRecipe = targetRecipe,
+    draft = mutableState.value.draft,
+    savedRecipes = mutableState.value.recipes,
+    ingredients = mutableState.value.ingredients
+)
 
 internal fun createDefaultBrewSession(
     recipe: Recipe,
     scaleDevice: com.coffeecreator.app.core.ble.BleScaleDevice? = null,
     scaleConnectionState: ScaleConnectionState = ScaleConnectionState.DISCONNECTED
-): BrewSessionState {
-    val steps = recipe.brewSteps.ifEmpty {
-        listOf(
-            BrewStep(
-                stepNumber = 1,
-                description = "Continuous extraction",
-                targetWaterGrams = recipe.waterGrams,
-                durationSeconds = recipe.brewTimeSeconds,
-                action = "Pour",
-                startOffsetSeconds = 0,
-                cumulativeMassGrams = recipe.waterGrams
-            )
-        )
+): BrewSessionState = BrewTimerEngine.prepare(recipe, BrewTimerPreferences(), UUID.randomUUID().toString(), 0L, -1).session.copy(
+    scaleDevice = scaleDevice,
+    scaleConnectionState = scaleConnectionState
+)
+
+/** False always preserves the active brew and source recipe; an explicit invalid recipe never falls back. */
+fun CoffeeViewModel.initBrewSession(targetRecipe: Recipe? = null): Boolean {
+    return try {
+        val recipe = resolveActiveRecipe(targetRecipe)
+        val prepared = graph.brewTimer.prepare(recipe)
+        syncBrewTimerState(graph.brewTimer.state.value)
+        prepared
+    } catch (boundaryFailure: IllegalArgumentException) {
+        mutableState.update { it.copy(notice = "Cannot prepare this recipe: ${boundaryFailure.message}. Existing brew retained.") }
+        false
     }
-    val activeRecipe = recipe.copy(brewSteps = steps)
-    val firstStep = steps.first()
-    val nextStep = if (steps.size > 1) steps[1] else null
-    val progress = BrewStepProgress(
-        stepIndex = 0,
-        totalSteps = steps.size,
-        currentStep = firstStep,
-        nextStep = nextStep,
-        stepElapsedSeconds = 0,
-        stepRemainingSeconds = firstStep.durationSeconds,
-        stepTargetWaterGrams = firstStep.targetWaterGrams,
-        cumulativeTargetWaterGrams = firstStep.cumulativeMassGrams,
-        pouredInStepGrams = 0.0,
-        remainingToCumulativeTargetGrams = firstStep.cumulativeMassGrams,
-        proximityState = ProximityState.NORMAL
-    )
-    return BrewSessionState(
-        sessionId = UUID.randomUUID().toString(),
-        recipe = activeRecipe,
-        status = BrewExecutionStatus.READY_ARMED,
-        totalElapsedSeconds = 0,
-        currentWeightGrams = 0.0,
-        currentFlowRateGps = 0.0,
-        stepProgress = progress,
-        liveSamples = emptyList(),
-        autoStartArmed = true,
-        scaleDevice = scaleDevice,
-        scaleConnectionState = scaleConnectionState
-    )
 }
 
-private fun CoffeeViewModel.createDefaultSession(targetRecipe: Recipe? = null): BrewSessionState {
-    val recipe = resolveActiveRecipe(targetRecipe)
-    return createDefaultBrewSession(recipe)
+internal fun CoffeeViewModel.observeBrewTimer() {
+    graph.brewTimer.acknowledgeCompletions(mutableState.value.journalEntries.map { it.id }.toSet())
+    viewModelScope.launch {
+        graph.brewTimer.state.collect { timerState ->
+            syncBrewTimerState(timerState)
+            for (completed in timerState.pendingCompletions) {
+                val journalId = "timer:${completed.sessionId}"
+                if (mutableState.value.journalEntries.none { it.id == journalId }) {
+                    saveTimerCompletion(completed, journalId)
+                }
+            }
+        }
+    }
 }
 
-fun CoffeeViewModel.initBrewSession(targetRecipe: Recipe? = null) {
-    val session = createDefaultSession(targetRecipe)
-    prevStepIndex = 0
-    lowFlowStartMonoMs = 0L
-    mutableState.update {
-        it.copy(
-            brewSession = session,
-            timerSeconds = 0,
-            timerRunning = false,
-            brewCurveRmse = null
+private fun CoffeeViewModel.saveTimerCompletion(session: BrewSessionState, journalId: String) {
+    if (!pendingTimerJournalWrites.add(journalId)) return
+    viewModelScope.launch {
+        try {
+            if (graph.repository.findRecipeById(session.recipe.id) == null) graph.repository.saveRecipe(session.recipe)
+            val entry = BrewCompletionRecordFactory.fromTimerCompletion(
+                recipe = session.recipe,
+                elapsedSeconds = session.totalElapsedSeconds,
+                beanName = mutableState.value.beans.find { it.id == session.recipe.beanId }?.name
+            ).let { original ->
+                val readings = session.manualWeighIns.joinToString("\n") {
+                    "Manual scale reading (not measured beverage mass): ${it.weightGrams} g at ${it.elapsedSeconds} s."
+                }
+                original.copy(
+                    id = journalId,
+                    generalNotes = listOf(original.generalNotes, readings).filter(String::isNotBlank).joinToString("\n")
+                )
+            }
+            mutableState.update { current ->
+                current.copy(
+                    journalEntries = listOf(entry) + current.journalEntries.filterNot { it.id == journalId },
+                    notice = "Brew time saved to Journal. Targets and manual scale readings are separate from beverage mass and TDS."
+                )
+            }
+            refreshStreakAndStats()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (boundaryFailure: Exception) {
+            diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Completed brew is retained for retry.", boundaryFailure)
+            mutableState.update {
+                it.copy(
+                    notice = "Completed brew is retained for retry. Journal save failed: ${boundaryFailure.message}"
+                )
+            }
+        } finally {
+            pendingTimerJournalWrites.remove(journalId)
+        }
+    }
+}
+
+private fun CoffeeViewModel.syncBrewTimerState(timerState: BrewTimerRuntimeState) {
+    mutableState.update { current ->
+        current.copy(
+            brewSession = timerState.session,
+            timerSeconds = timerState.session?.totalElapsedSeconds ?: 0,
+            timerRunning = timerState.session?.status == BrewExecutionStatus.RUNNING,
+            notice = timerState.recoveryNotice ?: current.notice
         )
     }
 }
 
 fun CoffeeViewModel.startBrewSession() {
-    try {
-        if (mutableState.value.brewSession == null) {
-            initBrewSession()
-        }
-        val session = mutableState.value.brewSession ?: return
-        timerOrigin = SystemClock.elapsedRealtime() - mutableState.value.timerSeconds * MILLIS_PER_SECOND
-        mutableState.update {
-            it.copy(
-                timerRunning = true,
-                brewSession = session.copy(status = BrewExecutionStatus.RUNNING)
-            )
-        }
-        timer?.cancel()
-        timer = viewModelScope.launch {
-            while (true) {
-                delay(TIMER_REFRESH_MS)
-                val now = SystemClock.elapsedRealtime()
-                val elapsed = ((now - timerOrigin) / MILLIS_PER_SECOND).toInt()
-                updateSessionTick(elapsed)
-            }
-        }
-    } catch (e: Exception) {
-        if (e is kotlinx.coroutines.CancellationException) throw e
-        diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Failed to start brew session: ${e.message}")
-        mutableState.update { it.copy(notice = "Error starting session: ${e.message}") }
-    }
+    if (graph.brewTimer.state.value.session == null && !initBrewSession()) return
+    graph.brewTimer.start()
+    syncBrewTimerState(graph.brewTimer.state.value)
 }
 
 fun CoffeeViewModel.pauseBrewSession() {
-    timer?.cancel()
-    mutableState.update {
-        it.copy(
-            timerRunning = false,
-            brewSession = it.brewSession?.copy(status = BrewExecutionStatus.PAUSED)
-        )
-    }
+    graph.brewTimer.pause()
+    syncBrewTimerState(graph.brewTimer.state.value)
 }
 
-fun CoffeeViewModel.resumeBrewSession() {
-    startBrewSession()
-}
+fun CoffeeViewModel.resumeBrewSession() = startBrewSession()
 
 fun CoffeeViewModel.skipBrewStep() {
-    val session = mutableState.value.brewSession ?: return
-    val steps = session.recipe.brewSteps
-    val currentIdx = session.stepProgress?.stepIndex ?: 0
-    if (currentIdx + 1 < steps.size) {
-        val nextIdx = currentIdx + 1
-        var accumulatedTime = 0
-        for (i in 0 until nextIdx) {
-            accumulatedTime += steps[i].durationSeconds
-        }
-        timerOrigin = SystemClock.elapsedRealtime() - accumulatedTime * MILLIS_PER_SECOND
-        updateSessionTick(accumulatedTime)
-    } else {
-        finishBrewSession()
-    }
+    graph.brewTimer.skipStep()
+    syncBrewTimerState(graph.brewTimer.state.value)
 }
 
 fun CoffeeViewModel.restartBrewStep() {
-    val session = mutableState.value.brewSession ?: return
-    val steps = session.recipe.brewSteps
-    val currentIdx = session.stepProgress?.stepIndex ?: 0
-    var stepStartTime = 0
-    for (i in 0 until currentIdx) {
-        stepStartTime += steps[i].durationSeconds
-    }
-    timerOrigin = SystemClock.elapsedRealtime() - stepStartTime * MILLIS_PER_SECOND
-    updateSessionTick(stepStartTime)
+    graph.brewTimer.restartStep()
+    syncBrewTimerState(graph.brewTimer.state.value)
 }
 
 fun CoffeeViewModel.resetBrewSession() {
-    timer?.cancel()
-    mutableState.update {
-        it.copy(
-            timerSeconds = 0,
-            timerRunning = false,
-            brewSession = it.brewSession?.copy(
-                status = BrewExecutionStatus.READY_ARMED,
-                totalElapsedSeconds = 0,
-                currentWeightGrams = 0.0,
-                currentFlowRateGps = 0.0,
-                liveSamples = emptyList()
-            )
-        )
-    }
+    graph.brewTimer.reset()
+    syncBrewTimerState(graph.brewTimer.state.value)
 }
 
 fun CoffeeViewModel.finishBrewSession() {
-    timer?.cancel()
-    val session = mutableState.value.brewSession ?: return
-    val elapsed = mutableState.value.timerSeconds
-    viewModelScope.launch {
-        runCatching {
-            if (graph.repository.findRecipeById(session.recipe.id) == null) {
-                graph.repository.saveRecipe(session.recipe)
-            }
-        }
-    }
-
-    val idealPoints = BrewFilterEngine.generateIdealCurvePoints(session.recipe.brewSteps)
-    val actualPoints = session.liveSamples.map {
-        Pair(((it.timestampMonoMs - session.liveSamples.first().timestampMonoMs) / 1000).toInt(), it.filteredWeightGrams)
-    }
-    val rmse = if (scaleDriver !is SimulatedBleScaleDriver && actualPoints.isNotEmpty()) {
-        BrewFilterEngine.calculateCurveRmse(actualPoints, idealPoints)
-    } else {
-        null
-    }
-    val journalEntry = BrewCompletionRecordFactory.fromTimerCompletion(
-        recipe = session.recipe,
-        elapsedSeconds = elapsed,
-        beanName = mutableState.value.beans.find { it.id == session.recipe.beanId }?.name
-    )
-
-    mutableState.update {
-        val updatedJournal = listOf(journalEntry) + it.journalEntries.filter { j -> j.id != journalEntry.id }
-        it.copy(
-            timerRunning = false,
-            brewCurveRmse = rmse,
-            brewSession = session.copy(status = BrewExecutionStatus.COMPLETED),
-            journalEntries = updatedJournal,
-            notice = "Timer completed. Recipe and elapsed time were logged; measurements and sensory notes remain blank."
-        )
-    }
-    refreshStreakAndStats()
+    graph.brewTimer.finish()
+    syncBrewTimerState(graph.brewTimer.state.value)
 }
 
-private fun CoffeeViewModel.updateSessionTick(elapsedSeconds: Int) {
-    val currentSession = mutableState.value.brewSession ?: return
-    val steps = currentSession.recipe.brewSteps
-    val totalDuration = steps.sumOf { it.durationSeconds }
-
-    if (elapsedSeconds >= totalDuration && currentSession.status == BrewExecutionStatus.RUNNING) {
-        finishBrewSession()
-        return
-    }
-
-    var stepIdx = 0
-    var accTime = 0
-    for (i in steps.indices) {
-        val step = steps[i]
-        if (elapsedSeconds < accTime + step.durationSeconds || i == steps.lastIndex) {
-            stepIdx = i
-            break
-        }
-        accTime += step.durationSeconds
-    }
-
-    val step = steps[stepIdx]
-    val stepElapsed = (elapsedSeconds - accTime).coerceAtLeast(0)
-    val stepRemaining = (step.durationSeconds - stepElapsed).coerceAtLeast(0)
-    val nextStep = if (stepIdx + 1 < steps.size) steps[stepIdx + 1] else null
-
-    var haptic: HapticCueType? = null
-    var audio: AudioCueType? = null
-
-    if (stepIdx != prevStepIndex) {
-        prevStepIndex = stepIdx
-        haptic = HapticCueType.STEP_TRANSITION
-        audio = AudioCueType.CHIME
-    } else if (stepRemaining in 1..3) {
-        haptic = HapticCueType.COUNTDOWN_WARNING
-        audio = AudioCueType.TICK
-    }
-
-    val proximity = BrewFilterEngine.calculateProximity(currentSession.currentWeightGrams, step.cumulativeMassGrams)
-    if (proximity == ProximityState.TARGET_MATCHED && currentSession.stepProgress?.proximityState != ProximityState.TARGET_MATCHED) {
-        haptic = HapticCueType.TARGET_MATCHED
-    }
-
-    val progress = BrewStepProgress(
-        stepIndex = stepIdx,
-        totalSteps = steps.size,
-        currentStep = step,
-        nextStep = nextStep,
-        stepElapsedSeconds = stepElapsed,
-        stepRemainingSeconds = stepRemaining,
-        stepTargetWaterGrams = step.targetWaterGrams,
-        cumulativeTargetWaterGrams = step.cumulativeMassGrams,
-        pouredInStepGrams = currentSession.currentWeightGrams,
-        remainingToCumulativeTargetGrams = (step.cumulativeMassGrams - currentSession.currentWeightGrams).coerceAtLeast(0.0),
-        proximityState = proximity
-    )
-
-    mutableState.update {
-        it.copy(
-            timerSeconds = elapsedSeconds,
-            activeHapticCue = haptic ?: it.activeHapticCue,
-            activeAudioCue = audio ?: it.activeAudioCue,
-            brewSession = currentSession.copy(
-                totalElapsedSeconds = elapsedSeconds,
-                stepProgress = progress
-            )
-        )
-    }
-}
-
+/** Kept as a compatibility action. No simulated driver is ever represented as connected user hardware. */
 fun CoffeeViewModel.connectMockScale() {
-    val simDriver = SimulatedBleScaleDriver()
-    scaleDriver = simDriver
-    mutableState.update { it.copy(isScaleScanning = true) }
-    viewModelScope.launch {
-        try {
-            simDriver.connect()
-            mutableState.update {
-                it.copy(
-                    isScaleScanning = false,
-                    brewSession = (it.brewSession ?: createDefaultSession()).copy(
-                        scaleDevice = simDriver.device,
-                        scaleConnectionState = ScaleConnectionState.READY
-                    ),
-                    notice = "Connected to ${simDriver.device.name}"
-                )
-            }
-            scaleJob?.cancel()
-            scaleJob = launch {
-                simDriver.weightStream.collect { sample ->
-                    onScaleSampleReceived(sample)
-                }
-            }
-            updateDegradationState(ble = ModuleStatus.AVAILABLE)
-            diagnosticBuffer.log(LogLevel.INFO, "BLE", "Connected to ${simDriver.device.name}")
-        } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
-            mutableState.update {
-                it.copy(
-                    isScaleScanning = false,
-                    notice = "Scale connection failed: ${e.message}"
-                )
-            }
-            diagnosticBuffer.log(LogLevel.ERROR, "BLE", "Scale connection error: ${e.message}")
-        }
+    updateDegradationState(ble = ModuleStatus.UNAVAILABLE_MISSING)
+    mutableState.update {
+        it.copy(isScaleScanning = false, notice = "No compatible scale driver is installed. Use the manual timer and enter scale readings.")
     }
 }
 
@@ -427,121 +231,53 @@ fun CoffeeViewModel.disconnectScale() {
         scaleDriver?.disconnect()
         scaleDriver = null
         updateDegradationState(ble = ModuleStatus.UNAVAILABLE_MISSING)
-        diagnosticBuffer.log(LogLevel.INFO, "BLE", "Scale disconnected")
-        mutableState.update {
-            it.copy(
-                brewSession = it.brewSession?.copy(
-                    scaleDevice = null,
-                    scaleConnectionState = ScaleConnectionState.DISCONNECTED
-                )
-            )
-        }
+        mutableState.update { it.copy(isScaleScanning = false, notice = "Manual brewing remains available without a connected scale.") }
     }
 }
 
 fun CoffeeViewModel.tareScale() {
-    viewModelScope.launch {
-        try {
-            scaleDriver?.tare()
-            mutableState.update {
-                it.copy(
-                    brewSession = (it.brewSession ?: createDefaultSession()).copy(
-                        currentWeightGrams = 0.0,
-                        currentFlowRateGps = 0.0
-                    )
-                )
-            }
-        } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
-            diagnosticBuffer.log(LogLevel.ERROR, "SCALE", "Tare error: ${e.message}")
-        }
+    if (scaleDriver == null) {
+        mutableState.update { it.copy(notice = "Tare your physical scale manually, then enter its displayed reading.") }
+    } else {
+        viewModelScope.launch { scaleDriver?.tare() }
     }
 }
 
 fun CoffeeViewModel.feedSimulatedWeight(grams: Double) {
-    (scaleDriver as? SimulatedBleScaleDriver)?.feedWeight(grams)
+    require(grams.isFinite()) { "Simulation input must be finite." }
+    mutableState.update { it.copy(notice = "Scale simulation is available in tests only. Enter a measured reading manually.") }
 }
 
-private fun CoffeeViewModel.onScaleSampleReceived(sample: ScaleWeightSample) {
-    val currentSession = mutableState.value.brewSession ?: return
-
-    // Auto-start check
-    if (currentSession.status == BrewExecutionStatus.READY_ARMED && currentSession.autoStartArmed) {
-        if (sample.rawWeightGrams >= AUTO_START_WEIGHT_THRESHOLD_GRAMS) {
-            startBrewSession()
-        }
-    }
-
-    val updatedSamples = (currentSession.liveSamples + sample).takeLast(2000)
-    val currentStep = currentSession.stepProgress?.currentStep
-    val targetWater = currentStep?.cumulativeMassGrams ?: currentSession.recipe.waterGrams
-    val proximity = BrewFilterEngine.calculateProximity(sample.filteredWeightGrams, targetWater)
-
-    // Espresso auto-stop check (< 0.20 g/s sustained for >= 1.5s after 5g yield)
-    var autoStopped = false
-    if (currentSession.status == BrewExecutionStatus.RUNNING &&
-        currentSession.recipe.brewMethod.contains("Espresso", ignoreCase = true) &&
-        sample.filteredWeightGrams >= ESPRESSO_AUTO_STOP_MINIMUM_YIELD_GRAMS &&
-        sample.flowRateGramsPerSec < ESPRESSO_AUTO_STOP_FLOW_RATE_GRAMS_PER_SECOND
-    ) {
-        if (lowFlowStartMonoMs == 0L) {
-            lowFlowStartMonoMs = sample.timestampMonoMs
-        } else if (sample.timestampMonoMs - lowFlowStartMonoMs >= ESPRESSO_AUTO_STOP_SUSTAINED_DURATION_MS) {
-            autoStopped = true
-            finishBrewSession()
-        }
-    } else {
-        lowFlowStartMonoMs = 0L
-    }
-
-    if (!autoStopped) {
-        mutableState.update {
-            it.copy(
-                brewSession = currentSession.copy(
-                    currentWeightGrams = sample.filteredWeightGrams,
-                    currentFlowRateGps = sample.flowRateGramsPerSec,
-                    liveSamples = updatedSamples,
-                    stepProgress = currentSession.stepProgress?.copy(
-                        pouredInStepGrams = sample.filteredWeightGrams,
-                        remainingToCumulativeTargetGrams = (targetWater - sample.filteredWeightGrams).coerceAtLeast(0.0),
-                        proximityState = proximity
-                    )
-                )
-            )
-        }
-    }
+fun CoffeeViewModel.recordManualWeight(weightGrams: Double): Boolean {
+    if (graph.brewTimer.state.value.session == null && !initBrewSession()) return false
+    val accepted = graph.brewTimer.recordManualWeight(weightGrams)
+    syncBrewTimerState(graph.brewTimer.state.value)
+    return accepted
 }
 
-fun CoffeeViewModel.toggleKeepScreenOn() {
-    mutableState.update {
-        it.copy(brewSession = it.brewSession?.copy(keepScreenOn = !(it.brewSession?.keepScreenOn ?: true)))
-    }
+private fun CoffeeViewModel.updateBrewTimerPreferences(transform: (BrewTimerPreferences) -> BrewTimerPreferences) {
+    if (graph.brewTimer.state.value.session == null && !initBrewSession()) return
+    graph.brewTimer.updatePreferences(transform)
+    syncBrewTimerState(graph.brewTimer.state.value)
 }
 
-fun CoffeeViewModel.toggleSound() {
-    mutableState.update {
-        it.copy(brewSession = it.brewSession?.copy(audioEnabled = !(it.brewSession?.audioEnabled ?: true)))
-    }
-}
-
-fun CoffeeViewModel.toggleHaptics() {
-    mutableState.update {
-        it.copy(brewSession = it.brewSession?.copy(hapticsEnabled = !(it.brewSession?.hapticsEnabled ?: true)))
-    }
-}
+fun CoffeeViewModel.toggleKeepScreenOn() = updateBrewTimerPreferences { it.copy(keepScreenOn = !it.keepScreenOn) }
+fun CoffeeViewModel.toggleSound() = updateBrewTimerPreferences { it.copy(audioEnabled = !it.audioEnabled) }
+fun CoffeeViewModel.toggleHaptics() = updateBrewTimerPreferences { it.copy(hapticsEnabled = !it.hapticsEnabled) }
+fun CoffeeViewModel.toggleBrewNotifications() = updateBrewTimerPreferences { it.copy(notificationEnabled = !it.notificationEnabled) }
 
 fun CoffeeViewModel.clearActiveCues() {
     mutableState.update { it.copy(activeHapticCue = null, activeAudioCue = null) }
 }
 
 fun CoffeeViewModel.exportBrewSessionSnapshot(): BrewSessionSnapshot? {
-    val session = mutableState.value.brewSession ?: return null
+    val session = graph.brewTimer.state.value.session ?: return null
     return BrewSessionSnapshot(
         sessionId = session.sessionId,
         recipeId = session.recipe.id,
         status = session.status,
         currentStepIndex = session.stepProgress?.stepIndex ?: 0,
-        accumulatedElapsedSeconds = mutableState.value.timerSeconds,
+        accumulatedElapsedSeconds = session.totalElapsedSeconds,
         lastWeightGrams = session.currentWeightGrams,
         sampleCount = session.liveSamples.size
     )
@@ -549,42 +285,20 @@ fun CoffeeViewModel.exportBrewSessionSnapshot(): BrewSessionSnapshot? {
 
 fun CoffeeViewModel.restoreBrewSession(snapshot: BrewSessionSnapshot) {
     val recipe = mutableState.value.recipes.find { it.id == snapshot.recipeId }
-        ?: resolveActiveRecipe()
-    initBrewSession(recipe)
-    mutableState.update {
-        it.copy(
-            timerSeconds = snapshot.accumulatedElapsedSeconds,
-            brewSession = it.brewSession?.copy(
-                sessionId = snapshot.sessionId,
-                status = snapshot.status,
-                currentWeightGrams = snapshot.lastWeightGrams
+    if (recipe == null) {
+        mutableState.update {
+            it.copy(
+                notice = "The saved recipe is unavailable. Existing brew retained; import its backup before recovery."
             )
-        )
+        }
+        return
     }
+    graph.brewTimer.restoreLegacySnapshot(snapshot, recipe)
+    syncBrewTimerState(graph.brewTimer.state.value)
 }
 
 fun CoffeeViewModel.toggleTimer() {
-    try {
-        if (mutableState.value.brewSession == null) {
-            initBrewSession()
-        }
-        if (mutableState.value.timerRunning) {
-            pauseBrewSession()
-        } else {
-            startBrewSession()
-        }
-    } catch (e: Exception) {
-        if (e is kotlinx.coroutines.CancellationException) throw e
-        diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Failed to toggle timer: ${e.message}")
-        mutableState.update { it.copy(notice = "Error toggling timer: ${e.message}") }
-    }
+    if (graph.brewTimer.state.value.session?.status == BrewExecutionStatus.RUNNING) pauseBrewSession() else startBrewSession()
 }
 
-fun CoffeeViewModel.resetTimer() {
-    try {
-        resetBrewSession()
-    } catch (e: Exception) {
-        if (e is kotlinx.coroutines.CancellationException) throw e
-        diagnosticBuffer.log(LogLevel.ERROR, "TIMER", "Failed to reset timer: ${e.message}")
-    }
-}
+fun CoffeeViewModel.resetTimer() = resetBrewSession()

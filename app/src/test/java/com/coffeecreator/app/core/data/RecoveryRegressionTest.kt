@@ -28,9 +28,11 @@ class RecoveryRegressionTest {
         val tree = RecordJson.gson.fromJson(BackupCodec.encode(data), JsonObject::class.java)
         val payload = tree.getAsJsonObject("payload")
         payload.remove("estimates")
+        payload.remove("cvaSessions")
         val manifest = tree.getAsJsonObject("manifest")
         manifest.addProperty("schemaVersion", 2)
         manifest.getAsJsonObject("recordCounts").remove("estimates")
+        manifest.getAsJsonObject("recordCounts").remove("cvaSessions")
         manifest.addProperty("payloadSha256", BackupCodec.sha256(RecordJson.gson.toJson(payload)))
         assertEquals(data, BackupCodec.decode(RecordJson.gson.toJson(tree)).payload)
     }

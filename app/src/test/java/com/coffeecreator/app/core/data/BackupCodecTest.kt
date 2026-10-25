@@ -9,6 +9,11 @@ import com.coffeecreator.app.core.model.KnowledgeDocument
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.RecipeLine
 import com.coffeecreator.app.core.model.SensoryObservation
+import com.coffeecreator.app.core.sensory.cva.BlindSample
+import com.coffeecreator.app.core.sensory.cva.CuppingSession
+import com.coffeecreator.app.core.sensory.cva.ProtocolSpec
+import com.coffeecreator.app.core.sensory.cva.SampleAssessment
+import com.coffeecreator.app.core.sensory.cva.SessionState
 import com.google.gson.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,9 +32,141 @@ class BackupCodecTest {
         assertEquals(42L, decoded.manifest.exportedAt)
         assertEquals(1, decoded.manifest.recordCounts["recipes"])
         assertEquals(1, decoded.manifest.recordCounts["chatMessages"])
+        assertEquals(4, decoded.manifest.schemaVersion)
         assertEquals(null, decoded.payload.recipes.single().measuredTdsPercent)
         assertEquals(null, decoded.payload.recipes.single().beverageMassGrams)
         assertFalse(encoded.contains("VALID_INTEGRITY_CHECK_OK"))
+    }
+
+    @Test
+    fun givenCvaSessionWithUnknownEvidence_whenExportedAndDecoded_thenStableIdsAndValuesSurvive() {
+        val session = cvaSession()
+        val payload = completePayload().copy(cvaSessions = listOf(session))
+
+        val encoded = BackupCodec.encode(payload, exportedAt = 88L)
+        val decoded = BackupCodec.decode(encoded)
+
+        assertEquals(session, decoded.payload.cvaSessions.single())
+        assertEquals(1, decoded.manifest.recordCounts["cvaSessions"])
+    }
+
+    @Test
+    fun givenV2AndV3Backups_whenDecoded_thenCvaCollectionIsEmptyAndLegacyChecksumRemainsValid() {
+        listOf(2, 3).forEach { version ->
+            val envelope = RecordJson.gson.fromJson(BackupCodec.encode(completePayload()), JsonObject::class.java)
+            val payload = envelope["payload"].asJsonObject
+            payload.remove("cvaSessions")
+            if (version == 2) payload.remove("estimates")
+            val manifest = envelope["manifest"].asJsonObject
+            val counts = manifest["recordCounts"].asJsonObject
+            counts.remove("cvaSessions")
+            if (version == 2) counts.remove("estimates")
+            manifest.addProperty("schemaVersion", version)
+            manifest.addProperty("payloadSha256", BackupCodec.sha256(RecordJson.gson.toJson(payload)))
+
+            val decoded = BackupCodec.decode(RecordJson.gson.toJson(envelope))
+
+            assertTrue(decoded.payload.cvaSessions.isEmpty())
+            assertEquals(version, decoded.manifest.schemaVersion)
+        }
+    }
+
+    @Test
+    fun givenDuplicateOrTamperedCvaSessions_whenEncoded_thenBackupIsRejected() {
+        val session = cvaSession()
+        assertThrows(IllegalArgumentException::class.java) {
+            BackupCodec.encode(completePayload().copy(cvaSessions = listOf(session, session)))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            BackupCodec.encode(completePayload().copy(cvaSessions = listOf(session.copy(currentSha256Checksum = "0".repeat(64)))))
+        }
+    }
+
+    @Test
+    fun givenRehashedBackupWithInvalidCvaMeasurement_whenDecoded_thenItIsRejected() {
+        val validEnvelope = RecordJson.gson.fromJson(
+            BackupCodec.encode(completePayload().copy(cvaSessions = listOf(cvaSession()))),
+            JsonObject::class.java
+        )
+        val payload = validEnvelope["payload"].asJsonObject
+        val sessionJson = payload["cvaSessions"].asJsonArray[0].asJsonObject
+        sessionJson.getAsJsonArray("samples")[0].asJsonObject.getAsJsonObject("physical")
+            .addProperty("quakersCountIn100g", -1)
+        val invalidSession = RecordJson.gson.fromJson(sessionJson, CuppingSession::class.java)
+            .let { it.copy(currentSha256Checksum = "").let { unsigned -> unsigned.copy(currentSha256Checksum = unsigned.computeSha256()) } }
+        payload.getAsJsonArray("cvaSessions").set(0, RecordJson.gson.toJsonTree(invalidSession))
+        validEnvelope["manifest"].asJsonObject.addProperty(
+            "payloadSha256",
+            BackupCodec.sha256(RecordJson.gson.toJson(payload))
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            BackupCodec.decode(RecordJson.gson.toJson(validEnvelope))
+        }
+    }
+
+    @Test
+    fun givenRehashedBackupWithInvalidPreparation_whenDecoded_thenRejected() {
+        val validPreparation = cvaSession().samplePreparation
+        val invalidPreparations = listOf(
+            validPreparation.copy(cupCount = 0),
+            validPreparation.copy(roastRestDays = -1),
+            validPreparation.copy(roastLevelAgtron = 101.0),
+            validPreparation.copy(roastDateEpochMs = -1L),
+            validPreparation.copy(grindMicrons = 0),
+            validPreparation.copy(equipment = validPreparation.equipment.copy(grindMicrons = -1)),
+            validPreparation.copy(equipment = validPreparation.equipment.copy(bowlCountPerSample = 0))
+        )
+
+        invalidPreparations.forEach { preparation ->
+            val envelope = RecordJson.gson.fromJson(
+                BackupCodec.encode(completePayload().copy(cvaSessions = listOf(cvaSession()))),
+                JsonObject::class.java
+            )
+            val payload = envelope["payload"].asJsonObject
+            val invalidSession = cvaSession().copy(samplePreparation = preparation, currentSha256Checksum = "")
+                .let { it.copy(currentSha256Checksum = it.computeSha256()) }
+            payload.getAsJsonArray("cvaSessions").set(0, RecordJson.gson.toJsonTree(invalidSession))
+            envelope["manifest"].asJsonObject.addProperty(
+                "payloadSha256",
+                BackupCodec.sha256(RecordJson.gson.toJson(payload))
+            )
+
+            assertThrows(IllegalArgumentException::class.java) {
+                BackupCodec.decode(RecordJson.gson.toJson(envelope))
+            }
+        }
+    }
+
+    @Test
+    fun givenMalformedDuplicateOrTamperedCvaPayload_whenDecoded_thenItIsRejected() {
+        val payload = completePayload().copy(cvaSessions = listOf(cvaSession()))
+        val validEnvelope = RecordJson.gson.fromJson(BackupCodec.encode(payload), JsonObject::class.java)
+        val duplicateEnvelope = validEnvelope.deepCopy()
+        val duplicatePayload = duplicateEnvelope["payload"].asJsonObject
+        val sessions = duplicatePayload["cvaSessions"].asJsonArray
+        sessions.add(sessions[0].deepCopy())
+        duplicateEnvelope["manifest"].asJsonObject["recordCounts"].asJsonObject.addProperty("cvaSessions", 2)
+        duplicateEnvelope["manifest"].asJsonObject.addProperty(
+            "payloadSha256",
+            BackupCodec.sha256(RecordJson.gson.toJson(duplicatePayload))
+        )
+        assertThrows(IllegalArgumentException::class.java) { BackupCodec.decode(RecordJson.gson.toJson(duplicateEnvelope)) }
+
+        val malformedEnvelope = validEnvelope.deepCopy()
+        val malformedPayload = malformedEnvelope["payload"].asJsonObject
+        malformedPayload["cvaSessions"].asJsonArray[0].asJsonObject
+            .getAsJsonObject("protocolSpec").addProperty("protocol", "UNSUPPORTED_PROTOCOL")
+        malformedEnvelope["manifest"].asJsonObject.addProperty(
+            "payloadSha256",
+            BackupCodec.sha256(RecordJson.gson.toJson(malformedPayload))
+        )
+        assertThrows(IllegalArgumentException::class.java) { BackupCodec.decode(RecordJson.gson.toJson(malformedEnvelope)) }
+
+        val tamperedEnvelope = validEnvelope.deepCopy()
+        tamperedEnvelope["payload"].asJsonObject["cvaSessions"].asJsonArray[0].asJsonObject
+            .addProperty("assessorPseudonym", "changed without a new checksum")
+        assertThrows(IllegalArgumentException::class.java) { BackupCodec.decode(RecordJson.gson.toJson(tamperedEnvelope)) }
     }
 
     @Test
@@ -65,7 +202,7 @@ class BackupCodecTest {
     fun givenUnsupportedSchema_whenDecoded_thenNoMigrationIsInvented() {
         val encoded = BackupCodec.encode(completePayload())
         assertThrows(IllegalArgumentException::class.java) {
-            BackupCodec.decode(encoded.replace("\"schemaVersion\":3", "\"schemaVersion\":99"))
+            BackupCodec.decode(encoded.replace("\"schemaVersion\":4", "\"schemaVersion\":99"))
         }
     }
 
@@ -144,6 +281,28 @@ class BackupCodecTest {
     }
 
     companion object {
+        private fun cvaSession(): CuppingSession {
+            val unsigned = CuppingSession(
+                id = "cva-session-1",
+                protocolSpec = ProtocolSpec.CUSTOM,
+                assessorId = "assessor-1",
+                assessorPseudonym = "A1",
+                createdAtEpochMs = 1L,
+                state = SessionState.DRAFT,
+                samples = listOf(
+                    SampleAssessment(
+                        blindSample = BlindSample(
+                            sampleId = "sample-1",
+                            blindCode = "384",
+                            actualLotId = "lot-1",
+                            actualBeanName = "Unknown lot"
+                        )
+                    )
+                )
+            )
+            return unsigned.copy(currentSha256Checksum = unsigned.computeSha256())
+        }
+
         fun completePayload(): BackupPayload {
             val content = "Storage test document supplied by the test."
             val document = KnowledgeDocument(

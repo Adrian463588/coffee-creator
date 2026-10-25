@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.data.DataRepositoryTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:15" hostname="REDRABBIT" time="6.41">
+  <properties/>
+  <testcase name="givenGoodRecords_whenCorruptBackupIsRestored_thenExistingRecordsRemainIntact" classname="com.coffeecreator.app.core.data.DataRepositoryTest" time="5.49"/>
+  <testcase name="givenInvalidRevision_whenSaved_thenOriginalSurvives" classname="com.coffeecreator.app.core.data.DataRepositoryTest" time="0.161"/>
+  <testcase name="givenIndexedText_whenReopened_thenLiteralFtsDeduplicates" classname="com.coffeecreator.app.core.data.DataRepositoryTest" time="0.191"/>
+  <testcase name="givenVersionOne_whenMigrated_thenRecordsAndChunksSurvive" classname="com.coffeecreator.app.core.data.DataRepositoryTest" time="0.154"/>
+  <testcase name="givenExport_whenRestored_thenRecordsAndOwnershipSurvive" classname="com.coffeecreator.app.core.data.DataRepositoryTest" time="0.25"/>
+  <testcase name="givenSavedDraft_whenReopened_thenRevisionsSurvive" classname="com.coffeecreator.app.core.data.DataRepositoryTest" time="0.164"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

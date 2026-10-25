@@ -1,5 +1,7 @@
 # Sprint 04 release readiness and cross-sprint scorecard
 
+> **Latest follow-up (2026-10-18, source 5628669):** The original audit below is preserved as the baseline. Latest local results: JVM tests 389/389; Detekt zero findings; KtLint main/test PASS; Android Lint task PASS with 120 findings (94 warnings, 26 informational); debug APK built locally. ADB/instrumentation remains NOT_RUN per user instruction, requirement acceptance remains 0/221, master BDD/E2E remains 0/297, and unresolved P0/P1 defects keep release verdict **NOT_READY**. See [final verification](TEST_EXECUTION_REPORT.md#final-local-quality-verification--2026-10-18) and [remediation details](REMEDIATION_2026-10-18.md#final-static-quality-follow-up--2026-10-18).
+
 **Audit baseline:** branch `main`, HEAD `6d429df9299d438daefbdac769b5300988d83f9c`, tree `b714b993b253b7d1cad388f906403a4085b50539`; current app `1.14.5` / versionCode 30; latest tag `v1.14.5` (`c483c91`). Audit docs are the only intended working-tree changes. No app source or user data was changed.
 
 ## Required summary table
@@ -80,3 +82,7 @@ The latest existing public release remains [v1.14.5](https://github.com/Adrian46
 9. Correct the v1.14.5 release note's repository owner and asset size from verified GitHub metadata, recheck URL/digest, then qualify or correct v1.14.3/v1.14.4 historical behavior claims against tagged source and evidence (D-014/D-015).
 
 Fixes must be separate, narrow worktree slices with failing regression tests first, then focused and full regression runs. Preserve all legacy workflows and data through each slice.
+
+## Follow-up evidence — CVA persistence slice (2026-10-18)
+
+Branch `codex/s4-cva-persistence` adds and unit-tests Room-backed typed CVA aggregates, schema-v4 backup support, v2/v3 row preservation, nested assessment/preparation validation, strict amendment history rules, and current-revision JSON/CSV export checks. The complete JVM suite passed 383/383 tests and debug assembly passed; Android Lint has 120 findings, Detekt fails at 534 weighted findings, test-source KtLint passes, and main-source KtLint still has a 2,115-line repository report. No schema migration was needed. D-003 is partial: repository persistence exists, but the Compose form and journal workflow are not connected. Device, SAF-provider, historic-database migration, and process-death gates remain NOT_RUN. D-016 through D-020 are fixed on the branch but await integration. The overall verdict remains **NOT_READY**. See [CVA_DURABLE_STORAGE_SLICE_2026-10-18.md](CVA_DURABLE_STORAGE_SLICE_2026-10-18.md).

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.ai.MeasurementAuthorityTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:03" hostname="REDRABBIT" time="0.003">
+  <properties/>
+  <testcase name="givenMissingMeasuredValues_whenModelInventsToolParameters_thenAuthorityRejectsThem" classname="com.coffeecreator.app.core.ai.MeasurementAuthorityTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

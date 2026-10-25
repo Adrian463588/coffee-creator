@@ -14,6 +14,8 @@ data class BinomialProbabilityResult(
 )
 
 object TriangleStatisticsEngine {
+    private const val BLIND_CODE_MINIMUM_INCLUSIVE = 100
+    private const val BLIND_CODE_MAXIMUM_EXCLUSIVE = 1000
 
     private fun combinations(n: Int, k: Int): Double {
         if (k < 0 || k > n) return 0.0
@@ -81,7 +83,9 @@ object TriangleStatisticsEngine {
             repeat(3) {
                 var code: String
                 do {
-                    code = "%03d".format(random.nextInt(100, 1000))
+                    code = "%03d".format(
+                        random.nextInt(BLIND_CODE_MINIMUM_INCLUSIVE, BLIND_CODE_MAXIMUM_EXCLUSIVE)
+                    )
                 } while (code in usedCodes)
                 usedCodes.add(code)
                 codes.add(code)
@@ -150,10 +154,7 @@ object TriangleStatisticsEngine {
     /**
      * ASTM E679 Ascending Concentration Best-Estimate Threshold (BET) calculus.
      */
-    fun calculateBestEstimateThreshold(
-        steps: List<AscendingConcentrationStep>,
-        taste: BasicTaste
-    ): TasteThresholdResult {
+    fun calculateBestEstimateThreshold(steps: List<AscendingConcentrationStep>, taste: BasicTaste): TasteThresholdResult {
         if (steps.isEmpty()) {
             return TasteThresholdResult(taste, null, null)
         }

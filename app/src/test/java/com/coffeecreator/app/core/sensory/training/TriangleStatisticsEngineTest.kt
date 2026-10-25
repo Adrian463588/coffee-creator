@@ -58,45 +58,73 @@ class TriangleStatisticsEngineTest {
         // n = 6, k = 5:
         // C(6,5) * (1/3)^5 * (2/3)^1 + C(6,6) * (1/3)^6 * (2/3)^0
         // = 6 * (2 / 729) + 1 * (1 / 729) = 13 / 729 ≈ 0.01783
-        val result6_5 = TriangleStatisticsEngine.calculateBinomialPValue(n = 6, k = 5)
-        assertEquals(0.0178, result6_5.pValueCumulative, 0.001)
-        assertTrue(result6_5.isSignificantAlpha05)
-        assertTrue(result6_5.methodologicalCaveats.isNotEmpty())
+        val result65 = TriangleStatisticsEngine.calculateBinomialPValue(n = 6, k = 5)
+        assertEquals(0.0178, result65.pValueCumulative, 0.001)
+        assertTrue(result65.isSignificantAlpha05)
+        assertTrue(result65.methodologicalCaveats.isNotEmpty())
 
         // n = 6, k = 2 (at chance expectation):
-        val result6_2 = TriangleStatisticsEngine.calculateBinomialPValue(n = 6, k = 2)
-        assertFalse(result6_2.isSignificantAlpha05)
-        assertTrue(result6_2.pValueCumulative > 0.60)
+        val result62 = TriangleStatisticsEngine.calculateBinomialPValue(n = 6, k = 2)
+        assertFalse(result62.isSignificantAlpha05)
+        assertTrue(result62.pValueCumulative > 0.60)
 
         // n = 18, k = 10:
-        val result18_10 = TriangleStatisticsEngine.calculateBinomialPValue(n = 18, k = 10)
-        assertEquals(0.0433, result18_10.pValueCumulative, 0.002)
-        assertTrue(result18_10.isSignificantAlpha05)
-        assertFalse(result18_10.isSignificantAlpha01)
+        val result1810 = TriangleStatisticsEngine.calculateBinomialPValue(n = 18, k = 10)
+        assertEquals(0.0433, result1810.pValueCumulative, 0.002)
+        assertTrue(result1810.isSignificantAlpha05)
+        assertFalse(result1810.isSignificantAlpha01)
     }
 
     @Test
     fun testPairedComparisonPValueTwoAFC() {
         // n = 10, k = 8 for p0 = 0.5:
         // C(10,8)*0.5^10 + C(10,9)*0.5^10 + C(10,10)*0.5^10 = (45 + 10 + 1) / 1024 = 56 / 1024 ≈ 0.05468
-        val result10_8 = TriangleStatisticsEngine.calculatePairedComparisonPValue(10, 8)
-        assertEquals(0.0547, result10_8.pValueCumulative, 0.001)
-        assertFalse(result10_8.isSignificantAlpha05)
+        val result108 = TriangleStatisticsEngine.calculatePairedComparisonPValue(10, 8)
+        assertEquals(0.0547, result108.pValueCumulative, 0.001)
+        assertFalse(result108.isSignificantAlpha05)
 
         // n = 10, k = 9:
         // (10 + 1) / 1024 = 11 / 1024 ≈ 0.0107
-        val result10_9 = TriangleStatisticsEngine.calculatePairedComparisonPValue(10, 9)
-        assertEquals(0.0107, result10_9.pValueCumulative, 0.001)
-        assertTrue(result10_9.isSignificantAlpha05)
+        val result109 = TriangleStatisticsEngine.calculatePairedComparisonPValue(10, 9)
+        assertEquals(0.0107, result109.pValueCumulative, 0.001)
+        assertTrue(result109.isSignificantAlpha05)
     }
 
     @Test
     fun testAscendingConcentrationBestEstimateThreshold() {
         val steps = listOf(
-            AscendingConcentrationStep(1, 0.05, "101", isDistinguishableFromWater = false, identifiedTaste = null, isCorrectIdentification = false),
-            AscendingConcentrationStep(2, 0.10, "102", isDistinguishableFromWater = true, identifiedTaste = null, isCorrectIdentification = false),
-            AscendingConcentrationStep(3, 0.20, "103", isDistinguishableFromWater = true, identifiedTaste = BasicTaste.SOUR, isCorrectIdentification = true),
-            AscendingConcentrationStep(4, 0.40, "104", isDistinguishableFromWater = true, identifiedTaste = BasicTaste.SOUR, isCorrectIdentification = true)
+            AscendingConcentrationStep(
+                1,
+                0.05,
+                "101",
+                isDistinguishableFromWater = false,
+                identifiedTaste = null,
+                isCorrectIdentification = false
+            ),
+            AscendingConcentrationStep(
+                2,
+                0.10,
+                "102",
+                isDistinguishableFromWater = true,
+                identifiedTaste = null,
+                isCorrectIdentification = false
+            ),
+            AscendingConcentrationStep(
+                3,
+                0.20,
+                "103",
+                isDistinguishableFromWater = true,
+                identifiedTaste = BasicTaste.SOUR,
+                isCorrectIdentification = true
+            ),
+            AscendingConcentrationStep(
+                4,
+                0.40,
+                "104",
+                isDistinguishableFromWater = true,
+                identifiedTaste = BasicTaste.SOUR,
+                isCorrectIdentification = true
+            )
         )
 
         val thresholdResult = TriangleStatisticsEngine.calculateBestEstimateThreshold(steps, BasicTaste.SOUR)
@@ -172,7 +200,7 @@ class TriangleStatisticsEngineTest {
             physicalSamplePrepared = true,
             verifierPseudonym = "Alex",
             timestampEpochMs = 1234567L,
-            isAutoPassed = true // VIOLATION
+            isAutoPassed = true
         )
         assertFalse(TriangleStatisticsEngine.verifyPracticalSensoryPassGuard(autoPassedAttempt))
 
@@ -180,7 +208,7 @@ class TriangleStatisticsEngineTest {
         val noPhysicalSample = PracticalExerciseVerification(
             exerciseId = "ex_taste_02",
             verificationType = PracticalVerificationType.PHYSICAL_TASTING_SELF_LOGGED,
-            physicalSamplePrepared = false, // VIOLATION
+            physicalSamplePrepared = false,
             verifierPseudonym = "Alex",
             timestampEpochMs = 1234567L,
             isAutoPassed = false

@@ -102,8 +102,14 @@ internal object CoffeeDurableSnapshotCodec {
     private val optionalFields = mapOf(
         BrewJournalEntry::class.java to setOf(
             "recipeId", "beanId", "beverageMassGrams", "drawdownSeconds", "measuredTdsPercent", "extractionYieldPercent",
-            "rating", "dialInChainId", "espressoDetails"
+            "rating", "dialInChainId", "espressoDetails", "recipeSnapshot"
         ),
+        com.coffeecreator.app.core.model.Recipe::class.java to setOf(
+            "beanId", "beverageMassGrams", "measuredTdsPercent", "pressureBars", "firstDropSeconds",
+            "grinderModel", "grinderSetting", "waterHardnessPpm", "waterAlkalinityPpm", "basketPuckPrep"
+        ),
+        com.coffeecreator.app.core.model.BrewStep::class.java to setOf("temperatureCelsius", "valveStatus"),
+        com.coffeecreator.app.core.model.RecipeLine::class.java to setOf("densityGramsPerMl"),
         com.coffeecreator.app.core.journal.EspressoJournalDetails::class.java to setOf(
             "basketSizeGrams", "firstDropSeconds", "peakPressureBars"
         ),

@@ -5,12 +5,98 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+private fun expectedChampionRecipeIdsInOrder() = listOf(
+
+    "comp-tetsu-kasuya-46",
+    "comp-martin-wolfl-orea-v4",
+    "comp-carlos-medina-origami",
+    "comp-george-peng-solo",
+    "comp-bayu-prawiro-switch-runnerup",
+    "comp-george-stanica-aeropress",
+    "comp-nemo-pop-aeropress",
+    "comp-tay-wipvasutt-aeropress",
+    "comp-jibbi-little-aeropress",
+    "comp-wendelien-van-bunnik-aeropress",
+    "comp-chad-wang-v60",
+    "comp-emi-fukahori-switch",
+    "comp-sherry-hsu-orea",
+    "comp-matt-perger-v60",
+    "comp-ryan-wibawa-origami",
+    "comp-sophan-nugraha-kalita",
+    "comp-jan-ahrend-aeropress",
+    "comp-dharun-vyas-aeropress",
+    "comp-du-jianing-origami",
+    "comp-carolina-garay-aeropress",
+    "comp-april-coffee-v60",
+    "sig-hoffmann-ultimate-v60",
+    "sig-hoffmann-better-1-cup-v60",
+    "sig-hoffmann-ultimate-aeropress",
+    "sig-hoffmann-ultimate-french-press",
+    "sig-lance-hedrick-1-2-1",
+    "sig-scott-rao-v60",
+    "sig-simon-gautherin-v60",
+    "sig-square-mile-5-pour",
+    "sig-tetsu-kasuya-10-pour",
+    "sig-tetsu-kasuya-god-devil-switch",
+    "sig-tetsu-kasuya-new-ultimate-switch",
+    "sig-kurasu-japanese-iced-switch",
+    "sig-sightglass-japanese-iced-v60",
+    "sig-bayu-prawiro-beans-lokal",
+    "std-aeropress-inverted",
+    "std-aeropress-upright",
+    "std-affogato",
+    "std-bandrek-kopi",
+    "std-beehouse-dripper",
+    "std-ca-phe-sua-da",
+    "std-cafe-de-olla",
+    "std-caffe-latte",
+    "std-cappuccino",
+    "std-cascara-tea",
+    "std-chemex-classic",
+    "std-clever-dripper",
+    "std-cold-brew-immersion",
+    "std-cold-drip-dutch",
+    "std-cortado",
+    "std-es-kopi-pandan",
+    "std-es-kopi-susu-gula-aren",
+    "std-espresso-ristretto",
+    "std-espresso-normale",
+    "std-espresso-lungo",
+    "std-filter-batch-brew",
+    "std-flat-white",
+    "std-french-press-standard",
+    "std-french-press-light-roast",
+    "std-greek-coffee",
+    "std-japanese-iced-flash-chill",
+    "std-jebena-ethiopia",
+    "std-kalita-wave-185",
+    "std-kopi-joss",
+    "std-kopi-kothok",
+    "std-kopi-rarobang",
+    "std-kopi-sanger",
+    "std-kopi-talua",
+    "std-kopi-tubruk",
+    "std-melitta-dripper",
+    "std-moka-pot",
+    "std-napoletana",
+    "std-nitro-cold-brew",
+    "std-origami-dripper",
+    "std-percolator",
+    "std-red-eye",
+    "std-siphon-syphon",
+    "std-turkish-coffee",
+    "std-v60-pemula",
+    "std-vietnamese-phin"
+
+)
+
 class WorldChampionRecipeCatalogTest {
 
     @Test
     fun `Catalog contains exactly 80 recipes across competition, signature and traditional categories`() {
         val recipes = WorldChampionRecipeCatalog.entries
         assertEquals(80, recipes.size)
+        assertEquals(expectedChampionRecipeIdsInOrder(), recipes.map { it.id })
 
         val competition = recipes.filter { it.category == RecipeCategory.COMPETITION }
         val signature = recipes.filter { it.category == RecipeCategory.SIGNATURE }

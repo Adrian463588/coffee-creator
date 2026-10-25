@@ -7,11 +7,29 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+private data class CategoricalAgreement(
+    val fleissKappa: Double?,
+    val label: String
+)
+
 /**
  * Pure Kotlin mathematical and workflow engine for coffee sensory panel operations (Epic E, S4-052 to S4-065).
  * Free from Android, Room, or UI dependencies.
  */
 object PanelOperationsEngine {
+    private const val NUMERIC_EPSILON = 1e-9
+    private const val KAPPA_SLIGHT_MAX = 0.20
+    private const val KAPPA_FAIR_MAX = 0.40
+    private const val KAPPA_MODERATE_MAX = 0.60
+    private const val KAPPA_SUBSTANTIAL_MAX = 0.80
+    private const val HIGH_CALIBRATION_MCD_MAX = 0.35
+    private const val BLIND_SAMPLE_CODE_MIN_VALUE = 100
+    private const val BLIND_SAMPLE_CODE_COUNT = 900
+    private const val DETERMINISTIC_DISCREPANCY_TOLERANCE = 0.05
+    private const val DECIMAL_ROUNDING_SCALE = 10_000.0
+    private const val MIN_PANEL_ITEMS = 1
+    private const val MIN_CATEGORIES = 2
+    private const val MIN_RATERS_PER_ITEM = 2
 
     // ========================================================================
     // 1. Panel Agreement & Calibration Statistics (S4-059)
@@ -44,7 +62,7 @@ object PanelOperationsEngine {
         }
 
         // Zero-variance guard: If either rater has invariant scores, correlation is undefined.
-        if (sxx < 1e-9 || syy < 1e-9) {
+        if (sxx < NUMERIC_EPSILON || syy < NUMERIC_EPSILON) {
             return null
         }
 
@@ -79,7 +97,7 @@ object PanelOperationsEngine {
         var i = 0
         while (i < n) {
             var j = i
-            while (j + 1 < n && abs(indexed[j + 1].first - indexed[i].first) < 1e-9) {
+            while (j + 1 < n && abs(indexed[j + 1].first - indexed[i].first) < NUMERIC_EPSILON) {
                 j++
             }
             // Tied group from i to j (0-indexed). 1-based ranks are (i + 1) to (j + 1).
@@ -136,18 +154,10 @@ object PanelOperationsEngine {
      */
     fun calculateFleissKappa(ratingMatrix: Array<IntArray>): Double? {
         val n = ratingMatrix.size // Number of items/samples
-        if (n < 1) return null
+        if (!hasValidRatingMatrix(ratingMatrix, n)) return null
 
         val c = ratingMatrix[0].size // Number of categories
-        if (c < 2) return null
-
         val m = ratingMatrix[0].sum() // Raters per item
-        if (m < 2) return null
-
-        // Check that all rows have identical rater count m
-        for (i in 0 until n) {
-            if (ratingMatrix[i].sum() != m) return null
-        }
 
         // 1. Compute Pi (observed agreement for item i)
         // Pi = (1 / (m * (m - 1))) * (sum_j n_ij^2 - m)
@@ -181,15 +191,25 @@ object PanelOperationsEngine {
         }
 
         // Guard against perfect chance agreement
-        if (abs(pBar - 1.0) < 1e-9 && abs(peBar - 1.0) < 1e-9) {
+        if (abs(pBar - 1.0) < NUMERIC_EPSILON && abs(peBar - 1.0) < NUMERIC_EPSILON) {
             return 1.0
         }
-        if (abs(1.0 - peBar) < 1e-9) {
+        if (abs(1.0 - peBar) < NUMERIC_EPSILON) {
             return null
         }
 
         val kappa = (pBar - peBar) / (1.0 - peBar)
         return roundToFourDecimals(kappa.coerceIn(-1.0, 1.0))
+    }
+
+    private fun hasValidRatingMatrix(ratingMatrix: Array<IntArray>, itemCount: Int): Boolean {
+        if (itemCount < MIN_PANEL_ITEMS) return false
+
+        val categoryCount = ratingMatrix[0].size
+        val ratersPerItem = ratingMatrix[0].sum()
+        return categoryCount >= MIN_CATEGORIES &&
+            ratersPerItem >= MIN_RATERS_PER_ITEM &&
+            ratingMatrix.all { item -> item.sum() == ratersPerItem }
     }
 
     /**
@@ -199,10 +219,10 @@ object PanelOperationsEngine {
         return when {
             kappa == null -> "INDETERMINATE"
             kappa < 0.0 -> "POOR"
-            kappa <= 0.20 -> "SLIGHT"
-            kappa <= 0.40 -> "FAIR"
-            kappa <= 0.60 -> "MODERATE"
-            kappa <= 0.80 -> "SUBSTANTIAL"
+            kappa <= KAPPA_SLIGHT_MAX -> "SLIGHT"
+            kappa <= KAPPA_FAIR_MAX -> "FAIR"
+            kappa <= KAPPA_MODERATE_MAX -> "MODERATE"
+            kappa <= KAPPA_SUBSTANTIAL_MAX -> "SUBSTANTIAL"
             else -> "ALMOST_PERFECT"
         }
     }
@@ -224,7 +244,9 @@ object PanelOperationsEngine {
         val stdDev = if (raterCount > 1) {
             val variance = scores.map { (it - mean) * (it - mean) }.sum() / (raterCount - 1)
             sqrt(variance)
-        } else 0.0
+        } else {
+            0.0
+        }
 
         // Single sample MCD is simply |score - mean|
         val assessorMcds = scoresByAssessor.mapValues { roundToFourDecimals(abs(it.value - mean)) }
@@ -234,27 +256,11 @@ object PanelOperationsEngine {
         if (raterCount < 3) {
             caveats.add("Small panel size (N=$raterCount < 3): Statistical power is constrained.")
         }
-        if (stdDev < 1e-9 && raterCount >= 2) {
+        if (stdDev < NUMERIC_EPSILON && raterCount >= 2) {
             caveats.add("Zero variance detected: All raters assigned identical scores.")
         }
 
-        // Fleiss Kappa if categorical data is supplied
-        var fleissKappa: Double? = null
-        var catLabel: String? = null
-        if (!categoriesByAssessor.isNullOrEmpty() && categoriesByAssessor.size >= 2) {
-            val distinctCategories = categoriesByAssessor.values.distinct().sorted()
-            if (distinctCategories.size >= 2) {
-                val matrix = Array(1) { IntArray(distinctCategories.size) }
-                for (cat in categoriesByAssessor.values) {
-                    val catIdx = distinctCategories.indexOf(cat)
-                    if (catIdx >= 0) {
-                        matrix[0][catIdx]++
-                    }
-                }
-                fleissKappa = calculateFleissKappa(matrix)
-                catLabel = getLandisKochLabel(fleissKappa)
-            }
-        }
+        val categoricalAgreement = calculateCategoricalAgreement(categoriesByAssessor)
 
         return PanelAgreementReport(
             sessionId = sessionId,
@@ -265,11 +271,28 @@ object PanelOperationsEngine {
             standardDeviation = roundToFourDecimals(stdDev),
             panelMeanConsensusDeviation = roundToFourDecimals(panelMcd),
             assessorMcds = assessorMcds,
-            fleissKappa = fleissKappa,
-            categoricalAgreementLabel = catLabel,
+            fleissKappa = categoricalAgreement?.fleissKappa,
+            categoricalAgreementLabel = categoricalAgreement?.label,
             caveats = caveats,
-            isHighCalibration = panelMcd <= 0.35
+            isHighCalibration = panelMcd <= HIGH_CALIBRATION_MCD_MAX
         )
+    }
+
+    private fun calculateCategoricalAgreement(categoriesByAssessor: Map<String, String>?): CategoricalAgreement? {
+        if (categoriesByAssessor.isNullOrEmpty() || categoriesByAssessor.size < MIN_RATERS_PER_ITEM) return null
+
+        val distinctCategories = categoriesByAssessor.values.distinct().sorted()
+        if (distinctCategories.size < MIN_CATEGORIES) return null
+
+        val matrix = Array(1) { IntArray(distinctCategories.size) }
+        for (category in categoriesByAssessor.values) {
+            val categoryIndex = distinctCategories.indexOf(category)
+            if (categoryIndex >= 0) {
+                matrix[0][categoryIndex]++
+            }
+        }
+        val kappa = calculateFleissKappa(matrix)
+        return CategoricalAgreement(kappa, getLandisKochLabel(kappa))
     }
 
     // ========================================================================
@@ -287,7 +310,7 @@ object PanelOperationsEngine {
         for (sampleId in sampleIds) {
             var code: String
             do {
-                code = (100 + random.nextInt(900)).toString()
+                code = (BLIND_SAMPLE_CODE_MIN_VALUE + random.nextInt(BLIND_SAMPLE_CODE_COUNT)).toString()
             } while (assignedCodes.contains(code))
 
             assignedCodes.add(code)
@@ -361,11 +384,9 @@ object PanelOperationsEngine {
     /**
      * Verifies that pure Kotlin deterministic calculations override any conflicting LLM claims.
      */
-    fun validateDeterministicDecoupling(
-        calculatedValue: Double,
-        reportedClaim: Double?
-    ): DeterministicValidationResult {
-        val discrepancy = reportedClaim != null && abs(calculatedValue - reportedClaim) > 0.05
+    fun validateDeterministicDecoupling(calculatedValue: Double, reportedClaim: Double?): DeterministicValidationResult {
+        val discrepancy = reportedClaim != null &&
+            abs(calculatedValue - reportedClaim) > DETERMINISTIC_DISCREPANCY_TOLERANCE
         return DeterministicValidationResult(
             isDecoupled = true,
             engineCalculation = roundToFourDecimals(calculatedValue),
@@ -396,8 +417,8 @@ object PanelOperationsEngine {
 
         val claimLower = responseClaim.lowercase()
         val hasCredentialViolation = claimLower.contains("official q grader certified") ||
-                claimLower.contains("licensed q grader certificate awarded") ||
-                claimLower.contains("sca official certification granted")
+            claimLower.contains("licensed q grader certificate awarded") ||
+            claimLower.contains("sca official certification granted")
 
         if (hasCredentialViolation) {
             ungrounded.add("CLAIM_CREDENTIAL_FABRICATION_BLOCKED")
@@ -429,10 +450,7 @@ object PanelOperationsEngine {
      * Applies privacy redactions (scrubbing supplier pricing, lot PII, and cupper real names)
      * based on user consent before sharing.
      */
-    fun redactPiiForExport(
-        rawPayload: String,
-        consent: DataExportConsent
-    ): String {
+    fun redactPiiForExport(rawPayload: String, consent: DataExportConsent): String {
         if (!consent.consentGranted) {
             return """{"error": "USER_CONSENT_REQUIRED", "export_aborted": true}"""
         }
@@ -455,6 +473,6 @@ object PanelOperationsEngine {
     }
 
     private fun roundToFourDecimals(value: Double): Double {
-        return (value * 10000.0).roundToInt() / 10000.0
+        return (value * DECIMAL_ROUNDING_SCALE).roundToInt() / DECIMAL_ROUNDING_SCALE
     }
 }

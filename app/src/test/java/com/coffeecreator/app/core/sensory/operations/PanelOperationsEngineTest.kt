@@ -106,6 +106,20 @@ class PanelOperationsEngineTest {
     }
 
     @Test
+    fun givenInvalidRatingMatrix_whenCalculatingFleissKappa_thenReturnUnknown() {
+        assertNull(PanelOperationsEngine.calculateFleissKappa(emptyArray()))
+        assertNull(PanelOperationsEngine.calculateFleissKappa(arrayOf(intArrayOf(2))))
+        assertNull(
+            PanelOperationsEngine.calculateFleissKappa(
+                arrayOf(
+                    intArrayOf(1, 1),
+                    intArrayOf(2, 1)
+                )
+            )
+        )
+    }
+
+    @Test
     fun testPanelReportGeneration() {
         val scores = mapOf(
             "cupper_maya" to 8.50,

@@ -7,6 +7,7 @@ import com.coffeecreator.app.core.ai.NativeLlmEngine
 import com.coffeecreator.app.core.ai.ObjectBoxVectorStore
 import com.coffeecreator.app.core.ai.OnnxEmbeddingEngine
 import com.coffeecreator.app.core.ai.ToolExecutor
+import com.coffeecreator.app.core.brew.BrewTimerController
 import com.coffeecreator.app.core.data.DataRepository
 import com.coffeecreator.app.core.filesystem.AssetManager
 import com.coffeecreator.app.core.filesystem.BundledTesseractOcr
@@ -27,6 +28,7 @@ class AppGraph @Inject constructor(@ApplicationContext private val context: Cont
     val repository = DataRepository(context)
     val native = NativeLlmEngine(context)
     val preferences = PreferenceStore(context)
+    val brewTimer by lazy { BrewTimerController(context, preferences) }
     val assets by lazy { AssetManager(context, repository) }
     private val tesseract by lazy { BundledTesseractOcr(context) }
     val importer by lazy { DocumentImporter(context, repository, tesseract) }

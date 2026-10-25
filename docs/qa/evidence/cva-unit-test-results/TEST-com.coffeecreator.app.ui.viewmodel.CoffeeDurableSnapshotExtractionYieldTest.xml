@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.ui.viewmodel.CoffeeDurableSnapshotExtractionYieldTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:41" hostname="REDRABBIT" time="0.013">
+  <properties/>
+  <testcase name="givenStandaloneExtractionYield_whenDecodingBackup_thenRejectWithoutMeasurementEvidence" classname="com.coffeecreator.app.ui.viewmodel.CoffeeDurableSnapshotExtractionYieldTest" time="0.011"/>
+  <testcase name="givenYieldDerivedFromMeasuredInputs_whenDecodingBackup_thenPreserveEvidence" classname="com.coffeecreator.app.ui.viewmodel.CoffeeDurableSnapshotExtractionYieldTest" time="0.001"/>
+  <testcase name="givenYieldThatDisagreesWithMeasuredInputs_whenDecodingBackup_thenReject" classname="com.coffeecreator.app.ui.viewmodel.CoffeeDurableSnapshotExtractionYieldTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

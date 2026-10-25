@@ -3,6 +3,10 @@ package com.coffeecreator.app.core.sensory.cva
 import com.coffeecreator.app.core.journal.BrewJournalEntry
 import com.coffeecreator.app.core.sensory.FlavorDescriptor
 import com.coffeecreator.app.core.sensory.SensoryTaxonomyRegistry
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.security.MessageDigest
@@ -77,7 +81,8 @@ data class ProtocolSpec(
             retrievedAt = "2026-10-17",
             fieldMappingVersion = "1.0",
             licenseStatus = "Historical Standard Reference",
-            officialDisclaimer = "HISTORICAL LEGACY FORM: Superseded by CVA standards. Scores must not be equated to modern CVA evaluations."
+            officialDisclaimer = "HISTORICAL LEGACY FORM: Superseded by CVA standards. " +
+                "Scores must not be equated to modern CVA evaluations."
         )
 
         val CUSTOM = ProtocolSpec(
@@ -98,15 +103,15 @@ data class ProtocolSpec(
 // ============================================================================
 
 data class CuppingEquipment(
-    val grinderModel: String = "Mahlkönig EK43S",
-    val burrType: String = "98mm Cast Sweet",
-    val grindMicrons: Int = 850,
-    val grindSettingDescription: String = "Setting 8.5 (70-75% passing 850µm / 20 mesh)",
-    val kettleModel: String = "Fellow Stagg EKG Pro",
-    val waterSpoutType: String = "Gooseneck Flow-Restricted",
-    val cuppingBowlType: String = "Tempered Ceramic 200mL",
-    val bowlCountPerSample: Int = 5,
-    val cuppingSpoonMaterial: String = "Silver-Plated Ergonomic Deep-Bowl"
+    val grinderModel: String = "",
+    val burrType: String = "",
+    val grindMicrons: Int? = null,
+    val grindSettingDescription: String = "",
+    val kettleModel: String = "",
+    val waterSpoutType: String = "",
+    val cuppingBowlType: String = "",
+    val bowlCountPerSample: Int? = null,
+    val cuppingSpoonMaterial: String = ""
 )
 
 data class CuppingSamplePreparation(
@@ -114,24 +119,36 @@ data class CuppingSamplePreparation(
     val roastLevelAgtron: Double? = null,
     val roastDateEpochMs: Long? = null,
     val roastRestDays: Int = 3,
-    val waterTdsPpm: Double = 125.0, // SCA standard: 75-150 ppm
-    val waterTempCelsius: Double = 93.5, // SCA standard: 92.2 - 94.4°C
+    // SCA standard: 75-150 ppm
+    val waterTdsPpm: Double = 125.0,
+    // SCA standard: 92.2 - 94.4°C
+    val waterTempCelsius: Double = 93.5,
     val grindMicrons: Int? = 850,
-    val brewRatio: Double = 0.055, // 55g/L standard SCA (1:18.18)
+    // 55g/L standard SCA (1:18.18)
+    val brewRatio: Double = 0.055,
     val doseGrams: Double = 11.0,
     val waterVolumeMl: Double = 200.0,
     val cupCount: Int = 5,
-    val preparationEvidence: EvidenceStatus = EvidenceStatus.MEASURED
+    val preparationEvidence: EvidenceStatus = EvidenceStatus.NOT_MEASURED
 )
 
 data class BlindSample(
     val sampleId: String,
-    val blindCode: String, // 3-digit opaque code e.g. "824"
+    // 3-digit opaque code e.g. "824"
+    val blindCode: String,
     val actualLotId: String,
     val actualBeanName: String = "",
     val revealState: BlindRevealState = BlindRevealState.CONCEALED,
     val revealTimestampEpochMs: Long? = null,
-    val revealReason: String? = null
+    val revealReason: String? = null,
+    val revealAuditHistory: List<RevealAuditRecord> = emptyList()
+)
+
+data class RevealAuditRecord(
+    val auditId: String,
+    val actorId: String,
+    val reason: String,
+    val revealedAtEpochMs: Long
 )
 
 data class PhysicalAssessment(
@@ -174,7 +191,7 @@ enum class BodyTextureType {
 enum class CupDefectCategory(val penaltyPerCup: BigDecimal) {
     NONE(BigDecimal.ZERO),
     TAINT(BigDecimal("2.00")), // Noticeable off-flavor that does not overwhelm
-    FAULT(BigDecimal("4.00"))  // Overwhelming, repulsive defect (mold, phenolic, potato)
+    FAULT(BigDecimal("4.00")) // Overwhelming, repulsive defect (mold, phenolic, potato)
 }
 
 enum class CupDefectCharacter(val labelEn: String, val labelId: String) {
@@ -187,11 +204,13 @@ enum class CupDefectCharacter(val labelEn: String, val labelId: String) {
 }
 
 data class SingleCupEvaluation(
-    val cupIndex: Int, // 1 to 5
+    // 1 to 5
+    val cupIndex: Int,
     val isClean: Boolean = true,
     val defectCategory: CupDefectCategory = CupDefectCategory.NONE,
     val defectCharacter: CupDefectCharacter? = null,
-    val defectIntensity: Double = 0.0, // 1.0 to 5.0
+    // 1.0 to 5.0
+    val defectIntensity: Double = 0.0,
     val notes: String = ""
 )
 
@@ -205,9 +224,12 @@ data class MultiCupEvaluationGrid(
 }
 
 data class CupDefectRecord(
-    val cupIndex: Int, // 1 to 5
-    val defectType: String, // e.g. "Taint", "Fault", "Mold", "Ferment"
-    val intensity: Double, // 1.0 to 5.0
+    // 1 to 5
+    val cupIndex: Int,
+    // e.g. "Taint", "Fault", "Mold", "Ferment"
+    val defectType: String,
+    // 1.0 to 5.0
+    val intensity: Double,
     val description: String
 )
 
@@ -216,24 +238,36 @@ data class CupDefectRecord(
 // ============================================================================
 
 data class DescriptiveAssessment(
-    val fragranceDryIntensity: Double = 0.0,        // 0.0 to 5.0
-    val fragranceAromaCrustIntensity: Double = 0.0, // 0.0 to 5.0
-    val fragranceBreakIntensity: Double = 0.0,      // 0.0 to 5.0
-    val flavorIntensity: Double = 0.0,             // 0.0 to 5.0
-    val aftertasteIntensity: Double = 0.0,         // 0.0 to 5.0
-    val aftertastePersistence: Double = 0.0,       // 0.0 to 5.0
-    val acidityIntensity: Double = 0.0,            // 0.0 to 5.0
+    // 0.0 to 5.0
+    val fragranceDryIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val fragranceAromaCrustIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val fragranceBreakIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val flavorIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val aftertasteIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val aftertastePersistence: Double = 0.0,
+    // 0.0 to 5.0
+    val acidityIntensity: Double = 0.0,
     val acidityTypes: List<AcidityType> = emptyList(),
-    val sweetnessIntensity: Double = 0.0,          // 0.0 to 5.0
-    val bitternessIntensity: Double = 0.0,         // 0.0 to 5.0
-    val mouthfeelIntensity: Double = 0.0,          // 0.0 to 5.0
+    // 0.0 to 5.0
+    val sweetnessIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val bitternessIntensity: Double = 0.0,
+    // 0.0 to 5.0
+    val mouthfeelIntensity: Double = 0.0,
     val mouthfeelBodyType: BodyTextureType = BodyTextureType.SILKY,
-    val finishDuration: Double = 0.0,              // 0.0 to 5.0
+    // 0.0 to 5.0
+    val finishDuration: Double = 0.0,
     val descriptors: List<String> = emptyList(),
-    val selectedDescriptorIds: List<String> = emptyList(), // References 221-descriptor wheel IDs
+    // References 221-descriptor wheel IDs
+    val selectedDescriptorIds: List<String> = emptyList(),
     val cupDefects: List<CupDefectRecord> = emptyList(),
     val sensoryNotes: String = "",
-    val evidenceStatus: EvidenceStatus = EvidenceStatus.OBSERVED
+    val evidenceStatus: EvidenceStatus = EvidenceStatus.UNKNOWN
 ) {
     // Resolved descriptors from the 221-descriptor SensoryTaxonomyRegistry
     fun getResolvedDescriptors(): List<FlavorDescriptor> {
@@ -253,21 +287,21 @@ data class DescriptiveAssessment(
 }
 
 data class AffectiveAssessment(
-    val fragranceAffectiveScore: BigDecimal = BigDecimal("6.00"), // 6.00 to 10.00
-    val flavorAffectiveScore: BigDecimal = BigDecimal("6.00"),
-    val aftertasteAffectiveScore: BigDecimal = BigDecimal("6.00"),
-    val acidityAffectiveScore: BigDecimal = BigDecimal("6.00"),
-    val sweetnessAffectiveScore: BigDecimal = BigDecimal("6.00"),
-    val mouthfeelAffectiveScore: BigDecimal = BigDecimal("6.00"),
-    val overallAffectiveScore: BigDecimal = BigDecimal("6.00"),
+    val fragranceAffectiveScore: BigDecimal = BigDecimal.ZERO,
+    val flavorAffectiveScore: BigDecimal = BigDecimal.ZERO,
+    val aftertasteAffectiveScore: BigDecimal = BigDecimal.ZERO,
+    val acidityAffectiveScore: BigDecimal = BigDecimal.ZERO,
+    val sweetnessAffectiveScore: BigDecimal = BigDecimal.ZERO,
+    val mouthfeelAffectiveScore: BigDecimal = BigDecimal.ZERO,
+    val overallAffectiveScore: BigDecimal = BigDecimal.ZERO,
     val defectDeduction: BigDecimal = BigDecimal.ZERO,
     val notes: String = "",
-    val evidenceStatus: EvidenceStatus = EvidenceStatus.OBSERVED
+    val evidenceStatus: EvidenceStatus = EvidenceStatus.UNKNOWN
 ) {
     val totalScore: BigDecimal
         get() = fragranceAffectiveScore + flavorAffectiveScore + aftertasteAffectiveScore +
-                acidityAffectiveScore + sweetnessAffectiveScore + mouthfeelAffectiveScore +
-                overallAffectiveScore - defectDeduction
+            acidityAffectiveScore + sweetnessAffectiveScore + mouthfeelAffectiveScore +
+            overallAffectiveScore - defectDeduction
 }
 
 data class ExtrinsicAssessment(
@@ -292,18 +326,24 @@ data class ExtrinsicAssessment(
 // ============================================================================
 
 data class Legacy2004CuppingSheet(
-    val fragranceScore: BigDecimal = BigDecimal("8.00"), // 6.00 to 10.00
-    val flavorScore: BigDecimal = BigDecimal("8.00"),
-    val aftertasteScore: BigDecimal = BigDecimal("8.00"),
-    val acidityScore: BigDecimal = BigDecimal("8.00"),
-    val bodyScore: BigDecimal = BigDecimal("8.00"),
-    val balanceScore: BigDecimal = BigDecimal("8.00"),
-    val uniformityCheckboxes: List<Boolean> = List(5) { true }, // 2.0 pts each
-    val cleanCupCheckboxes: List<Boolean> = List(5) { true },   // 2.0 pts each
-    val sweetnessCheckboxes: List<Boolean> = List(5) { true },  // 2.0 pts each
-    val overallScore: BigDecimal = BigDecimal("8.00"),
-    val taintCupCount: Int = 0, // -2 pts each
-    val faultCupCount: Int = 0, // -4 pts each
+    // 6.00 to 10.00 when assessed
+    val fragranceScore: BigDecimal = BigDecimal.ZERO,
+    val flavorScore: BigDecimal = BigDecimal.ZERO,
+    val aftertasteScore: BigDecimal = BigDecimal.ZERO,
+    val acidityScore: BigDecimal = BigDecimal.ZERO,
+    val bodyScore: BigDecimal = BigDecimal.ZERO,
+    val balanceScore: BigDecimal = BigDecimal.ZERO,
+    // 2.0 pts each
+    val uniformityCheckboxes: List<Boolean> = List(5) { false },
+    // 2.0 pts each
+    val cleanCupCheckboxes: List<Boolean> = List(5) { false },
+    // 2.0 pts each
+    val sweetnessCheckboxes: List<Boolean> = List(5) { false },
+    val overallScore: BigDecimal = BigDecimal.ZERO,
+    // -2 pts each
+    val taintCupCount: Int = 0,
+    // -4 pts each
+    val faultCupCount: Int = 0,
     val notes: String = ""
 ) {
     val uniformityScore: BigDecimal get() = BigDecimal(uniformityCheckboxes.count { it } * 2)
@@ -312,8 +352,8 @@ data class Legacy2004CuppingSheet(
     val defectDeduction: BigDecimal get() = BigDecimal(taintCupCount * 2 + faultCupCount * 4)
 
     val totalScore: BigDecimal get() = fragranceScore + flavorScore + aftertasteScore +
-            acidityScore + bodyScore + balanceScore + uniformityScore +
-            cleanCupScore + sweetnessScore + overallScore - defectDeduction
+        acidityScore + bodyScore + balanceScore + uniformityScore +
+        cleanCupScore + sweetnessScore + overallScore - defectDeduction
 }
 
 // ============================================================================
@@ -346,10 +386,29 @@ data class SampleAssessment(
     // 1-Click Brew Journal Integration Bridge
     fun toBrewJournalEntry(
         session: CuppingSession,
+        measuredWaterMassGrams: Double,
+        measuredDurationSeconds: Int,
         ratingOverride: Double? = null,
         customNotes: String = ""
     ): BrewJournalEntry {
-        val displayName = if (blindSample.revealState != BlindRevealState.CONCEALED) {
+        require(
+            isCompleted && descriptive.evidenceStatus == EvidenceStatus.OBSERVED &&
+                affective.evidenceStatus == EvidenceStatus.OBSERVED
+        ) {
+            "Descriptive and affective observations must be completed before journal export."
+        }
+        require(measuredWaterMassGrams.isFinite() && measuredWaterMassGrams > 0.0) {
+            "Measured water mass must be finite and positive."
+        }
+        require(measuredDurationSeconds > 0) { "Measured duration must be positive." }
+        require(ratingOverride == null || ratingOverride.isFinite() && ratingOverride in 1.0..10.0) {
+            "Rating override must be finite and between 1 and 10."
+        }
+        require(session.samplePreparation.preparationEvidence == EvidenceStatus.MEASURED) {
+            "Preparation must be marked measured before creating a brew journal entry."
+        }
+        val isIdentityRevealed = blindSample.revealState == BlindRevealState.REVEALED_AUDITED
+        val displayName = if (isIdentityRevealed) {
             blindSample.actualBeanName.ifBlank { "Lot ${blindSample.actualLotId}" }
         } else {
             "Sample #${blindSample.blindCode}"
@@ -358,23 +417,23 @@ data class SampleAssessment(
         // Map 221-wheel descriptors into tasteNotes
         val descriptorsList = descriptive.getAllDescriptorNames()
 
-        // Calculate rating on 1.0 to 10.0 scale from affective score (e.g. 60.25 / 7 = ~8.6)
-        val calculatedRating = ratingOverride ?: (affective.totalScore.toDouble() / 7.0).coerceIn(1.0, 10.0)
+        // Preserve the assessor's recorded overall rating; do not derive one from an unverified subtotal.
+        val calculatedRating = ratingOverride ?: affective.overallAffectiveScore.toDouble()
 
         val sensoryScoresMap = mapOf(
-            "aroma" to (descriptive.fragranceAromaCrustIntensity * 2.0).toInt().coerceIn(1, 10),
-            "acidity" to (descriptive.acidityIntensity * 2.0).toInt().coerceIn(1, 10),
-            "sweetness" to (descriptive.sweetnessIntensity * 2.0).toInt().coerceIn(1, 10),
-            "body" to (descriptive.mouthfeelIntensity * 2.0).toInt().coerceIn(1, 10),
-            "finish" to (descriptive.aftertasteIntensity * 2.0).toInt().coerceIn(1, 10)
-        )
+            "aroma" to descriptive.fragranceAromaCrustIntensity,
+            "acidity" to descriptive.acidityIntensity,
+            "sweetness" to descriptive.sweetnessIntensity,
+            "body" to descriptive.mouthfeelIntensity,
+            "finish" to descriptive.aftertasteIntensity
+        ).filterValues { it > 0.0 }.mapValues { (_, intensity) -> (intensity * 2.0).toInt().coerceIn(1, 10) }
 
         val compiledNotes = buildString {
             append("[CVA Cupping: ${session.protocolSpec.protocol.name}] ")
             if (blindSample.revealState == BlindRevealState.REVEALED_AUDITED) {
                 append("(Revealed: ${blindSample.revealReason}) ")
             }
-            if (extrinsic != null && blindSample.revealState != BlindRevealState.CONCEALED) {
+            if (extrinsic != null && isIdentityRevealed) {
                 append("Origin: ${extrinsic.originCountry}, ${extrinsic.region ?: ""}. Variety: ${extrinsic.variety ?: ""}. ")
             }
             if (descriptive.sensoryNotes.isNotBlank()) {
@@ -390,21 +449,21 @@ data class SampleAssessment(
 
         return BrewJournalEntry(
             id = UUID.randomUUID().toString(),
-            beanId = blindSample.actualLotId,
+            beanId = blindSample.actualLotId.takeIf { isIdentityRevealed },
             beanName = displayName,
             brewMethod = "Cupping (${session.protocolSpec.protocol.name})",
             equipment = session.samplePreparation.equipment.grinderModel,
             doseGrams = session.samplePreparation.doseGrams,
-            waterGrams = session.samplePreparation.waterVolumeMl,
-            beverageMassGrams = session.samplePreparation.waterVolumeMl * 0.95,
+            waterGrams = measuredWaterMassGrams,
+            beverageMassGrams = null,
             waterTemperatureCelsius = session.samplePreparation.waterTempCelsius,
-            brewDurationSeconds = 240, // 4:00 min crust break
+            brewDurationSeconds = measuredDurationSeconds,
             drawdownSeconds = null,
-            rating = (calculatedRating * 10.0).toInt() / 10.0,
+            rating = BigDecimal.valueOf(calculatedRating).setScale(1, RoundingMode.HALF_UP).toDouble(),
             tasteNotes = descriptorsList,
             sensoryScores = sensoryScoresMap,
             generalNotes = compiledNotes,
-            tags = listOf("cupping", "cva", "graded", if (blindSample.revealState != BlindRevealState.CONCEALED) "revealed" else "blind")
+            tags = listOf("cupping", "cva", "graded", if (isIdentityRevealed) "revealed" else "blind")
         )
     }
 }
@@ -415,7 +474,8 @@ data class SessionAmendment(
     val amendedAtEpochMs: Long,
     val amendedBy: String,
     val reason: String,
-    val previousSnapshotSha256: String
+    val previousSnapshotSha256: String,
+    val previousSnapshotJson: String = ""
 )
 
 data class CuppingSession(
@@ -429,22 +489,33 @@ data class CuppingSession(
     val samplePreparation: CuppingSamplePreparation = CuppingSamplePreparation(),
     val samples: List<SampleAssessment> = emptyList(),
     val amendmentHistory: List<SessionAmendment> = emptyList(),
-    val currentSha256Checksum: String = ""
+    val currentSha256Checksum: String = "",
+    /** Plain-text assessor confirmation; it is not a cryptographic signature. */
+    val assessorSignature: String? = null
 ) {
+    fun toSnapshotJson(): String = CvaSessionIntegrity.canonicalJson(this)
+
     fun computeSha256(): String {
-        val payload = buildString {
-            append(id).append("|")
-            append(protocolSpec.id).append("|")
-            append(assessorId).append("|")
-            append(createdAtEpochMs).append("|")
-            append(state.name).append("|")
-            samples.forEach { s ->
-                append(s.blindSample.blindCode).append(":")
-                append(s.descriptive.flavorIntensity).append(":")
-                append(s.affective.totalScore).append(";")
-            }
-        }
+        val payload = CvaSessionIntegrity.canonicalJson(copy(currentSha256Checksum = ""))
         val digest = MessageDigest.getInstance("SHA-256")
         return digest.digest(payload.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+    }
+}
+
+private object CvaSessionIntegrity {
+    private val gson = GsonBuilder().serializeNulls().disableHtmlEscaping().create()
+
+    fun canonicalJson(session: CuppingSession): String = gson.toJson(sortKeys(gson.toJsonTree(session)))
+
+    private fun sortKeys(element: JsonElement): JsonElement = when {
+        element.isJsonObject -> JsonObject().apply {
+            element.asJsonObject.entrySet().sortedBy { it.key }.forEach { (key, value) ->
+                add(key, sortKeys(value))
+            }
+        }
+        element.isJsonArray -> JsonArray().apply {
+            element.asJsonArray.forEach { add(sortKeys(it)) }
+        }
+        else -> element
     }
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.02">
+  <properties/>
+  <testcase name="S2-018 Volume to mass requires density and validates accurately" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.0"/>
+  <testcase name="S2-026 Recipe exports to structured offline JSON" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.003"/>
+  <testcase name="S2-022 Food-grade aroma dosage flags violation when exceeding supplier maximum" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.001"/>
+  <testcase name="S2-016 Non-monotonic cumulative mass in brew steps is rejected" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.0"/>
+  <testcase name="S2-017 Scale non-divisible water mass using Hamilton-Hare apportionment prevents rounding drift" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.002"/>
+  <testcase name="S2-020 Atago PAL-COFFEE profile converts Brix to TDS accurately" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.003"/>
+  <testcase name="S2-021 Dilute cold brew concentrate maintains mass balance" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.0"/>
+  <testcase name="S2-022 Food-grade aroma dosage separates stock percentage from active compound ppm" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.0"/>
+  <testcase name="S2-023 Pressure exceeding 15 bar is rejected" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.0"/>
+  <testcase name="S2-024 Curated starter recipes catalog has source-attributed recipes with steps" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.001"/>
+  <testcase name="S2-021 Concentrate dosing rejects target TDS exceeding concentrate TDS" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.001"/>
+  <testcase name="S2-020 Rejects out of range Brix above 35 percent" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.001"/>
+  <testcase name="S2-020 VST LAB Coffee III profile converts Brix to TDS accurately" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.0"/>
+  <testcase name="S2-021 Concentrate target dosing solves required concentrate and dilution water" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.001"/>
+  <testcase name="S2-025 Expert mode dial-in metadata persists on recipe" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.0"/>
+  <testcase name="S2-020 Standard profile converts Brix to TDS accurately" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.0"/>
+  <testcase name="S2-026 Recipe exports to formatted Barista Card for Android Sharesheet" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.006"/>
+  <testcase name="S2-018 Temperature conversions between Celsius and Fahrenheit are exact" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.001"/>
+  <testcase name="S2-017 Scale four-pour V60 recipe from 300g to 450g water recomputes exact steps and monotonic cumulative mass" classname="com.coffeecreator.app.core.engine.RecipeComposerScienceTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:03" hostname="REDRABBIT" time="0.335">
+  <properties/>
+  <testcase name="S2-035 Vessel removal rejects steep negative drop and holds previous filtered weight" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.004"/>
+  <testcase name="Scenario 1 - Blank recipe draft synthesizes draft name and connects or initializes safely" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.013"/>
+  <testcase name="S2-036 Proximity classifier transitions through all progressive warning zones" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <testcase name="S2-031 Auto-logging creates valid SensoryObservation linked to recipe and actual metrics" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.017"/>
+  <testcase name="S2-033 Rolling regression suppresses noise below threshold" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <testcase name="S2-033 Rolling least-squares regression calculates accurate flow rate in grams per second" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.001"/>
+  <testcase name="Scenario 5 - Simulated BLE scale connects, streams samples, and tares to zero mass" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.169"/>
+  <testcase name="S2-035 Agitation oscillation uses median filter to stabilize swirl noise" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <testcase name="S2-034 Auto-start detects positive weight delta exceeding 0_5g" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <testcase name="Scenario 3 - Corrupt draft parameters gracefully fall back to verified default V60 recipe" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <testcase name="S2-037 Ideal curve ramps correctly and calculates RMSE deviation accurately" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.001"/>
+  <testcase name="S2-034 Espresso auto-stop detects flow cessation after yield milestone" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <testcase name="S2-027 Elapsed time accumulates accurately across pause and resume cycles" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <testcase name="S2-029 Brew session snapshot serializes and restores without state loss" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.001"/>
+  <testcase name="Scenario 4 - Custom method without name synthesizes Custom Draft name" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <testcase name="Scenario 2 - Blank draft with empty saved recipes library resolves default fallback V60" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <testcase name="S2-038 Ongoing notification payload formats synchronized time, step, and actions" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.001"/>
+  <testcase name="S2-032 Simulated BLE scale driver establishes connection and streams net samples" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.122"/>
+  <testcase name="S2-028 Step progression tracks active step, next step preview, and remaining water" classname="com.coffeecreator.app.core.brew.ActiveBrewTimerBleTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

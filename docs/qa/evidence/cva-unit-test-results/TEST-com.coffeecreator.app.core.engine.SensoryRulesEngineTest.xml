@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.engine.SensoryRulesEngineTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.001">
+  <properties/>
+  <testcase name="given country alone when estimating then origin cannot promise an exact flavor" classname="com.coffeecreator.app.core.engine.SensoryRulesEngineTest" time="0.0"/>
+  <testcase name="given uncalibrated heuristic when estimating then numerical confidence stays unknown" classname="com.coffeecreator.app.core.engine.SensoryRulesEngineTest" time="0.001"/>
+  <testcase name="given missing measurements when estimating then extraction is not fabricated" classname="com.coffeecreator.app.core.engine.SensoryRulesEngineTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.data.BackupCodecTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:04" hostname="REDRABBIT" time="0.28">
+  <properties/>
+  <testcase name="given384DimensionalFloatVector_whenSerialized_thenSettingsLimitCanStoreIt" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.006"/>
+  <testcase name="givenMissingCollections_whenDecoded_thenMissingDataIsNotSilentlyDefaulted" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.001"/>
+  <testcase name="givenCvaSessionWithUnknownEvidence_whenExportedAndDecoded_thenStableIdsAndValuesSurvive" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.073"/>
+  <testcase name="givenCoercedNumericStringWithMatchingChecksum_whenDecoded_thenSchemaStillRejectsIt" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.008"/>
+  <testcase name="givenCompleteRecords_whenExportedAndDecoded_thenEveryRecordAndAbsentMeasurementSurvives" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.007"/>
+  <testcase name="givenTooLargeInput_whenDecoded_thenItIsRejectedBeforeParsing" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.023"/>
+  <testcase name="givenWrongCountsOrNonJson_whenDecoded_thenImportIsRejected" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.006"/>
+  <testcase name="givenDurableWorkbenchSettings_whenExportedAndDecoded_thenEverySettingSurvives" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.005"/>
+  <testcase name="givenRehashedBackupWithInvalidCvaMeasurement_whenDecoded_thenItIsRejected" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.014"/>
+  <testcase name="givenDanglingIngredientOrObservation_whenEncoded_thenRelationsAreRejected" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.003"/>
+  <testcase name="givenRehashedBackupWithInvalidPreparation_whenDecoded_thenRejected" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.082"/>
+  <testcase name="givenUnsupportedSchema_whenDecoded_thenNoMigrationIsInvented" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.003"/>
+  <testcase name="givenMalformedDuplicateOrTamperedCvaPayload_whenDecoded_thenItIsRejected" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.015"/>
+  <testcase name="givenV2AndV3Backups_whenDecoded_thenCvaCollectionIsEmptyAndLegacyChecksumRemainsValid" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.01"/>
+  <testcase name="givenDuplicateOrTamperedCvaSessions_whenEncoded_thenBackupIsRejected" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.006"/>
+  <testcase name="givenChangedPayload_whenDecoded_thenChecksumMismatchIsRejected" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.003"/>
+  <testcase name="givenOversizedSetting_whenValidated_thenItIsRejected" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.002"/>
+  <testcase name="givenRuntimeCacheOrOwnershipKeys_whenEncoded_thenTheyCannotEnterRecordsBackup" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.006"/>
+  <testcase name="givenDuplicateIds_whenEncoded_thenAmbiguousRecordsAreRejected" classname="com.coffeecreator.app.core.data.BackupCodecTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

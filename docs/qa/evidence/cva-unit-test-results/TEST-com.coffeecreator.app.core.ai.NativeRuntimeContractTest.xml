@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:03" hostname="REDRABBIT" time="0.022">
+  <properties/>
+  <testcase name="givenInvalidGgufHeader_whenPreflighting_thenRejectMagicVersionAndCounts" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.006"/>
+  <testcase name="givenLargerSupportedFile_whenMemoryInsufficient_thenStillRejectBeforeNativeLoad" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.001"/>
+  <testcase name="givenAdequateMemory_whenAdmittingSmallModel_thenAdmissionUsesReserve" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.001"/>
+  <testcase name="givenTruncatedUtf8_whenFinishing_thenEmitReplacementOnlyAtEnd" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.001"/>
+  <testcase name="givenLowMemory_whenAdmittingModel_thenRejectBeforeNativeLoad" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.002"/>
+  <testcase name="givenHistorySystemRole_whenValidating_thenPreventHistoryPrivilegeEscalation" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.003"/>
+  <testcase name="givenUnsafeGenerationOptions_whenValidating_thenReject" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.004"/>
+  <testcase name="givenBoundedHeader_whenPreflighting_thenAcceptHeaderOnlyWithoutClaimingValidModel" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.0"/>
+  <testcase name="givenUtf8SplitAcrossTokens_whenStreaming_thenPreserveUnicode" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.0"/>
+  <testcase name="givenHugeModel_whenAdmitting_thenRejectBeforeArithmeticOverflow" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.001"/>
+  <testcase name="givenGemmaSizedHeader_whenPreflighting_thenAdmitWithinCanonicalFileBudget" classname="com.coffeecreator.app.core.ai.NativeRuntimeContractTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

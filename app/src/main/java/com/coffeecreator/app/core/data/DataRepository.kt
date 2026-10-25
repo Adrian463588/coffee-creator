@@ -15,6 +15,8 @@ import com.coffeecreator.app.core.model.ModelStatus
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.SensoryObservation
 import com.coffeecreator.app.core.model.StoredSensoryEstimate
+import com.coffeecreator.app.core.sensory.cva.CuppingSession
+import com.coffeecreator.app.core.sensory.cva.SessionState
 import com.google.gson.reflect.TypeToken
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
@@ -33,7 +35,8 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
     RecipeRepository,
     SensoryRepository,
     KnowledgeRepository,
-    ModelAssetRepository {
+    ModelAssetRepository,
+    CvaSessionRepository {
     private companion object {
         const val SQL_BIND_BATCH = 500
     }
@@ -57,6 +60,8 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
     override val sensoryObservations: StateFlow<List<SensoryObservation>> = _sensoryObservations.asStateFlow()
     private val _sensoryEstimates = MutableStateFlow<List<StoredSensoryEstimate>>(emptyList())
     override val sensoryEstimates: StateFlow<List<StoredSensoryEstimate>> = _sensoryEstimates.asStateFlow()
+    private val _cvaSessions = MutableStateFlow<List<CuppingSession>>(emptyList())
+    override val cvaSessions: StateFlow<List<CuppingSession>> = _cvaSessions.asStateFlow()
     private val _documents = MutableStateFlow<List<KnowledgeDocument>>(emptyList())
     override val documents: StateFlow<List<KnowledgeDocument>> = _documents.asStateFlow()
     private val _chunks = MutableStateFlow<List<DocumentChunk>>(emptyList())
@@ -198,6 +203,83 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
 
     override fun findRecipeById(id: String?): Recipe? = _recipes.value.find { it.id == id }
 
+    override suspend fun createCvaSession(session: CuppingSession) = mutate {
+        BackupCodec.validateCvaSession(session)
+        require(session.state == SessionState.DRAFT) { "New CVA sessions must start as drafts." }
+        require(dao.record("cva_session", session.id) == null) { "CVA session identifier already exists." }
+        dao.putRecords(listOf(record("cva_session", session.id, session)))
+    }
+
+    override suspend fun updateCvaSession(session: CuppingSession) = mutate {
+        BackupCodec.validateCvaSession(session)
+        val existingRecord = dao.record("cva_session", session.id)
+        require(existingRecord != null) { "CVA session not found." }
+        val existing = decode<CuppingSession>(existingRecord.json)
+        BackupCodec.validateCvaSession(existing)
+        require(
+            existing.protocolSpec == session.protocolSpec && existing.assessorId == session.assessorId &&
+                existing.assessorPseudonym == session.assessorPseudonym && existing.createdAtEpochMs == session.createdAtEpochMs &&
+                preservesCvaSampleIdentity(existing, session)
+        ) { "CVA protocol, assessor, creation time and blind sample identities are immutable." }
+        when (existing.state) {
+            SessionState.LOCKED -> {
+                val amendment = session.amendmentHistory.lastOrNull()
+                require(
+                    session.state == SessionState.AMENDED &&
+                        session.amendmentHistory.size == existing.amendmentHistory.size + 1 &&
+                        session.amendmentHistory.dropLast(1) == existing.amendmentHistory && amendment != null &&
+                        amendment.previousSnapshotSha256 == existing.currentSha256Checksum &&
+                        amendment.previousSnapshotJson == existing.toSnapshotJson()
+                ) {
+                    "A locked CVA session can only be changed through a verified amendment."
+                }
+            }
+            SessionState.AMENDED -> throw IllegalArgumentException("Amended CVA revisions are immutable.")
+            else -> {
+                require(session.state in allowedCvaNextStates(existing.state)) {
+                    "Invalid CVA session state transition from ${existing.state} to ${session.state}."
+                }
+            }
+        }
+        dao.putRecords(listOf(record("cva_session", session.id, session)))
+    }
+
+    override suspend fun findCvaSession(id: String): CuppingSession? {
+        BackupCodec.validateId(id)
+        initialize()
+        return withContext(Dispatchers.IO) {
+            mutex.withLock {
+                dao.record("cva_session", id)?.let { decode<CuppingSession>(it.json) }
+            }
+        }
+    }
+
+    private fun preservesCvaSampleIdentity(existing: CuppingSession, updated: CuppingSession): Boolean =
+        updated.samples.size >= existing.samples.size && existing.samples.indices.all { index ->
+            val before = existing.samples[index].blindSample
+            val after = updated.samples[index].blindSample
+            before.sampleId == after.sampleId && before.blindCode == after.blindCode && before.actualLotId == after.actualLotId
+        }
+
+    private fun allowedCvaNextStates(state: SessionState): Set<SessionState> = when (state) {
+        SessionState.DRAFT -> setOf(
+            SessionState.DRAFT,
+            SessionState.PREPARED,
+            SessionState.IN_PROGRESS,
+            SessionState.REVIEW,
+            SessionState.LOCKED
+        )
+        SessionState.PREPARED -> setOf(
+            SessionState.PREPARED,
+            SessionState.IN_PROGRESS,
+            SessionState.REVIEW,
+            SessionState.LOCKED
+        )
+        SessionState.IN_PROGRESS -> setOf(SessionState.IN_PROGRESS, SessionState.REVIEW, SessionState.LOCKED)
+        SessionState.REVIEW -> setOf(SessionState.IN_PROGRESS, SessionState.REVIEW, SessionState.LOCKED)
+        SessionState.LOCKED, SessionState.AMENDED -> emptySet()
+    }
+
     override suspend fun saveSensoryEstimate(estimate: StoredSensoryEstimate) = mutate {
         BackupCodec.validateEstimate(estimate, _recipes.value.map { it.id }.toSet())
         dao.putRecords(listOf(record("estimate", estimate.id, estimate)))
@@ -324,7 +406,19 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
         return mutate {
             val payload = backup.payload
             val retainedOwnershipSettings = _settings.value.filterKeys { BackupCodec.isOwnershipSetting(it) }
-            dao.deleteKinds(listOf("bean", "ingredient", "recipe", "observation", "estimate", "document", "persona", "chat", "setting"))
+            dao.deleteKinds(
+                listOf(
+                    "bean",
+                    "ingredient",
+                    "recipe",
+                    "observation",
+                    "estimate",
+                    "document",
+                    "persona",
+                    "chat",
+                    "setting"
+                ) + if (backup.manifest.schemaVersion >= 4) listOf("cva_session") else emptyList()
+            )
             dao.clearIndex()
             dao.clearChunks()
             val records = payload.beans.map { record("bean", it.id, it) } +
@@ -334,6 +428,7 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
                 payload.estimates.map { record("estimate", it.id, it) } +
                 payload.documents.map { record("document", it.id, it) } +
                 payload.personas.map { record("persona", it.id, it) } +
+                (if (backup.manifest.schemaVersion >= 4) payload.cvaSessions.map { record("cva_session", it.id, it) } else emptyList()) +
                 (payload.settings + retainedOwnershipSettings).map { (key, value) -> record("setting", key, value) } +
                 record("chat", "history", payload.chatMessages)
             dao.putRecords(records)
@@ -345,7 +440,20 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
     /** Explicit local deletion keeps independently user-owned SAF assets and their grant metadata. */
     suspend fun deleteApplicationRecords() = mutate {
         val ownership = _settings.value.filterKeys { BackupCodec.isOwnershipSetting(it) }
-        dao.deleteKinds(listOf("bean", "ingredient", "recipe", "observation", "estimate", "document", "persona", "chat", "setting"))
+        dao.deleteKinds(
+            listOf(
+                "bean",
+                "ingredient",
+                "recipe",
+                "observation",
+                "estimate",
+                "document",
+                "persona",
+                "chat",
+                "setting",
+                "cva_session"
+            )
+        )
         dao.clearIndex()
         dao.clearChunks()
         dao.putRecords(
@@ -386,6 +494,7 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
         val chunks = dao.allChunks().map { decode<DocumentChunk>(it.json) }.sortedWith(compareBy({ it.documentId }, { it.chunkIndex }))
         val personas = items("persona", AssistantPersona::class.java)
         val settings = records["setting"].orEmpty().associate { it.id to decode<String>(it.json) }
+        val cvaSessions = items("cva_session", CuppingSession::class.java).sortedBy { it.createdAtEpochMs }
         val historyJson = records["chat"].orEmpty().find { it.id == "history" }?.json
         val history = if (historyJson == null) emptyList() else decode<List<ChatMessage>>(historyJson)
         val payload =
@@ -394,7 +503,8 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
                 settings.filterKeys {
                     !BackupCodec.isNonBackupSetting(it)
                 },
-                items("estimate", StoredSensoryEstimate::class.java).sortedByDescending { it.timestamp }
+                items("estimate", StoredSensoryEstimate::class.java).sortedByDescending { it.timestamp },
+                cvaSessions
             )
         BackupCodec.validatePayload(payload)
         val models = items("model", ModelAsset::class.java)
@@ -409,6 +519,7 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
         _recipes.value = payload.recipes
         _sensoryObservations.value = payload.observations
         _sensoryEstimates.value = payload.estimates
+        _cvaSessions.value = payload.cvaSessions
         _documents.value = payload.documents
         _chunks.value = payload.chunks
         _personas.value = payload.personas
@@ -429,7 +540,8 @@ class DataRepository(context: Context, private val database: CoffeeDatabase = Co
         chatMessages = _chatMessages.value,
         personas = _personas.value,
         settings = _settings.value.filterKeys { !BackupCodec.isNonBackupSetting(it) },
-        estimates = _sensoryEstimates.value
+        estimates = _sensoryEstimates.value,
+        cvaSessions = _cvaSessions.value
     )
 
     private fun validateRecipe(recipe: Recipe) {

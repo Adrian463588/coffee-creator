@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:02" hostname="REDRABBIT" time="0.601">
+  <properties/>
+  <testcase name="testToolExecutorIntegrationAndSchemaValidation" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.462"/>
+  <testcase name="testRagEvidencePolicyAbstention" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.007"/>
+  <testcase name="inventoryRecommendationsRequireRecordedPreferencesAndPositiveAvailableStock" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.067"/>
+  <testcase name="testOvatBrewingFeedbackProposals" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.018"/>
+  <testcase name="manualSliderPreferenceEnablesRecommendationsWithoutBecomingQuizOrSensoryEvidence" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.002"/>
+  <testcase name="testAltitudeBoilingPointAndTemperatureClamping" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.003"/>
+  <testcase name="testBayesianMovingAverageUpdate" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.002"/>
+  <testcase name="testSubThresholdSensoryEvidenceRejection" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.002"/>
+  <testcase name="testPalateQuizMappingAndManualUpdate" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.005"/>
+  <testcase name="testFoodGradeSafetyAndAllergenAudit" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.012"/>
+  <testcase name="testPersonaSanitization" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.004"/>
+  <testcase name="defaultPalateProfileHasNeutralCoordinatesAndNoRecordedEvidence" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.001"/>
+  <testcase name="grindAdjustmentRejectsOverflowAndAllowsLastRepresentableCoarserStep" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.003"/>
+  <testcase name="temperatureAdjustmentAbstainsWhenTheRequestedDirectionCannotBeMetSafely" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.002"/>
+  <testcase name="firstQualifiedObservationInitializesNeutralProfileFromRecordedEvidence" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.001"/>
+  <testcase name="grindAdjustmentAbstainsWhenFinerRequestWouldNotChangeTheMinimumSetting" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.001"/>
+  <testcase name="testExplainableInventoryRecommendations" classname="com.coffeecreator.app.core.ai.ActivePersonalizationRagTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

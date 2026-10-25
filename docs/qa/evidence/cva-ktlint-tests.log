@@ -1,0 +1,6 @@
+> Task :app:loadKtlintReporters UP-TO-DATE
+> Task :app:runKtlintCheckOverTestSourceSet UP-TO-DATE
+> Task :app:ktlintTestSourceSetCheck UP-TO-DATE
+
+BUILD SUCCESSFUL in 3s
+3 actionable tasks: 3 up-to-date

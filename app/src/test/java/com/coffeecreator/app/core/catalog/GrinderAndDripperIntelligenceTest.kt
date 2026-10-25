@@ -19,6 +19,54 @@ class GrinderAndDripperIntelligenceTest {
         assertEquals(44, GrinderIntelligenceCatalog.ALL_44_GRINDERS.size)
         assertEquals(26, DripperIntelligenceCatalog.ALL_26_DRIPPERS.size)
 
+        val expectedOrderedGrinderIds = listOf(
+            "grinder-1zpresso-j-ultra",
+            "grinder-1zpresso-jx",
+            "grinder-1zpresso-jx-pro",
+            "grinder-1zpresso-k-pro",
+            "grinder-1zpresso-k-ultra",
+            "grinder-1zpresso-q-air",
+            "grinder-1zpresso-x-pro",
+            "grinder-1zpresso-zp6-special",
+            "grinder-breville-smart-grinder-pro",
+            "grinder-comandante-c40-mk4",
+            "grinder-comandante-c60-baracuda",
+            "grinder-etzinger-etz-i",
+            "grinder-fellow-ode-gen-2",
+            "grinder-hario-canister-c20",
+            "grinder-hario-mini-slim-plus",
+            "grinder-hario-skerton-pro",
+            "grinder-kingrinder-k6",
+            "grinder-kingrinder-p-series",
+            "grinder-kinu-m47",
+            "grinder-latina-sumba",
+            "grinder-latina-sumo",
+            "grinder-mavo-phantox-pro",
+            "grinder-mazzer-omega",
+            "grinder-mhw-blade-r3",
+            "grinder-oe-lido-3",
+            "grinder-pietro",
+            "grinder-porlex-mini-ii",
+            "grinder-starseeker-edge",
+            "grinder-timemore-c2",
+            "grinder-timemore-c3",
+            "grinder-timemore-c3-esp",
+            "grinder-timemore-c3-esp-pro",
+            "grinder-timemore-c5",
+            "grinder-timemore-c5-esp-pro",
+            "grinder-timemore-c5-pro",
+            "grinder-timemore-chestnut-x",
+            "grinder-timemore-nano",
+            "grinder-timemore-s3",
+            "grinder-timemore-sculptor",
+            "grinder-timemore-slim-plus",
+            "grinder-timemore-millab-m01",
+            "grinder-varia-hand",
+            "grinder-vesper-vs3-fold",
+            "grinder-wacaco-exagrind"
+        )
+        assertEquals(expectedOrderedGrinderIds, GrinderIntelligenceCatalog.ALL_44_GRINDERS.map { it.id })
+
         // Verify key models exist
         assertNotNull(GrinderIntelligenceCatalog.getGrinderById("grinder-comandante-c40-mk4"))
         assertNotNull(GrinderIntelligenceCatalog.getGrinderById("grinder-1zpresso-j-ultra"))

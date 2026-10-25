@@ -12,6 +12,10 @@ class AcademyCurriculumTest {
     fun testAll22LessonsPresentAndBilingual() {
         val lessons = AcademyLessonRegistry.allLessons
         assertEquals(22, lessons.size)
+        assertEquals(
+            (1..22).map { "EDU-" + it.toString().padStart(2, '0') },
+            lessons.map { it.id }
+        )
 
         for (i in 1..22) {
             val id = "EDU-%02d".format(i)

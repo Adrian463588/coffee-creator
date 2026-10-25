@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.data.ReferenceSeedMigrationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.38">
+  <properties/>
+  <testcase name="givenDeletedSeed_whenBackupRestored_thenStaysDeleted" classname="com.coffeecreator.app.core.data.ReferenceSeedMigrationTest" time="0.258"/>
+  <testcase name="givenEditedVersionTwo_whenUpgraded_thenUserDataSurvives" classname="com.coffeecreator.app.core.data.ReferenceSeedMigrationTest" time="0.122"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

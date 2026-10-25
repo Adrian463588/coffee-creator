@@ -11,6 +11,7 @@ import com.coffeecreator.app.core.model.KnowledgeDocument
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.model.SensoryObservation
 import com.coffeecreator.app.core.model.StoredSensoryEstimate
+import com.coffeecreator.app.core.sensory.cva.CuppingSession
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
@@ -33,12 +34,13 @@ data class BackupPayload(
     val chatMessages: List<ChatMessage> = emptyList(),
     val personas: List<AssistantPersona> = emptyList(),
     val settings: Map<String, String> = emptyMap(),
-    val estimates: List<StoredSensoryEstimate> = emptyList()
+    val estimates: List<StoredSensoryEstimate> = emptyList(),
+    val cvaSessions: List<CuppingSession> = emptyList()
 )
 
 data class BackupManifest(
     val applicationId: String = "com.coffeecreator.app",
-    val schemaVersion: Int = 3,
+    val schemaVersion: Int = 4,
     val exportedAt: Long,
     val payloadSha256: String,
     val recordCounts: Map<String, Int>,
@@ -52,17 +54,25 @@ data class ValidatedBackup(val manifest: BackupManifest, val payload: BackupPayl
 object BackupCodec {
     private const val MAX_PERSONA_DESCRIPTION = 2048
     private const val MAX_PERSONA_PROMPT = 16_384
-    private const val MAX_MESSAGE_CHARS = 128_000
+    internal const val MAX_MESSAGE_CHARS = 128_000
     const val MAX_BACKUP_CHARS = 16_000_000
     const val MAX_RECORDS = 20_000
     const val MAX_CHUNK_CHARS = 32_000
     const val MAX_SETTING_CHARS = 32_000
-    private val payloadKeys =
-        setOf("beans", "ingredients", "recipes", "observations", "documents", "chunks", "chatMessages", "personas", "settings", "estimates")
-    private val nullableTextFields =
+    internal const val MAX_CVA_SESSION_CHARS = 1_000_000
+    private val payloadKeysV4 = setOf(
+        "beans", "ingredients", "recipes", "observations", "documents", "chunks",
+        "chatMessages", "personas", "settings", "estimates", "cvaSessions"
+    )
+    private val nullableFields =
         setOf(
             "beanId", "roastDate", "supplierLimitsNotes", "toolCallName", "toolArgumentsJson", "toolResultJson",
-            "grinderModel", "grinderSetting", "basketPuckPrep", "valveStatus"
+            "grinderModel", "grinderSetting", "basketPuckPrep", "valveStatus", "roastLevelAgtron", "roastDateEpochMs",
+            "grindMicrons", "bowlCountPerSample", "beanRoastColorAgtron", "groundRoastColorAgtron", "greenLotIdRef",
+            "quakersCountIn100g", "moisturePercent", "defectCharacter", "extrinsic", "lockedAtEpochMs",
+            "assessorSignature", "revealTimestampEpochMs", "revealReason", "region", "farmOrCoop",
+            "producer", "altitudeMetersMin", "altitudeMetersMax",
+            "variety", "processingMethod", "harvestYear", "purchasePricePerKg", "currency", "traceabilityUrl"
         )
 
     fun encode(payload: BackupPayload, exportedAt: Long = System.currentTimeMillis()): String {
@@ -95,14 +105,18 @@ object BackupCodec {
             val manifestTree = envelope["manifest"].asJsonObject
             requireRecordShape(manifestTree, BackupManifest::class.java)
             val manifest = RecordJson.gson.fromJson(manifestTree, BackupManifest::class.java)
-            require(manifest.applicationId == "com.coffeecreator.app" && manifest.schemaVersion in 2..3) {
+            require(manifest.applicationId == "com.coffeecreator.app" && manifest.schemaVersion in 2..4) {
                 "Unsupported backup application or schema version. Existing data is unchanged."
             }
             require(manifest.exportedAt >= 0L && manifest.payloadSha256.matches(Regex("[0-9a-f]{64}"))) {
                 "Invalid backup manifest."
             }
             val payloadTree = envelope["payload"].asJsonObject
-            val expectedKeys = if (manifest.schemaVersion == 2) payloadKeys - "estimates" else payloadKeys
+            val expectedKeys = when (manifest.schemaVersion) {
+                2 -> payloadKeysV4 - setOf("estimates", "cvaSessions")
+                3 -> payloadKeysV4 - "cvaSessions"
+                else -> payloadKeysV4
+            }
             require(payloadTree.keySet() == expectedKeys) { "Backup payload is incomplete or has unknown fields." }
             val checksum = sha256(RecordJson.gson.toJson(payloadTree))
             require(MessageDigest.isEqual(checksum.toByteArray(Charsets.US_ASCII), manifest.payloadSha256.toByteArray(Charsets.US_ASCII))) {
@@ -112,7 +126,8 @@ object BackupCodec {
             requireCollectionShape(payloadTree, "ingredients", Ingredient::class.java)
             requireCollectionShape(payloadTree, "recipes", Recipe::class.java)
             requireCollectionShape(payloadTree, "observations", SensoryObservation::class.java)
-            if (manifest.schemaVersion == 3) requireCollectionShape(payloadTree, "estimates", StoredSensoryEstimate::class.java)
+            if (manifest.schemaVersion >= 3) requireCollectionShape(payloadTree, "estimates", StoredSensoryEstimate::class.java)
+            if (manifest.schemaVersion == 4) requireCollectionShape(payloadTree, "cvaSessions", CuppingSession::class.java)
             requireCollectionShape(payloadTree, "documents", KnowledgeDocument::class.java)
             requireCollectionShape(payloadTree, "chunks", DocumentChunk::class.java)
             requireCollectionShape(payloadTree, "chatMessages", ChatMessage::class.java)
@@ -122,9 +137,14 @@ object BackupCodec {
                 "Backup setting values must be strings."
             }
             if (manifest.schemaVersion == 2) payloadTree.add("estimates", com.google.gson.JsonArray())
+            if (manifest.schemaVersion < 4) payloadTree.add("cvaSessions", com.google.gson.JsonArray())
             val payload = RecordJson.gson.fromJson(payloadTree, BackupPayload::class.java)
             validatePayload(payload)
-            val expectedCounts = if (manifest.schemaVersion == 2) counts(payload) - "estimates" else counts(payload)
+            val expectedCounts = when (manifest.schemaVersion) {
+                2 -> counts(payload) - setOf("estimates", "cvaSessions")
+                3 -> counts(payload) - "cvaSessions"
+                else -> counts(payload)
+            }
             require(manifest.recordCounts == expectedCounts) { "Backup record counts do not match its payload." }
             return ValidatedBackup(manifest, payload)
         } catch (error: IllegalArgumentException) {
@@ -141,6 +161,7 @@ object BackupCodec {
         uniqueIds(payload.recipes.map { it.id }, "recipes")
         uniqueIds(payload.observations.map { it.id }, "observations")
         uniqueIds(payload.estimates.map { it.id }, "estimates")
+        uniqueIds(payload.cvaSessions.map { it.id }, "CVA sessions")
         uniqueIds(payload.documents.map { it.id }, "documents")
         uniqueIds(payload.chunks.map { it.id }, "chunks")
         uniqueIds(payload.chatMessages.map { it.id }, "chat messages")
@@ -172,6 +193,7 @@ object BackupCodec {
             require(it.recipeId in recipeIds && it.timestamp >= 0L) { "Observation refers to a missing recipe or invalid timestamp." }
         }
         payload.estimates.forEach { validateEstimate(it, recipeIds) }
+        payload.cvaSessions.forEach(::validateCvaSession)
         uniqueIds(payload.documents.map { it.contentHash }, "document content hashes")
         val documentsById = payload.documents.associateBy { it.id }
         payload.documents.forEach { validateDocument(it, payload.chunks.filter { chunk -> chunk.documentId == it.id }) }
@@ -280,6 +302,8 @@ object BackupCodec {
         }
     }
 
+    internal fun validateCvaSession(session: CuppingSession) = CvaSessionStorageValidator.validate(session)
+
     internal fun isOwnershipSetting(key: String): Boolean = key == "storage.safTree" ||
         key == "assetDiscoveryError" ||
         key.startsWith("checkpoint:") ||
@@ -310,7 +334,8 @@ object BackupCodec {
         "chatMessages" to payload.chatMessages.size,
         "personas" to payload.personas.size,
         "settings" to payload.settings.size,
-        "estimates" to payload.estimates.size
+        "estimates" to payload.estimates.size,
+        "cvaSessions" to payload.cvaSessions.size
     )
 
     private fun uniqueIds(ids: List<String>, kind: String) {
@@ -348,39 +373,54 @@ object BackupCodec {
     private fun requireRecordShape(record: JsonObject, type: Class<*>) {
         val fields = type.declaredFields.filterNot { Modifier.isStatic(it.modifiers) || it.isSynthetic }
         require(record.keySet() == fields.map { it.name }.toSet()) { "Incomplete or unknown ${type.simpleName} fields." }
-        fields.forEach { field ->
-            val value = record[field.name]
-            when {
-                value.isJsonNull -> require(
-                    !field.type.isPrimitive && (field.type != String::class.java || field.name in nullableTextFields)
-                ) {
-                    "Required field ${field.name} is null."
-                }
-                field.type == String::class.java -> require(value.isJsonPrimitive && value.asJsonPrimitive.isString) {
-                    "Field ${field.name} must be text."
-                }
-                field.type == Boolean::class.javaPrimitiveType || field.type == Boolean::class.javaObjectType -> require(
-                    value.isJsonPrimitive && value.asJsonPrimitive.isBoolean
-                ) { "Field ${field.name} must be boolean." }
-                field.type.isPrimitive || Number::class.java.isAssignableFrom(field.type) -> requireNumber(value, field.type)
-                List::class.java.isAssignableFrom(field.type) -> {
-                    require(value.isJsonArray && value.asJsonArray.size() <= MAX_RECORDS) { "Field ${field.name} must be a bounded array." }
-                    val itemType = (field.genericType as ParameterizedType).actualTypeArguments.first() as Class<*>
-                    value.asJsonArray.forEach { requireGenericValue(it, itemType) }
-                }
-                Map::class.java.isAssignableFrom(field.type) -> {
-                    require(value.isJsonObject && value.asJsonObject.size() <= MAX_RECORDS) {
-                        "Field ${field.name} must be a bounded object."
-                    }
-                    val itemType = (field.genericType as ParameterizedType).actualTypeArguments.last() as Class<*>
-                    value.asJsonObject.entrySet().forEach { requireGenericValue(it.value, itemType) }
-                }
-                else -> {
-                    require(value.isJsonObject) { "Field ${field.name} must be an object." }
-                    requireRecordShape(value.asJsonObject, field.type)
-                }
+        fields.forEach { field -> requireFieldShape(field, record[field.name]) }
+    }
+
+    private fun requireFieldShape(field: java.lang.reflect.Field, value: JsonElement) {
+        when {
+            value.isJsonNull -> require(
+                !field.type.isPrimitive &&
+                    (field.type != String::class.java && !field.type.isEnum || field.name in nullableFields)
+            ) {
+                "Required field ${field.name} is null."
+            }
+            field.type == String::class.java -> require(value.isJsonPrimitive && value.asJsonPrimitive.isString) {
+                "Field ${field.name} must be text."
+            }
+            field.type.isEnum -> require(
+                value.isJsonPrimitive && value.asJsonPrimitive.isString &&
+                    field.type.enumConstants?.any { (it as Enum<*>).name == value.asString } == true
+            ) {
+                "Field ${field.name} is not a supported enum value."
+            }
+            field.type == java.math.BigDecimal::class.java -> requireNumber(value, field.type)
+            field.type == Boolean::class.javaPrimitiveType || field.type == Boolean::class.javaObjectType -> require(
+                value.isJsonPrimitive && value.asJsonPrimitive.isBoolean
+            ) { "Field ${field.name} must be boolean." }
+            field.type.isPrimitive || Number::class.java.isAssignableFrom(field.type) -> requireNumber(value, field.type)
+            List::class.java.isAssignableFrom(field.type) -> requireListShape(field, value)
+            Map::class.java.isAssignableFrom(field.type) -> requireMapShape(field, value)
+            else -> {
+                require(value.isJsonObject) { "Field ${field.name} must be an object." }
+                requireRecordShape(value.asJsonObject, field.type)
             }
         }
+    }
+
+    private fun requireListShape(field: java.lang.reflect.Field, value: JsonElement) {
+        require(value.isJsonArray && value.asJsonArray.size() <= MAX_RECORDS) {
+            "Field ${field.name} must be a bounded array."
+        }
+        val itemType = (field.genericType as ParameterizedType).actualTypeArguments.first() as Class<*>
+        value.asJsonArray.forEach { requireGenericValue(it, itemType) }
+    }
+
+    private fun requireMapShape(field: java.lang.reflect.Field, value: JsonElement) {
+        require(value.isJsonObject && value.asJsonObject.size() <= MAX_RECORDS) {
+            "Field ${field.name} must be a bounded object."
+        }
+        val itemType = (field.genericType as ParameterizedType).actualTypeArguments.last() as Class<*>
+        value.asJsonObject.entrySet().forEach { requireGenericValue(it.value, itemType) }
     }
 
     private fun requireGenericValue(value: JsonElement, type: Class<*>) {
@@ -388,6 +428,17 @@ object BackupCodec {
         when {
             type == String::class.java -> require(value.isJsonPrimitive && value.asJsonPrimitive.isString) {
                 "Collection entry must be text."
+            }
+            type.isEnum -> require(
+                value.isJsonPrimitive && value.asJsonPrimitive.isString &&
+                    type.enumConstants?.any { (it as Enum<*>).name == value.asString } == true
+            ) {
+                "Collection entry is not a supported enum value."
+            }
+            type == Boolean::class.java || type == Boolean::class.javaObjectType -> require(
+                value.isJsonPrimitive && value.asJsonPrimitive.isBoolean
+            ) {
+                "Collection entry must be boolean."
             }
             Number::class.java.isAssignableFrom(type) -> requireNumber(value, type)
             else -> {

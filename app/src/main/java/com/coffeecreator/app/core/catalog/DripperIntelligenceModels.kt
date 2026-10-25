@@ -41,8 +41,10 @@ enum class ValveState {
 data class FilterType(
     val id: String,
     val name: String,
-    val shape: String, // "Cone", "Flat Wave", "Trapezoid", "Disc", "Bonded Thick"
-    val size: String,  // "01", "02", "155", "185", "6-Cup"
+    // "Cone", "Flat Wave", "Trapezoid", "Disc", "Bonded Thick"
+    val shape: String,
+    // "01", "02", "155", "185", "6-Cup"
+    val size: String,
     val material: String = "Paper"
 )
 
@@ -79,7 +81,8 @@ data class DripperFlowAdvice(
 
 data class ManualStagedPour(
     val stageIndex: Int,
-    val name: String, // "Bloom", "First Pour", "Main Pour", "Final Pulse"
+    // "Bloom", "First Pour", "Main Pour", "Final Pulse"
+    val name: String,
     val pourMassGrams: BigDecimal,
     val cumulativeMassGrams: BigDecimal,
     val durationSeconds: Int,
@@ -112,10 +115,12 @@ data class BrewDiagnosticRecord(
     val id: String,
     val brewJournalId: String,
     val totalDrawdownSeconds: Int,
-    val cloggingObserved: String = "NONE", // "NONE", "MINOR", "SEVERE_STALL"
+    // "NONE", "MINOR", "SEVERE_STALL"
+    val cloggingObserved: String = "NONE",
     val bypassObserved: Boolean = false,
     val channelingObserved: Boolean = false,
-    val bedAppearance: String = "FLAT", // "FLAT", "MUDDY", "SLOPED", "CRATERED"
+    // "FLAT", "MUDDY", "SLOPED", "CRATERED"
+    val bedAppearance: String = "FLAT",
     val notes: String = ""
 )
 
@@ -506,7 +511,8 @@ object DripperIntelligenceCatalog {
         // Check geometry fallback
         val isGeometryMatch = when (dripper.geometry) {
             BrewerGeometry.CONE_60, BrewerGeometry.CONE_80 -> filter.shape.contains("Cone", ignoreCase = true)
-            BrewerGeometry.FLAT_BOTTOM -> filter.shape.contains("Flat", ignoreCase = true) || filter.shape.contains("Wave", ignoreCase = true)
+            BrewerGeometry.FLAT_BOTTOM -> filter.shape.contains("Flat", ignoreCase = true) ||
+                filter.shape.contains("Wave", ignoreCase = true)
             BrewerGeometry.TRAPEZOID -> filter.shape.contains("Trapezoid", ignoreCase = true)
             BrewerGeometry.IMMERSION_HYBRID -> filter.shape.contains("Cone", ignoreCase = true)
             BrewerGeometry.NO_BYPASS -> filter.shape.contains("Disc", ignoreCase = true)
@@ -522,7 +528,8 @@ object DripperIntelligenceCatalog {
             FilterCompatibilityResult(
                 isCompatible = false,
                 statusText = "GEOMETRY MISMATCH",
-                recommendationNote = "Filter shape (${filter.shape}) does not match dripper bed (${dripper.geometry}). May require adaptor or fold."
+                recommendationNote = "Filter shape (${filter.shape}) does not match dripper bed (${dripper.geometry}). " +
+                    "May require adaptor or fold."
             )
         }
     }
@@ -582,11 +589,7 @@ object DripperIntelligenceCatalog {
         )
     }
 
-    fun calculateStagedPours(
-        doseGrams: BigDecimal,
-        waterGrams: BigDecimal,
-        pourCount: Int = 3
-    ): List<ManualStagedPour> {
+    fun calculateStagedPours(doseGrams: BigDecimal, waterGrams: BigDecimal, pourCount: Int = 3): List<ManualStagedPour> {
         require(doseGrams > BigDecimal.ZERO) { "Dose must be positive." }
         require(waterGrams > BigDecimal.ZERO) { "Water mass must be positive." }
 

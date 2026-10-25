@@ -27,7 +27,7 @@
 
 | Download Link | Package Size | SHA-256 Checksum | Compatibility |
 |:---:|:---:|:---:|:---:|
-| [⬇️ **Download coffee-creator-v1.14.5.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/coffee-creator-v1.14.5.apk) | `117.3 MB` | `447ccdde1cafc1799bb6a11af4e4c32a1344a4e11708beea64ec1fc2621a0f09` | Android 8.0+ (API 26–35)<br>`arm64-v8a`, `x86_64` |
+| [⬇️ **Download coffee-creator-v1.14.5.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/coffee-creator-v1.14.5.apk) | `123.0 MB` (`117.3 MiB`) | `447ccdde1cafc1799bb6a11af4e4c32a1344a4e11708beea64ec1fc2621a0f09` | Android 8.0+ (API 26–35)<br>`arm64-v8a`, `x86_64` |
 
 - 📋 [Release Notes for v1.14.5](docs/releases/v1.14.5.md)
 - 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/SHA256SUMS.txt)

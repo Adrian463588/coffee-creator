@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.ai.EmbeddingContractTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:03" hostname="REDRABBIT" time="0.058">
+  <properties/>
+  <testcase name="givenMissingSpecialTokens_whenCreatingTokenizer_thenReject" classname="com.coffeecreator.app.core.ai.EmbeddingContractTest" time="0.007"/>
+  <testcase name="givenUncasedAccentedText_whenTokenizing_thenNormalizeAndAddSpecialTokens" classname="com.coffeecreator.app.core.ai.EmbeddingContractTest" time="0.033"/>
+  <testcase name="givenFixedShape_whenPadding_thenMaskPadTokens" classname="com.coffeecreator.app.core.ai.EmbeddingContractTest" time="0.001"/>
+  <testcase name="givenInvalidVector_whenNormalizing_thenRejectRatherThanFabricate" classname="com.coffeecreator.app.core.ai.EmbeddingContractTest" time="0.003"/>
+  <testcase name="givenUnknownAndCjkText_whenTokenizing_thenPreserveUnknownAndCjkBoundary" classname="com.coffeecreator.app.core.ai.EmbeddingContractTest" time="0.001"/>
+  <testcase name="givenInputBeyondBudget_whenTokenizing_thenKeepClsSepAndBoundLength" classname="com.coffeecreator.app.core.ai.EmbeddingContractTest" time="0.007"/>
+  <testcase name="givenMaskedTokenEmbeddings_whenPooling_thenIgnorePaddingAndNormalize" classname="com.coffeecreator.app.core.ai.EmbeddingContractTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

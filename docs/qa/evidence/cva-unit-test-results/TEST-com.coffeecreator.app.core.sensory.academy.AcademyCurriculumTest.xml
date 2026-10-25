@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.sensory.academy.AcademyCurriculumTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.015">
+  <properties/>
+  <testcase name="testQGraderPathwayCredentialLiteracyEdu22" classname="com.coffeecreator.app.core.sensory.academy.AcademyCurriculumTest" time="0.011"/>
+  <testcase name="testFiveBasicTastesScientificCorrectionInEdu05" classname="com.coffeecreator.app.core.sensory.academy.AcademyCurriculumTest" time="0.0"/>
+  <testcase name="testAll22LessonsPresentAndBilingual" classname="com.coffeecreator.app.core.sensory.academy.AcademyCurriculumTest" time="0.001"/>
+  <testcase name="testOrganicAcidAtlasSevenAcids" classname="com.coffeecreator.app.core.sensory.academy.AcademyCurriculumTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

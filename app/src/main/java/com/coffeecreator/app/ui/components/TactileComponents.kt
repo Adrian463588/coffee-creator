@@ -11,7 +11,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,8 +26,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CardElevation
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -53,18 +52,13 @@ import androidx.compose.ui.unit.dp
  */
 fun concentricInnerRadius(outerRadius: Dp, padding: Dp): Dp = maxOf(0.dp, outerRadius - padding)
 
-fun concentricShape(outerRadius: Dp, padding: Dp): RoundedCornerShape =
-    RoundedCornerShape(concentricInnerRadius(outerRadius, padding))
+fun concentricShape(outerRadius: Dp, padding: Dp): RoundedCornerShape = RoundedCornerShape(concentricInnerRadius(outerRadius, padding))
 
 /**
  * 2026 Tactile Industrial spring micro-depression modifier with haptic confirmation.
  */
 @Composable
-fun Modifier.tactilePress(
-    enabled: Boolean = true,
-    scaleDown: Float = 0.97f,
-    onClick: (() -> Unit)? = null
-): Modifier {
+fun Modifier.tactilePress(enabled: Boolean = true, scaleDown: Float = 0.97f, onClick: (() -> Unit)? = null): Modifier {
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -102,11 +96,8 @@ fun Modifier.tactilePress(
  * Convenience modifier for tactile clickable surfaces with haptics and spring scale.
  */
 @Composable
-fun Modifier.tactileClickable(
-    enabled: Boolean = true,
-    scaleDown: Float = 0.97f,
-    onClick: () -> Unit
-): Modifier = tactilePress(enabled = enabled, scaleDown = scaleDown, onClick = onClick)
+fun Modifier.tactileClickable(enabled: Boolean = true, scaleDown: Float = 0.97f, onClick: () -> Unit): Modifier =
+    tactilePress(enabled = enabled, scaleDown = scaleDown, onClick = onClick)
 
 /**
  * TactileFilterChip adhering to 2026 Tactile Industrial guidelines:
@@ -379,12 +370,7 @@ fun TactileCard(
  * Compact, tactile telemetry status pill with active status indicator dot.
  */
 @Composable
-fun TelemetryStatusPill(
-    label: String,
-    status: String,
-    isActive: Boolean,
-    modifier: Modifier = Modifier
-) {
+fun TelemetryStatusPill(label: String, status: String, isActive: Boolean, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(6.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
@@ -447,4 +433,3 @@ fun MicroBadgePill(
         )
     }
 }
-

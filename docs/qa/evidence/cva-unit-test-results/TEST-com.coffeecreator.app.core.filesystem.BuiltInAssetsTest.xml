@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.coffeecreator.app.core.filesystem.BuiltInAssetsTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-18T03:16:22" hostname="REDRABBIT" time="0.006">
+  <properties/>
+  <testcase name="givenCustomGgufManifest_whenRuntimeIsLlamaCpp_thenRemainLoadable" classname="com.coffeecreator.app.core.filesystem.BuiltInAssetsTest" time="0.004"/>
+  <testcase name="givenGemmaLiteRtManifest_whenPinnedTransferMetadataChanges_thenRejectCatalogTrust" classname="com.coffeecreator.app.core.filesystem.BuiltInAssetsTest" time="0.0"/>
+  <testcase name="givenRequestedModels_whenReadingCatalog_thenUseVerifiedImmutableManifestsAndNoInstalledClaim" classname="com.coffeecreator.app.core.filesystem.BuiltInAssetsTest" time="0.001"/>
+  <testcase name="givenBuiltInGguf_whenCheckingRuntime_thenUseExistingLlamaCppCapability" classname="com.coffeecreator.app.core.filesystem.BuiltInAssetsTest" time="0.0"/>
+  <testcase name="givenGemmaLiteRtBeforeAndAfterInstall_whenCheckingRuntime_thenStayDownloadOnly" classname="com.coffeecreator.app.core.filesystem.BuiltInAssetsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
