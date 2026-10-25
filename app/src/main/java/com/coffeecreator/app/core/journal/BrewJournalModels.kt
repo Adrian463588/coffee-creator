@@ -1,6 +1,7 @@
 package com.coffeecreator.app.core.journal
 
 import com.coffeecreator.app.core.model.CalculationMetadata
+import com.coffeecreator.app.core.model.Recipe
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -55,7 +56,9 @@ data class BrewJournalEntry(
     val updatedAt: Long = System.currentTimeMillis(),
     val dialInChainId: String? = null,
     val isEspresso: Boolean = brewMethod.contains("Espresso", ignoreCase = true),
-    val espressoDetails: EspressoJournalDetails? = null
+    val espressoDetails: EspressoJournalDetails? = null,
+    /** Immutable source plan for repeat brewing; absent in legacy records. */
+    val recipeSnapshot: Recipe? = null
 )
 
 data class EspressoJournalDetails(

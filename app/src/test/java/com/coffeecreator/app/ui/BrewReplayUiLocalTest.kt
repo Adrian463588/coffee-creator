@@ -52,8 +52,8 @@ class BrewReplayUiLocalTest {
             waterGrams = 300.0,
             brewTimeSeconds = 60,
             brewSteps = listOf(
-                BrewStep(1, targetWaterGrams = 60.0, durationSeconds = 30, action = "Bloom"),
-                BrewStep(2, targetWaterGrams = 240.0, durationSeconds = 30, cumulativeMassGrams = 300.0)
+                BrewStep(1, description = "Bloom", targetWaterGrams = 60.0, durationSeconds = 30, action = "Bloom"),
+                BrewStep(2, description = "Main pour", targetWaterGrams = 240.0, durationSeconds = 30, cumulativeMassGrams = 300.0)
             )
         )
         runBlocking(Dispatchers.IO) { repository.saveRecipe(recipe) }

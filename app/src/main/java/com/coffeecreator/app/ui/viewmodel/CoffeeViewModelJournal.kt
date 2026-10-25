@@ -5,15 +5,18 @@ import com.coffeecreator.app.core.ai.personalization.PalateBayesianEngine
 import com.coffeecreator.app.core.ai.personalization.PersonalSensoryEvidence
 import com.coffeecreator.app.core.data.BackupCodec
 import com.coffeecreator.app.core.data.RecipeExportFormatter
+import com.coffeecreator.app.core.brew.BrewExecutionStatus
 import com.coffeecreator.app.core.journal.BrewAnalyticsEngine
 import com.coffeecreator.app.core.journal.BrewFilterCriteria
 import com.coffeecreator.app.core.journal.BrewJournalEntry
+import com.coffeecreator.app.core.journal.BrewReplayFactory
 import com.coffeecreator.app.core.journal.CafeCupEntry
 import com.coffeecreator.app.core.journal.ImportConflictItem
 import com.coffeecreator.app.core.journal.ImportConflictPreview
 import com.coffeecreator.app.core.journal.ImportRecordStatus
 import com.coffeecreator.app.core.model.Recipe
 import com.coffeecreator.app.core.recipes.champion.ChampionRecipe
+import com.coffeecreator.app.core.recipes.champion.WorldChampionRecipeCatalog
 import com.coffeecreator.app.core.reliability.LogLevel
 import java.time.Instant
 import java.time.LocalDate
@@ -112,28 +115,62 @@ fun CoffeeViewModel.estimateCaffeineForDose(doseGrams: Double, arabicaFraction: 
     mutableState.update { it.copy(activeCaffeineEstimate = estimate) }
 }
 
-fun CoffeeViewModel.repeatLastBrew() {
-    val last = mutableState.value.journalEntries.maxByOrNull { it.createdAt } ?: return
-    val matchingRecipe = mutableState.value.recipes.find { it.id == last.recipeId }
-    if (matchingRecipe != null) {
-        editRecipe(matchingRecipe)
-        initBrewSession(matchingRecipe)
-    } else {
-        val newRecipe = Recipe(
-            id = UUID.randomUUID().toString(),
-            name = "${last.brewMethod} Repeat (${last.beanName})",
-            beanId = last.beanId,
-            brewMethod = last.brewMethod,
-            doseGrams = last.doseGrams,
-            waterGrams = last.waterGrams,
-            temperatureCelsius = last.waterTemperatureCelsius,
-            brewTimeSeconds = last.brewDurationSeconds,
-            grindSize = last.grindSetting,
-            grinderModel = last.grinderModel
-        )
-        initBrewSession(newRecipe)
+fun CoffeeViewModel.prepareRecipeForBrew(recipe: Recipe): Boolean {
+    val session = mutableState.value.brewSession
+    if (session?.status == BrewExecutionStatus.RUNNING || session?.status == BrewExecutionStatus.PAUSED) {
+        mutableState.update { it.copy(notice = "A brew is active. Open Timer and finish it before starting another recipe.") }
+        return false
     }
-    mutableState.update { it.copy(notice = "Repeated previous brew: ${last.brewMethod} (${last.doseGrams}g). Armed on timer.") }
+    return try {
+        val plan = BrewReplayFactory.freshPlan(recipe, mutableState.value.ingredients)
+        if (!initBrewSession(plan)) return false
+        editRecipe(plan)
+        mutableState.update { it.copy(notice = "Ready: ${plan.name}. Press Start when your equipment is prepared.") }
+        true
+    } catch (invalidPlan: IllegalArgumentException) {
+        mutableState.update { it.copy(notice = "Cannot prepare this brew: ${invalidPlan.message}. Edit the recipe and retry.") }
+        false
+    }
+}
+
+fun CoffeeViewModel.prepareDraftForBrew(): Boolean = try {
+    prepareRecipeForBrew(buildRecipe())
+} catch (invalidInput: IllegalArgumentException) {
+    mutableState.update { it.copy(notice = "Check the recipe before brewing: ${invalidInput.message}") }
+    false
+} catch (invalidTime: IllegalStateException) {
+    mutableState.update { it.copy(notice = "Check the recipe before brewing: ${invalidTime.message}") }
+    false
+}
+
+private fun CoffeeViewModel.journalReplayPlan(entry: BrewJournalEntry): Recipe {
+    val linkedRecipe = mutableState.value.recipes.firstOrNull { it.id == entry.recipeId }
+        ?: entry.recipeId?.let { id -> WorldChampionRecipeCatalog.getById(id)?.toRecipe(customId = id) }
+    return BrewReplayFactory.fromJournal(entry, linkedRecipe, mutableState.value.ingredients)
+}
+
+fun CoffeeViewModel.repeatJournalBrew(entry: BrewJournalEntry): Boolean {
+    return try {
+        val prepared = prepareRecipeForBrew(journalReplayPlan(entry))
+        if (prepared && entry.recipeSnapshot == null) {
+            mutableState.update {
+                it.copy(notice = "Brew ready. This legacy entry has no saved pour snapshot; review the linked or reconstructed plan before Start.")
+            }
+        }
+        prepared
+    } catch (invalidPlan: IllegalArgumentException) {
+        mutableState.update { it.copy(notice = "Cannot repeat this entry: ${invalidPlan.message}. Open a recipe to correct the plan.") }
+        false
+    }
+}
+
+fun CoffeeViewModel.repeatLastBrew(): Boolean {
+    val last = mutableState.value.journalEntries.maxByOrNull { it.createdAt }
+    if (last == null) {
+        mutableState.update { it.copy(notice = "No previous brew yet. Choose a recipe to begin.") }
+        return false
+    }
+    return repeatJournalBrew(last)
 }
 
 fun CoffeeViewModel.saveEntryAsTemplate(entry: BrewJournalEntry, templateName: String) = task("Saving brew template") {
@@ -244,11 +281,8 @@ fun CoffeeViewModel.logChampionRecipeToJournal(recipe: ChampionRecipe, customNot
     mutableState.update { it.copy(notice = "Logged '${recipe.name}' to Journal.") }
 }
 
-fun CoffeeViewModel.brewChampionRecipe(recipe: ChampionRecipe) {
-    val r = recipe.toRecipe()
-    initBrewSession(r)
-    mutableState.update { it.copy(notice = "Armed '${recipe.name}' on brew timer.") }
-}
+fun CoffeeViewModel.brewChampionRecipe(recipe: ChampionRecipe): Boolean =
+    prepareRecipeForBrew(recipe.toRecipe(customId = recipe.id))
 
 fun CoffeeViewModel.saveChampionRecipeAsTemplate(recipe: ChampionRecipe) = task("Saving champion recipe template") {
     val r = recipe.toRecipe()

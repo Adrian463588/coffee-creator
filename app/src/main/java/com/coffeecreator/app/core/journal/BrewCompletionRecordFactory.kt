@@ -29,7 +29,13 @@ object BrewCompletionRecordFactory {
             isEspresso = recipe.brewMethod.contains("Espresso", ignoreCase = true),
             espressoDetails = null,
             dialInChainId = null,
-            timerOnly = true
+            timerOnly = true,
+            recipeSnapshot = recipe.copy(
+                brewSteps = recipe.brewSteps.toList(),
+                lines = recipe.lines.toList(),
+                stages = recipe.stages.toList(),
+                acknowledgedAllergens = recipe.acknowledgedAllergens.toList()
+            )
         )
     }
 }
