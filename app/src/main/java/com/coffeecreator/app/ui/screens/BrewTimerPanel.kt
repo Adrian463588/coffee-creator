@@ -47,7 +47,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.coffeecreator.app.core.brew.BrewAudioPlayer
 import com.coffeecreator.app.core.brew.BrewExecutionStatus
+import com.coffeecreator.app.core.brew.BrewTimerCueKind
+import com.coffeecreator.app.core.brew.BrewVibrator
 import com.coffeecreator.app.ui.components.TactileButton
 import com.coffeecreator.app.ui.components.TactileFilledTonalButton
 import com.coffeecreator.app.ui.components.TactileFilterChip
@@ -336,13 +339,21 @@ internal fun BrewTimerPanel(state: CoffeeUiState, model: CoffeeViewModel, editRe
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             TactileFilterChip(
                 selected = session?.audioEnabled ?: true,
-                onClick = model::toggleSound,
+                onClick = {
+                    val enabling = !(session?.audioEnabled ?: true)
+                    model.toggleSound()
+                    if (enabling) BrewAudioPlayer.playClick(context)
+                },
                 label = { Text("Sound") },
                 modifier = Modifier.testTag("timer:toggle_sound")
             )
             TactileFilterChip(
                 selected = session?.hapticsEnabled ?: true,
-                onClick = model::toggleHaptics,
+                onClick = {
+                    val enabling = !(session?.hapticsEnabled ?: true)
+                    model.toggleHaptics()
+                    if (enabling) BrewVibrator.vibrateCue(context, BrewTimerCueKind.STEP_TRANSITION)
+                },
                 label = { Text("Vibration") },
                 modifier = Modifier.testTag("timer:toggle_haptics")
             )
@@ -365,10 +376,21 @@ internal fun BrewTimerPanel(state: CoffeeUiState, model: CoffeeViewModel, editRe
                 label = { Text("Keep screen on") },
                 modifier = Modifier.testTag("timer:toggle_awake")
             )
+            OutlinedButton(
+                onClick = {
+                    if (session?.hapticsEnabled != false) {
+                        BrewVibrator.vibrateCue(context, BrewTimerCueKind.STEP_TRANSITION)
+                    }
+                    if (session?.audioEnabled != false) {
+                        BrewAudioPlayer.playCue(context, BrewTimerCueKind.STEP_TRANSITION)
+                    }
+                },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("timer:test_alert")
+            ) { Text("Test alert") }
         }
         Text(
-            "Sound and vibration use Android notifications. For silent reminders, keep Notification on and turn Sound and Vibration off. " +
-                "Android notification and Do Not Disturb settings apply.",
+            "Vibration and sound alert you directly on your device when each pour step starts. " +
+                "Vibration uses device hardware and works reliably even in silent or Do Not Disturb mode.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

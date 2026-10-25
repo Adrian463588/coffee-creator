@@ -23,21 +23,21 @@
 
 ## ⚡ Direct APK Download
 
-### 🚀 Latest Release: **v1.14.6** (Brew Replay, Responsive Facts, Step Cues & Semi-Auto Stopwatch)
+### 🚀 Latest Release: **v1.14.7** (Direct Hardware Haptics, Alarm-Grade Audio Cues & Test Alert)
 
 | Download Link | Package Size | SHA-256 Checksum | Compatibility |
 |:---:|:---:|:---:|:---:|
-| [⬇️ **Download coffee-creator-v1.14.6.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.6/coffee-creator-v1.14.6.apk) | `101.6 MB` (`96.9 MiB`) | `4bf0889c49f107de2341432ad3de19f25d38f8ea1c2c83180a182d42d881f77e` | Android 8.0+ (API 26–35)<br>`arm64-v8a`, `x86_64` |
+| [⬇️ **Download coffee-creator-v1.14.7.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.7/coffee-creator-v1.14.7.apk) | `117.4 MB` (`117.4 MiB`) | `70e5313cc9db8c4297b37bc827c7cbf6d226f31667bbe3060e246a8890726774` | Android 8.0+ (API 26–35)<br>`arm64-v8a`, `x86_64` |
 
-- 📋 [Release Notes for v1.14.6](docs/releases/v1.14.6.md)
-- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.6/SHA256SUMS.txt)
+- 📋 [Release Notes for v1.14.7](docs/releases/v1.14.7.md)
+- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.7/SHA256SUMS.txt)
 - 📱 **Tested & Verified Hardware**: Samsung Galaxy S20 Ultra 5G (`SM-G988B`, Serial `RRCN3008VYE`, Android 13 / One UI 5.1 / API 33).
 
 #### 🛠️ Zero-Data-Loss ADB Installation Command (Recommended for Baristas & Developers)
 To upgrade or install the APK on your connected Android device while preserving all local beans, recipes, sensory cupping forms, and Room database state:
 
 ```powershell
-adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.6.apk
+adb -s QSWSEMRKNFZ9LJRC install --user 0 -r -d coffee-creator-v1.14.7.apk
 ```
 
 > [!IMPORTANT]
@@ -378,10 +378,12 @@ Coffee Creator strictly adheres to modern 2026 Android interface engineering gui
 ## 📜 Historical Release Archive
 
 <details>
-<summary><strong>📦 Click to view full historical releases archive (v1.0.0 through v1.14.5)</strong></summary>
+<summary><strong>📦 Click to view full historical releases archive (v1.0.0 through v1.14.7)</strong></summary>
 
 | Version | Release Date | Download APK | Release Highlights | SHA-256 Checksum |
 |:---:|:---:|:---:|:---|:---:|
+| **v1.14.7** | 2026-10-25 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.7/coffee-creator-v1.14.7.apk) | [Notes](docs/releases/v1.14.7.md) · **Direct Hardware Haptics & Alarm-Grade Audio Alerts**: Direct physical motor actuation via `AudioAttributes.USAGE_ALARM` bypassing Android Do Not Disturb (DND) / Bedtime mode and system touch haptic disablement (`haptic_feedback_enabled = 0`), live "Test alert" CTA button in timer console, immediate haptic confirmation on toggle, and race-free dual-redundant single-authority cue dispatch. | `70e5313cc9db8...` |
+| **v1.14.6** | 2026-10-25 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.6/coffee-creator-v1.14.6.apk) | [Notes](docs/releases/v1.14.6.md) · **1-Click Journal Replay, Responsive Facts & Progressive Steps**: Instant replay flow from Journal/catalog to timer with active brew protection and zero stale measurement leakage, responsive 2x2 fact grid with dedicated ratio/bypass row, progressive step disclosure with "Continue to timer" CTA, and pure manual stopwatch mode for semi-automatic espresso machines. | `4bf0889c49f10...` |
 | **v1.14.5** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/coffee-creator-v1.14.5.apk) | [Notes](docs/releases/v1.14.5.md) · **2026 Tactile Industrial & Precision Coffee Lab UI/UX Refinement**: Shared tactile primitives library (`Modifier.tactilePress`, `Modifier.tactileClickable`, `TactileCard`, `TactileButton`, `TactileFilterChip`), concentric nested corner radius $R_{\text{inner}} = \max(0, R_{\text{outer}} - P)$, 1px crisp hairline borders (`outlineVariant 0.40f`), tabular monospace figures (`tnum`) across all telemetry, single-line text constraints on pills/badges, responsive degradation status banner, and physical Samsung S20 Ultra device verification. | `447ccdde1cafc...` |
 | **v1.14.4** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.4/coffee-creator-v1.14.4.apk) | [Notes](docs/releases/v1.14.4.md) · **Sprint 04 Epic E: Pro Operations, Architecture, AI & Integration (`S4-052..65`)**: 100% offline operational guarantee, additive Room migration safety, immutable cross-domain provenance linking cupping to bean/roast/recipe/grinder, deterministic standards engine strictly decoupled from LLM, local RAG knowledge citation verification with anti-hallucination guard (`[chunk-cva-desc-04, Page 3]`), blind panel workflow with role separation (Host vs Assessor) and 3-digit randomized codes with premature unblinding audit trail (`UNBLINDED_PREMATURELY_AUDITED`), inter-rater agreement and panel calibration statistics (Pearson $r$, Spearman $\rho$, Mean Consensus Deviation $\text{MCD} \le 0.35$, Fleiss' generalized Kappa $\kappa_{\text{Fleiss}}$ with Landis-Koch benchmarks), bilingual EN/ID glossary, accessibility profiles (anosmia/parosmia accommodation, allergen alerts with non-clinical disclaimer), and user-consent-based export with PII redaction and SHA-256 integrity seal. | `a931abbccb6aa...` |
 | **v1.14.3** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.3/coffee-creator-v1.14.3.apk) | [Notes](docs/releases/v1.14.3.md) · **Sprint 04 Epic D: Green Coffee Physical Assessment (`S4-041..51`)**: Complete 350g green lot catalog, provenance & chain of custody, SCA 2004 washed Arabica defect taxonomy (Cat 1 full defects vs Cat 2 weighted equivalents), ISO 4150 sieve distribution with mass balance recovery check ($\Delta M \le 1.5\text{g}$) and Screen 16+ retention %, moisture assessment with meter uncertainty, water activity ($a_w \le 0.700$), density (g/L), organoleptic odor disqualification, deterministic grade rule engine with out-of-scope guards (`UNDETERMINED_OUT_OF_SCOPE`), epistemological decoupling (physical grade $\ne$ cup score), buyer spec contract compliance, and SHA-256 sealed JSON/CSV export. | `e377bf4d7ad80...` |
@@ -463,7 +465,7 @@ Execute the comprehensive test suite across pure JVM engine, Room DAOs, and Robo
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest
 ```
-*(All 423 unit tests pass with zero failures).*
+*(All 429 unit tests pass with zero failures).*
 
 ### 4. Assemble Debug APK
 Compile the distribution debug preview APK:

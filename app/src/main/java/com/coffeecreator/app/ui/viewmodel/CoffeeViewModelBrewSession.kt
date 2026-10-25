@@ -2,12 +2,14 @@ package com.coffeecreator.app.ui.viewmodel
 
 import androidx.lifecycle.viewModelScope
 import com.coffeecreator.app.core.ble.ScaleConnectionState
+import com.coffeecreator.app.core.brew.BrewAudioPlayer
 import com.coffeecreator.app.core.brew.BrewExecutionStatus
 import com.coffeecreator.app.core.brew.BrewSessionSnapshot
 import com.coffeecreator.app.core.brew.BrewSessionState
 import com.coffeecreator.app.core.brew.BrewTimerEngine
 import com.coffeecreator.app.core.brew.BrewTimerPreferences
 import com.coffeecreator.app.core.brew.BrewTimerRuntimeState
+import com.coffeecreator.app.core.brew.BrewVibrator
 import com.coffeecreator.app.core.engine.DomainValidation
 import com.coffeecreator.app.core.journal.BrewCompletionRecordFactory
 import com.coffeecreator.app.core.model.BrewStep
@@ -123,6 +125,17 @@ internal fun CoffeeViewModel.observeBrewTimer() {
     viewModelScope.launch {
         graph.brewTimer.state.collect { timerState ->
             syncBrewTimerState(timerState)
+            timerState.cue?.let { cue ->
+                if (graph.brewTimer.claimCue(cue)) {
+                    val session = timerState.session
+                    if (session?.hapticsEnabled == true) {
+                        BrewVibrator.vibrateCue(graph.context, cue.kind)
+                    }
+                    if (session?.audioEnabled == true) {
+                        BrewAudioPlayer.playCue(graph.context, cue.kind)
+                    }
+                }
+            }
             for (completed in timerState.pendingCompletions) {
                 val journalId = "timer:${completed.sessionId}"
                 if (mutableState.value.journalEntries.none { it.id == journalId }) {

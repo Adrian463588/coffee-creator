@@ -24,7 +24,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 @Singleton
-class AppGraph @Inject constructor(@ApplicationContext private val context: Context) {
+class AppGraph @Inject constructor(@ApplicationContext val context: Context) {
     val repository = DataRepository(context)
     val native = NativeLlmEngine(context)
     val preferences = PreferenceStore(context)

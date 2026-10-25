@@ -47,6 +47,7 @@ class BrewTimerService : Service() {
     private var observation: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var wakeLockDeadline = 0L
+    private var lastNotifiedCueId: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -86,6 +87,7 @@ class BrewTimerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        BrewAudioPlayer.stop()
         releaseWakeLock()
         serviceScope.cancel()
         super.onDestroy()
@@ -116,7 +118,16 @@ class BrewTimerService : Service() {
     private fun renderTimerState(state: BrewTimerRuntimeState) {
         val session = state.session ?: return stopTimerService()
         state.cue?.let { cue ->
-            if (graph.brewTimer.claimCue(cue) && session.notificationEnabled && notificationsAllowed()) {
+            if (graph.brewTimer.claimCue(cue)) {
+                if (session.hapticsEnabled) {
+                    BrewVibrator.vibrateCue(this, cue.kind)
+                }
+                if (session.audioEnabled) {
+                    BrewAudioPlayer.playCue(this, cue.kind)
+                }
+            }
+            if (cue.id != lastNotifiedCueId && session.notificationEnabled && notificationsAllowed()) {
+                lastNotifiedCueId = cue.id
                 postNotification(BREW_STEP_NOTIFICATION_ID, cueNotification(session, cue))
             }
         }
@@ -190,8 +201,9 @@ class BrewTimerService : Service() {
             .setStyle(NotificationCompat.BigTextStyle().bigText(cue.message))
             .setContentIntent(openTimerIntent())
             .setAutoCancel(true)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
 
     private fun openTimerIntent(): PendingIntent = PendingIntent.getActivity(
@@ -235,6 +247,8 @@ class BrewTimerService : Service() {
         )
         for (audio in listOf(false, true)) {
             for (haptics in listOf(false, true)) {
+                // Delete stale legacy channels
+                manager.deleteNotificationChannel("brew-steps-sound-$audio-vibration-$haptics")
                 manager.createNotificationChannel(cueChannel(audio, haptics))
             }
         }
@@ -246,7 +260,7 @@ class BrewTimerService : Service() {
         return NotificationChannel(
             cueChannelId(audio, haptics),
             "Brew steps · $mode",
-            if (audio || haptics) NotificationManager.IMPORTANCE_DEFAULT else NotificationManager.IMPORTANCE_LOW
+            if (audio || haptics) NotificationManager.IMPORTANCE_HIGH else NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "Pour-step and target-time cues. Android notification and Do Not Disturb settings apply."
             enableVibration(haptics)
@@ -276,6 +290,6 @@ class BrewTimerService : Service() {
             context.stopService(Intent(context, BrewTimerService::class.java))
         }
 
-        internal fun cueChannelId(audio: Boolean, haptics: Boolean): String = "brew-steps-sound-$audio-vibration-$haptics"
+        internal fun cueChannelId(audio: Boolean, haptics: Boolean): String = "brew-step-cues-v2-sound-$audio-vibration-$haptics"
     }
 }

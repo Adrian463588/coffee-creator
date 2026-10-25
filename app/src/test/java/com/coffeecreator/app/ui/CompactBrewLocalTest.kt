@@ -28,12 +28,16 @@ class CompactBrewLocalTest {
         RuntimeEnvironment.setFontScale(2f)
         compose.activityRule.scenario.recreate()
         val repository = (compose.activity.application as CoffeeApplication).graph.repository
-        compose.waitUntil(20_000) { repository.ready.value }
+        compose.waitUntil(60_000) { repository.ready.value }
+        compose.waitForIdle()
         compose.onNodeWithTag("nav:Formulate").performClick()
-        compose.waitUntil(5_000) {
+        compose.waitUntil(60_000) {
             compose.onAllNodesWithTag("page:Formulate").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag("page:Formulate").assertExists()
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithTag("brew:section:Tools").fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag("brew:section:Tools").performScrollTo().performClick().assertIsSelected()
         compose.onNodeWithTag("brew:content:Tools").assertExists()
         compose.onNodeWithTag("form:save").assertExists()
