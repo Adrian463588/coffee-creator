@@ -23,21 +23,21 @@
 
 ## ⚡ Direct APK Download
 
-### 🚀 Latest Release: **v1.14.5** (2026 Tactile Industrial & Precision Coffee Lab UI/UX Refinement)
+### 🚀 Latest Release: **v1.14.6** (Brew Replay, Responsive Facts, Step Cues & Semi-Auto Stopwatch)
 
 | Download Link | Package Size | SHA-256 Checksum | Compatibility |
 |:---:|:---:|:---:|:---:|
-| [⬇️ **Download coffee-creator-v1.14.5.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/coffee-creator-v1.14.5.apk) | `123.0 MB` (`117.3 MiB`) | `447ccdde1cafc1799bb6a11af4e4c32a1344a4e11708beea64ec1fc2621a0f09` | Android 8.0+ (API 26–35)<br>`arm64-v8a`, `x86_64` |
+| [⬇️ **Download coffee-creator-v1.14.6.apk**](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.6/coffee-creator-v1.14.6.apk) | `101.6 MB` (`96.9 MiB`) | `4bf0889c49f107de2341432ad3de19f25d38f8ea1c2c83180a182d42d881f77e` | Android 8.0+ (API 26–35)<br>`arm64-v8a`, `x86_64` |
 
-- 📋 [Release Notes for v1.14.5](docs/releases/v1.14.5.md)
-- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/SHA256SUMS.txt)
+- 📋 [Release Notes for v1.14.6](docs/releases/v1.14.6.md)
+- 🔒 [SHA256SUMS.txt](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.6/SHA256SUMS.txt)
 - 📱 **Tested & Verified Hardware**: Samsung Galaxy S20 Ultra 5G (`SM-G988B`, Serial `RRCN3008VYE`, Android 13 / One UI 5.1 / API 33).
 
 #### 🛠️ Zero-Data-Loss ADB Installation Command (Recommended for Baristas & Developers)
 To upgrade or install the APK on your connected Android device while preserving all local beans, recipes, sensory cupping forms, and Room database state:
 
 ```powershell
-adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.5.apk
+adb -s RRCN3008VYE install --user 0 -r -d coffee-creator-v1.14.6.apk
 ```
 
 > [!IMPORTANT]
@@ -82,6 +82,15 @@ All interfaces captured directly from physical Samsung Galaxy S20 Ultra running 
 |:---:|:---:|:---:|
 | <img src="docs/screenshots/s20_ultra_v1145_10_green_grading.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_11_panel_calibration.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1145_12_settings_degradation.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> |
 | **350g Washed Arabica Defect Grading**<br>SCA 2004 primary & secondary defect equivalencies, ISO 4150 sieve distribution, and $48\text{dp}$ counters. | **Inter-Rater Consensus Radar**<br>Multi-evaluator alignment, Pearson $r$, Fleiss $\kappa$, and Mean Consensus Deviation ($\text{MCD} \le 0.35$). | **Subsystem Degradation Monitor**<br>Zero-crash graceful fallback state machine, unit preferences (°C/°F, g/oz), and SAF storage selector. |
+
+---
+
+### Gallery 5: 🔄 1-Click Replay, Responsive Facts & Progressive Step Cues (v1.14.6)
+
+| 13. Responsive Fact Cards | 14. Progressive Step Controls | 15. Instant Chronometer Replay |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/s20_ultra_v1146_facts_card.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1146_steps_progressive.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> | <img src="docs/screenshots/s20_ultra_v1146_timer_replay.png" width="310" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);" /> |
+| **Responsive 2×2 Fact Grid & Isolated Ratio**<br>No squished fact lines, isolated ratio & bypass row (`1:15.0 (+ bypass to 155g)`), and tabular monospace numerals (`tnum`). | **Progressive Step Controls & Top CTA**<br>Clean summary cards with inline progressive expand-to-edit and high-visibility **"Continue to timer"** CTA. | **1-Click Armed Chronometer Replay**<br>Preloaded recipe and steps armed at `00:00`, active session protection, zero stale measurement leakage, and multi-modal step cues. |
 
 ---
 
@@ -278,7 +287,7 @@ d:/SEMESTER13/KodeProject/CoffeCreator/
 │   └── build.gradle.kts                     # App module build script, NDK/CMake bindings
 ├── coffee-creator-blueprint/                # Authoritative specifications (PRD, DESIGN, ARCHITECTURE, TASKS)
 ├── docs/                                    # Documentation, verification reports, release notes
-│   ├── releases/                            # Release notes for all historical versions (v1.0.0 to v1.14.5)
+│   ├── releases/                            # Release notes for all historical versions (v1.0.0 to v1.14.6)
 │   └── screenshots/                         # Physical Samsung S20 Ultra device screenshot gallery
 ├── openspec/                                # OpenSpec Spec-Driven Development (SDD) changes & proposals
 └── scripts/                                 # Asset preparation, research verifiers, release publishing
@@ -369,10 +378,11 @@ Coffee Creator strictly adheres to modern 2026 Android interface engineering gui
 ## 📜 Historical Release Archive
 
 <details>
-<summary><strong>📦 Click to view full historical releases archive (v1.0.0 through v1.14.4)</strong></summary>
+<summary><strong>📦 Click to view full historical releases archive (v1.0.0 through v1.14.5)</strong></summary>
 
 | Version | Release Date | Download APK | Release Highlights | SHA-256 Checksum |
 |:---:|:---:|:---:|:---|:---:|
+| **v1.14.5** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.5/coffee-creator-v1.14.5.apk) | [Notes](docs/releases/v1.14.5.md) · **2026 Tactile Industrial & Precision Coffee Lab UI/UX Refinement**: Shared tactile primitives library (`Modifier.tactilePress`, `Modifier.tactileClickable`, `TactileCard`, `TactileButton`, `TactileFilterChip`), concentric nested corner radius $R_{\text{inner}} = \max(0, R_{\text{outer}} - P)$, 1px crisp hairline borders (`outlineVariant 0.40f`), tabular monospace figures (`tnum`) across all telemetry, single-line text constraints on pills/badges, responsive degradation status banner, and physical Samsung S20 Ultra device verification. | `447ccdde1cafc...` |
 | **v1.14.4** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.4/coffee-creator-v1.14.4.apk) | [Notes](docs/releases/v1.14.4.md) · **Sprint 04 Epic E: Pro Operations, Architecture, AI & Integration (`S4-052..65`)**: 100% offline operational guarantee, additive Room migration safety, immutable cross-domain provenance linking cupping to bean/roast/recipe/grinder, deterministic standards engine strictly decoupled from LLM, local RAG knowledge citation verification with anti-hallucination guard (`[chunk-cva-desc-04, Page 3]`), blind panel workflow with role separation (Host vs Assessor) and 3-digit randomized codes with premature unblinding audit trail (`UNBLINDED_PREMATURELY_AUDITED`), inter-rater agreement and panel calibration statistics (Pearson $r$, Spearman $\rho$, Mean Consensus Deviation $\text{MCD} \le 0.35$, Fleiss' generalized Kappa $\kappa_{\text{Fleiss}}$ with Landis-Koch benchmarks), bilingual EN/ID glossary, accessibility profiles (anosmia/parosmia accommodation, allergen alerts with non-clinical disclaimer), and user-consent-based export with PII redaction and SHA-256 integrity seal. | `a931abbccb6aa...` |
 | **v1.14.3** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.3/coffee-creator-v1.14.3.apk) | [Notes](docs/releases/v1.14.3.md) · **Sprint 04 Epic D: Green Coffee Physical Assessment (`S4-041..51`)**: Complete 350g green lot catalog, provenance & chain of custody, SCA 2004 washed Arabica defect taxonomy (Cat 1 full defects vs Cat 2 weighted equivalents), ISO 4150 sieve distribution with mass balance recovery check ($\Delta M \le 1.5\text{g}$) and Screen 16+ retention %, moisture assessment with meter uncertainty, water activity ($a_w \le 0.700$), density (g/L), organoleptic odor disqualification, deterministic grade rule engine with out-of-scope guards (`UNDETERMINED_OUT_OF_SCOPE`), epistemological decoupling (physical grade $\ne$ cup score), buyer spec contract compliance, and SHA-256 sealed JSON/CSV export. | `e377bf4d7ad80...` |
 | **v1.14.2** | 2026-10-18 | [Download](https://github.com/Adrian463588/coffee-creator/releases/download/v1.14.2/coffee-creator-v1.14.2.apk) | [Notes](docs/releases/v1.14.2.md) · **Sprint 04 Epic C: Sensory Training & Testing Lab (`S4-027..40`)**: Blind triangle testing with 6 balanced permutations (`AAB`, `ABA`, etc.), concealed 3-digit keys, exact binomial hypothesis calculus $P(X \ge k)$, 5 basic-taste threshold series (ASTM E679 BET), 60 olfactory reference vials with Sensory SM-2 spaced repetition, confusion matrix, 7 organic-acid comparative tastings, roast defect discrimination, tactile/mouthfeel controls, 2-AFC paired comparisons ($p_0=1/2$), 6-pillar readiness radar, and physical human observation anti-cheating mandate (`isAutoPassed=false`). | `8eff8a4e7feda...` |
@@ -453,7 +463,7 @@ Execute the comprehensive test suite across pure JVM engine, Room DAOs, and Robo
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest
 ```
-*(All 322 unit tests pass with zero failures).*
+*(All 423 unit tests pass with zero failures).*
 
 ### 4. Assemble Debug APK
 Compile the distribution debug preview APK:
