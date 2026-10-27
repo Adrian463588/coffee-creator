@@ -20,7 +20,7 @@ APK ini ditandatangani dengan sertifikat **Android Debug**. Sebelum memasang ver
 
 - **Resep dan Journal:** susun resep dan langkah tuang, simpan revisi, serta siapkan ulang resep dari Journal menuju timer.
 - **Timer seduh manual:** jalankan langkah pour-over atau stopwatch espresso; masukkan pembacaan timbangan sendiri. Nama mesin hanyalah informasi peralatan: aplikasi tidak mengontrol mesin dan tidak mendukung koneksi timbangan atau mesin fisik melalui BLE.
-- **Pengingat:** opsi suara, getaran, dan notifikasi tersedia pada timer. Hasilnya bergantung pada izin, pengaturan suara/Do Not Disturb, dan perangkat; gunakan tombol uji sebelum menyeduh.
+- **Pengingat tuang dan getaran:** timer menyediakan opsi suara, getaran hardware langsung (`USAGE_ALARM`), dan notifikasi Android. Tombol uji tersedia untuk memverifikasi getaran dan suara sebelum menyeduh.
 - **Katalog dan perhitungan:** kelola biji, stok, grinder, dripper dan resep; hitung rasio dan perkiraan extraction yield dari data yang dimasukkan. Pengurangan stok dilakukan oleh pengguna. Nilai TDS dan berat minuman harus berasal dari pengukuran pengguna.
 - **Sensori dan cupping:** roda deskriptor, materi latihan, dan layar eksplorasi CVA tersedia. Formulir CVA Sprint 04 masih berupa draft sementara yang tidak disimpan sebagai sesi; pemetaan dan izin formulir resmi belum diverifikasi. Latihan virtual bukan bukti uji sensori fisik.
 - **AI lokal dan dokumen:** model dan dokumen dapat dipilih secara lokal; model AI opsional dan pengunduhan memerlukan internet. Kafi dan model GGUF kompatibel menggunakan runtime lokal; Gemma 4 LiteRT-LM saat ini hanya dapat diunduh, belum dapat digunakan untuk inferensi di aplikasi. Hasil AI tetap perlu ditinjau pengguna.
@@ -31,9 +31,9 @@ Implementasi dan penerimaan seluruh fitur lintas sprint belum sepenuhnya diverif
 
 Tangkapan layar yang tersimpan di repositori. Versi dan isi layar dapat berbeda dari versi terbaru.
 
-| Home · v1.14.5 | Resep · v1.14.5 | Timer · v1.14.7 |
-| :---: | :---: | :---: |
-| <img src="docs/screenshots/s20_ultra_v1145_01_home.png" alt="Home Coffee Creator versi 1.14.5" width="240"> | <img src="docs/screenshots/s20_ultra_v1145_02_brew_recipe.png" alt="Formulir resep Coffee Creator versi 1.14.5" width="240"> | <img src="docs/screenshots/s20_ultra_v1147_timer_active.png" alt="Timer seduh manual Coffee Creator versi 1.14.7" width="240"> |
+| Home · v1.14.5 | Resep · v1.14.5 | Timer · v1.14.7 | Pengingat & Haptik · v1.14.7 |
+| :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/s20_ultra_v1145_01_home.png" alt="Home Coffee Creator versi 1.14.5" width="220"> | <img src="docs/screenshots/s20_ultra_v1145_02_brew_recipe.png" alt="Formulir resep Coffee Creator versi 1.14.5" width="220"> | <img src="docs/screenshots/s20_ultra_v1147_timer_active.png" alt="Timer seduh manual Coffee Creator versi 1.14.7" width="220"> | <img src="docs/screenshots/s20_ultra_v1147_timer_reminders.png" alt="Pengingat tuang dan haptik Coffee Creator versi 1.14.7" width="220"> |
 
 ## Penyimpanan dan privasi
 
