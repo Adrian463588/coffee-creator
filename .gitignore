@@ -31,3 +31,5 @@ artifacts-*.log
 **/build/
 app/objectbox-jni-*.dll
 .kotlin/
+__pycache__/
+*.py[cod]
